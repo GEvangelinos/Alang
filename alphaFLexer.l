@@ -5,6 +5,7 @@
         #include "alphaDefs.hpp" 
         #include "alphaLang.hpp"
         #include "alphaTokenCodes.hpp"
+        #include "alphaErrorCodes.hpp"
 %}
 
 
@@ -20,9 +21,12 @@ real            ([0-9]*\.[0-9]+([eE][\+-]?[0-9]+)?)
 lineComment    "//".*
 newline         "\n"
 space           [ \r\t\v]
-anyCharacter    .
+
+anyCharacter            .|\n
+anyCharacterButNewLine  .
+
 commentStart       "/\*"
-commentEnd         "\*\"
+commentEnd         "\*/"
 
 /* Flex conditions */
 %x COMMENT_BLOCK
@@ -79,17 +83,36 @@ commentEnd         "\*\"
 {real}          {Alpha::Token::exportToken(yylval, yylineno, yytext, yytext); return Alpha::realNumberGroupCode;}
 {integer}       {Alpha::Token::exportToken(yylval, yylineno, yytext, yytext); return Alpha::integerNumberGroupCode;}
 {lineComment}   {Alpha::TokenComment::exportLineCommentToken(yylval, yylineno); return static_cast<int>(Alpha::CommentTypeCodes::LINE);}
-{newline}*       /* Just eat up the new line. */
-{space}*         /* Eating up spaces. */
-{commentStart}  {BEGIN(COMMENT_BLOCK); Alpha::TokenComment::addStartLineOfBlockComment(yylineno);} /* No return until complete token or EOF. */
-<COMMENT_BLOCK>{commentStart} {Alpha::TokenComment::addStartLineOfBlockComment(yylineno);}
+{newline}*      {/* Just eat up the new line. */}
+{space}*        {/* Just eat up the spaces. */}
+{commentStart} {
+        BEGIN(COMMENT_BLOCK);
+        Alpha::TokenComment::addStartLineOfBlockComment(yylineno);
+} /* No return until complete token or EOF. */
+
+<COMMENT_BLOCK>{commentStart} {
+        Alpha::TokenComment::addStartLineOfBlockComment(yylineno);
+}
+<COMMENT_BLOCK>{commentEnd} {
+        Alpha::TokenComment::exportBlockCommentToken(yylval, yylineno);
+        if (Alpha::TokenComment::isInNestedState() == false)
+                BEGIN(INITIAL);
+        return Alpha::TokenComment::isInNestedState() ? static_cast<int>(Alpha::CommentTypeCodes::NESTED) : static_cast<int>(Alpha::CommentTypeCodes::BLOCK);
+}
+<COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
+<COMMENT_BLOCK><<EOF>> {
+        return Alpha::EOF_INSIDE_COMMENT;
+}
+
+
 
 
                  
                  /* Any other character past this point is considered invalid.  DO NOT PUT THIS COMMENT AT THE BEGINNING OF THE LINE. */
-{anyCharacter}  {Alpha::Token::exportToken(yylval, yylineno, yytext, yytext); return Alpha::invalidCharacterGroupCode;}
+{anyCharacterButNewLine} {
+        Alpha::Token::exportToken(yylval, yylineno, yytext, yytext);
+        return Alpha::invalidCharacterGroupCode;
+}
 
 <<EOF>>          {return 0;}
 %%
-
-

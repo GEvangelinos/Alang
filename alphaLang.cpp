@@ -197,7 +197,7 @@ namespace Alpha
         /*** ENDOF: class TokenID definitions. ***/
 
         /*** STARTOF: class TokenComment definitions. ***/
-        bool TokenComment::inNestedCommentState = false;
+        bool TokenComment::inNestedState = false;
         std::vector<int> TokenComment::startLineOfBlockComments;
 
         TokenComment::TokenComment(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &commentDescription, const std::string __commentType)
@@ -238,18 +238,22 @@ namespace Alpha
                 stringBuffer << __startLine << " - " << __endLine;
                 casted_yylval->content = stringBuffer.str();
 
-                casted_yylval->codeName = TokenComment::inNestedCommentState ? "NESTED_COMMENT" : "BLOCK_COMMENT";
+                casted_yylval->codeName = TokenComment::inNestedState ? "NESTED_COMMENT" : "BLOCK_COMMENT";
 
                 TokenComment::startLineOfBlockComments.pop_back();
                 if (TokenComment::startLineOfBlockComments.size() == 0)
-                        inNestedCommentState = false;
+                        inNestedState = false;
         }
         void TokenComment::addStartLineOfBlockComment(const int startLine)
         {
                 TokenComment::startLineOfBlockComments.push_back(startLine);
                 if (TokenComment::startLineOfBlockComments.size() > 1)
-                        inNestedCommentState == true;
+                        inNestedState = true;
         }
 
+        bool TokenComment::isInNestedState()
+        {
+                return TokenComment::inNestedState;
+        }
         /*** ENDOF: class TokenComment definitions. ***/
 }; /* Namespace Alpha */

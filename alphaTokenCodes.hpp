@@ -5,7 +5,6 @@ namespace Alpha
 {
         constexpr int codePoolOffset = 1000;
 
-        constexpr int invalidCharacterCode = -1;
         constexpr int endOfFileCode = 0;
         constexpr int keywordGroupCode = 1;
         constexpr int operatorGroupCode = 2;
@@ -14,8 +13,9 @@ namespace Alpha
         constexpr int realNumberCode = 5;
         constexpr int integerNumberCode = 6;
         constexpr int idCode = 7;
+        constexpr int stringLiteralCode = 8;
+        constexpr int invalidCharacterCode = 10;
 
-        constexpr int invalidCharacterGroupCode = invalidCharacterCode * codePoolOffset;
         constexpr int startingKeywordCode = keywordGroupCode * codePoolOffset;
         constexpr int startingOperatorCode = operatorGroupCode * codePoolOffset;
         constexpr int startingPunctuationCode = punctuationGroupCode * codePoolOffset;
@@ -23,6 +23,8 @@ namespace Alpha
         constexpr int realNumberGroupCode = realNumberCode * codePoolOffset;
         constexpr int integerNumberGroupCode = integerNumberCode * codePoolOffset;
         constexpr int idGroupCode = idCode * codePoolOffset;
+        constexpr int stringLiteralGroupCode = stringLiteralCode * codePoolOffset;
+        constexpr int invalidCharacterGroupCode = invalidCharacterCode * codePoolOffset;
 
         enum class KeywordCodes : int
         {

@@ -5,6 +5,7 @@
 #include "alphaDefs.hpp"
 #include "alphaLang.hpp"
 #include "alphaTokenCodes.hpp"
+#include "alphaErrorCodes.hpp"
 
 static void tokenParser(std::list<Alpha::Token *> &tokenList)
 {
@@ -12,6 +13,11 @@ static void tokenParser(std::list<Alpha::Token *> &tokenList)
         int tokenCode = -1;
         while (tokenCode = alpha_yylex(&currToken))
         {
+                if (tokenCode == Alpha::EOF_INSIDE_COMMENT)
+                {
+                        std::cout << "Token Code is " << tokenCode << std::endl;
+                        return;
+                }
                 const int groupCode = tokenCode / Alpha::codePoolOffset;
                 Alpha::Token *newTokenTempPtr = NULL;
                 switch (groupCode)
@@ -51,15 +57,19 @@ static void tokenParser(std::list<Alpha::Token *> &tokenList)
         }
 }
 
+static void printParsedTokens(const std::list<Alpha::Token *> &tokenList)
+{
+        std::cout << "\n--------------------Lexical Analysis--------------------\n";
+        for (auto &token : tokenList)
+                std::cout << token->toString() << std::endl;
+        std::cout << "\n----------------End of Lexical Analysis-----------------\n";
+}
+
 int main()
 {
         std::list<Alpha::Token *> tokenList;
         /* TODO: MAKE THE ABOVE AN ARRAYLIST FOR GOOD CACHE LOCALITY */
         tokenParser(tokenList);
-
-        for (auto &token : tokenList)
-        {
-                std::cout << token->toString() << std::endl;
-        }
+        printParsedTokens(tokenList);
         return 0;
 }
