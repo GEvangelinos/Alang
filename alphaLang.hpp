@@ -1,3 +1,6 @@
+#ifndef ALPHA_LANG_HPP
+#define ALPHA_LANG_HPP
+
 #include <string>
 #include <vector>
 namespace Alpha
@@ -117,3 +120,5 @@ namespace Alpha
                 std::string toString() const override;
         };
 } /* namespace Alpha */
+
+#endif /* ALPHA_LANG_HPP */

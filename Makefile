@@ -1,14 +1,17 @@
 CXX =  g++
+CXX_FLAGS = -std=c++20 # UNUSED #
 EXECUTABLE_NAME = al
-FLEX_GENERATED_FILE = alphaFLexer.cpp
+FLEX_SOURCE_GENERATED_FILE = alphaFlexScanner.cpp
+FLEX_HEADER_GENERATED_FILE = alphaFlexScanner.hpp
 
-$(EXECUTABLE_NAME): alphaDriver.cpp alphaLang.cpp alphaFLexer.cpp
+$(EXECUTABLE_NAME): alphaDriver.cpp alphaLang.cpp alphaFlexScanner.cpp
 	$(CXX) -o $@ $^
 
-alphaFLexer.cpp: alphaFLexer.l
-	flex --outfile $(FLEX_GENERATED_FILE) $^
+alphaFlexScanner.cpp: alphaFlexScanner.l
+	flex $^
 
 
 clean:
 	-rm $(EXECUTABLE_NAME)
-	-rm $(FLEX_GENERATED_FILE)
+	-rm $(FLEX_HEADER_GENERATED_FILE)
+	-rm $(FLEX_SOURCE_GENERATED_FILE)

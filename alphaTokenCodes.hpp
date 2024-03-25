@@ -1,5 +1,5 @@
-#ifndef ALPHA_CODES_HPP
-#define ALPHA_CODES_HPP
+#ifndef ALPHA_TOKEN_CODES_HPP
+#define ALPHA_TOKEN_CODES_HPP
 
 namespace Alpha
 {
@@ -90,4 +90,4 @@ namespace Alpha
                 __END_OF_COMMENT_TYPE_CODES__
         };
 }
-#endif /* ALPHA_CODES_HPP */
+#endif /* ALPHA_TOKEN_CODES_HPP */
