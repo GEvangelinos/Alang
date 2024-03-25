@@ -6,6 +6,7 @@
         #include "alphaLang.hpp"
         #include "alphaTokenCodes.hpp"
         #include "alphaErrorCodes.hpp"
+        #include "alphaExceptions.hpp"
 %}
 
 
@@ -101,7 +102,7 @@ commentEnd         "\*/"
 }
 <COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
 <COMMENT_BLOCK><<EOF>> {
-        return Alpha::EOF_INSIDE_COMMENT;
+        throw Alpha::UnexpectedEOF("EOF reached while being inside a NESTED/BLOCK COMMENT");
 }
 
 
@@ -114,5 +115,5 @@ commentEnd         "\*/"
         return Alpha::invalidCharacterGroupCode;
 }
 
-<<EOF>>          {return 0;}
+<<EOF>>          {return ALPHA_YYLEX_EOF;}
 %%

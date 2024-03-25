@@ -7,4 +7,4 @@ namespace Alpha
                 EOF_INSIDE_STRING
         };
 
-};
+} /* namespace Alpha*/

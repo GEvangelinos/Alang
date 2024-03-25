@@ -99,7 +99,7 @@ namespace Alpha
         private:
                 std::string commentType;
                 static bool inNestedState;
-                static std::vector<int>startLineOfBlockComments;
+                static std::vector<int> startLineOfBlockComments;
 
         public:
                 static void exportLineCommentToken(void *yylval, unsigned int __lineNumber);
@@ -110,4 +110,10 @@ namespace Alpha
                 std::string toString() const override;
         };
 
-}
+        class TokenInvalid : public Token
+        {
+        public:
+                TokenInvalid(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string theInvalidToken);
+                std::string toString() const override;
+        };
+} /* namespace Alpha */

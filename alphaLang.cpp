@@ -40,7 +40,7 @@ namespace Alpha
         void Token::decrementValidTokenCounter(void)
         {
                 if (validTokenCounter == std::numeric_limits<unsigned int>::min()) /* This should never happen. */
-                        throw std::overflow_error("validTokenCounter has reached its minimum value and will wrap-around.");
+                        throw std::underflow_error("validTokenCounter has reached its minimum value and will wrap-around.");
                 validTokenCounter--;
         }
 
@@ -256,4 +256,24 @@ namespace Alpha
                 return TokenComment::inNestedState;
         }
         /*** ENDOF: class TokenComment definitions. ***/
-}; /* Namespace Alpha */
+
+        /*** STARTOF: class TokenInvalid definitions. ***/
+        TokenInvalid::TokenInvalid(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string theInvalidToken)
+        :Token(lineNumber, tokenNumber, theInvalidToken)
+        {
+                /* Empty Constructor Body */
+        }
+
+        std::string TokenInvalid::toString() const
+        {
+                std::stringstream stringBuffer;
+                stringBuffer << Token::toString()
+                             << "\t"
+                             << "TOKEN_INVALID"
+                             << "\t"
+                             << Token::getTokenContent();
+                return stringBuffer.str();
+        }
+        /*** ENDOF: class TokenInvalid definitions. ***/
+
+} /* namespace Alpha */

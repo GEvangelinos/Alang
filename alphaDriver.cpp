@@ -6,18 +6,14 @@
 #include "alphaLang.hpp"
 #include "alphaTokenCodes.hpp"
 #include "alphaErrorCodes.hpp"
+#include "alphaExceptions.hpp"
 
 static void tokenParser(std::list<Alpha::Token *> &tokenList)
 {
         struct Alpha::alpha_token_t currToken;
         int tokenCode = -1;
-        while (tokenCode = alpha_yylex(&currToken))
+        while ((tokenCode = alpha_yylex(&currToken)) != ALPHA_YYLEX_EOF)
         {
-                if (tokenCode == Alpha::EOF_INSIDE_COMMENT)
-                {
-                        std::cout << "Token Code is " << tokenCode << std::endl;
-                        return;
-                }
                 const int groupCode = tokenCode / Alpha::codePoolOffset;
                 Alpha::Token *newTokenTempPtr = NULL;
                 switch (groupCode)
@@ -46,9 +42,10 @@ static void tokenParser(std::list<Alpha::Token *> &tokenList)
                         newTokenTempPtr = new Alpha::TokenID(currToken.lineNumber, currToken.tokenNumber, currToken.content, currToken.codeName);
                         break;
                 case Alpha::invalidCharacterCode:
+                        newTokenTempPtr = new Alpha::TokenInvalid(currToken.lineNumber, currToken.tokenNumber, currToken.content);
                         break;
                 default:
-                        throw std::runtime_error("UN-FUCKING-KNOWN");
+                        throw std::runtime_error("Return CODE is !!UN-FUCKING-KNOWN!!");
                 }
 
                 if (newTokenTempPtr == NULL)
@@ -69,7 +66,16 @@ int main()
 {
         std::list<Alpha::Token *> tokenList;
         /* TODO: MAKE THE ABOVE AN ARRAYLIST FOR GOOD CACHE LOCALITY */
-        tokenParser(tokenList);
+        try
+        {
+                tokenParser(tokenList);
+        }
+        catch (Alpha::UnexpectedEOF &e)
+        {
+                std::cerr << e.what() << std::endl;
+                std::cout << "Follows premature token analysis due to unexpected EOF." << std::endl;
+        }
         printParsedTokens(tokenList);
+
         return 0;
 }
