@@ -197,10 +197,8 @@ namespace Alpha
         /*** ENDOF: class TokenID definitions. ***/
 
         /*** STARTOF: class TokenComment definitions. ***/
-        int TokenComment::currentlyOpenedBlockComments = 0;
-        std::vector<int> TokenComment::startLineOfBlockComments;
         bool TokenComment::inNestedCommentState = false;
-        ;
+        std::vector<int> TokenComment::startLineOfBlockComments;
 
         TokenComment::TokenComment(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &commentDescription, const std::string __commentType)
             : Token(lineNumber, tokenNumber, commentDescription), commentType(__commentType)
@@ -226,12 +224,13 @@ namespace Alpha
                 casted_yylval->content = "";
                 casted_yylval->codeName = "LINE_COMMENT";
         }
-        void TokenComment::exportBlockCommentToken(void *yylval, unsigned int __startLine, unsigned int __endLine)
+        void TokenComment::exportBlockCommentToken(void *yylval, unsigned int __endLine)
         {
-                if (TokenComment::currentlyOpenedBlockComments <= 0)
+                if (TokenComment::startLineOfBlockComments.size() == 0)
                         throw std::runtime_error("Something went wrong and <currentlyOpenedBlockComments> is negative or zero.");
-
+                unsigned int __startLine = TokenComment::startLineOfBlockComments.back(); /* There we find last saved block opening line. */
                 struct alpha_token_t *casted_yylval = (struct alpha_token_t *)yylval;
+
                 casted_yylval->lineNumber = __startLine;
                 casted_yylval->tokenNumber = Token::getValidTokenCounter();
 
@@ -242,16 +241,13 @@ namespace Alpha
                 casted_yylval->codeName = TokenComment::inNestedCommentState ? "NESTED_COMMENT" : "BLOCK_COMMENT";
 
                 TokenComment::startLineOfBlockComments.pop_back();
-                TokenComment::currentlyOpenedBlockComments--;
-                if (TokenComment::currentlyOpenedBlockComments == 0)
+                if (TokenComment::startLineOfBlockComments.size() == 0)
                         inNestedCommentState = false;
         }
         void TokenComment::addStartLineOfBlockComment(const int startLine)
         {
-                /* TODO: VERIFY up to LINE (add this field to TOKEN) and check startline is >= that it. */
                 TokenComment::startLineOfBlockComments.push_back(startLine);
-                TokenComment::currentlyOpenedBlockComments++;
-                if (TokenComment::currentlyOpenedBlockComments > 1)
+                if (TokenComment::startLineOfBlockComments.size() > 1)
                         inNestedCommentState == true;
         }
 

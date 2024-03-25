@@ -98,13 +98,13 @@ namespace Alpha
         {
         private:
                 std::string commentType;
+                static bool inNestedCommentState;
                 static int currentlyOpenedBlockComments;
                 static std::vector<int>startLineOfBlockComments;
-                static bool inNestedCommentState = false;
 
         public:
                 static void exportLineCommentToken(void *yylval, unsigned int __lineNumber);
-                static void exportBlockCommentToken(void *yylval, unsigned int __startLine, unsigned int __endLine);
+                static void exportBlockCommentToken(void *yylval, unsigned int __endLine);
                 static void addStartLineOfBlockComment(const int startLine);
                 TokenComment(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &commentLines, const std::string commentType);
                 std::string toString() const override;
