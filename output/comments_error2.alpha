@@ -1,6 +1,0 @@
-
---------------------Lexical Analysis--------------------
-1:	#0	""	COMMENT	LINE_COMMENT
-
-----------------End of Lexical Analysis-----------------
-Line: 5 EOF reached while being inside a NESTED/BLOCK COMMENT
