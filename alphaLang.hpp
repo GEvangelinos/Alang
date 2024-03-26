@@ -103,7 +103,7 @@ namespace Alpha
                 static std::stringstream stringAssemblingBuffer;
                 static int stringStartingLineNumber;
                 static void flushAssemblingBuffer();
-                void convertContentEscapesToASCII();
+                static std::string convertContentEscapesToASCII();
 
         public:
                 static void setStringStartingLineNumber(int lineNumber);

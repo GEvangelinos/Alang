@@ -268,6 +268,38 @@ namespace Alpha
                 TokenString::stringStartingLineNumber = lineNumber;
         }
 
+        std::string TokenString::convertContentEscapesToASCII()
+        {
+                std::string str = stringAssemblingBuffer.str();
+                std::string toReplace = "\\n";
+                char replacement = '\n';
+                size_t pos = 0;
+                while ((pos = str.find(toReplace, pos)) != std::string::npos)
+                {
+                        str.replace(pos, toReplace.length(), 1, replacement);
+                        pos += 1; // Move past the replacement
+                }
+
+                toReplace = "\\t";
+                replacement = '\t';
+                pos = 0;
+                while ((pos = str.find(toReplace, pos)) != std::string::npos)
+                {
+                        str.replace(pos, toReplace.length(), 1, replacement);
+                        pos += 1; // Move past the replacement
+                }
+
+                toReplace = "\\\\";
+                replacement = '\\';
+                pos = 0;
+                while ((pos = str.find(toReplace, pos)) != std::string::npos)
+                {
+                        str.replace(pos, toReplace.length(), 1, replacement);
+                        pos += 1; // Move past the replacement
+                }
+                return str;
+        }
+
         void TokenString::appendToAssemblingBuffer(std::string stringChunk)
         {
                 stringAssemblingBuffer << stringChunk;
@@ -285,7 +317,7 @@ namespace Alpha
                 struct alpha_token_t *casted_yylval = (struct alpha_token_t *)yylval;
                 casted_yylval->lineNumber = TokenString::stringStartingLineNumber;
                 casted_yylval->tokenNumber = Token::getValidTokenCounter();
-                casted_yylval->content = TokenString::stringAssemblingBuffer.str();
+                casted_yylval->content = convertContentEscapesToASCII();
                 casted_yylval->codeName = "";
                 TokenString::flushAssemblingBuffer();
         }
@@ -307,13 +339,6 @@ namespace Alpha
                              << "\"";
                 return stringBuffer.str();
         }
-
-        void TokenString::convertContentEscapesToASCII()
-        {
-                /* TODO : ALSO WHERE DO YOU USE THIS? YOU DO BUT WHERE?? :w*/
-                ;
-        }
-
         /*** ENDOF: class TokenString definitions. ***/
 
         /*** STARTOF: class TokenInvalid definitions. ***/
