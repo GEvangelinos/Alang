@@ -9,22 +9,22 @@ namespace Alpha
         constexpr int keywordGroupCode = 1;
         constexpr int operatorGroupCode = 2;
         constexpr int punctuationGroupCode = 3;
-        constexpr int commentTypeGroupCode = 4;
-        constexpr int realNumberCode = 5;
-        constexpr int integerNumberCode = 6;
-        constexpr int idCode = 7;
-        constexpr int stringLiteralCode = 8;
-        constexpr int invalidCharacterCode = 10;
+        constexpr int realNumberGroupCode = 4;
+        constexpr int integerNumberGroupCode = 5;
+        constexpr int stringLiteralGroupCode = 6;
+        constexpr int idGroupCode = 7;
+        constexpr int commentTypeGroupCode = 8;
+        constexpr int invalidCharacterGroupCode = 10;
 
         constexpr int startingKeywordCode = keywordGroupCode * codePoolOffset;
         constexpr int startingOperatorCode = operatorGroupCode * codePoolOffset;
         constexpr int startingPunctuationCode = punctuationGroupCode * codePoolOffset;
+        constexpr int realNumberCode = realNumberGroupCode * codePoolOffset;
+        constexpr int integerNumberCode = integerNumberGroupCode * codePoolOffset;
+        constexpr int stringLiteralCode = stringLiteralGroupCode * codePoolOffset;
+        constexpr int idCode = idGroupCode * codePoolOffset;
         constexpr int startingCommentTypeCode = commentTypeGroupCode * codePoolOffset;
-        constexpr int realNumberGroupCode = realNumberCode * codePoolOffset;
-        constexpr int integerNumberGroupCode = integerNumberCode * codePoolOffset;
-        constexpr int idGroupCode = idCode * codePoolOffset;
-        constexpr int stringLiteralGroupCode = stringLiteralCode * codePoolOffset;
-        constexpr int invalidCharacterGroupCode = invalidCharacterCode * codePoolOffset;
+        constexpr int invalidCharacterCode = invalidCharacterGroupCode * codePoolOffset;
 
         enum class KeywordCodes : int
         {

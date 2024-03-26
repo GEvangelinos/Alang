@@ -191,7 +191,9 @@ namespace Alpha
                              << "\t"
                              << "ID"
                              << "\t"
-                             << this->idName;
+                             << "\""
+                             << this->idName
+                             << "\"";
                 return stringBuffer.str();
         }
         /*** ENDOF: class TokenID definitions. ***/
@@ -257,9 +259,66 @@ namespace Alpha
         }
         /*** ENDOF: class TokenComment definitions. ***/
 
+        /*** STARTOF: class TokenString definitions. ***/
+        std::stringstream TokenString::stringAssemblingBuffer;
+        int TokenString::stringStartingLineNumber = -1;
+
+        void TokenString::setStringStartingLineNumber(int lineNumber)
+        {
+                TokenString::stringStartingLineNumber = lineNumber;
+        }
+
+        void TokenString::appendToAssemblingBuffer(std::string stringChunk)
+        {
+                stringAssemblingBuffer << stringChunk;
+        }
+
+        void TokenString::flushAssemblingBuffer()
+        {
+                stringAssemblingBuffer.str("");
+                stringAssemblingBuffer.clear();
+                stringStartingLineNumber = -1;
+        }
+
+        void TokenString::exportStringToken(void *yylval)
+        {
+                struct alpha_token_t *casted_yylval = (struct alpha_token_t *)yylval;
+                casted_yylval->lineNumber = TokenString::stringStartingLineNumber;
+                casted_yylval->tokenNumber = Token::getValidTokenCounter();
+                casted_yylval->content = TokenString::stringAssemblingBuffer.str();
+                casted_yylval->codeName = "";
+                TokenString::flushAssemblingBuffer();
+        }
+
+        TokenString::TokenString(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string stringContent)
+            : Token(lineNumber, tokenNumber, stringContent)
+        {
+                /* Empty Constructor Body */
+        }
+        std::string TokenString::toString() const
+        {
+                std::stringstream stringBuffer;
+                stringBuffer << Token::toString()
+                             << "\t"
+                             << "STRING"
+                             << "\t"
+                             << "\""
+                             << Token::getTokenContent()
+                             << "\"";
+                return stringBuffer.str();
+        }
+
+        void TokenString::convertContentEscapesToASCII()
+        {
+                /* TODO : ALSO WHERE DO YOU USE THIS? YOU DO BUT WHERE?? :w*/
+                ;
+        }
+
+        /*** ENDOF: class TokenString definitions. ***/
+
         /*** STARTOF: class TokenInvalid definitions. ***/
         TokenInvalid::TokenInvalid(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string theInvalidToken)
-        :Token(lineNumber, tokenNumber, theInvalidToken)
+            : Token(lineNumber, tokenNumber, theInvalidToken)
         {
                 /* Empty Constructor Body */
         }

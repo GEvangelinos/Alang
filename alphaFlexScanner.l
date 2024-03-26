@@ -27,11 +27,18 @@ space           [ \r\t\v]
 anyCharacter            .|\n
 anyCharacterButNewLine  .
 
-commentStart       "/\*"
-commentEnd         "\*/"
+commentBeginRule        "/\*"
+commentEndRule          "\*/"
+
+stringBeginRule         \"
+stringEndRule           \"
+stringInnerPart         ([^\"\\]|\\.)+
+
+
 
 /* Flex conditions */
-%x COMMENT_BLOCK
+%x INSIDE_COMMENT_BLOCK
+%x INSIDE_STRING
 
 
 %%
@@ -81,39 +88,51 @@ commentEnd         "\*/"
 "."             {ALPHA_EXPORT_PUNCTUATION_TOKEN(DOT);}
 ".."            {ALPHA_EXPORT_PUNCTUATION_TOKEN(DDOT);}
 
-{id}            {Alpha::Token::exportToken(yylval, yylineno, yytext, yytext); return Alpha::idGroupCode;}
-{real}          {Alpha::Token::exportToken(yylval, yylineno, yytext, yytext); return Alpha::realNumberGroupCode;}
-{integer}       {Alpha::Token::exportToken(yylval, yylineno, yytext, yytext); return Alpha::integerNumberGroupCode;}
+{id}            {Alpha::Token::exportToken(yylval, yylineno, yytext, yytext); return Alpha::idCode;}
+{real}          {Alpha::Token::exportToken(yylval, yylineno, yytext, yytext); return Alpha::realNumberCode;}
+{integer}       {Alpha::Token::exportToken(yylval, yylineno, yytext, yytext); return Alpha::integerNumberCode;}
 {lineComment}   {Alpha::TokenComment::exportLineCommentToken(yylval, yylineno); return static_cast<int>(Alpha::CommentTypeCodes::LINE);}
 {newline}*      {/* Just eat up the new line. */}
 {space}*        {/* Just eat up the spaces. */}
-{commentStart} {
-        BEGIN(COMMENT_BLOCK);
+
+{commentBeginRule} {
+        BEGIN(INSIDE_COMMENT_BLOCK);
         Alpha::TokenComment::addStartLineOfBlockComment(yylineno);
 } /* No return until complete token or EOF. */
-
-<COMMENT_BLOCK>{commentStart} {
+<INSIDE_COMMENT_BLOCK>{commentBeginRule} {
         Alpha::TokenComment::addStartLineOfBlockComment(yylineno);
 }
-<COMMENT_BLOCK>{commentEnd} {
+<INSIDE_COMMENT_BLOCK>{commentEndRule} {
         Alpha::TokenComment::exportBlockCommentToken(yylval, yylineno);
         if (Alpha::TokenComment::isInNestedState() == false)
                 BEGIN(INITIAL);
-        return Alpha::TokenComment::isInNestedState() ? static_cast<int>(Alpha::CommentTypeCodes::NESTED) : static_cast<int>(Alpha::CommentTypeCodes::BLOCK);
+        return static_cast<int>(Alpha::TokenComment::isInNestedState() ? Alpha::CommentTypeCodes::NESTED : Alpha::CommentTypeCodes::BLOCK);
 }
-<COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
-<COMMENT_BLOCK><<EOF>> {
-        throw Alpha::BlockCommentEOF("EOF reached while being inside a NESTED/BLOCK COMMENT");
+<INSIDE_COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
+<INSIDE_COMMENT_BLOCK><<EOF>> {
+        throw Alpha::BlockCommentEOF("Line: " + std::to_string(yylineno) + " EOF reached while being inside a NESTED/BLOCK COMMENT");
 }
 
 
+{stringBeginRule} {
+        BEGIN(INSIDE_STRING);
+        Alpha::TokenString::setStringStartingLineNumber(yylineno);
+}
+<INSIDE_STRING>{stringInnerPart} {
+        Alpha::TokenString::appendToAssemblingBuffer(yytext);
+}
+<INSIDE_STRING><<EOF>> {
+        throw Alpha::StringEOF("Line: " + std::to_string(yylineno) + " EOF reached while being inside a string");
+}
+<INSIDE_STRING>{stringEndRule} {
+        BEGIN(INITIAL);
+        Alpha::TokenString::exportStringToken(yylval);
+        return Alpha::stringLiteralCode;
+}
 
-
-                 
-                 /* Any other character past this point is considered invalid.  DO NOT PUT THIS COMMENT AT THE BEGINNING OF THE LINE. */
-{anyCharacterButNewLine} {
+{anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
         Alpha::Token::exportToken(yylval, yylineno, yytext, yytext);
-        return Alpha::invalidCharacterGroupCode;
+        return Alpha::invalidCharacterCode;
 }
 
 <<EOF>>          {return ALPHA_YYLEX_EOF;}

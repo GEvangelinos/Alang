@@ -37,7 +37,7 @@ namespace Alpha
                 static void exportToken(void *yylval, unsigned int __lineNumber, std::string __content, std::string __codeName);
         };
 
-        class TokenKeyword : public Token
+        class TokenKeyword final : public Token
         {
         private:
                 const std::string tokenCodeName;
@@ -47,7 +47,7 @@ namespace Alpha
                 std::string toString() const override;
         };
 
-        class TokenOperator : public Token
+        class TokenOperator final : public Token
         {
         private:
                 const std::string tokenCodeName;
@@ -57,7 +57,7 @@ namespace Alpha
                 std::string toString() const override;
         };
 
-        class TokenPunctuation : public Token
+        class TokenPunctuation final : public Token
         {
         private:
                 const std::string tokenCodeName;
@@ -67,7 +67,7 @@ namespace Alpha
                 std::string toString() const override;
         };
 
-        class TokenIntegerNumber : public Token
+        class TokenIntegerNumber final : public Token
         {
         private:
                 const std::string numberOfToken;
@@ -77,7 +77,7 @@ namespace Alpha
                 std::string toString() const override;
         };
 
-        class TokenRealNumber : public Token
+        class TokenRealNumber final : public Token
         {
         private:
                 const std::string numberOfToken;
@@ -87,7 +87,7 @@ namespace Alpha
                 std::string toString() const override;
         };
 
-        class TokenID : public Token
+        class TokenID final : public Token
         {
         private:
                 const std::string idName;
@@ -97,7 +97,23 @@ namespace Alpha
                 std::string toString() const override;
         };
 
-        class TokenComment : public Token
+        class TokenString final : public Token
+        {
+        private:
+                static std::stringstream stringAssemblingBuffer;
+                static int stringStartingLineNumber;
+                static void flushAssemblingBuffer();
+                void convertContentEscapesToASCII();
+
+        public:
+                static void setStringStartingLineNumber(int lineNumber);
+                static void appendToAssemblingBuffer(std::string stringChunk);
+                static void exportStringToken(void *yylval);
+                TokenString(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string stringContent);
+                std::string toString() const;
+        };
+
+        class TokenComment final : public Token
         {
         private:
                 std::string commentType;
@@ -113,7 +129,7 @@ namespace Alpha
                 std::string toString() const override;
         };
 
-        class TokenInvalid : public Token
+        class TokenInvalid final : public Token
         {
         public:
                 TokenInvalid(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string theInvalidToken);
