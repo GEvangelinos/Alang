@@ -268,6 +268,7 @@ namespace Alpha
                 TokenString::stringStartingLineNumber = lineNumber;
         }
 
+        /* FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */
         std::string TokenString::convertContentEscapesToASCII()
         {
                 std::string str = stringAssemblingBuffer.str();
@@ -291,6 +292,15 @@ namespace Alpha
 
                 toReplace = "\\\\";
                 replacement = '\\';
+                pos = 0;
+                while ((pos = str.find(toReplace, pos)) != std::string::npos)
+                {
+                        str.replace(pos, toReplace.length(), 1, replacement);
+                        pos += 1; // Move past the replacement
+                }
+
+                toReplace = "\\\"";
+                replacement = '\"';
                 pos = 0;
                 while ((pos = str.find(toReplace, pos)) != std::string::npos)
                 {

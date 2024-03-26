@@ -44,7 +44,6 @@ static void tokenParser(std::list<Alpha::Token *> &tokenList, std::string &possi
         {
                 for (int tokenCode = alpha_yylex(&currToken); tokenCode != ALPHA_YYLEX_EOF; tokenCode = alpha_yylex(&currToken))
                 {
-                        std::cout << "TokenCode == " << tokenCode << std::endl;
                         const int groupCode = tokenCode / Alpha::codePoolOffset;
                         Alpha::Token *newAlphaToken = generateCodeBasedToken(groupCode, currToken);
                         if (!newAlphaToken)
