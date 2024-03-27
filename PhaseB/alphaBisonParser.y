@@ -1,8 +1,13 @@
 %{
-        #DEFINE RAND 100
         #include <string>
+        #include <iostream>
         extern int 
 %}
+
+%output "alphaBisonParser.cpp"
+%define parse.error verbose
+
+
 
 %start program
 
@@ -87,11 +92,11 @@
 
 
 %%
-program:        /* Void */
+program         : /* Void */
                 |  multi_stmt
                 ;
 
-stmt:           expr SEMI_COLON
+stmt            : expr SEMI_COLON
                 | ifstmt
                 | whilestmt
                 | forstmt
@@ -103,11 +108,11 @@ stmt:           expr SEMI_COLON
                 | SEMI_COLON
                 ;
 
-multi_stmt:  stmt
+multi_stmt      : stmt
                 | stmt multi_stmt
                 ;
 
-expr:           assignexpr
+expr            : assignexpr
                 | expr PLUS expr
                 | expr MINUS expr
                 | expr MUL expr
@@ -124,7 +129,7 @@ expr:           assignexpr
                 | term
                 ;
 
-term:           LEFT_PARENTHESIS expr RIGHT_PARENTHESIS
+term            : LEFT_PARENTHESIS expr RIGHT_PARENTHESIS
                 | MINUS expr
                 | NOT expr
                 | PLUS_PLUS lvalue
@@ -134,70 +139,69 @@ term:           LEFT_PARENTHESIS expr RIGHT_PARENTHESIS
                 | primary
                 ;
 
-assignexpr:     lvalue ASSIGN expr
+assignexpr      : lvalue ASSIGN expr
                 ;
 
-primary:        lvalue
+primary         : lvalue
                 | call
                 | objectdef
                 | LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS
                 | const
                 ;
 
-lvalue:         ID
-                | LOCAL ID
-                | COLON_BLOCK ID
-                | member
+lvalue          : ID {std::cout << "HELLO\n";}
+                | LOCAL ID {std::cout << "Hello2\n";}
+                | COLON_BLOCK ID {std::cout << "Hello3\n";}
+                | member {std::cout << "Hello4\n";}
                 ;
 
-member:         lvalue DOT ID
+member          : lvalue DOT ID
                 | lvalue LEFT_BRACKET expr RIGHT_BRACKET
                 | call DOT ID
                 | call LEFT_BRACKET expr RIGHT_BRACKET
                 ;
 
-call:           call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
+call            : call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
                 | lvalue callsuffix
                 | LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
                 ;
 
-callsuffix:     normcall
+callsuffix      : normcall
                 | methodcall
                 ;
 
-normcall:       LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
+normcall        : LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
                 ;
 
-methodcall:     DDOT ID LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
+methodcall      : DDOT ID LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
                 ;
 
-expr_list:      expr
+expr_list       : expr
                 | expr COMMA expr_list
                 ;
 
-elist:          expr_list
+elist           : expr_list
                 | /* Void */
                 ;
 
-objectdef:      LEFT_BRACKET elist RIGHT_BRACKET
+objectdef       : LEFT_BRACKET elist RIGHT_BRACKET
                 | LEFT_BRACKET indexed RIGHT_BRACKET
                 ;
 
-indexed:        indexedelem_list
-                | /* Void */
+indexed         : indexedelem_list
                 ;
 
-indexedelem:    LEFT_BRACE expr COLON expr RIGHT_BRACE
+indexedelem     : LEFT_BRACE expr COLON expr RIGHT_BRACE
                 ;
 
-block:          LEFT_BRACE multi_stmt RIGHT_BRACE
+block           : LEFT_BRACE multi_stmt RIGHT_BRACE
                 ;
 
-funcdef:        FUNCTION ID LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block
+funcdef         : FUNCTION ID LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block
                 | FUNCTION LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block
                 ;
 
-const:          INT_CONST
+const           : INT_CONST
                 | REAL_CONST
                 | STRING_LITERAL
                 | NIL
@@ -205,26 +209,25 @@ const:          INT_CONST
                 | FALSE
                 ;
 
-idlist:         ID
+idlist          : ID
                 | ID COMMA idlist
                 ;
 
-ifstmt:         IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt
+ifstmt          : IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt
                 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE  stmt
                 ;
 
-whilestmt:      WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt
+whilestmt       : WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt
                 ;
 
-forstmt:        FOR LEFT_PARENTHESIS elist SEMI_COLON expr SEMI_COLON elist RIGHT_PARENTHESIS stmt
+forstmt         : FOR LEFT_PARENTHESIS elist SEMI_COLON expr SEMI_COLON elist RIGHT_PARENTHESIS stmt
                 ;
 
-returnstmt:     RETURN SEMI_COLON
+returnstmt      : RETURN SEMI_COLON
                 | RETURN expr SEMI_COLON
                 ;
 
-indexedelem_list:       indexedelem
+indexedelem_list        : indexedelem
                         | indexedelem COMMA indexedelem_list
                         ;
-
 
