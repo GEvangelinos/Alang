@@ -1,12 +1,15 @@
-.PHONY: makeGeneratedDirectories bisonModule
+.PHONY: bisonModule flexModule
 
-compile: makeGeneratedDirectories bisonModule flexModule
+compile: bisonModule flexModule
 	
 
 bisonModule:
-	$(MAKE) -C BisonParser
+	$(MAKE) -C BisonParser alphaBisonParser
 
 flexModule:
-	$(MAKE) -C FlexScanner
+	$(MAKE) -C FlexScanner alphaFlexScanner
 
 clean:
+	$(MAKE) -C BisonParser clean
+	$(MAKE) -C FlexScanner clean
+	clear

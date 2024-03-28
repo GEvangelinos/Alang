@@ -6,8 +6,10 @@
 #endif /* INSIDE_FLEX_FILE */
 
 #if defined(INSIDE_BISON_FILE)
-        /* DEFINE TYPE yyerror(msg) */
-#else
+        #include <iostream>
+        /* TODO: DEFINE TYPE yyerror(msg) */
+
+        #define DISPLAY_LOG(LHS, RHS) std::cout << LHS << ":\t" << RHS << std::endl;
 #endif /* INSIDE_BISON_BILE */
 
 
