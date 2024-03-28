@@ -1,10 +1,12 @@
+.PHONY: makeGeneratedDirectories bisonModule
 
-all: alphaBisonParser.y
-	bison alphaBisonParser.y
+compile: makeGeneratedDirectories bisonModule flexModule
+	
+
+bisonModule:
+	$(MAKE) -C BisonParser
+
+flexModule:
+	$(MAKE) -C FlexScanner
 
 clean:
-	-rm alphaBisonParser.cpp
-	clear
-
-
-
