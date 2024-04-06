@@ -37,28 +37,22 @@ namespace Alpha
                 return this->lookUpAtScopeDepth(name, this->currentScope);
         }
 
-        /* FIXME: TODO : UNDONE */
         const SymbolTableEntry *SymbolTable::lookUpChainScope(const std::string &name)
         {
                 auto mapIterator = this->symbolMap.find(name);
                 if (mapIterator == this->symbolMap.end()) // Name not found.
                         return nullptr;
                 const auto &scopeList = mapIterator->second;
-                size_t scopeDepth = this->currentScope;
-                bool outsideLastFunction = false;
-                for (auto listIterator = scopeList.crbegin(); listIterator != scopeList.crend(); listIterator++)
-                {
-                        if (!listIterator->isActive || listIterator->scope > this->currentScope) // Verbose condition as greater scope depths than current are always deactivated.
-                                continue;
-                        if (listIterator->scope == this->currentScope)
-                                return &(*listIterator);
-                        if (this->scopeTypeVector[scopeDepth] == ScopeType::FUNCTION_SCOPE)
-                                outsideLastFunction = true;
-                        else
-                                scopeDepth--;
-                        if (outsideLastFunction && listIterator->type != SymbolType::GLOBAL)
-                                return nullptr;
+                auto listIterator = scopeList.crbegin();
+                while (listIterator != scopeList.crend() && !listIterator->isActive)
+                        listIterator++;
+                if (listIterator == scopeList.crend()) // The was no active symbol.
+                        return nullptr;
+                if (listIterator->type == SymbolType::GLOBAL)
                         return &(*listIterator);
-                }
+                for (int vectorIndex = this->currentScope; vectorIndex > listIterator->scope; vectorIndex--)
+                        if (this->scopeTypeVector[vectorIndex] == ScopeType::FUNCTION_SCOPE)
+                                return nullptr;
+                return &(*listIterator);
         }
 }
