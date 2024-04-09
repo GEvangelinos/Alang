@@ -21,9 +21,10 @@ namespace Alpha
         enum class OperationResult : int
         {
                 Success = 0,
-                DuplicateError = -1,
-                InvalidInput = -2,
-                ErrorError = -3 // This means something was fucked up... And the error was not specified by this enum class.
+                DuplicateSymbolError = -1,
+                DuplicateArgumentError = -2,
+                InvalidInput = -3,
+                ErrorError = -4 // This means something was fucked up... And the error was not specified by this enum class.
         };
 
         class SymbolTableEntry
@@ -32,18 +33,13 @@ namespace Alpha
                 const std::string name;
                 const uint32_t scope;
                 const uint32_t line;
-                SymbolType type;
+                const SymbolType type;
                 bool isActive;
+                SymbolTableEntry() = delete;
+                friend class SymbolTable;
 
         protected:
-                void set_name(std::string name);
-                void set_scope(uint32_t scope);
-                void set_line(uint32_t line);
-                void set_type(SymbolType type);
-                void activate();
-                void deactivate();
-
-                friend class SymbolTable;
+                SymbolTableEntry(const std::string &name, uint32_t scope, uint32_t line, SymbolType type);
         };
 
         class SymbolTable
@@ -57,31 +53,46 @@ namespace Alpha
                 };
 
                 static constexpr uint32_t GLOBAL_SCOPE_DEPTH = 0;
-                std::unordered_map<std::string, std::list<SymbolTableEntry>> symbolMap;
-                std::vector<ScopeType> scopeTypeVector; // Add frames with insert, remove with hide.
                 uint32_t currentScope;
+                uint32_t maximumReachedScopeDepth;
                 size_t totalSymbolCount;
+                std::unordered_map<std::string, std::list<SymbolTableEntry *>> symbolMap;
+                std::unordered_map<uint32_t, std::vector<SymbolTableEntry *>> symbolInsertionMap;
+                std::vector<ScopeType> scopeTypeVector; // Add frames with insert, remove with hide.
+                // Implement a stack of vectors of strings (or references/pointers) to hide effieciently symvols.
+                OperationResult insertEntry(SymbolTableEntry *newEntryPtr);
                 const SymbolTableEntry *lookUpAtScopeDepth(const std::string &name, uint32_t scopeDepth);
 
         public:
-                OperationResult insert(std::string name, uint32_t line, uint32_t scopeDepth, SymbolType type, bool active = 1);
-                OperationResult insert(const SymbolTableEntry &entry);
+                // TODO: Private of public?
+                OperationResult insertVariable(std::string name, uint32_t line, SymbolType type);
+                OperationResult insertFunction(std::string name, uint32_t line, SymbolType type, std::list<std::string> &argumentNames);
                 const SymbolTableEntry *lookUpGlobalScope(const std::string &name);
                 const SymbolTableEntry *lookUpCurrentScope(const std::string &name);
-                const SymbolTableEntry *lookUpChainScope(const std::string &name); // Inclusive to current and global scope.
-                OperationResult hide(std::string name, uint32_t scope);
-                OperationResult hide(const SymbolTableEntry &entry);
+                const SymbolTableEntry *lookUpChainScope(const std::string &name, const SymbolType type); // Inclusive to current and global scope.
+                // OperationResult hide(std::string name, uint32_t scope);
+                OperationResult hideCurrentScopeSymbols();
+                OperationResult incrementScope();
+                OperationResult decrementScope();
+                void printSymbolInsertionVector();
 
-                SymbolTable(); // = default
+                SymbolTable();
+                ~SymbolTable();
         };
 
         class Variable : public SymbolTableEntry
         {
+        private:
                 Variable(std::string name, uint32_t scope, uint32_t line, SymbolType type);
+                friend class SymbolTable;
         };
 
         class Function : public SymbolTableEntry
         {
+        private:
+                Function(std::string name, uint32_t scope, uint32_t line, SymbolType type, std::list<std::string> &argumentNames);
+                std::list<std::string> argumentNames;
+                friend class SymbolTable;
         };
 
 }

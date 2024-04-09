@@ -34,7 +34,7 @@ namespace Alpha
                 ~Token() = default;
                 static unsigned int getValidTokenCounter(void);
                 virtual std::string toString() const = 0;
-                static void exportString(void *yylval, unsigned int __lineNumber, std::string __content, std::string __codeName);
+                static void exportToken(void *yylval, unsigned int __lineNumber, std::string __content, std::string __codeName);
         };
 
         class TokenKeyword final : public Token

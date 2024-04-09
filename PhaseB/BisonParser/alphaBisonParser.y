@@ -1,15 +1,18 @@
 %{
         #define INSIDE_BISON_FILE
         #include <string>
+        #include <list>
         #include <iostream>
-        #include "../FlexScanner/alphaFlexScanner.hpp"
+        #include "../GeneratedFiles/alphaFlexScanner.hpp"
         #include "../alphaDefs.hpp"
-
-        int yyerror(std::string message);
+        #include "../symbolTable.hpp"
+        extern std::list<Alpha::SymbolTableEntry *> symbolTable;
+        static int currentScope = 0;
 %}
 
 %output "alphaBisonParser.cpp"
 %define api.prefix {alpha_yy}
+  /* %parse-param {std::list<Alpha::SymbolTableEntry} */
 %defines
 %expect 1
 
@@ -202,6 +205,7 @@ indexedelem     : LEFT_BRACE expr COLON expr RIGHT_BRACE        {DISPLAY_LOG("in
                 ;
 
 block           : LEFT_BRACE multi_stmt RIGHT_BRACE             {DISPLAY_LOG("block", "LEFT_BRACE multi_stmt RIGHT_BRACE");}
+                | LEFT_BRACE RIGHT_BRACE                        {DISPLAY_LOG("block", "LEFT_BRACE RIGHT_BRACE");}
                 ;
 
 funcdef         : FUNCTION ID LEFT_PARENTHESIS idlist 
@@ -218,8 +222,11 @@ const           : INT_CONST                                     {DISPLAY_LOG("co
                 | FALSE                                         {DISPLAY_LOG("const", "FALSE");}
                 ;
 
-idlist          : ID                                            {DISPLAY_LOG("idlist", "ID");}
-                | ID COMMA idlist                               {DISPLAY_LOG("idlist", "ID COMMA idlist");}
+cs_ids          : ID                                            {DISPLAY_LOG("cs_ids", "ID");}  
+                | ID COMMA cs_ids                               {DISPLAY_LOG("cs_ids", "ID COMMA cs_ids");}
+
+idlist          : cs_ids                                        {DISPLAY_LOG("idlist", "cs_ids");}
+                |                                               {DISPLAY_LOG("idlist", "");}
                 ;
 
 ifstmt          : IF LEFT_PARENTHESIS expr 
@@ -243,4 +250,3 @@ returnstmt      : RETURN SEMI_COLON                             {DISPLAY_LOG("re
 indexedelem_list        : indexedelem                           {DISPLAY_LOG("indexedelem_list", "indexedelem");}
                         | indexedelem COMMA indexedelem_list    {DISPLAY_LOG("indexedelem_list", "indexedelem COMMA indexedelem_list");}
                         ;
-

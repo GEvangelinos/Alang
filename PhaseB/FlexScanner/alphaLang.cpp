@@ -1,9 +1,10 @@
 #include <limits>
+#include <cstring>
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
 #include "alphaLang.hpp"
-#include "../BisonParser/alphaBisonParser.hpp"
+#include "../GeneratedFiles/alphaBisonParser.hpp"
 
 namespace Alpha
 {
@@ -326,7 +327,8 @@ namespace Alpha
         void TokenString::exportStringToken(char **unionStringLiteral)
         {
                 std::string cpp_string = convertContentEscapesToASCII();
-                *unionStringLiteral = cpp_string.c_str();
+                *unionStringLiteral = new char[cpp_string.size() + 1]; // +1 for null terminator
+                std::strcpy(*unionStringLiteral, cpp_string.c_str());
                 TokenString::flushAssemblingBuffer();
         }
 

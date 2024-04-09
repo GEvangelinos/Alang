@@ -1,7 +1,7 @@
 %{
         #define INSIDE_FLEX_FILE
         #include <iostream>
-        #include "../BisonParser/alphaBisonParser.hpp" 
+        #include "../GeneratedFiles/alphaBisonParser.hpp" 
         #include "alphaExceptions.hpp"
         #include "alphaLang.hpp"
 %}
