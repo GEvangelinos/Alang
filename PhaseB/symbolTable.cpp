@@ -14,6 +14,7 @@ namespace Alpha
         SymbolTable::SymbolTable()
             : currentScope(this->GLOBAL_SCOPE_DEPTH), maximumReachedScopeDepth(this->GLOBAL_SCOPE_DEPTH), totalSymbolCount(0)
         {
+                this->scopeTypeVector.push_back(ScopeType::GLOBAL_SCOPE);
         }
 
         SymbolTable::~SymbolTable()
@@ -60,7 +61,7 @@ namespace Alpha
                 if (type == SymbolType::LIBFUNC && this->currentScope != 0 && line == 0)
                         throw std::invalid_argument(std::string(__func__) + "(): LIBFUNCs are declared only in scope 0, line 0.");
 
-                this->incrementScope();
+                this->incrementScopeFunctionBlock();
                 for (const auto &argName : argumentNames)
                         if (this->insertVariable(argName, line, SymbolType::FORMAL) == OperationResult::DuplicateSymbolError)
                                 return OperationResult::DuplicateArgumentError;
@@ -110,6 +111,7 @@ namespace Alpha
                 if ((*listIterator)->type == SymbolType::GLOBAL || type == SymbolType::USERFUNC)
                         return *listIterator;
 
+                /* Looking for local variable in outer scope, (non-function scope).*/
                 for (int vectorIndex = this->currentScope; vectorIndex > (*listIterator)->scope; vectorIndex--)
                         if (this->scopeTypeVector[vectorIndex] == ScopeType::FUNCTION_SCOPE)
                                 return nullptr;
@@ -126,12 +128,25 @@ namespace Alpha
                 return OperationResult::Success;
         }
 
-        OperationResult SymbolTable::incrementScope()
+
+
+        OperationResult SymbolTable::incrementScope(ScopeType scopeType)
         {
                 this->currentScope++;
                 if (this->currentScope > this->maximumReachedScopeDepth)
                         this->maximumReachedScopeDepth = this->currentScope;
+                this->scopeTypeVector.push_back(scopeType);
                 return OperationResult::Success;
+        }
+
+        OperationResult SymbolTable::incrementScopeFunctionBlock()
+        {
+                return incrementScope(ScopeType::FUNCTION_SCOPE);
+        }
+
+        OperationResult SymbolTable::incrementScopePlainBlock()
+        {
+                return incrementScope(ScopeType::PLAIN_SCOPE);
         }
 
         OperationResult SymbolTable::decrementScope()
@@ -140,6 +155,7 @@ namespace Alpha
                         throw std::runtime_error(std::string(__func__) + "(): An error occured during hiding symbols of current scope.");
                 if (this->currentScope == GLOBAL_SCOPE_DEPTH)
                         throw std::runtime_error(std::string(__func__) + "(): Tried to decrement scope, when being in global scope.");
+                this->scopeTypeVector.pop_back();
                 this->currentScope--;
                 return OperationResult::Success;
         }

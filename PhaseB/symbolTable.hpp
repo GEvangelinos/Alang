@@ -49,7 +49,7 @@ namespace Alpha
                 {
                         GLOBAL_SCOPE,
                         FUNCTION_SCOPE,
-                        OTHER_SCOPE
+                        PLAIN_SCOPE
                 };
 
                 static constexpr uint32_t GLOBAL_SCOPE_DEPTH = 0;
@@ -62,9 +62,9 @@ namespace Alpha
                 // Implement a stack of vectors of strings (or references/pointers) to hide effieciently symvols.
                 OperationResult insertEntry(SymbolTableEntry *newEntryPtr);
                 const SymbolTableEntry *lookUpAtScopeDepth(const std::string &name, uint32_t scopeDepth);
+                OperationResult incrementScope(ScopeType scopeType);
 
         public:
-                // TODO: Private of public?
                 OperationResult insertVariable(std::string name, uint32_t line, SymbolType type);
                 OperationResult insertFunction(std::string name, uint32_t line, SymbolType type, std::list<std::string> &argumentNames);
                 const SymbolTableEntry *lookUpGlobalScope(const std::string &name);
@@ -72,7 +72,8 @@ namespace Alpha
                 const SymbolTableEntry *lookUpChainScope(const std::string &name, const SymbolType type); // Inclusive to current and global scope.
                 // OperationResult hide(std::string name, uint32_t scope);
                 OperationResult hideCurrentScopeSymbols();
-                OperationResult incrementScope();
+                OperationResult incrementScopePlainBlock();
+                OperationResult incrementScopeFunctionBlock();
                 OperationResult decrementScope();
                 void printSymbolInsertionVector();
 
