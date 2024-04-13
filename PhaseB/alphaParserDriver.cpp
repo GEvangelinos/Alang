@@ -4,6 +4,8 @@
 #include "./GeneratedFiles/alphaBisonParser.hpp"
 #include "./GeneratedFiles/alphaFlexScanner.hpp"
 #include "./symbolTable.hpp"
+#define INSIDE_BISON_FILE
+#include "./alphaDefs.hpp"
 
 Alpha::SymbolTable symbolTable;
 
@@ -31,13 +33,8 @@ static void setInputStream(const int argc, char **const argv, FILE **const alpha
 int main(int argc, char **argv)
 {
         setInputStream(argc, argv, &alpha_yyin);
-        alpha_yyparse();
-        symbolTable.insertVariable("x", 1, Alpha::SymbolType::GLOBAL);
-        std::list<std::string> argList;
-        argList.push_back("arg1");
-        argList.push_back("arg2");
-        argList.push_back("arg3");
-        symbolTable.insertFunction("alphaFunc", 2, Alpha::SymbolType::USERFUNC, argList);
-        symbolTable.insertFunction("betaFunc", 3, Alpha::SymbolType::USERFUNC, argList);
+        auto returnValue = alpha_yyparse();
+        std::cout << "alpha__yyparse return value: " << returnValue << std::endl;
         symbolTable.printSymbolInsertionVector();
+        symbolTable.printSyntaxErrorVector();
 }

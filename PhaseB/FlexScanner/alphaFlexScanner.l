@@ -87,10 +87,10 @@ stringInnerPart         ([^\"\\]|\\.)+
 "."             {return DOT;}
 ".."            {return DDOT;}
 
-{id}            {alpha_yylval.unionId = yytext; return ID;}
+{id}            {alpha_yylval.unionId = Alpha::TokenID::refreshLastId(yytext); return ID;}
 {real}          {alpha_yylval.unionRealConst = std::stod(yytext); return REAL_CONST;}
 {integer}       {alpha_yylval.unionIntConst = std::stol(yytext); return INT_CONST;}
-{lineComment}   {/*Syntax Anal-yzer does give a fuck about you... */}
+{lineComment}   {/*Syntax Anal-yzer doesn't give a fuck about you... */}
 {newline}*      {/* Just eat up the new line. */}
 {space}*        {/* Just eat up the spaces. */}
 

@@ -25,12 +25,32 @@ namespace Alpha
         }
 
         SymbolTableEntry::SymbolTableEntry(const std::string &name, uint32_t scope, uint32_t line, SymbolType type)
-            : name(name), scope(scope), line(line), type(type)
+            : name(name), scope(scope), line(line), type(type), isActive(true)
         {
                 if (line < 0)
                         throw std::invalid_argument(std::string(__func__) + "(): Line argument < 0");
                 if (scope < 0)
                         throw std::invalid_argument(std::string(__func__) + "(): Scope argument < 0");
+        }
+
+        std::string SymbolTableEntry::getName() const
+        {
+                return this->name;
+        }
+
+        uint32_t SymbolTableEntry::getScope() const
+        {
+                return this->scope;
+        }
+
+        uint32_t SymbolTableEntry::getLine() const
+        {
+                return this->line;
+        }
+
+        SymbolType SymbolTableEntry::getType() const
+        {
+                return this->type;
         }
 
         OperationResult SymbolTable::insertEntry(SymbolTableEntry *entryPtr)
@@ -46,12 +66,21 @@ namespace Alpha
                 return OperationResult::Success;
         }
 
+        OperationResult SymbolTable::insertVariable(std::string varName, uint32_t line)
+        {
+                SymbolType typeArgument = (this->currentScope == this->GLOBAL_SCOPE_DEPTH) ? SymbolType::GLOBAL : SymbolType::LOCAL;
+                return this->insertVariable(varName, line, typeArgument);
+        }
+
         OperationResult SymbolTable::insertVariable(std::string varName, uint32_t line, SymbolType type)
         {
                 if (type == SymbolType::GLOBAL && this->currentScope != 0)
                         return OperationResult::InvalidInput;
                 Variable *newVariablePtr = new Variable(varName, this->currentScope, line, type);
-                return this->insertEntry(newVariablePtr);
+                OperationResult returnValue = this->insertEntry(newVariablePtr);
+                if (returnValue != OperationResult::Success)
+                        delete newVariablePtr;
+                return returnValue;
         }
 
         OperationResult SymbolTable::insertFunction(std::string funcName, uint32_t line, SymbolType type, std::list<std::string> &argumentNames)
@@ -60,23 +89,35 @@ namespace Alpha
                         throw std::invalid_argument(std::string(__func__) + "(): Symbol type not a function.");
                 if (type == SymbolType::LIBFUNC && this->currentScope != 0 && line == 0)
                         throw std::invalid_argument(std::string(__func__) + "(): LIBFUNCs are declared only in scope 0, line 0.");
-
-                this->incrementScopeFunctionBlock();
+                std::unordered_set<std::string> uniqueChecker;
                 for (const auto &argName : argumentNames)
-                        if (this->insertVariable(argName, line, SymbolType::FORMAL) == OperationResult::DuplicateSymbolError)
+                        if (!uniqueChecker.insert(argName).second)
+                        {
+                                this->registerSyntaxError("In the definition of the function " + funcName + ", argument " + argName + " is declarared more than once.", line);
                                 return OperationResult::DuplicateArgumentError;
-                Function *newFunctionPtr = new Function(funcName, this->currentScope - 1, line, type, argumentNames);
-                this->decrementScope();
-                return this->insertEntry(newFunctionPtr);
+                        }
+
+                // We create the function and pass those names to the function's argument list
+                // But yet the arguments of the function are not yet instantiated... Though we checked for duplicates.
+                Function *newFunctionPtr = new Function(funcName, this->getCurrentScope(), line, type, argumentNames);
+                OperationResult returnValue = this->insertEntry(newFunctionPtr);
+                if (returnValue != OperationResult::Success)
+                        delete newFunctionPtr;
+                else
+                        Function::lineOfLastFunction = line;
+                return returnValue;
+                // At this point, we return... The think is that we havent declared the function's arguments.
+                // It is the job of the incrementScope()'s function to check the Function:argumentNames list
+                // and if it is not empty to declare them as FORMAL variables, and reset the list.
         }
 
-        const SymbolTableEntry *SymbolTable::lookUpAtScopeDepth(const std::string &name, uint32_t scopeDepth)
+        SymbolTableEntry *SymbolTable::lookUpAtScopeDepth(const std::string &name, uint32_t scopeDepth)
         {
                 auto mapIterator = this->symbolMap.find(name);
                 if (mapIterator == this->symbolMap.end()) // Name of symbol not found.
                         return nullptr;
 
-                for (const SymbolTableEntry *entryPtr : mapIterator->second)
+                for (SymbolTableEntry *entryPtr : mapIterator->second)
                 {
                         if (entryPtr->isActive && entryPtr->scope == scopeDepth)
                                 return entryPtr;
@@ -86,18 +127,24 @@ namespace Alpha
                 return nullptr; // Name was found, but no entry at scope Depth.
         }
 
-        const SymbolTableEntry *SymbolTable::lookUpGlobalScope(const std::string &name)
+        SymbolTableEntry *SymbolTable::lookUpGlobalScope(const std::string &name)
         {
                 return this->lookUpAtScopeDepth(name, this->GLOBAL_SCOPE_DEPTH);
         }
 
-        const SymbolTableEntry *SymbolTable::lookUpCurrentScope(const std::string &name)
+        SymbolTableEntry *SymbolTable::lookUpCurrentScope(const std::string &name)
         {
                 return this->lookUpAtScopeDepth(name, this->currentScope);
         }
 
+        bool SymbolTable::isLibraryFunction(const std::string &name)
+        {
+                SymbolTableEntry *entry = this->lookUpGlobalScope(name);
+                return entry && entry->getType() == Alpha::SymbolType::LIBFUNC;
+        }
+
         /* Checks from current up until global scope, if not function definition is not the middle. */
-        const SymbolTableEntry *SymbolTable::lookUpChainScope(const std::string &name, const SymbolType type)
+        const SymbolTableEntry *SymbolTable::lookUpChainScope(const std::string &name, const SymbolType type) const
         {
                 auto mapIterator = this->symbolMap.find(name);
                 if (mapIterator == this->symbolMap.end()) // Name not found.
@@ -118,6 +165,66 @@ namespace Alpha
                 return *listIterator;
         }
 
+        std::pair<OperationResult, SymbolTableEntry *> SymbolTable::lookUpFunction(const std::string &name) const
+        {
+                auto mapIterator = this->symbolMap.find(name);
+                if (mapIterator == this->symbolMap.end()) // Name not found.
+                        return std::make_pair(OperationResult::SymbolNotFound, nullptr);
+                const auto &scopeList = mapIterator->second;
+                auto listIterator = scopeList.crbegin();
+                while (listIterator != scopeList.crend() && !(*listIterator)->isActive)
+                        listIterator++;
+                if (listIterator == scopeList.crend()) // There was no active symbol.
+                        return std::make_pair(OperationResult::SymbolNotFound, nullptr);
+                if ((*listIterator)->type == SymbolType::LIBFUNC || (*listIterator)->type == SymbolType::USERFUNC)
+                        return std::make_pair(OperationResult::Success, *listIterator);
+                return std::make_pair(OperationResult::SymbolNotFunction, nullptr);
+        }
+
+        std::pair<OperationResult, SymbolTableEntry *> SymbolTable::lookUpVariable(const std::string &name) const
+        {
+                auto mapIterator = this->symbolMap.find(name);
+                if (mapIterator == this->symbolMap.end()) // Name not found.
+                        return std::make_pair(OperationResult::SymbolNotFound, nullptr);
+                const auto &scopeList = mapIterator->second;
+                auto listIterator = scopeList.crbegin();
+                while (listIterator != scopeList.crend() && !(*listIterator)->isActive)
+                        listIterator++;
+                if (listIterator == scopeList.crend()) // There was no active symbol.
+                        return std::make_pair(OperationResult::SymbolNotFound, nullptr);
+                if ((*listIterator)->type == SymbolType::LIBFUNC || (*listIterator)->type == SymbolType::USERFUNC)
+                        return std::make_pair(OperationResult::SymbolNotVariable, nullptr);
+                if ((*listIterator)->type == SymbolType::GLOBAL)
+                        return std::make_pair(OperationResult::Success, *listIterator);
+
+                /* Looking for local variable in outer scope, (non-function scope).*/
+                for (int vectorIndex = this->currentScope; vectorIndex > (*listIterator)->scope; vectorIndex--)
+                        if (this->scopeTypeVector[vectorIndex] == ScopeType::FUNCTION_SCOPE)
+                                return std::make_pair(OperationResult::SymbolNotFound, nullptr);
+                return std::make_pair(OperationResult::Success, *listIterator);
+        }
+
+        std::pair<OperationResult, SymbolTableEntry *> SymbolTable::lookUpSymbol(const std::string &name)
+        {
+                auto mapIterator = this->symbolMap.find(name);
+                if (mapIterator == this->symbolMap.end()) // Name not found.
+                        return std::make_pair(OperationResult::SymbolNotFound, nullptr);
+                const auto &scopeList = mapIterator->second;
+                auto listIterator = scopeList.crbegin();
+                while (listIterator != scopeList.crend() && !(*listIterator)->isActive)
+                        listIterator++;
+                if (listIterator == scopeList.crend()) // There was no active symbol.
+                        return std::make_pair(OperationResult::SymbolNotFound, nullptr);
+                if ((*listIterator)->type != SymbolType::LOCAL && (*listIterator)->type != SymbolType::FORMAL)
+                        return std::make_pair(OperationResult::Success, *listIterator);
+
+                /* Looking for local variable in outer scope, (non-function scope).*/
+                for (int vectorIndex = this->currentScope; vectorIndex > (*listIterator)->scope; vectorIndex--)
+                        if (this->scopeTypeVector[vectorIndex] == ScopeType::FUNCTION_SCOPE)
+                                return std::make_pair(OperationResult::SymbolNotFound, nullptr);
+                return std::make_pair(OperationResult::Success, *listIterator);
+        }
+
         OperationResult SymbolTable::hideCurrentScopeSymbols()
         {
                 // TODO: Ineffiecient as fuck... FIXME: stack of vectors of references.
@@ -128,28 +235,25 @@ namespace Alpha
                 return OperationResult::Success;
         }
 
-
-
-        OperationResult SymbolTable::incrementScope(ScopeType scopeType)
+        void SymbolTable::incrementScope(bool isFunctionScope)
         {
                 this->currentScope++;
                 if (this->currentScope > this->maximumReachedScopeDepth)
                         this->maximumReachedScopeDepth = this->currentScope;
-                this->scopeTypeVector.push_back(scopeType);
-                return OperationResult::Success;
+                this->scopeTypeVector.push_back(isFunctionScope ? ScopeType::FUNCTION_SCOPE : ScopeType::PLAIN_SCOPE);
+                // Check if you increment this scope due to a function declaration
+                // and if the function owns any FORMAL variables (function arguments).
+                // If there are and FORMAL argument to declare, do so.
+                if (isFunctionScope && Function::idList.empty() == false)
+                {
+                        for (const auto &argName : Function::idList)
+                                if (insertVariable(argName, Function::lineOfLastFunction) != OperationResult::Success)
+                                        throw std::runtime_error(std::string(__func__) + "(): Insertion of function's arguments to new scope failed.");
+                        Function::idList.clear();
+                }
         }
 
-        OperationResult SymbolTable::incrementScopeFunctionBlock()
-        {
-                return incrementScope(ScopeType::FUNCTION_SCOPE);
-        }
-
-        OperationResult SymbolTable::incrementScopePlainBlock()
-        {
-                return incrementScope(ScopeType::PLAIN_SCOPE);
-        }
-
-        OperationResult SymbolTable::decrementScope()
+        void SymbolTable::decrementScope()
         {
                 if (this->hideCurrentScopeSymbols() != OperationResult::Success)
                         throw std::runtime_error(std::string(__func__) + "(): An error occured during hiding symbols of current scope.");
@@ -157,7 +261,24 @@ namespace Alpha
                         throw std::runtime_error(std::string(__func__) + "(): Tried to decrement scope, when being in global scope.");
                 this->scopeTypeVector.pop_back();
                 this->currentScope--;
-                return OperationResult::Success;
+        }
+
+        uint32_t SymbolTable::getCurrentScope() const
+        {
+                return this->currentScope;
+        }
+
+        void SymbolTable::registerSyntaxError(std::string errorMessage, uint32_t lineNumber)
+        {
+                this->syntaxErrorVector.push_back(std::make_pair(lineNumber, errorMessage));
+        }
+
+        void SymbolTable::printSyntaxErrorVector()
+        {
+                std::cout << UNIX_COLOR_RED;
+                for (auto syntaxError : this->syntaxErrorVector)
+                        std::cerr << "Syntax error line " << syntaxError.first << ": " << syntaxError.second << std::endl;
+                std::cout << UNIX_COLOR_RESET;
         }
 
         // FIXME: using vector is insufficient as you go many times over the wrong elements.
@@ -166,7 +287,7 @@ namespace Alpha
                 std::cout << UNIX_COLOR_BLUE;
                 for (uint32_t scopeDepth = this->GLOBAL_SCOPE_DEPTH; scopeDepth <= this->maximumReachedScopeDepth; scopeDepth++)
                 {
-                        std::cout << "----------     Scope #"  << scopeDepth  << "     ----------" << std::endl;
+                        std::cout << "----------     Scope #" << scopeDepth << "     ----------" << std::endl;
                         for (uint32_t vectorIndex = 0; vectorIndex < this->symbolInsertionMap[scopeDepth].size(); vectorIndex++)
                         {
                                 auto *entry = this->symbolInsertionMap[scopeDepth][vectorIndex];
@@ -207,4 +328,7 @@ namespace Alpha
             : SymbolTableEntry(name, scope, line, type), argumentNames(argumentNames)
         {
         }
+
+        std::list<std::string> Function::idList;
+        uint32_t Function::lineOfLastFunction = -1;
 }

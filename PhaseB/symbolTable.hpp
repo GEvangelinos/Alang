@@ -21,10 +21,13 @@ namespace Alpha
         enum class OperationResult : int
         {
                 Success = 0,
-                DuplicateSymbolError = -1,
-                DuplicateArgumentError = -2,
-                InvalidInput = -3,
-                ErrorError = -4 // This means something was fucked up... And the error was not specified by this enum class.
+                DuplicateSymbolError = -1000,
+                DuplicateArgumentError,
+                SymbolNotFunction,
+                SymbolNotVariable,
+                SymbolNotFound,
+                InvalidInput,
+                ErrorError // This means something was fucked up... And the error was not specified by this enum class.
         };
 
         class SymbolTableEntry
@@ -40,6 +43,12 @@ namespace Alpha
 
         protected:
                 SymbolTableEntry(const std::string &name, uint32_t scope, uint32_t line, SymbolType type);
+
+        public:
+                std::string getName() const;
+                uint32_t getScope() const;
+                uint32_t getLine() const;
+                SymbolType getType() const;
         };
 
         class SymbolTable
@@ -52,29 +61,36 @@ namespace Alpha
                         PLAIN_SCOPE
                 };
 
-                static constexpr uint32_t GLOBAL_SCOPE_DEPTH = 0;
                 uint32_t currentScope;
                 uint32_t maximumReachedScopeDepth;
                 size_t totalSymbolCount;
                 std::unordered_map<std::string, std::list<SymbolTableEntry *>> symbolMap;
                 std::unordered_map<uint32_t, std::vector<SymbolTableEntry *>> symbolInsertionMap;
                 std::vector<ScopeType> scopeTypeVector; // Add frames with insert, remove with hide.
+                std::vector<std::pair<uint32_t, std::string>> syntaxErrorVector;
                 // Implement a stack of vectors of strings (or references/pointers) to hide effieciently symvols.
                 OperationResult insertEntry(SymbolTableEntry *newEntryPtr);
-                const SymbolTableEntry *lookUpAtScopeDepth(const std::string &name, uint32_t scopeDepth);
-                OperationResult incrementScope(ScopeType scopeType);
+                SymbolTableEntry *lookUpAtScopeDepth(const std::string &name, uint32_t scopeDepth);
 
         public:
+                static constexpr uint32_t GLOBAL_SCOPE_DEPTH = 0;
                 OperationResult insertVariable(std::string name, uint32_t line, SymbolType type);
+                OperationResult insertVariable(std::string name, uint32_t line); // Inserts Variable at current scope.
                 OperationResult insertFunction(std::string name, uint32_t line, SymbolType type, std::list<std::string> &argumentNames);
-                const SymbolTableEntry *lookUpGlobalScope(const std::string &name);
-                const SymbolTableEntry *lookUpCurrentScope(const std::string &name);
-                const SymbolTableEntry *lookUpChainScope(const std::string &name, const SymbolType type); // Inclusive to current and global scope.
-                // OperationResult hide(std::string name, uint32_t scope);
+                SymbolTableEntry *lookUpGlobalScope(const std::string &name);
+                SymbolTableEntry *lookUpCurrentScope(const std::string &name);
+                const SymbolTableEntry *lookUpChainScope(const std::string &name, const SymbolType type) const; // Inclusive to current and global scope.
+                std::pair<OperationResult, SymbolTableEntry *> lookUpFunction(const std::string &name) const;   // Inclusive to current and global scope.
+                std::pair<OperationResult, SymbolTableEntry *> lookUpVariable(const std::string &name) const;   // Inclusive to current and global scope.
+                std::pair<OperationResult, SymbolTableEntry *> lookUpSymbol(const std::string &name);           // Inclusive to current and global scope.
+                bool isLibraryFunction(const std::string &name);
                 OperationResult hideCurrentScopeSymbols();
-                OperationResult incrementScopePlainBlock();
-                OperationResult incrementScopeFunctionBlock();
-                OperationResult decrementScope();
+                void incrementScope(bool isFunctionScope);
+                void decrementScope();
+                uint32_t getCurrentScope() const;
+
+                void registerSyntaxError(std::string errorMessage, uint32_t lineNumber);
+                void printSyntaxErrorVector();
                 void printSymbolInsertionVector();
 
                 SymbolTable();
@@ -93,7 +109,13 @@ namespace Alpha
         private:
                 Function(std::string name, uint32_t scope, uint32_t line, SymbolType type, std::list<std::string> &argumentNames);
                 std::list<std::string> argumentNames;
+
+                static uint32_t lineOfLastFunction;
                 friend class SymbolTable;
+
+        public:
+                static std::list<std::string> idList;
+                static std::string nameOfLastFunction;
         };
 
 }

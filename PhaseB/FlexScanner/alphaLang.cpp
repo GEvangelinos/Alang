@@ -181,11 +181,24 @@ namespace Alpha
         /*** ENDOF: class TokenIntegerNumber definitions. ***/
 
         /*** STARTOF: class TokenID definitions. ***/
+        char *TokenID::lastId = nullptr;
+
         TokenID::TokenID(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &idContent, const std::string __idName)
             : Token(lineNumber, tokenNumber, idContent), idName(__idName)
         {
                 /* Empty Constructor Body */
         }
+
+        char * TokenID::refreshLastId(const char * id)
+        {
+                if (TokenID::lastId != nullptr)
+                {
+                        free(TokenID::lastId);
+                        TokenID::lastId = nullptr;
+                }
+                return TokenID::lastId = strdup(id);
+        }
+
         std::string TokenID::toString() const
         {
                 std::stringstream stringBuffer;
