@@ -165,7 +165,12 @@ term            : LEFT_PARENTHESIS expr RIGHT_PARENTHESIS       {displayLog("ter
                 ;
                                 //displaySyntaxrError("Symbol is already declared, but is not a variable.", alpha_yylineno);
 
-assignexpr      : lvalue ASSIGN expr                            {displayLog("assignexpr", "lvalue ASSIGN expr");}
+assignexpr      : lvalue
+                        {
+                                if ($1 != nullptr && ($1->getType() == Alpha::SymbolType::LIBFUNC || $1->getType() == Alpha::SymbolType::USERFUNC)) 
+                                        symbolTable.registerSyntaxError(std::string($1->getName() + " is a function, can not assign to it."), alpha_yylineno);
+                        }
+                  ASSIGN expr                            {displayLog("assignexpr", "lvalue ASSIGN expr");}
                 ;
 
 primary         : lvalue                                        {displayLog("primary", "lvalue");}
@@ -185,6 +190,7 @@ lvalue          : ID {
                                         if (resultPair.first != Alpha::OperationResult::Success)
                                                 throw std::runtime_error("Insertion of a variable failed after duplicate check.");
                                 }
+                                else
                                 $$ = resultPair.second;
                         }
                 | LOCAL ID {
@@ -259,12 +265,22 @@ block           : LEFT_BRACE
                                 isFunctionBlock = false; // Reset flag.
                         }
                         multi_stmt
-                        {symbolTable.decrementScope();}
                         RIGHT_BRACE
-                        {displayLog("block", "LEFT_BRACE multi_stmt RIGHT_BRACE");}
+                        {
+                                symbolTable.decrementScope();
+                                displayLog("block", "LEFT_BRACE multi_stmt RIGHT_BRACE");
+                        }
                 | LEFT_BRACE
+                        {
+                                // There might be FORMAL arguments to this function.
+                                // And because member function incrementScope() declares them, we call it.
+                                symbolTable.incrementScope(isFunctionBlock); // isFunctionBlock is a bool: true, or false.
+                        }
                         RIGHT_BRACE
-                        {displayLog("block", "LEFT_BRACE RIGHT_BRACE");}
+                        {
+                                symbolTable.decrementScope();
+                                displayLog("block", "LEFT_BRACE RIGHT_BRACE");
+                        }
                 ;
 
 funcdef         : FUNCTION
@@ -274,17 +290,16 @@ funcdef         : FUNCTION
                         idlist
                         RIGHT_PARENTHESIS 
                         {
-                                Alpha::SymbolTableEntry *currentScopeEntry = symbolTable.lookUpCurrentScope(Alpha::Functon::nameOfLastFunction);
+                                Alpha::SymbolTableEntry *currentScopeEntry = symbolTable.lookUpCurrentScope(Alpha::Function::nameOfLastFunction);
                                 if (symbolTable.isLibraryFunction(Alpha::Function::nameOfLastFunction))
                                         symbolTable.registerSyntaxError(std::string("Redefinition of library function ") + Alpha::Function::nameOfLastFunction + " is prohibited", alpha_yylineno);
                                 else if (currentScopeEntry && currentScopeEntry->getType() == Alpha::SymbolType::USERFUNC)
-                                        symbolTable.registerSyntaxError(std::string("Function") + Alpha::Function:nameOfLastFunction + " is already defined in this scope. Can not redifine.", alpha_yylineno);
+                                        symbolTable.registerSyntaxError(std::string("Function") + Alpha::Function::nameOfLastFunction + " is already defined in this scope. Can not redifine.", alpha_yylineno);
                                 else if (currentScopeEntry) // We found a symbol, and it was a LIBFUNC nor a USERFUNC, thus it is a variable
-                                        symbolTable.registerSyntaxError(std::string(Alpha::Function:nameOfLastFunction) + " is already defined as a variable.", alpha_yylineno);
+                                        symbolTable.registerSyntaxError(std::string(Alpha::Function::nameOfLastFunction) + " is already defined as a variable.", alpha_yylineno);
                                 else
                                 {
-                                        ///
-                                        symbolTable.insertFunction(Alpha::Function:nameOfLastFunction, alpha_yylineno, Alpha::SymbolType::USERFUNC, Alpha::Function::idList) == OperationResult::DuplicateArgumentError)
+                                        symbolTable.insertFunction(Alpha::Function::nameOfLastFunction, alpha_yylineno, Alpha::SymbolType::USERFUNC, Alpha::Function::idList);
                                         isFunctionBlock = true;
                                 }
                         }
@@ -295,6 +310,10 @@ funcdef         : FUNCTION
                 | FUNCTION
                         LEFT_PARENTHESIS
                         idlist
+                        {
+                                THIS BLOCK CAUSES ERROR ON PURPOSE... 
+                                TO REMIND THE PROGRAMMER TO ADD NAMELESS FUNCTIONS  Thank me LATER
+                        }
                         RIGHT_PARENTHESIS
                         block
                         {displayLog("funcdef", "FUNCTION LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block");}
@@ -313,9 +332,7 @@ cs_ids          : ID {
                         displayLog("cs_ids", "ID");
                 }
                 | ID {
-                        std::cout << "Rule2\n";
                         Alpha::Function::idList.push_back(std::string($1));
-                        std::cout << $1 << std::endl;
                 } COMMA cs_ids                                  {displayLog("cs_ids", "ID COMMA cs_ids");}
                 ;
 

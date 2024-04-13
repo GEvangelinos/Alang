@@ -169,32 +169,35 @@ enum yysymbol_kind_t
   YYSYMBOL_expr = 52,                      /* expr  */
   YYSYMBOL_term = 53,                      /* term  */
   YYSYMBOL_assignexpr = 54,                /* assignexpr  */
-  YYSYMBOL_primary = 55,                   /* primary  */
-  YYSYMBOL_lvalue = 56,                    /* lvalue  */
-  YYSYMBOL_member = 57,                    /* member  */
-  YYSYMBOL_call = 58,                      /* call  */
-  YYSYMBOL_callsuffix = 59,                /* callsuffix  */
-  YYSYMBOL_normcall = 60,                  /* normcall  */
-  YYSYMBOL_methodcall = 61,                /* methodcall  */
-  YYSYMBOL_expr_list = 62,                 /* expr_list  */
-  YYSYMBOL_elist = 63,                     /* elist  */
-  YYSYMBOL_objectdef = 64,                 /* objectdef  */
-  YYSYMBOL_indexed = 65,                   /* indexed  */
-  YYSYMBOL_indexedelem = 66,               /* indexedelem  */
-  YYSYMBOL_block = 67,                     /* block  */
-  YYSYMBOL_68_1 = 68,                      /* $@1  */
+  YYSYMBOL_55_1 = 55,                      /* $@1  */
+  YYSYMBOL_primary = 56,                   /* primary  */
+  YYSYMBOL_lvalue = 57,                    /* lvalue  */
+  YYSYMBOL_member = 58,                    /* member  */
+  YYSYMBOL_call = 59,                      /* call  */
+  YYSYMBOL_callsuffix = 60,                /* callsuffix  */
+  YYSYMBOL_normcall = 61,                  /* normcall  */
+  YYSYMBOL_methodcall = 62,                /* methodcall  */
+  YYSYMBOL_expr_list = 63,                 /* expr_list  */
+  YYSYMBOL_elist = 64,                     /* elist  */
+  YYSYMBOL_objectdef = 65,                 /* objectdef  */
+  YYSYMBOL_indexed = 66,                   /* indexed  */
+  YYSYMBOL_indexedelem = 67,               /* indexedelem  */
+  YYSYMBOL_block = 68,                     /* block  */
   YYSYMBOL_69_2 = 69,                      /* $@2  */
-  YYSYMBOL_funcdef = 70,                   /* funcdef  */
-  YYSYMBOL_71_3 = 71,                      /* $@3  */
-  YYSYMBOL_const = 72,                     /* const  */
-  YYSYMBOL_cs_ids = 73,                    /* cs_ids  */
-  YYSYMBOL_74_4 = 74,                      /* $@4  */
-  YYSYMBOL_idlist = 75,                    /* idlist  */
-  YYSYMBOL_ifstmt = 76,                    /* ifstmt  */
-  YYSYMBOL_whilestmt = 77,                 /* whilestmt  */
-  YYSYMBOL_forstmt = 78,                   /* forstmt  */
-  YYSYMBOL_returnstmt = 79,                /* returnstmt  */
-  YYSYMBOL_indexedelem_list = 80           /* indexedelem_list  */
+  YYSYMBOL_70_3 = 70,                      /* $@3  */
+  YYSYMBOL_funcdef = 71,                   /* funcdef  */
+  YYSYMBOL_72_4 = 72,                      /* $@4  */
+  YYSYMBOL_73_5 = 73,                      /* $@5  */
+  YYSYMBOL_74_6 = 74,                      /* $@6  */
+  YYSYMBOL_const = 75,                     /* const  */
+  YYSYMBOL_cs_ids = 76,                    /* cs_ids  */
+  YYSYMBOL_77_7 = 77,                      /* $@7  */
+  YYSYMBOL_idlist = 78,                    /* idlist  */
+  YYSYMBOL_ifstmt = 79,                    /* ifstmt  */
+  YYSYMBOL_whilestmt = 80,                 /* whilestmt  */
+  YYSYMBOL_forstmt = 81,                   /* forstmt  */
+  YYSYMBOL_returnstmt = 82,                /* returnstmt  */
+  YYSYMBOL_indexedelem_list = 83           /* indexedelem_list  */
 };
 typedef enum yysymbol_kind_t yysymbol_kind_t;
 
@@ -522,16 +525,16 @@ union yyalloc
 /* YYFINAL -- State number of the termination state.  */
 #define YYFINAL  71
 /* YYLAST -- Last index in YYTABLE.  */
-#define YYLAST   567
+#define YYLAST   590
 
 /* YYNTOKENS -- Number of terminals.  */
 #define YYNTOKENS  48
 /* YYNNTS -- Number of nonterminals.  */
-#define YYNNTS  33
+#define YYNNTS  36
 /* YYNRULES -- Number of rules.  */
-#define YYNRULES  93
+#define YYNRULES  96
 /* YYNSTATES -- Number of states.  */
-#define YYNSTATES  177
+#define YYNSTATES  180
 
 /* YYMAXUTOK -- Last valid token kind.  */
 #define YYMAXUTOK   302
@@ -588,13 +591,13 @@ static const yytype_int16 yyrline[] =
        0,   104,   104,   105,   108,   109,   110,   111,   112,   113,
      114,   115,   116,   117,   120,   121,   124,   125,   126,   127,
      128,   129,   130,   131,   132,   133,   134,   135,   136,   137,
-     138,   141,   142,   143,   144,   149,   154,   159,   164,   168,
-     171,   172,   173,   174,   175,   178,   190,   206,   212,   215,
-     216,   217,   218,   221,   222,   223,   227,   228,   231,   234,
-     238,   239,   242,   243,   246,   247,   250,   253,   257,   262,
-     256,   265,   275,   270,   293,   301,   302,   303,   304,   305,
-     306,   309,   313,   313,   320,   321,   324,   326,   330,   334,
-     338,   339,   342,   343
+     138,   141,   142,   143,   144,   149,   154,   159,   164,   169,
+     168,   176,   177,   178,   179,   180,   183,   196,   212,   218,
+     221,   222,   223,   224,   227,   228,   229,   233,   234,   237,
+     240,   244,   245,   248,   249,   252,   253,   256,   259,   263,
+     262,   274,   273,   288,   292,   286,   313,   310,   322,   323,
+     324,   325,   326,   327,   330,   334,   334,   339,   340,   343,
+     345,   349,   353,   357,   358,   361,   362
 };
 #endif
 
@@ -619,11 +622,11 @@ static const char *const yytname[] =
   "RIGHT_BRACE", "LEFT_BRACKET", "RIGHT_BRACKET", "LEFT_PARENTHESIS",
   "RIGHT_PARENTHESIS", "SEMI_COLON", "COMMA", "COLON", "COLON_BLOCK",
   "DOT", "DDOT", "$accept", "program", "stmt", "multi_stmt", "expr",
-  "term", "assignexpr", "primary", "lvalue", "member", "call",
+  "term", "assignexpr", "$@1", "primary", "lvalue", "member", "call",
   "callsuffix", "normcall", "methodcall", "expr_list", "elist",
-  "objectdef", "indexed", "indexedelem", "block", "$@1", "$@2", "funcdef",
-  "$@3", "const", "cs_ids", "$@4", "idlist", "ifstmt", "whilestmt",
-  "forstmt", "returnstmt", "indexedelem_list", YY_NULLPTR
+  "objectdef", "indexed", "indexedelem", "block", "$@2", "$@3", "funcdef",
+  "$@4", "$@5", "$@6", "const", "cs_ids", "$@7", "idlist", "ifstmt",
+  "whilestmt", "forstmt", "returnstmt", "indexedelem_list", YY_NULLPTR
 };
 
 static const char *
@@ -633,12 +636,12 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }
 #endif
 
-#define YYPACT_NINF (-137)
+#define YYPACT_NINF (-156)
 
 #define yypact_value_is_default(Yyn) \
   ((Yyn) == YYPACT_NINF)
 
-#define YYTABLE_NINF (-83)
+#define YYTABLE_NINF (-86)
 
 #define yytable_value_is_error(Yyn) \
   ((Yyn) == YYTABLE_NINF)
@@ -647,24 +650,24 @@ yysymbol_name (yysymbol_kind_t yysymbol)
    STATE-NUM.  */
 static const yytype_int16 yypact[] =
 {
-     138,  -137,  -137,  -137,  -137,   -26,   -24,   -20,     2,   181,
-     -14,   -12,   257,    14,  -137,  -137,  -137,   257,     1,     1,
-      -6,   211,   234,  -137,    41,    48,   138,  -137,   302,  -137,
-    -137,  -137,   415,  -137,   -25,  -137,  -137,  -137,  -137,  -137,
-    -137,  -137,  -137,   257,   257,   257,     9,    46,  -137,   323,
-    -137,  -137,  -137,  -137,    10,    40,   -13,   -25,   -13,  -137,
-     138,   257,   281,  -137,    13,    23,    20,  -137,   365,    12,
-    -137,  -137,  -137,   257,   257,   257,   257,   257,   257,   257,
-     257,   257,   257,   257,   257,   257,  -137,   257,  -137,  -137,
-     257,   257,    64,    65,  -137,  -137,  -137,   257,   257,    66,
-     386,   407,    29,    46,    43,  -137,    31,  -137,    47,  -137,
-      86,   257,  -137,  -137,    53,  -137,    51,   100,   519,    10,
-      10,  -137,  -137,  -137,   532,   532,    32,    32,    32,    32,
-     504,   441,    52,  -137,    54,   462,    55,  -137,   138,   138,
-     257,    57,    49,    59,    51,    62,   257,  -137,  -137,   257,
-    -137,  -137,   257,  -137,  -137,    92,  -137,   344,  -137,    46,
-    -137,  -137,   483,    61,    63,   138,   257,    59,  -137,  -137,
-    -137,  -137,  -137,    75,  -137,   138,  -137
+     149,  -156,  -156,  -156,  -156,   -29,   -21,   -16,     1,   192,
+     -24,   -12,   245,    32,  -156,  -156,  -156,   245,     2,     2,
+      12,    98,   222,  -156,    34,    39,   149,  -156,   312,  -156,
+    -156,  -156,   425,  -156,   -30,  -156,  -156,  -156,  -156,  -156,
+    -156,  -156,  -156,   245,   245,   245,  -156,    41,  -156,   333,
+    -156,  -156,  -156,  -156,     8,    40,   -15,   -30,   -15,   149,
+      13,   245,   291,  -156,    14,    16,    15,  -156,   375,    11,
+    -156,  -156,  -156,   245,   245,   245,   245,   245,   245,   245,
+     245,   245,   245,   245,   245,   245,  -156,  -156,  -156,   245,
+     245,    52,    53,    38,  -156,  -156,  -156,   245,   245,    58,
+     396,   417,    21,    24,    22,  -156,  -156,  -156,    25,    30,
+    -156,   269,   245,  -156,  -156,    33,  -156,    28,   542,   529,
+       8,     8,  -156,  -156,  -156,   555,   555,   247,   247,   247,
+     247,   451,    29,  -156,    31,   245,   472,    45,  -156,   149,
+     149,   245,    41,    44,    47,    28,  -156,   245,  -156,  -156,
+     245,  -156,  -156,   245,   514,  -156,  -156,    64,  -156,   354,
+      49,    41,    55,   493,    51,    54,   149,   245,  -156,  -156,
+    -156,  -156,  -156,  -156,  -156,    57,    55,   149,  -156,  -156
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -672,42 +675,42 @@ static const yytype_int16 yypact[] =
    means the default is an error.  */
 static const yytype_int8 yydefact[] =
 {
-       2,    77,    45,    75,    76,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,    79,    80,    78,     0,     0,     0,
-      68,    63,     0,    13,     0,     0,    14,     3,     0,    30,
-      16,    38,    40,    48,    41,    42,    11,    12,    44,     5,
-       6,     7,     8,     0,     0,    63,     0,    85,    90,     0,
-       9,    10,    33,    46,    32,     0,    34,     0,    36,    71,
-       0,     0,    60,    62,     0,     0,    92,    66,     0,     0,
-      47,     1,    15,     0,     0,     0,     0,     0,     0,     0,
-       0,     0,     0,     0,     0,     0,     4,     0,    35,    37,
-       0,    63,     0,     0,    54,    56,    57,     0,    63,     0,
-       0,     0,     0,    85,    81,    84,     0,    91,     0,    69,
-       0,     0,    64,    65,     0,    31,    43,    28,    29,    17,
-      18,    19,    20,    21,    26,    27,    22,    24,    23,    25,
-      39,     0,     0,    49,     0,     0,     0,    51,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,    61,    93,    63,
-      50,    58,    63,    52,    53,    86,    88,     0,    72,     0,
-      74,    70,     0,     0,     0,     0,    63,     0,    83,    67,
-      55,    59,    87,     0,    73,     0,    89
+       2,    80,    46,    78,    79,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,    82,    83,    81,     0,     0,     0,
+      69,    64,     0,    13,     0,     0,    14,     3,     0,    30,
+      16,    38,    41,    49,    42,    43,    11,    12,    45,     5,
+       6,     7,     8,     0,     0,    64,    73,    88,    93,     0,
+       9,    10,    33,    47,    32,     0,    34,     0,    36,     0,
+       0,     0,    61,    63,     0,     0,    95,    67,     0,     0,
+      48,     1,    15,     0,     0,     0,     0,     0,     0,     0,
+       0,     0,     0,     0,     0,     0,     4,    35,    37,     0,
+      64,     0,     0,     0,    55,    57,    58,     0,    64,     0,
+       0,     0,     0,     0,    84,    87,    76,    94,     0,     0,
+      72,     0,     0,    65,    66,     0,    31,    44,    28,    29,
+      17,    18,    19,    20,    21,    26,    27,    22,    24,    23,
+      25,     0,     0,    50,     0,     0,     0,     0,    52,     0,
+       0,     0,    88,     0,     0,     0,    70,     0,    62,    96,
+      64,    51,    59,    64,    40,    53,    54,    89,    91,     0,
+       0,     0,     0,     0,     0,     0,     0,    64,    74,    86,
+      77,    68,    56,    60,    90,     0,     0,     0,    75,    92
 };
 
 /* YYPGOTO[NTERM-NUM].  */
 static const yytype_int16 yypgoto[] =
 {
-    -137,  -137,  -136,   -22,     0,  -137,  -137,  -137,    -8,  -137,
-       5,  -137,  -137,  -137,    -5,   -44,  -137,  -137,  -137,  -135,
-    -137,  -137,   -15,  -137,  -137,   -52,  -137,    28,  -137,  -137,
-    -137,  -137,     3
+    -156,  -156,  -137,   -22,     0,  -156,  -156,  -156,  -156,    -5,
+    -156,     9,  -156,  -156,  -156,   -19,   -44,  -156,  -156,  -156,
+    -155,  -156,  -156,    -7,  -156,  -156,  -156,  -156,   -67,  -156,
+     -46,  -156,  -156,  -156,  -156,   -10
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
 static const yytype_uint8 yydefgoto[] =
 {
-       0,    25,    26,    27,    62,    29,    30,    31,    32,    33,
-      34,    94,    95,    96,    63,    64,    35,    65,    66,    36,
-      60,   145,    37,   167,    38,   105,   142,   106,    39,    40,
-      41,    42,    67
+       0,    25,    26,    27,    62,    29,    30,    93,    31,    32,
+      33,    34,    94,    95,    96,    63,    64,    35,    65,    66,
+      36,    59,    60,    37,   103,   176,   144,    38,   105,   143,
+     106,    39,    40,    41,    42,    67
 };
 
 /* YYTABLE[YYPACT[STATE-NUM]] -- What to do in state STATE-NUM.  If
@@ -715,98 +718,102 @@ static const yytype_uint8 yydefgoto[] =
    number is the opposite.  If YYTABLE_NINF, syntax error.  */
 static const yytype_int16 yytable[] =
 {
-      28,   102,   155,   156,    72,     2,    46,    69,   160,    49,
-      56,    58,    52,    97,    43,    98,    44,    54,    53,    13,
-      45,    99,    68,    57,    57,    90,    28,    91,    50,   172,
-      51,    59,   174,    92,    93,    77,    78,    79,   109,   176,
-     108,    55,    47,   100,   101,    70,    24,   132,    71,   103,
-     104,     8,   112,   116,   136,    75,    76,    77,    78,    79,
-      28,   110,   113,   114,   -83,   -83,   -83,   -83,   133,   134,
-     137,   140,   143,   117,   118,   119,   120,   121,   122,   123,
-     124,   125,   126,   127,   128,   129,   -82,   130,   144,    61,
-     131,   149,   159,   151,   152,    20,   154,   135,   158,   161,
-     165,    73,   170,    74,   171,   163,   147,   168,   164,    75,
-      76,    77,    78,    79,    80,    81,   175,   148,    82,    83,
-      84,    85,   173,    75,    76,    77,    78,    79,    80,    81,
-     146,   141,    82,    83,    84,    85,     0,     0,    28,    28,
-     157,     1,     2,     3,     4,     5,   162,     6,     7,     8,
-       9,    10,    11,     0,    12,     0,    13,    14,    15,    16,
-       0,     0,    17,     0,     0,    28,     0,     0,    18,    19,
-       0,     0,     0,     0,    20,    28,    21,     0,    22,     0,
-      23,     0,     0,    24,     1,     2,     3,     4,     0,     0,
-       0,     0,     0,     0,     0,     0,     0,    12,     0,    13,
-      14,    15,    16,     0,     0,    17,     0,     0,     0,     0,
-       0,    18,    19,     0,     1,     2,     3,     4,     0,    21,
-       0,    22,     0,    48,     0,     0,    24,    12,     0,    13,
-      14,    15,    16,     0,     0,    17,     0,     1,     2,     3,
-       4,    18,    19,     0,     0,     8,     0,    61,     0,    21,
-      12,    22,    13,    14,    15,    16,    24,     0,    17,     0,
-       1,     2,     3,     4,    18,    19,     0,     0,     0,     0,
-       0,     0,    21,    12,    22,    13,    14,    15,    16,    24,
-       0,    17,     0,     0,     0,     0,     0,    18,    19,     0,
-       0,     0,     0,     0,     0,    21,    73,    22,    74,     0,
-       0,     0,    24,     0,    75,    76,    77,    78,    79,    80,
+      28,   102,   157,   158,    72,    46,     2,   170,    97,    49,
+      98,    43,    52,    56,    58,    69,    99,    54,    50,    44,
+      13,   178,    68,    89,    45,    90,    28,    57,    57,   174,
+      51,    91,    92,    77,    78,    79,    53,   109,    70,    71,
+     179,    47,    55,   100,   101,   104,   132,    24,   108,   -71,
+     110,     8,   117,   113,   137,   114,   133,   134,   115,    28,
+     135,   111,   138,   141,   142,   -85,   145,   146,   150,    61,
+     152,   153,   166,   118,   119,   120,   121,   122,   123,   124,
+     125,   126,   127,   128,   129,   130,   156,   161,   162,   131,
+     168,    20,   172,   148,   169,   173,   160,   136,   177,     0,
+       0,     1,     2,     3,     4,   149,   164,     0,     0,   165,
+       0,     0,     0,     0,    12,     0,    13,    14,    15,    16,
+       0,     0,    17,   175,     0,     0,     0,     0,    18,    19,
+       0,     0,     0,     0,    61,   154,    21,     0,    22,    28,
+      28,   159,     0,    24,     0,     0,     0,   163,     0,     0,
+       0,     0,     1,     2,     3,     4,     5,     0,     6,     7,
+       8,     9,    10,    11,     0,    12,    28,    13,    14,    15,
+      16,     0,     0,    17,     0,     0,     0,    28,     0,    18,
+      19,     0,     0,     0,     0,    20,     0,    21,     0,    22,
+       0,    23,     0,     0,    24,     1,     2,     3,     4,     0,
+       0,     0,     0,     0,     0,     0,     0,     0,    12,     0,
+      13,    14,    15,    16,     0,     0,    17,     0,     0,     0,
+       0,     0,    18,    19,     0,     1,     2,     3,     4,     0,
+      21,     0,    22,     8,    48,     0,     0,    24,    12,     0,
+      13,    14,    15,    16,     0,     0,    17,     0,     1,     2,
+       3,     4,    18,    19,     0,     0,     0,     0,     0,     0,
+      21,    12,    22,    13,    14,    15,    16,    24,     0,    17,
+      75,    76,    77,    78,    79,    18,    19,     0,     0,   -86,
+     -86,   -86,   -86,    21,    73,    22,    74,     0,     0,     0,
+      24,     0,    75,    76,    77,    78,    79,    80,    81,     0,
+       0,    82,    83,    84,    85,     0,    73,     0,    74,     0,
+       0,     0,     0,   147,    75,    76,    77,    78,    79,    80,
       81,     0,     0,    82,    83,    84,    85,    73,     0,    74,
-       0,     0,     0,     0,   111,    75,    76,    77,    78,    79,
+       0,     0,     0,     0,   112,    75,    76,    77,    78,    79,
       80,    81,     0,     0,    82,    83,    84,    85,    73,     0,
       74,     0,     0,     0,    86,     0,    75,    76,    77,    78,
       79,    80,    81,     0,     0,    82,    83,    84,    85,    73,
        0,    74,     0,     0,     0,   107,     0,    75,    76,    77,
       78,    79,    80,    81,     0,     0,    82,    83,    84,    85,
-      73,     0,    74,     0,     0,     0,   166,     0,    75,    76,
+      73,     0,    74,     0,     0,     0,   167,     0,    75,    76,
       77,    78,    79,    80,    81,     0,     0,    82,    83,    84,
-      85,    73,     0,    74,     0,     0,   115,     0,     0,    75,
+      85,    73,     0,    74,     0,     0,   116,     0,     0,    75,
       76,    77,    78,    79,    80,    81,     0,     0,    82,    83,
-      84,    85,    73,     0,    74,     0,     0,   138,     0,     0,
-      75,    76,    77,    78,    79,    80,    81,    87,     0,    82,
-      83,    84,    85,     0,     0,    88,    89,     0,   139,     0,
-       0,     0,     0,    90,     0,    91,    73,     0,    74,     0,
-       0,    92,    93,     0,    75,    76,    77,    78,    79,    80,
+      84,    85,    73,     0,    74,     0,     0,   139,     0,     0,
+      75,    76,    77,    78,    79,    80,    81,   -39,     0,    82,
+      83,    84,    85,     0,     0,    87,    88,     0,   140,     0,
+       0,     0,     0,    89,     0,    90,    73,     0,    74,     0,
+       0,    91,    92,     0,    75,    76,    77,    78,    79,    80,
       81,     0,     0,    82,    83,    84,    85,    73,     0,    74,
-     150,     0,     0,     0,     0,    75,    76,    77,    78,    79,
+     151,     0,     0,     0,     0,    75,    76,    77,    78,    79,
       80,    81,     0,     0,    82,    83,    84,    85,    73,     0,
-      74,   153,     0,     0,     0,     0,    75,    76,    77,    78,
+      74,   155,     0,     0,     0,     0,    75,    76,    77,    78,
       79,    80,    81,     0,     0,    82,    83,    84,    85,    73,
-     169,    74,     0,     0,     0,     0,     0,    75,    76,    77,
+     171,    74,     0,     0,     0,     0,     0,    75,    76,    77,
       78,    79,    80,    81,    73,     0,    82,    83,    84,    85,
        0,     0,    75,    76,    77,    78,    79,    80,    81,     0,
        0,    82,    83,    84,    85,    75,    76,    77,    78,    79,
-     -83,   -83,     0,     0,    82,    83,    84,    85
+      80,    81,     0,     0,    82,    83,    84,    85,    75,    76,
+      77,    78,    79,   -86,   -86,     0,     0,    82,    83,    84,
+      85
 };
 
 static const yytype_int16 yycheck[] =
 {
-       0,    45,   138,   139,    26,     4,     4,    22,   143,     9,
-      18,    19,    12,    38,    40,    40,    40,    17,     4,    18,
-      40,    46,    22,    18,    19,    38,    26,    40,    42,   165,
-      42,    37,   167,    46,    47,    25,    26,    27,    60,   175,
-      55,    40,    40,    43,    44,     4,    45,    91,     0,    40,
-       4,    11,    39,    41,    98,    23,    24,    25,    26,    27,
-      60,    61,    39,    43,    32,    33,    34,    35,     4,     4,
-       4,    42,    41,    73,    74,    75,    76,    77,    78,    79,
-      80,    81,    82,    83,    84,    85,    43,    87,    41,    36,
-      90,    40,    43,    41,    40,    36,    41,    97,    41,    37,
-       8,    15,    41,    17,    41,   149,   111,   159,   152,    23,
-      24,    25,    26,    27,    28,    29,    41,   114,    32,    33,
-      34,    35,   166,    23,    24,    25,    26,    27,    28,    29,
-      44,   103,    32,    33,    34,    35,    -1,    -1,   138,   139,
-     140,     3,     4,     5,     6,     7,   146,     9,    10,    11,
-      12,    13,    14,    -1,    16,    -1,    18,    19,    20,    21,
-      -1,    -1,    24,    -1,    -1,   165,    -1,    -1,    30,    31,
-      -1,    -1,    -1,    -1,    36,   175,    38,    -1,    40,    -1,
-      42,    -1,    -1,    45,     3,     4,     5,     6,    -1,    -1,
-      -1,    -1,    -1,    -1,    -1,    -1,    -1,    16,    -1,    18,
-      19,    20,    21,    -1,    -1,    24,    -1,    -1,    -1,    -1,
-      -1,    30,    31,    -1,     3,     4,     5,     6,    -1,    38,
-      -1,    40,    -1,    42,    -1,    -1,    45,    16,    -1,    18,
-      19,    20,    21,    -1,    -1,    24,    -1,     3,     4,     5,
-       6,    30,    31,    -1,    -1,    11,    -1,    36,    -1,    38,
-      16,    40,    18,    19,    20,    21,    45,    -1,    24,    -1,
-       3,     4,     5,     6,    30,    31,    -1,    -1,    -1,    -1,
-      -1,    -1,    38,    16,    40,    18,    19,    20,    21,    45,
-      -1,    24,    -1,    -1,    -1,    -1,    -1,    30,    31,    -1,
-      -1,    -1,    -1,    -1,    -1,    38,    15,    40,    17,    -1,
-      -1,    -1,    45,    -1,    23,    24,    25,    26,    27,    28,
+       0,    45,   139,   140,    26,     4,     4,   162,    38,     9,
+      40,    40,    12,    18,    19,    22,    46,    17,    42,    40,
+      18,   176,    22,    38,    40,    40,    26,    18,    19,   166,
+      42,    46,    47,    25,    26,    27,     4,    59,     4,     0,
+     177,    40,    40,    43,    44,     4,    90,    45,    55,    37,
+      37,    11,    41,    39,    98,    39,     4,     4,    43,    59,
+      22,    61,     4,    42,    40,    43,    41,    37,    40,    36,
+      41,    40,     8,    73,    74,    75,    76,    77,    78,    79,
+      80,    81,    82,    83,    84,    85,    41,    43,    41,    89,
+      41,    36,    41,   112,   161,    41,   142,    97,    41,    -1,
+      -1,     3,     4,     5,     6,   115,   150,    -1,    -1,   153,
+      -1,    -1,    -1,    -1,    16,    -1,    18,    19,    20,    21,
+      -1,    -1,    24,   167,    -1,    -1,    -1,    -1,    30,    31,
+      -1,    -1,    -1,    -1,    36,   135,    38,    -1,    40,   139,
+     140,   141,    -1,    45,    -1,    -1,    -1,   147,    -1,    -1,
+      -1,    -1,     3,     4,     5,     6,     7,    -1,     9,    10,
+      11,    12,    13,    14,    -1,    16,   166,    18,    19,    20,
+      21,    -1,    -1,    24,    -1,    -1,    -1,   177,    -1,    30,
+      31,    -1,    -1,    -1,    -1,    36,    -1,    38,    -1,    40,
+      -1,    42,    -1,    -1,    45,     3,     4,     5,     6,    -1,
+      -1,    -1,    -1,    -1,    -1,    -1,    -1,    -1,    16,    -1,
+      18,    19,    20,    21,    -1,    -1,    24,    -1,    -1,    -1,
+      -1,    -1,    30,    31,    -1,     3,     4,     5,     6,    -1,
+      38,    -1,    40,    11,    42,    -1,    -1,    45,    16,    -1,
+      18,    19,    20,    21,    -1,    -1,    24,    -1,     3,     4,
+       5,     6,    30,    31,    -1,    -1,    -1,    -1,    -1,    -1,
+      38,    16,    40,    18,    19,    20,    21,    45,    -1,    24,
+      23,    24,    25,    26,    27,    30,    31,    -1,    -1,    32,
+      33,    34,    35,    38,    15,    40,    17,    -1,    -1,    -1,
+      45,    -1,    23,    24,    25,    26,    27,    28,    29,    -1,
+      -1,    32,    33,    34,    35,    -1,    15,    -1,    17,    -1,
+      -1,    -1,    -1,    44,    23,    24,    25,    26,    27,    28,
       29,    -1,    -1,    32,    33,    34,    35,    15,    -1,    17,
       -1,    -1,    -1,    -1,    43,    23,    24,    25,    26,    27,
       28,    29,    -1,    -1,    32,    33,    34,    35,    15,    -1,
@@ -832,7 +839,9 @@ static const yytype_int16 yycheck[] =
       26,    27,    28,    29,    15,    -1,    32,    33,    34,    35,
       -1,    -1,    23,    24,    25,    26,    27,    28,    29,    -1,
       -1,    32,    33,    34,    35,    23,    24,    25,    26,    27,
-      28,    29,    -1,    -1,    32,    33,    34,    35
+      28,    29,    -1,    -1,    32,    33,    34,    35,    23,    24,
+      25,    26,    27,    28,    29,    -1,    -1,    32,    33,    34,
+      35
 };
 
 /* YYSTOS[STATE-NUM] -- The symbol kind of the accessing symbol of
@@ -842,21 +851,21 @@ static const yytype_int8 yystos[] =
        0,     3,     4,     5,     6,     7,     9,    10,    11,    12,
       13,    14,    16,    18,    19,    20,    21,    24,    30,    31,
       36,    38,    40,    42,    45,    49,    50,    51,    52,    53,
-      54,    55,    56,    57,    58,    64,    67,    70,    72,    76,
-      77,    78,    79,    40,    40,    40,     4,    40,    42,    52,
-      42,    42,    52,     4,    52,    40,    56,    58,    56,    37,
-      68,    36,    52,    62,    63,    65,    66,    80,    52,    70,
+      54,    56,    57,    58,    59,    65,    68,    71,    75,    79,
+      80,    81,    82,    40,    40,    40,     4,    40,    42,    52,
+      42,    42,    52,     4,    52,    40,    57,    59,    57,    69,
+      70,    36,    52,    63,    64,    66,    67,    83,    52,    71,
        4,     0,    51,    15,    17,    23,    24,    25,    26,    27,
-      28,    29,    32,    33,    34,    35,    42,    22,    30,    31,
-      38,    40,    46,    47,    59,    60,    61,    38,    40,    46,
-      52,    52,    63,    40,     4,    73,    75,    42,    70,    51,
-      52,    43,    39,    39,    43,    41,    41,    52,    52,    52,
+      28,    29,    32,    33,    34,    35,    42,    30,    31,    38,
+      40,    46,    47,    55,    60,    61,    62,    38,    40,    46,
+      52,    52,    64,    72,     4,    76,    78,    42,    71,    51,
+      37,    52,    43,    39,    39,    43,    41,    41,    52,    52,
       52,    52,    52,    52,    52,    52,    52,    52,    52,    52,
-      52,    52,    63,     4,     4,    52,    63,     4,    41,    41,
-      42,    75,    74,    41,    41,    69,    44,    62,    80,    40,
-      39,    41,    40,    39,    41,    50,    50,    52,    41,    43,
-      67,    37,    52,    63,    63,     8,    42,    71,    73,    37,
-      41,    41,    50,    63,    67,    41,    50
+      52,    52,    64,     4,     4,    22,    52,    64,     4,    41,
+      41,    42,    40,    77,    74,    41,    37,    44,    63,    83,
+      40,    39,    41,    40,    52,    39,    41,    50,    50,    52,
+      78,    43,    41,    52,    64,    64,     8,    42,    41,    76,
+      68,    37,    41,    41,    50,    64,    73,    41,    68,    50
 };
 
 /* YYR1[RULE-NUM] -- Symbol kind of the left-hand side of rule RULE-NUM.  */
@@ -865,13 +874,13 @@ static const yytype_int8 yyr1[] =
        0,    48,    49,    49,    50,    50,    50,    50,    50,    50,
       50,    50,    50,    50,    51,    51,    52,    52,    52,    52,
       52,    52,    52,    52,    52,    52,    52,    52,    52,    52,
-      52,    53,    53,    53,    53,    53,    53,    53,    53,    54,
-      55,    55,    55,    55,    55,    56,    56,    56,    56,    57,
-      57,    57,    57,    58,    58,    58,    59,    59,    60,    61,
-      62,    62,    63,    63,    64,    64,    65,    66,    68,    69,
-      67,    67,    71,    70,    70,    72,    72,    72,    72,    72,
-      72,    73,    74,    73,    75,    75,    76,    76,    77,    78,
-      79,    79,    80,    80
+      52,    53,    53,    53,    53,    53,    53,    53,    53,    55,
+      54,    56,    56,    56,    56,    56,    57,    57,    57,    57,
+      58,    58,    58,    58,    59,    59,    59,    60,    60,    61,
+      62,    63,    63,    64,    64,    65,    65,    66,    67,    69,
+      68,    70,    68,    72,    73,    71,    74,    71,    75,    75,
+      75,    75,    75,    75,    76,    77,    76,    78,    78,    79,
+      79,    80,    81,    82,    82,    83,    83
 };
 
 /* YYR2[RULE-NUM] -- Number of symbols on the right-hand side of rule RULE-NUM.  */
@@ -880,13 +889,13 @@ static const yytype_int8 yyr2[] =
        0,     2,     0,     1,     2,     1,     1,     1,     1,     2,
        2,     1,     1,     1,     1,     2,     1,     3,     3,     3,
        3,     3,     3,     3,     3,     3,     3,     3,     3,     3,
-       1,     3,     2,     2,     2,     2,     2,     2,     1,     3,
-       1,     1,     1,     3,     1,     1,     2,     2,     1,     3,
-       4,     3,     4,     4,     2,     6,     1,     1,     3,     5,
-       1,     3,     1,     0,     3,     3,     1,     5,     0,     0,
-       5,     2,     0,     7,     5,     1,     1,     1,     1,     1,
-       1,     1,     0,     4,     1,     0,     5,     7,     5,     9,
-       2,     3,     1,     3
+       1,     3,     2,     2,     2,     2,     2,     2,     1,     0,
+       4,     1,     1,     1,     3,     1,     1,     2,     2,     1,
+       3,     4,     3,     4,     4,     2,     6,     1,     1,     3,
+       5,     1,     3,     1,     0,     3,     3,     1,     5,     0,
+       4,     0,     3,     0,     0,     8,     0,     6,     1,     1,
+       1,     1,     1,     1,     1,     0,     4,     1,     0,     5,
+       7,     5,     9,     2,     3,     1,     3
 };
 
 
@@ -1352,193 +1361,193 @@ yyreduce:
   case 2: /* program: %empty  */
 #line 104 "alphaBisonParser.y"
                                                                 {displayLog("program", "");}
-#line 1356 "alphaBisonParser.cpp"
+#line 1365 "alphaBisonParser.cpp"
     break;
 
   case 3: /* program: multi_stmt  */
 #line 105 "alphaBisonParser.y"
                                                                 {displayLog("program", "multi_stmt");}
-#line 1362 "alphaBisonParser.cpp"
+#line 1371 "alphaBisonParser.cpp"
     break;
 
   case 4: /* stmt: expr SEMI_COLON  */
 #line 108 "alphaBisonParser.y"
                                                                 {displayLog("stmt","expr SEMI_COLON");}
-#line 1368 "alphaBisonParser.cpp"
+#line 1377 "alphaBisonParser.cpp"
     break;
 
   case 5: /* stmt: ifstmt  */
 #line 109 "alphaBisonParser.y"
                                                                 {displayLog("stmt","ifstmt");}
-#line 1374 "alphaBisonParser.cpp"
+#line 1383 "alphaBisonParser.cpp"
     break;
 
   case 6: /* stmt: whilestmt  */
 #line 110 "alphaBisonParser.y"
                                                                 {displayLog("stmt","whilestmt");}
-#line 1380 "alphaBisonParser.cpp"
+#line 1389 "alphaBisonParser.cpp"
     break;
 
   case 7: /* stmt: forstmt  */
 #line 111 "alphaBisonParser.y"
                                                                 {displayLog("stmt","forstmt");}
-#line 1386 "alphaBisonParser.cpp"
+#line 1395 "alphaBisonParser.cpp"
     break;
 
   case 8: /* stmt: returnstmt  */
 #line 112 "alphaBisonParser.y"
                                                                 {displayLog("stmt","returnstmt");}
-#line 1392 "alphaBisonParser.cpp"
+#line 1401 "alphaBisonParser.cpp"
     break;
 
   case 9: /* stmt: BREAK SEMI_COLON  */
 #line 113 "alphaBisonParser.y"
                                                                 {displayLog("stmt","BREAK SEMI_COLON");}
-#line 1398 "alphaBisonParser.cpp"
+#line 1407 "alphaBisonParser.cpp"
     break;
 
   case 10: /* stmt: CONTINUE SEMI_COLON  */
 #line 114 "alphaBisonParser.y"
                                                                 {displayLog("stmt","CONTINUE SEMI_COLON");}
-#line 1404 "alphaBisonParser.cpp"
+#line 1413 "alphaBisonParser.cpp"
     break;
 
   case 11: /* stmt: block  */
 #line 115 "alphaBisonParser.y"
                                                                 {displayLog("stmt","block");}
-#line 1410 "alphaBisonParser.cpp"
+#line 1419 "alphaBisonParser.cpp"
     break;
 
   case 12: /* stmt: funcdef  */
 #line 116 "alphaBisonParser.y"
                                                                 {displayLog("stmt","funcdef");}
-#line 1416 "alphaBisonParser.cpp"
+#line 1425 "alphaBisonParser.cpp"
     break;
 
   case 13: /* stmt: SEMI_COLON  */
 #line 117 "alphaBisonParser.y"
                                                                 {displayLog("stmt","SEMI_COLON");}
-#line 1422 "alphaBisonParser.cpp"
+#line 1431 "alphaBisonParser.cpp"
     break;
 
   case 14: /* multi_stmt: stmt  */
 #line 120 "alphaBisonParser.y"
                                                                 {displayLog("multi_stmt", "stmt");}
-#line 1428 "alphaBisonParser.cpp"
+#line 1437 "alphaBisonParser.cpp"
     break;
 
   case 15: /* multi_stmt: stmt multi_stmt  */
 #line 121 "alphaBisonParser.y"
                                                                 {displayLog("multi_stmt", "stmt multi_stmt");}
-#line 1434 "alphaBisonParser.cpp"
+#line 1443 "alphaBisonParser.cpp"
     break;
 
   case 16: /* expr: assignexpr  */
 #line 124 "alphaBisonParser.y"
                                                                 {displayLog("expr", "assignexpr");}
-#line 1440 "alphaBisonParser.cpp"
+#line 1449 "alphaBisonParser.cpp"
     break;
 
   case 17: /* expr: expr PLUS expr  */
 #line 125 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr PLUS expr");}
-#line 1446 "alphaBisonParser.cpp"
+#line 1455 "alphaBisonParser.cpp"
     break;
 
   case 18: /* expr: expr MINUS expr  */
 #line 126 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr MINUS expr");}
-#line 1452 "alphaBisonParser.cpp"
+#line 1461 "alphaBisonParser.cpp"
     break;
 
   case 19: /* expr: expr MUL expr  */
 #line 127 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr MUL expr");}
-#line 1458 "alphaBisonParser.cpp"
+#line 1467 "alphaBisonParser.cpp"
     break;
 
   case 20: /* expr: expr DIV expr  */
 #line 128 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr DIV expr");}
-#line 1464 "alphaBisonParser.cpp"
+#line 1473 "alphaBisonParser.cpp"
     break;
 
   case 21: /* expr: expr MOD expr  */
 #line 129 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr MOD expr");}
-#line 1470 "alphaBisonParser.cpp"
+#line 1479 "alphaBisonParser.cpp"
     break;
 
   case 22: /* expr: expr GREATER_THAN expr  */
 #line 130 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr GREATER_THAN expr");}
-#line 1476 "alphaBisonParser.cpp"
+#line 1485 "alphaBisonParser.cpp"
     break;
 
   case 23: /* expr: expr GREATER_THAN_OR_EQUAL expr  */
 #line 131 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr GREATER_THAN_OR_EQUAL expr");}
-#line 1482 "alphaBisonParser.cpp"
+#line 1491 "alphaBisonParser.cpp"
     break;
 
   case 24: /* expr: expr LESS_THAN expr  */
 #line 132 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr LESS_THAN expr");}
-#line 1488 "alphaBisonParser.cpp"
+#line 1497 "alphaBisonParser.cpp"
     break;
 
   case 25: /* expr: expr LESS_THAN_OR_EQUAL expr  */
 #line 133 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr LESS_THAN_OR_EQUAL expr");}
-#line 1494 "alphaBisonParser.cpp"
+#line 1503 "alphaBisonParser.cpp"
     break;
 
   case 26: /* expr: expr EQUAL expr  */
 #line 134 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr EQUAL expr ");}
-#line 1500 "alphaBisonParser.cpp"
+#line 1509 "alphaBisonParser.cpp"
     break;
 
   case 27: /* expr: expr NOT_EQUAL expr  */
 #line 135 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr NOT_EQUAL expr");}
-#line 1506 "alphaBisonParser.cpp"
+#line 1515 "alphaBisonParser.cpp"
     break;
 
   case 28: /* expr: expr AND expr  */
 #line 136 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr AND expr");}
-#line 1512 "alphaBisonParser.cpp"
+#line 1521 "alphaBisonParser.cpp"
     break;
 
   case 29: /* expr: expr OR expr  */
 #line 137 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr OR expr");}
-#line 1518 "alphaBisonParser.cpp"
+#line 1527 "alphaBisonParser.cpp"
     break;
 
   case 30: /* expr: term  */
 #line 138 "alphaBisonParser.y"
                                                                 {displayLog("expr", "term");}
-#line 1524 "alphaBisonParser.cpp"
+#line 1533 "alphaBisonParser.cpp"
     break;
 
   case 31: /* term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS  */
 #line 141 "alphaBisonParser.y"
                                                                 {displayLog("term", "LEFT_PARENTHESIS expr RIGHT_PARENTHESIS");}
-#line 1530 "alphaBisonParser.cpp"
+#line 1539 "alphaBisonParser.cpp"
     break;
 
   case 32: /* term: MINUS expr  */
 #line 142 "alphaBisonParser.y"
                                                                 {displayLog("term", "MINUS expr");}
-#line 1536 "alphaBisonParser.cpp"
+#line 1545 "alphaBisonParser.cpp"
     break;
 
   case 33: /* term: NOT expr  */
 #line 143 "alphaBisonParser.y"
                                                                 {displayLog("term", "NOT expr");}
-#line 1542 "alphaBisonParser.cpp"
+#line 1551 "alphaBisonParser.cpp"
     break;
 
   case 34: /* term: PLUS_PLUS lvalue  */
@@ -1548,7 +1557,7 @@ yyreduce:
                                 if ((yyvsp[0].unionLvalue) != nullptr && (((yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::LIBFUNC || (yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::USERFUNC)))
                                         symbolTable.registerSyntaxError(std::string("Operator ++  can not be used on function ") + (yyvsp[0].unionLvalue)->getName() , alpha_yylineno);
                         }
-#line 1552 "alphaBisonParser.cpp"
+#line 1561 "alphaBisonParser.cpp"
     break;
 
   case 35: /* term: lvalue PLUS_PLUS  */
@@ -1558,7 +1567,7 @@ yyreduce:
                                 if ((yyvsp[-1].unionLvalue) != nullptr && (((yyvsp[-1].unionLvalue)->getType() == Alpha::SymbolType::LIBFUNC || (yyvsp[-1].unionLvalue)->getType() == Alpha::SymbolType::USERFUNC)))
                                         symbolTable.registerSyntaxError(std::string("Operator ++  can not be used on function ") + (yyvsp[-1].unionLvalue)->getName() , alpha_yylineno);
                         }
-#line 1562 "alphaBisonParser.cpp"
+#line 1571 "alphaBisonParser.cpp"
     break;
 
   case 36: /* term: MINUS_MINUS lvalue  */
@@ -1568,7 +1577,7 @@ yyreduce:
                                 if ((yyvsp[0].unionLvalue) != nullptr && (((yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::LIBFUNC || (yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::USERFUNC)))
                                         symbolTable.registerSyntaxError(std::string("Operator --  can not be used on function ") + (yyvsp[0].unionLvalue)->getName() , alpha_yylineno);
                         }
-#line 1572 "alphaBisonParser.cpp"
+#line 1581 "alphaBisonParser.cpp"
     break;
 
   case 37: /* term: lvalue MINUS_MINUS  */
@@ -1578,53 +1587,62 @@ yyreduce:
                                 if ((yyvsp[-1].unionLvalue) != nullptr && (((yyvsp[-1].unionLvalue)->getType() == Alpha::SymbolType::LIBFUNC || (yyvsp[-1].unionLvalue)->getType() == Alpha::SymbolType::USERFUNC)))
                                         symbolTable.registerSyntaxError(std::string("Operator --  can not be used on function ") + (yyvsp[-1].unionLvalue)->getName() , alpha_yylineno);
                         }
-#line 1582 "alphaBisonParser.cpp"
+#line 1591 "alphaBisonParser.cpp"
     break;
 
   case 38: /* term: primary  */
 #line 164 "alphaBisonParser.y"
                                                                 {displayLog("term", "primary");}
-#line 1588 "alphaBisonParser.cpp"
+#line 1597 "alphaBisonParser.cpp"
     break;
 
-  case 39: /* assignexpr: lvalue ASSIGN expr  */
-#line 168 "alphaBisonParser.y"
-                                                                {displayLog("assignexpr", "lvalue ASSIGN expr");}
-#line 1594 "alphaBisonParser.cpp"
-    break;
-
-  case 40: /* primary: lvalue  */
-#line 171 "alphaBisonParser.y"
-                                                                {displayLog("primary", "lvalue");}
-#line 1600 "alphaBisonParser.cpp"
-    break;
-
-  case 41: /* primary: call  */
-#line 172 "alphaBisonParser.y"
-                                                                {displayLog("primary", "call");}
+  case 39: /* $@1: %empty  */
+#line 169 "alphaBisonParser.y"
+                        {
+                                if ((yyvsp[0].unionLvalue) != nullptr && ((yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::LIBFUNC || (yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::USERFUNC)) 
+                                        symbolTable.registerSyntaxError(std::string((yyvsp[0].unionLvalue)->getName() + " is a function, can not assign to it."), alpha_yylineno);
+                        }
 #line 1606 "alphaBisonParser.cpp"
     break;
 
-  case 42: /* primary: objectdef  */
+  case 40: /* assignexpr: lvalue $@1 ASSIGN expr  */
 #line 173 "alphaBisonParser.y"
-                                                                {displayLog("primary", "objectdef");}
+                                                         {displayLog("assignexpr", "lvalue ASSIGN expr");}
 #line 1612 "alphaBisonParser.cpp"
     break;
 
-  case 43: /* primary: LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS  */
-#line 174 "alphaBisonParser.y"
-                                                                {displayLog("primary", "LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS");}
+  case 41: /* primary: lvalue  */
+#line 176 "alphaBisonParser.y"
+                                                                {displayLog("primary", "lvalue");}
 #line 1618 "alphaBisonParser.cpp"
     break;
 
-  case 44: /* primary: const  */
-#line 175 "alphaBisonParser.y"
-                                                                {displayLog("primary", "const");}
+  case 42: /* primary: call  */
+#line 177 "alphaBisonParser.y"
+                                                                {displayLog("primary", "call");}
 #line 1624 "alphaBisonParser.cpp"
     break;
 
-  case 45: /* lvalue: ID  */
+  case 43: /* primary: objectdef  */
 #line 178 "alphaBisonParser.y"
+                                                                {displayLog("primary", "objectdef");}
+#line 1630 "alphaBisonParser.cpp"
+    break;
+
+  case 44: /* primary: LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS  */
+#line 179 "alphaBisonParser.y"
+                                                                {displayLog("primary", "LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS");}
+#line 1636 "alphaBisonParser.cpp"
+    break;
+
+  case 45: /* primary: const  */
+#line 180 "alphaBisonParser.y"
+                                                                {displayLog("primary", "const");}
+#line 1642 "alphaBisonParser.cpp"
+    break;
+
+  case 46: /* lvalue: ID  */
+#line 183 "alphaBisonParser.y"
                      {
                                 displayLog("lvalue", "ID");
                                 auto resultPair = symbolTable.lookUpSymbol((yyvsp[0].unionId));
@@ -1635,13 +1653,14 @@ yyreduce:
                                         if (resultPair.first != Alpha::OperationResult::Success)
                                                 throw std::runtime_error("Insertion of a variable failed after duplicate check.");
                                 }
+                                else
                                 (yyval.unionLvalue) = resultPair.second;
                         }
-#line 1641 "alphaBisonParser.cpp"
+#line 1660 "alphaBisonParser.cpp"
     break;
 
-  case 46: /* lvalue: LOCAL ID  */
-#line 190 "alphaBisonParser.y"
+  case 47: /* lvalue: LOCAL ID  */
+#line 196 "alphaBisonParser.y"
                            {
                                 displayLog("lvalue","LOCAL ID");
                                 Alpha::SymbolTableEntry *entry = symbolTable.lookUpCurrentScope((yyvsp[0].unionId));
@@ -1658,323 +1677,346 @@ yyreduce:
                                         symbolTable.registerSyntaxError(std::string((yyvsp[0].unionId)) + " shadows library function", alpha_yylineno);
                                 (yyval.unionLvalue) = entry;
                         }
-#line 1662 "alphaBisonParser.cpp"
+#line 1681 "alphaBisonParser.cpp"
     break;
 
-  case 47: /* lvalue: COLON_BLOCK ID  */
-#line 206 "alphaBisonParser.y"
+  case 48: /* lvalue: COLON_BLOCK ID  */
+#line 212 "alphaBisonParser.y"
                                  {
                                 displayLog("lvalue","COLON_BLOCK ID");
                                 (yyval.unionLvalue) = symbolTable.lookUpGlobalScope((yyvsp[0].unionId));
                                 if ((yyval.unionLvalue) == nullptr)
                                         symbolTable.registerSyntaxError(std::string("::") + std::string((yyvsp[0].unionId)) + " not found in global scope", alpha_yylineno);
                         }
-#line 1673 "alphaBisonParser.cpp"
+#line 1692 "alphaBisonParser.cpp"
     break;
 
-  case 48: /* lvalue: member  */
-#line 212 "alphaBisonParser.y"
-                                                                {displayLog("lvalue","member");}
-#line 1679 "alphaBisonParser.cpp"
-    break;
-
-  case 49: /* member: lvalue DOT ID  */
-#line 215 "alphaBisonParser.y"
-                                                                {displayLog("member","lvalue DOT ID");}
-#line 1685 "alphaBisonParser.cpp"
-    break;
-
-  case 50: /* member: lvalue LEFT_BRACKET expr RIGHT_BRACKET  */
-#line 216 "alphaBisonParser.y"
-                                                                {displayLog("member","lvalue LEFT_BRACKET expr RIGHT_BRACKET");}
-#line 1691 "alphaBisonParser.cpp"
-    break;
-
-  case 51: /* member: call DOT ID  */
-#line 217 "alphaBisonParser.y"
-                                                                {displayLog("member","call DOT ID");}
-#line 1697 "alphaBisonParser.cpp"
-    break;
-
-  case 52: /* member: call LEFT_BRACKET expr RIGHT_BRACKET  */
+  case 49: /* lvalue: member  */
 #line 218 "alphaBisonParser.y"
-                                                                {displayLog("member","CALL LEFT_BRACKET expr RIGHT_BRACKET");}
-#line 1703 "alphaBisonParser.cpp"
+                                                                {displayLog("lvalue","member");}
+#line 1698 "alphaBisonParser.cpp"
     break;
 
-  case 53: /* call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
+  case 50: /* member: lvalue DOT ID  */
 #line 221 "alphaBisonParser.y"
-                                                                {displayLog("call","call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
-#line 1709 "alphaBisonParser.cpp"
+                                                                {displayLog("member","lvalue DOT ID");}
+#line 1704 "alphaBisonParser.cpp"
     break;
 
-  case 54: /* call: lvalue callsuffix  */
+  case 51: /* member: lvalue LEFT_BRACKET expr RIGHT_BRACKET  */
 #line 222 "alphaBisonParser.y"
-                                                                {displayLog("call","lvalue callsuffix");}
-#line 1715 "alphaBisonParser.cpp"
+                                                                {displayLog("member","lvalue LEFT_BRACKET expr RIGHT_BRACKET");}
+#line 1710 "alphaBisonParser.cpp"
     break;
 
-  case 55: /* call: LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
+  case 52: /* member: call DOT ID  */
+#line 223 "alphaBisonParser.y"
+                                                                {displayLog("member","call DOT ID");}
+#line 1716 "alphaBisonParser.cpp"
+    break;
+
+  case 53: /* member: call LEFT_BRACKET expr RIGHT_BRACKET  */
 #line 224 "alphaBisonParser.y"
-                                                                {displayLog("call","LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
-#line 1721 "alphaBisonParser.cpp"
+                                                                {displayLog("member","CALL LEFT_BRACKET expr RIGHT_BRACKET");}
+#line 1722 "alphaBisonParser.cpp"
     break;
 
-  case 56: /* callsuffix: normcall  */
+  case 54: /* call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
 #line 227 "alphaBisonParser.y"
-                                                                {displayLog("callsuffix","normcall");}
-#line 1727 "alphaBisonParser.cpp"
+                                                                {displayLog("call","call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
+#line 1728 "alphaBisonParser.cpp"
     break;
 
-  case 57: /* callsuffix: methodcall  */
+  case 55: /* call: lvalue callsuffix  */
 #line 228 "alphaBisonParser.y"
+                                                                {displayLog("call","lvalue callsuffix");}
+#line 1734 "alphaBisonParser.cpp"
+    break;
+
+  case 56: /* call: LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
+#line 230 "alphaBisonParser.y"
+                                                                {displayLog("call","LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
+#line 1740 "alphaBisonParser.cpp"
+    break;
+
+  case 57: /* callsuffix: normcall  */
+#line 233 "alphaBisonParser.y"
+                                                                {displayLog("callsuffix","normcall");}
+#line 1746 "alphaBisonParser.cpp"
+    break;
+
+  case 58: /* callsuffix: methodcall  */
+#line 234 "alphaBisonParser.y"
                                                                 {displayLog("callsuffix","methodcall");}
-#line 1733 "alphaBisonParser.cpp"
+#line 1752 "alphaBisonParser.cpp"
     break;
 
-  case 58: /* normcall: LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
-#line 231 "alphaBisonParser.y"
+  case 59: /* normcall: LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
+#line 237 "alphaBisonParser.y"
                                                                 {displayLog("normcall","LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
-#line 1739 "alphaBisonParser.cpp"
+#line 1758 "alphaBisonParser.cpp"
     break;
 
-  case 59: /* methodcall: DDOT ID LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
-#line 235 "alphaBisonParser.y"
+  case 60: /* methodcall: DDOT ID LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
+#line 241 "alphaBisonParser.y"
                                                                 {displayLog("methodcall","DDOT ID LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
-#line 1745 "alphaBisonParser.cpp"
+#line 1764 "alphaBisonParser.cpp"
     break;
 
-  case 60: /* expr_list: expr  */
-#line 238 "alphaBisonParser.y"
+  case 61: /* expr_list: expr  */
+#line 244 "alphaBisonParser.y"
                                                                 {displayLog("expr_list", "expr");}
-#line 1751 "alphaBisonParser.cpp"
+#line 1770 "alphaBisonParser.cpp"
     break;
 
-  case 61: /* expr_list: expr COMMA expr_list  */
-#line 239 "alphaBisonParser.y"
+  case 62: /* expr_list: expr COMMA expr_list  */
+#line 245 "alphaBisonParser.y"
                                                                 {displayLog("expr_list", "expr COMMA expr_list");}
-#line 1757 "alphaBisonParser.cpp"
+#line 1776 "alphaBisonParser.cpp"
     break;
 
-  case 62: /* elist: expr_list  */
-#line 242 "alphaBisonParser.y"
+  case 63: /* elist: expr_list  */
+#line 248 "alphaBisonParser.y"
                                                                 {displayLog("elist", "expr_list");}
-#line 1763 "alphaBisonParser.cpp"
+#line 1782 "alphaBisonParser.cpp"
     break;
 
-  case 63: /* elist: %empty  */
-#line 243 "alphaBisonParser.y"
+  case 64: /* elist: %empty  */
+#line 249 "alphaBisonParser.y"
                                                                 {displayLog("elist", "");}
-#line 1769 "alphaBisonParser.cpp"
+#line 1788 "alphaBisonParser.cpp"
     break;
 
-  case 64: /* objectdef: LEFT_BRACKET elist RIGHT_BRACKET  */
-#line 246 "alphaBisonParser.y"
+  case 65: /* objectdef: LEFT_BRACKET elist RIGHT_BRACKET  */
+#line 252 "alphaBisonParser.y"
                                                                 {displayLog("objectdef", "LEFT_BRACKET elist RIGHT_BRACKET");}
-#line 1775 "alphaBisonParser.cpp"
+#line 1794 "alphaBisonParser.cpp"
     break;
 
-  case 65: /* objectdef: LEFT_BRACKET indexed RIGHT_BRACKET  */
-#line 247 "alphaBisonParser.y"
-                                                                {displayLog("objectdef", "LEFT_BRACKET indexed RIGHT_BRACKET");}
-#line 1781 "alphaBisonParser.cpp"
-    break;
-
-  case 66: /* indexed: indexedelem_list  */
-#line 250 "alphaBisonParser.y"
-                                                                {displayLog("indexed", "indexedelem_list");}
-#line 1787 "alphaBisonParser.cpp"
-    break;
-
-  case 67: /* indexedelem: LEFT_BRACE expr COLON expr RIGHT_BRACE  */
+  case 66: /* objectdef: LEFT_BRACKET indexed RIGHT_BRACKET  */
 #line 253 "alphaBisonParser.y"
-                                                                {displayLog("indexedelem", "LEFT_BRACE expr COLON expr RIGHT_BRACE");}
-#line 1793 "alphaBisonParser.cpp"
+                                                                {displayLog("objectdef", "LEFT_BRACKET indexed RIGHT_BRACKET");}
+#line 1800 "alphaBisonParser.cpp"
     break;
 
-  case 68: /* $@1: %empty  */
-#line 257 "alphaBisonParser.y"
+  case 67: /* indexed: indexedelem_list  */
+#line 256 "alphaBisonParser.y"
+                                                                {displayLog("indexed", "indexedelem_list");}
+#line 1806 "alphaBisonParser.cpp"
+    break;
+
+  case 68: /* indexedelem: LEFT_BRACE expr COLON expr RIGHT_BRACE  */
+#line 259 "alphaBisonParser.y"
+                                                                {displayLog("indexedelem", "LEFT_BRACE expr COLON expr RIGHT_BRACE");}
+#line 1812 "alphaBisonParser.cpp"
+    break;
+
+  case 69: /* $@2: %empty  */
+#line 263 "alphaBisonParser.y"
                         {
                                 symbolTable.incrementScope(isFunctionBlock); // isFunctionBlock is a bool: true, or false.
                                 isFunctionBlock = false; // Reset flag.
                         }
-#line 1802 "alphaBisonParser.cpp"
+#line 1821 "alphaBisonParser.cpp"
     break;
 
-  case 69: /* $@2: %empty  */
-#line 262 "alphaBisonParser.y"
-                        {symbolTable.decrementScope();}
-#line 1808 "alphaBisonParser.cpp"
-    break;
-
-  case 70: /* block: LEFT_BRACE $@1 multi_stmt $@2 RIGHT_BRACE  */
-#line 264 "alphaBisonParser.y"
-                        {displayLog("block", "LEFT_BRACE multi_stmt RIGHT_BRACE");}
-#line 1814 "alphaBisonParser.cpp"
-    break;
-
-  case 71: /* block: LEFT_BRACE RIGHT_BRACE  */
-#line 267 "alphaBisonParser.y"
-                        {displayLog("block", "LEFT_BRACE RIGHT_BRACE");}
-#line 1820 "alphaBisonParser.cpp"
-    break;
-
-  case 72: /* $@3: %empty  */
-#line 275 "alphaBisonParser.y"
+  case 70: /* block: LEFT_BRACE $@2 multi_stmt RIGHT_BRACE  */
+#line 269 "alphaBisonParser.y"
                         {
-                                Alpha::SymbolTableEntry *currentScopeEntry = symbolTable.lookUpCurrentScope((yyvsp[-3].unionId));
-                                if (symbolTable.isLibraryFunction((yyvsp[-3].unionId)))
-                                        symbolTable.registerSyntaxError(std::string("Redefinition of library function ") + (yyvsp[-3].unionId) + " is prohibited", alpha_yylineno);
+                                symbolTable.decrementScope();
+                                displayLog("block", "LEFT_BRACE multi_stmt RIGHT_BRACE");
+                        }
+#line 1830 "alphaBisonParser.cpp"
+    break;
+
+  case 71: /* $@3: %empty  */
+#line 274 "alphaBisonParser.y"
+                        {
+                                // There might be FORMAL arguments to this function.
+                                // And because member function incrementScope() declares them, we call it.
+                                symbolTable.incrementScope(isFunctionBlock); // isFunctionBlock is a bool: true, or false.
+                        }
+#line 1840 "alphaBisonParser.cpp"
+    break;
+
+  case 72: /* block: LEFT_BRACE $@3 RIGHT_BRACE  */
+#line 280 "alphaBisonParser.y"
+                        {
+                                symbolTable.decrementScope();
+                                displayLog("block", "LEFT_BRACE RIGHT_BRACE");
+                        }
+#line 1849 "alphaBisonParser.cpp"
+    break;
+
+  case 73: /* $@4: %empty  */
+#line 288 "alphaBisonParser.y"
+                        {Alpha::Function::nameOfLastFunction = (yyvsp[0].unionId);}
+#line 1855 "alphaBisonParser.cpp"
+    break;
+
+  case 74: /* $@5: %empty  */
+#line 292 "alphaBisonParser.y"
+                        {
+                                Alpha::SymbolTableEntry *currentScopeEntry = symbolTable.lookUpCurrentScope(Alpha::Function::nameOfLastFunction);
+                                if (symbolTable.isLibraryFunction(Alpha::Function::nameOfLastFunction))
+                                        symbolTable.registerSyntaxError(std::string("Redefinition of library function ") + Alpha::Function::nameOfLastFunction + " is prohibited", alpha_yylineno);
                                 else if (currentScopeEntry && currentScopeEntry->getType() == Alpha::SymbolType::USERFUNC)
-                                        symbolTable.registerSyntaxError(std::string("Function") + (yyvsp[-3].unionId) + " is already defined in this scope. Can not redifine.", alpha_yylineno);
+                                        symbolTable.registerSyntaxError(std::string("Function") + Alpha::Function::nameOfLastFunction + " is already defined in this scope. Can not redifine.", alpha_yylineno);
                                 else if (currentScopeEntry) // We found a symbol, and it was a LIBFUNC nor a USERFUNC, thus it is a variable
-                                        symbolTable.registerSyntaxError(std::string((yyvsp[-3].unionId)) + " is already defined as a variable.", alpha_yylineno);
+                                        symbolTable.registerSyntaxError(std::string(Alpha::Function::nameOfLastFunction) + " is already defined as a variable.", alpha_yylineno);
                                 else
                                 {
-                                        symbolTable.insertFunction((yyvsp[-3].unionId), alpha_yylineno, Alpha::SymbolType::USERFUNC, Alpha::Function::idList);
+                                        symbolTable.insertFunction(Alpha::Function::nameOfLastFunction, alpha_yylineno, Alpha::SymbolType::USERFUNC, Alpha::Function::idList);
                                         isFunctionBlock = true;
                                 }
                         }
-#line 1839 "alphaBisonParser.cpp"
+#line 1874 "alphaBisonParser.cpp"
     break;
 
-  case 73: /* funcdef: FUNCTION ID LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS $@3 block  */
-#line 290 "alphaBisonParser.y"
+  case 75: /* funcdef: FUNCTION ID $@4 LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS $@5 block  */
+#line 307 "alphaBisonParser.y"
                         {
                                 displayLog("funcdef", "FUNCTION ID LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block");
                         }
-#line 1847 "alphaBisonParser.cpp"
+#line 1882 "alphaBisonParser.cpp"
     break;
 
-  case 74: /* funcdef: FUNCTION LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block  */
-#line 298 "alphaBisonParser.y"
+  case 76: /* $@6: %empty  */
+#line 313 "alphaBisonParser.y"
+                        {
+                                THIS BLOCK CAUSES ERROR ON PURPOSE... 
+                                TO REMIND THE PROGRAMMER TO ADD NAMELESS FUNCTIONS  Thank me LATER
+                        }
+#line 1891 "alphaBisonParser.cpp"
+    break;
+
+  case 77: /* funcdef: FUNCTION LEFT_PARENTHESIS idlist $@6 RIGHT_PARENTHESIS block  */
+#line 319 "alphaBisonParser.y"
                         {displayLog("funcdef", "FUNCTION LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block");}
-#line 1853 "alphaBisonParser.cpp"
+#line 1897 "alphaBisonParser.cpp"
     break;
 
-  case 75: /* const: INT_CONST  */
-#line 301 "alphaBisonParser.y"
+  case 78: /* const: INT_CONST  */
+#line 322 "alphaBisonParser.y"
                                                                 {displayLog("const", "INT_CONST");}
-#line 1859 "alphaBisonParser.cpp"
+#line 1903 "alphaBisonParser.cpp"
     break;
 
-  case 76: /* const: REAL_CONST  */
-#line 302 "alphaBisonParser.y"
+  case 79: /* const: REAL_CONST  */
+#line 323 "alphaBisonParser.y"
                                                                 {displayLog("const", "REAL_CONST");}
-#line 1865 "alphaBisonParser.cpp"
+#line 1909 "alphaBisonParser.cpp"
     break;
 
-  case 77: /* const: STRING_LITERAL  */
-#line 303 "alphaBisonParser.y"
+  case 80: /* const: STRING_LITERAL  */
+#line 324 "alphaBisonParser.y"
                                                                 {displayLog("const", "STRING_LITERAL");}
-#line 1871 "alphaBisonParser.cpp"
+#line 1915 "alphaBisonParser.cpp"
     break;
 
-  case 78: /* const: NIL  */
-#line 304 "alphaBisonParser.y"
+  case 81: /* const: NIL  */
+#line 325 "alphaBisonParser.y"
                                                                 {displayLog("const", "NIL");}
-#line 1877 "alphaBisonParser.cpp"
+#line 1921 "alphaBisonParser.cpp"
     break;
 
-  case 79: /* const: TRUE  */
-#line 305 "alphaBisonParser.y"
+  case 82: /* const: TRUE  */
+#line 326 "alphaBisonParser.y"
                                                                 {displayLog("const", "TRUE");}
-#line 1883 "alphaBisonParser.cpp"
+#line 1927 "alphaBisonParser.cpp"
     break;
 
-  case 80: /* const: FALSE  */
-#line 306 "alphaBisonParser.y"
+  case 83: /* const: FALSE  */
+#line 327 "alphaBisonParser.y"
                                                                 {displayLog("const", "FALSE");}
-#line 1889 "alphaBisonParser.cpp"
+#line 1933 "alphaBisonParser.cpp"
     break;
 
-  case 81: /* cs_ids: ID  */
-#line 309 "alphaBisonParser.y"
+  case 84: /* cs_ids: ID  */
+#line 330 "alphaBisonParser.y"
                      {
                         Alpha::Function::idList.push_back(std::string((yyvsp[0].unionId)));
                         displayLog("cs_ids", "ID");
                 }
-#line 1898 "alphaBisonParser.cpp"
+#line 1942 "alphaBisonParser.cpp"
     break;
 
-  case 82: /* $@4: %empty  */
-#line 313 "alphaBisonParser.y"
+  case 85: /* $@7: %empty  */
+#line 334 "alphaBisonParser.y"
                      {
-                        std::cout << "Rule2\n";
                         Alpha::Function::idList.push_back(std::string((yyvsp[0].unionId)));
-                        std::cout << (yyvsp[0].unionId) << std::endl;
                 }
-#line 1908 "alphaBisonParser.cpp"
-    break;
-
-  case 83: /* cs_ids: ID $@4 COMMA cs_ids  */
-#line 317 "alphaBisonParser.y"
-                                                                {displayLog("cs_ids", "ID COMMA cs_ids");}
-#line 1914 "alphaBisonParser.cpp"
-    break;
-
-  case 84: /* idlist: cs_ids  */
-#line 320 "alphaBisonParser.y"
-                                                                {displayLog("idlist", "cs_ids");}
-#line 1920 "alphaBisonParser.cpp"
-    break;
-
-  case 85: /* idlist: %empty  */
-#line 321 "alphaBisonParser.y"
-                                                                {displayLog("idlist", "");}
-#line 1926 "alphaBisonParser.cpp"
-    break;
-
-  case 86: /* ifstmt: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt  */
-#line 325 "alphaBisonParser.y"
-                                                                {displayLog("ifstmt", "IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt");}
-#line 1932 "alphaBisonParser.cpp"
-    break;
-
-  case 87: /* ifstmt: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE stmt  */
-#line 327 "alphaBisonParser.y"
-                                                                {displayLog("ifstmt", "IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE stmt");}
-#line 1938 "alphaBisonParser.cpp"
-    break;
-
-  case 88: /* whilestmt: WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt  */
-#line 331 "alphaBisonParser.y"
-                                                                {displayLog("whilestmt", "WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt");}
-#line 1944 "alphaBisonParser.cpp"
-    break;
-
-  case 89: /* forstmt: FOR LEFT_PARENTHESIS elist SEMI_COLON expr SEMI_COLON elist RIGHT_PARENTHESIS stmt  */
-#line 335 "alphaBisonParser.y"
-                                                                {displayLog("forstmt", "FOR LEFT_PARENTHESIS elist SEMI_CLON expr SEMI_CLON elist RIGHT_PARENTHESIS stmt");}
 #line 1950 "alphaBisonParser.cpp"
     break;
 
-  case 90: /* returnstmt: RETURN SEMI_COLON  */
-#line 338 "alphaBisonParser.y"
-                                                                {displayLog("returnstmt", "RETURN SEMI_COLON");}
+  case 86: /* cs_ids: ID $@7 COMMA cs_ids  */
+#line 336 "alphaBisonParser.y"
+                                                                {displayLog("cs_ids", "ID COMMA cs_ids");}
 #line 1956 "alphaBisonParser.cpp"
     break;
 
-  case 91: /* returnstmt: RETURN expr SEMI_COLON  */
+  case 87: /* idlist: cs_ids  */
 #line 339 "alphaBisonParser.y"
-                                                                {displayLog("returnstmt", "RETURN expr SEMI_COLON");}
+                                                                {displayLog("idlist", "cs_ids");}
 #line 1962 "alphaBisonParser.cpp"
     break;
 
-  case 92: /* indexedelem_list: indexedelem  */
-#line 342 "alphaBisonParser.y"
-                                                                {displayLog("indexedelem_list", "indexedelem");}
+  case 88: /* idlist: %empty  */
+#line 340 "alphaBisonParser.y"
+                                                                {displayLog("idlist", "");}
 #line 1968 "alphaBisonParser.cpp"
     break;
 
-  case 93: /* indexedelem_list: indexedelem COMMA indexedelem_list  */
-#line 343 "alphaBisonParser.y"
-                                                                {displayLog("indexedelem_list", "indexedelem COMMA indexedelem_list");}
+  case 89: /* ifstmt: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt  */
+#line 344 "alphaBisonParser.y"
+                                                                {displayLog("ifstmt", "IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt");}
 #line 1974 "alphaBisonParser.cpp"
     break;
 
+  case 90: /* ifstmt: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE stmt  */
+#line 346 "alphaBisonParser.y"
+                                                                {displayLog("ifstmt", "IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE stmt");}
+#line 1980 "alphaBisonParser.cpp"
+    break;
 
-#line 1978 "alphaBisonParser.cpp"
+  case 91: /* whilestmt: WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt  */
+#line 350 "alphaBisonParser.y"
+                                                                {displayLog("whilestmt", "WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt");}
+#line 1986 "alphaBisonParser.cpp"
+    break;
+
+  case 92: /* forstmt: FOR LEFT_PARENTHESIS elist SEMI_COLON expr SEMI_COLON elist RIGHT_PARENTHESIS stmt  */
+#line 354 "alphaBisonParser.y"
+                                                                {displayLog("forstmt", "FOR LEFT_PARENTHESIS elist SEMI_CLON expr SEMI_CLON elist RIGHT_PARENTHESIS stmt");}
+#line 1992 "alphaBisonParser.cpp"
+    break;
+
+  case 93: /* returnstmt: RETURN SEMI_COLON  */
+#line 357 "alphaBisonParser.y"
+                                                                {displayLog("returnstmt", "RETURN SEMI_COLON");}
+#line 1998 "alphaBisonParser.cpp"
+    break;
+
+  case 94: /* returnstmt: RETURN expr SEMI_COLON  */
+#line 358 "alphaBisonParser.y"
+                                                                {displayLog("returnstmt", "RETURN expr SEMI_COLON");}
+#line 2004 "alphaBisonParser.cpp"
+    break;
+
+  case 95: /* indexedelem_list: indexedelem  */
+#line 361 "alphaBisonParser.y"
+                                                                {displayLog("indexedelem_list", "indexedelem");}
+#line 2010 "alphaBisonParser.cpp"
+    break;
+
+  case 96: /* indexedelem_list: indexedelem COMMA indexedelem_list  */
+#line 362 "alphaBisonParser.y"
+                                                                {displayLog("indexedelem_list", "indexedelem COMMA indexedelem_list");}
+#line 2016 "alphaBisonParser.cpp"
+    break;
+
+
+#line 2020 "alphaBisonParser.cpp"
 
       default: break;
     }

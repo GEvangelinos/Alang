@@ -247,7 +247,7 @@ namespace Alpha
                 if (isFunctionScope && Function::idList.empty() == false)
                 {
                         for (const auto &argName : Function::idList)
-                                if (insertVariable(argName, Function::lineOfLastFunction) != OperationResult::Success)
+                                if (insertVariable(argName, Function::lineOfLastFunction, SymbolType::FORMAL) != OperationResult::Success)
                                         throw std::runtime_error(std::string(__func__) + "(): Insertion of function's arguments to new scope failed.");
                         Function::idList.clear();
                 }
@@ -331,4 +331,5 @@ namespace Alpha
 
         std::list<std::string> Function::idList;
         uint32_t Function::lineOfLastFunction = -1;
+        std::string Function::nameOfLastFunction;
 }
