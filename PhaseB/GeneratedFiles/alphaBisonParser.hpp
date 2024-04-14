@@ -53,7 +53,7 @@
 extern int alpha_yydebug;
 #endif
 /* "%code requires" blocks.  */
-#line 12 "alphaBisonParser.y"
+#line 13 "alphaBisonParser.y"
 
         #include "../symbolTable.hpp"
         extern Alpha::SymbolTable symbolTable;
@@ -122,7 +122,7 @@ extern int alpha_yydebug;
 #if ! defined ALPHA_YYSTYPE && ! defined ALPHA_YYSTYPE_IS_DECLARED
 union ALPHA_YYSTYPE
 {
-#line 26 "alphaBisonParser.y"
+#line 27 "alphaBisonParser.y"
 
         char *unionStringLiteral;
         char *unionId;

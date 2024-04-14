@@ -61,9 +61,10 @@ namespace Alpha
                         PLAIN_SCOPE
                 };
 
-                uint32_t currentScope;
-                uint32_t maximumReachedScopeDepth;
-                size_t totalSymbolCount;
+                uint32_t currentScope = GLOBAL_SCOPE_DEPTH;
+                uint32_t maximumReachedScopeDepth = GLOBAL_SCOPE_DEPTH;
+                uint32_t namelessFunctionCounter = 0;
+                size_t totalSymbolCount = 0;
                 std::unordered_map<std::string, std::list<SymbolTableEntry *>> symbolMap;
                 std::unordered_map<uint32_t, std::vector<SymbolTableEntry *>> symbolInsertionMap;
                 std::vector<ScopeType> scopeTypeVector; // Add frames with insert, remove with hide.
@@ -71,12 +72,14 @@ namespace Alpha
                 // Implement a stack of vectors of strings (or references/pointers) to hide effieciently symvols.
                 OperationResult insertEntry(SymbolTableEntry *newEntryPtr);
                 SymbolTableEntry *lookUpAtScopeDepth(const std::string &name, uint32_t scopeDepth);
+                void loadLibraryFunctions();
 
         public:
                 static constexpr uint32_t GLOBAL_SCOPE_DEPTH = 0;
                 OperationResult insertVariable(std::string name, uint32_t line, SymbolType type);
                 OperationResult insertVariable(std::string name, uint32_t line); // Inserts Variable at current scope.
-                OperationResult insertFunction(std::string name, uint32_t line, SymbolType type, std::list<std::string> &argumentNames);
+                OperationResult insertFunction(std::string name, uint32_t line, SymbolType type, const std::list<std::string> &argumentNames);
+                OperationResult insertNamelessFunction(uint32_t line, SymbolType type, std::list <std::string> &argumentNames);
                 SymbolTableEntry *lookUpGlobalScope(const std::string &name);
                 SymbolTableEntry *lookUpCurrentScope(const std::string &name);
                 const SymbolTableEntry *lookUpChainScope(const std::string &name, const SymbolType type) const; // Inclusive to current and global scope.
@@ -107,7 +110,7 @@ namespace Alpha
         class Function : public SymbolTableEntry
         {
         private:
-                Function(std::string name, uint32_t scope, uint32_t line, SymbolType type, std::list<std::string> &argumentNames);
+                Function(std::string name, uint32_t scope, uint32_t line, SymbolType type, const std::list<std::string> &argumentNames);
                 std::list<std::string> argumentNames;
 
                 static uint32_t lineOfLastFunction;

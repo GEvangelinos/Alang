@@ -85,8 +85,9 @@
         #include "../GeneratedFiles/alphaFlexScanner.hpp"
         #include "../alphaDefs.hpp"
         bool isFunctionBlock = false;
+        bool lvalueIsMember = false;
 
-#line 90 "alphaBisonParser.cpp"
+#line 91 "alphaBisonParser.cpp"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -588,16 +589,16 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   104,   104,   105,   108,   109,   110,   111,   112,   113,
-     114,   115,   116,   117,   120,   121,   124,   125,   126,   127,
-     128,   129,   130,   131,   132,   133,   134,   135,   136,   137,
-     138,   141,   142,   143,   144,   149,   154,   159,   164,   169,
-     168,   176,   177,   178,   179,   180,   183,   196,   212,   218,
-     221,   222,   223,   224,   227,   228,   229,   233,   234,   237,
-     240,   244,   245,   248,   249,   252,   253,   256,   259,   263,
-     262,   274,   273,   288,   292,   286,   313,   310,   322,   323,
-     324,   325,   326,   327,   330,   334,   334,   339,   340,   343,
-     345,   349,   353,   357,   358,   361,   362
+       0,   105,   105,   106,   109,   110,   111,   112,   113,   114,
+     115,   116,   117,   118,   121,   122,   125,   126,   127,   128,
+     129,   130,   131,   132,   133,   134,   135,   136,   137,   138,
+     139,   142,   143,   144,   145,   150,   155,   160,   165,   170,
+     169,   178,   179,   180,   181,   182,   185,   198,   215,   221,
+     227,   228,   229,   230,   233,   234,   235,   239,   240,   243,
+     246,   250,   251,   254,   255,   258,   259,   262,   265,   269,
+     268,   280,   279,   294,   298,   292,   320,   316,   328,   329,
+     330,   331,   332,   333,   336,   340,   340,   345,   346,   349,
+     351,   355,   359,   363,   364,   367,   368
 };
 #endif
 
@@ -660,14 +661,14 @@ static const yytype_int16 yypact[] =
     -156,  -156,  -156,   245,   245,   245,   245,   245,   245,   245,
      245,   245,   245,   245,   245,   245,  -156,  -156,  -156,   245,
      245,    52,    53,    38,  -156,  -156,  -156,   245,   245,    58,
-     396,   417,    21,    24,    22,  -156,  -156,  -156,    25,    30,
-    -156,   269,   245,  -156,  -156,    33,  -156,    28,   542,   529,
+     396,   417,    21,    24,    22,  -156,    25,  -156,    26,    31,
+    -156,   269,   245,  -156,  -156,    33,  -156,    30,   542,   529,
        8,     8,  -156,  -156,  -156,   555,   555,   247,   247,   247,
-     247,   451,    29,  -156,    31,   245,   472,    45,  -156,   149,
-     149,   245,    41,    44,    47,    28,  -156,   245,  -156,  -156,
+     247,   451,    45,  -156,    47,   245,   472,    49,  -156,   149,
+     149,   245,    41,    28,  -156,    30,  -156,   245,  -156,  -156,
      245,  -156,  -156,   245,   514,  -156,  -156,    64,  -156,   354,
-      49,    41,    55,   493,    51,    54,   149,   245,  -156,  -156,
-    -156,  -156,  -156,  -156,  -156,    57,    55,   149,  -156,  -156
+      50,    41,    56,   493,    54,    55,   149,   245,  -156,  -156,
+    -156,  -156,  -156,  -156,  -156,    57,    56,   149,  -156,  -156
 };
 
 /* YYDEFACT[STATE-NUM] -- Default reduction number in state STATE-NUM.
@@ -685,11 +686,11 @@ static const yytype_int8 yydefact[] =
       48,     1,    15,     0,     0,     0,     0,     0,     0,     0,
        0,     0,     0,     0,     0,     0,     4,    35,    37,     0,
       64,     0,     0,     0,    55,    57,    58,     0,    64,     0,
-       0,     0,     0,     0,    84,    87,    76,    94,     0,     0,
+       0,     0,     0,     0,    84,    87,     0,    94,     0,     0,
       72,     0,     0,    65,    66,     0,    31,    44,    28,    29,
       17,    18,    19,    20,    21,    26,    27,    22,    24,    23,
       25,     0,     0,    50,     0,     0,     0,     0,    52,     0,
-       0,     0,    88,     0,     0,     0,    70,     0,    62,    96,
+       0,     0,    88,     0,    76,     0,    70,     0,    62,    96,
       64,    51,    59,    64,    40,    53,    54,    89,    91,     0,
        0,     0,     0,     0,     0,     0,     0,    64,    74,    86,
       77,    68,    56,    60,    90,     0,     0,     0,    75,    92
@@ -700,8 +701,8 @@ static const yytype_int16 yypgoto[] =
 {
     -156,  -156,  -137,   -22,     0,  -156,  -156,  -156,  -156,    -5,
     -156,     9,  -156,  -156,  -156,   -19,   -44,  -156,  -156,  -156,
-    -155,  -156,  -156,    -7,  -156,  -156,  -156,  -156,   -67,  -156,
-     -46,  -156,  -156,  -156,  -156,   -10
+    -155,  -156,  -156,    -7,  -156,  -156,  -156,  -156,   -73,  -156,
+     -48,  -156,  -156,  -156,  -156,   -10
 };
 
 /* YYDEFGOTO[NTERM-NUM].  */
@@ -709,7 +710,7 @@ static const yytype_uint8 yydefgoto[] =
 {
        0,    25,    26,    27,    62,    29,    30,    93,    31,    32,
       33,    34,    94,    95,    96,    63,    64,    35,    65,    66,
-      36,    59,    60,    37,   103,   176,   144,    38,   105,   143,
+      36,    59,    60,    37,   103,   176,   162,    38,   105,   143,
      106,    39,    40,    41,    42,    67
 };
 
@@ -724,10 +725,10 @@ static const yytype_int16 yytable[] =
       51,    91,    92,    77,    78,    79,    53,   109,    70,    71,
      179,    47,    55,   100,   101,   104,   132,    24,   108,   -71,
      110,     8,   117,   113,   137,   114,   133,   134,   115,    28,
-     135,   111,   138,   141,   142,   -85,   145,   146,   150,    61,
-     152,   153,   166,   118,   119,   120,   121,   122,   123,   124,
-     125,   126,   127,   128,   129,   130,   156,   161,   162,   131,
-     168,    20,   172,   148,   169,   173,   160,   136,   177,     0,
+     135,   111,   138,   141,   142,   -85,   144,   145,   146,    61,
+     150,   161,   166,   118,   119,   120,   121,   122,   123,   124,
+     125,   126,   127,   128,   129,   130,   152,   153,   169,   131,
+     156,   168,    20,   148,   160,   172,   173,   136,   177,     0,
        0,     1,     2,     3,     4,   149,   164,     0,     0,   165,
        0,     0,     0,     0,    12,     0,    13,    14,    15,    16,
        0,     0,    17,   175,     0,     0,     0,     0,    18,    19,
@@ -788,10 +789,10 @@ static const yytype_int16 yycheck[] =
       42,    46,    47,    25,    26,    27,     4,    59,     4,     0,
      177,    40,    40,    43,    44,     4,    90,    45,    55,    37,
       37,    11,    41,    39,    98,    39,     4,     4,    43,    59,
-      22,    61,     4,    42,    40,    43,    41,    37,    40,    36,
-      41,    40,     8,    73,    74,    75,    76,    77,    78,    79,
-      80,    81,    82,    83,    84,    85,    41,    43,    41,    89,
-      41,    36,    41,   112,   161,    41,   142,    97,    41,    -1,
+      22,    61,     4,    42,    40,    43,    41,    41,    37,    36,
+      40,    43,     8,    73,    74,    75,    76,    77,    78,    79,
+      80,    81,    82,    83,    84,    85,    41,    40,   161,    89,
+      41,    41,    36,   112,   142,    41,    41,    97,    41,    -1,
       -1,     3,     4,     5,     6,   115,   150,    -1,    -1,   153,
       -1,    -1,    -1,    -1,    16,    -1,    18,    19,    20,    21,
       -1,    -1,    24,   167,    -1,    -1,    -1,    -1,    30,    31,
@@ -862,9 +863,9 @@ static const yytype_int8 yystos[] =
       37,    52,    43,    39,    39,    43,    41,    41,    52,    52,
       52,    52,    52,    52,    52,    52,    52,    52,    52,    52,
       52,    52,    64,     4,     4,    22,    52,    64,     4,    41,
-      41,    42,    40,    77,    74,    41,    37,    44,    63,    83,
+      41,    42,    40,    77,    41,    41,    37,    44,    63,    83,
       40,    39,    41,    40,    52,    39,    41,    50,    50,    52,
-      78,    43,    41,    52,    64,    64,     8,    42,    41,    76,
+      78,    43,    74,    52,    64,    64,     8,    42,    41,    76,
       68,    37,    41,    41,    50,    64,    73,    41,    68,    50
 };
 
@@ -1359,290 +1360,291 @@ yyreduce:
   switch (yyn)
     {
   case 2: /* program: %empty  */
-#line 104 "alphaBisonParser.y"
+#line 105 "alphaBisonParser.y"
                                                                 {displayLog("program", "");}
-#line 1365 "alphaBisonParser.cpp"
+#line 1366 "alphaBisonParser.cpp"
     break;
 
   case 3: /* program: multi_stmt  */
-#line 105 "alphaBisonParser.y"
+#line 106 "alphaBisonParser.y"
                                                                 {displayLog("program", "multi_stmt");}
-#line 1371 "alphaBisonParser.cpp"
+#line 1372 "alphaBisonParser.cpp"
     break;
 
   case 4: /* stmt: expr SEMI_COLON  */
-#line 108 "alphaBisonParser.y"
+#line 109 "alphaBisonParser.y"
                                                                 {displayLog("stmt","expr SEMI_COLON");}
-#line 1377 "alphaBisonParser.cpp"
+#line 1378 "alphaBisonParser.cpp"
     break;
 
   case 5: /* stmt: ifstmt  */
-#line 109 "alphaBisonParser.y"
+#line 110 "alphaBisonParser.y"
                                                                 {displayLog("stmt","ifstmt");}
-#line 1383 "alphaBisonParser.cpp"
+#line 1384 "alphaBisonParser.cpp"
     break;
 
   case 6: /* stmt: whilestmt  */
-#line 110 "alphaBisonParser.y"
+#line 111 "alphaBisonParser.y"
                                                                 {displayLog("stmt","whilestmt");}
-#line 1389 "alphaBisonParser.cpp"
+#line 1390 "alphaBisonParser.cpp"
     break;
 
   case 7: /* stmt: forstmt  */
-#line 111 "alphaBisonParser.y"
+#line 112 "alphaBisonParser.y"
                                                                 {displayLog("stmt","forstmt");}
-#line 1395 "alphaBisonParser.cpp"
+#line 1396 "alphaBisonParser.cpp"
     break;
 
   case 8: /* stmt: returnstmt  */
-#line 112 "alphaBisonParser.y"
+#line 113 "alphaBisonParser.y"
                                                                 {displayLog("stmt","returnstmt");}
-#line 1401 "alphaBisonParser.cpp"
+#line 1402 "alphaBisonParser.cpp"
     break;
 
   case 9: /* stmt: BREAK SEMI_COLON  */
-#line 113 "alphaBisonParser.y"
+#line 114 "alphaBisonParser.y"
                                                                 {displayLog("stmt","BREAK SEMI_COLON");}
-#line 1407 "alphaBisonParser.cpp"
+#line 1408 "alphaBisonParser.cpp"
     break;
 
   case 10: /* stmt: CONTINUE SEMI_COLON  */
-#line 114 "alphaBisonParser.y"
+#line 115 "alphaBisonParser.y"
                                                                 {displayLog("stmt","CONTINUE SEMI_COLON");}
-#line 1413 "alphaBisonParser.cpp"
+#line 1414 "alphaBisonParser.cpp"
     break;
 
   case 11: /* stmt: block  */
-#line 115 "alphaBisonParser.y"
+#line 116 "alphaBisonParser.y"
                                                                 {displayLog("stmt","block");}
-#line 1419 "alphaBisonParser.cpp"
+#line 1420 "alphaBisonParser.cpp"
     break;
 
   case 12: /* stmt: funcdef  */
-#line 116 "alphaBisonParser.y"
+#line 117 "alphaBisonParser.y"
                                                                 {displayLog("stmt","funcdef");}
-#line 1425 "alphaBisonParser.cpp"
+#line 1426 "alphaBisonParser.cpp"
     break;
 
   case 13: /* stmt: SEMI_COLON  */
-#line 117 "alphaBisonParser.y"
+#line 118 "alphaBisonParser.y"
                                                                 {displayLog("stmt","SEMI_COLON");}
-#line 1431 "alphaBisonParser.cpp"
+#line 1432 "alphaBisonParser.cpp"
     break;
 
   case 14: /* multi_stmt: stmt  */
-#line 120 "alphaBisonParser.y"
+#line 121 "alphaBisonParser.y"
                                                                 {displayLog("multi_stmt", "stmt");}
-#line 1437 "alphaBisonParser.cpp"
+#line 1438 "alphaBisonParser.cpp"
     break;
 
   case 15: /* multi_stmt: stmt multi_stmt  */
-#line 121 "alphaBisonParser.y"
+#line 122 "alphaBisonParser.y"
                                                                 {displayLog("multi_stmt", "stmt multi_stmt");}
-#line 1443 "alphaBisonParser.cpp"
+#line 1444 "alphaBisonParser.cpp"
     break;
 
   case 16: /* expr: assignexpr  */
-#line 124 "alphaBisonParser.y"
+#line 125 "alphaBisonParser.y"
                                                                 {displayLog("expr", "assignexpr");}
-#line 1449 "alphaBisonParser.cpp"
+#line 1450 "alphaBisonParser.cpp"
     break;
 
   case 17: /* expr: expr PLUS expr  */
-#line 125 "alphaBisonParser.y"
+#line 126 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr PLUS expr");}
-#line 1455 "alphaBisonParser.cpp"
+#line 1456 "alphaBisonParser.cpp"
     break;
 
   case 18: /* expr: expr MINUS expr  */
-#line 126 "alphaBisonParser.y"
+#line 127 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr MINUS expr");}
-#line 1461 "alphaBisonParser.cpp"
+#line 1462 "alphaBisonParser.cpp"
     break;
 
   case 19: /* expr: expr MUL expr  */
-#line 127 "alphaBisonParser.y"
+#line 128 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr MUL expr");}
-#line 1467 "alphaBisonParser.cpp"
+#line 1468 "alphaBisonParser.cpp"
     break;
 
   case 20: /* expr: expr DIV expr  */
-#line 128 "alphaBisonParser.y"
+#line 129 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr DIV expr");}
-#line 1473 "alphaBisonParser.cpp"
+#line 1474 "alphaBisonParser.cpp"
     break;
 
   case 21: /* expr: expr MOD expr  */
-#line 129 "alphaBisonParser.y"
+#line 130 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr MOD expr");}
-#line 1479 "alphaBisonParser.cpp"
+#line 1480 "alphaBisonParser.cpp"
     break;
 
   case 22: /* expr: expr GREATER_THAN expr  */
-#line 130 "alphaBisonParser.y"
+#line 131 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr GREATER_THAN expr");}
-#line 1485 "alphaBisonParser.cpp"
+#line 1486 "alphaBisonParser.cpp"
     break;
 
   case 23: /* expr: expr GREATER_THAN_OR_EQUAL expr  */
-#line 131 "alphaBisonParser.y"
+#line 132 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr GREATER_THAN_OR_EQUAL expr");}
-#line 1491 "alphaBisonParser.cpp"
+#line 1492 "alphaBisonParser.cpp"
     break;
 
   case 24: /* expr: expr LESS_THAN expr  */
-#line 132 "alphaBisonParser.y"
+#line 133 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr LESS_THAN expr");}
-#line 1497 "alphaBisonParser.cpp"
+#line 1498 "alphaBisonParser.cpp"
     break;
 
   case 25: /* expr: expr LESS_THAN_OR_EQUAL expr  */
-#line 133 "alphaBisonParser.y"
+#line 134 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr LESS_THAN_OR_EQUAL expr");}
-#line 1503 "alphaBisonParser.cpp"
+#line 1504 "alphaBisonParser.cpp"
     break;
 
   case 26: /* expr: expr EQUAL expr  */
-#line 134 "alphaBisonParser.y"
+#line 135 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr EQUAL expr ");}
-#line 1509 "alphaBisonParser.cpp"
+#line 1510 "alphaBisonParser.cpp"
     break;
 
   case 27: /* expr: expr NOT_EQUAL expr  */
-#line 135 "alphaBisonParser.y"
+#line 136 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr NOT_EQUAL expr");}
-#line 1515 "alphaBisonParser.cpp"
+#line 1516 "alphaBisonParser.cpp"
     break;
 
   case 28: /* expr: expr AND expr  */
-#line 136 "alphaBisonParser.y"
+#line 137 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr AND expr");}
-#line 1521 "alphaBisonParser.cpp"
+#line 1522 "alphaBisonParser.cpp"
     break;
 
   case 29: /* expr: expr OR expr  */
-#line 137 "alphaBisonParser.y"
+#line 138 "alphaBisonParser.y"
                                                                 {displayLog("expr", "expr OR expr");}
-#line 1527 "alphaBisonParser.cpp"
+#line 1528 "alphaBisonParser.cpp"
     break;
 
   case 30: /* expr: term  */
-#line 138 "alphaBisonParser.y"
+#line 139 "alphaBisonParser.y"
                                                                 {displayLog("expr", "term");}
-#line 1533 "alphaBisonParser.cpp"
+#line 1534 "alphaBisonParser.cpp"
     break;
 
   case 31: /* term: LEFT_PARENTHESIS expr RIGHT_PARENTHESIS  */
-#line 141 "alphaBisonParser.y"
+#line 142 "alphaBisonParser.y"
                                                                 {displayLog("term", "LEFT_PARENTHESIS expr RIGHT_PARENTHESIS");}
-#line 1539 "alphaBisonParser.cpp"
+#line 1540 "alphaBisonParser.cpp"
     break;
 
   case 32: /* term: MINUS expr  */
-#line 142 "alphaBisonParser.y"
+#line 143 "alphaBisonParser.y"
                                                                 {displayLog("term", "MINUS expr");}
-#line 1545 "alphaBisonParser.cpp"
+#line 1546 "alphaBisonParser.cpp"
     break;
 
   case 33: /* term: NOT expr  */
-#line 143 "alphaBisonParser.y"
+#line 144 "alphaBisonParser.y"
                                                                 {displayLog("term", "NOT expr");}
-#line 1551 "alphaBisonParser.cpp"
+#line 1552 "alphaBisonParser.cpp"
     break;
 
   case 34: /* term: PLUS_PLUS lvalue  */
-#line 144 "alphaBisonParser.y"
+#line 145 "alphaBisonParser.y"
                                    {
                                 displayLog("term", "PLUS_PLUS lvalue");
                                 if ((yyvsp[0].unionLvalue) != nullptr && (((yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::LIBFUNC || (yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::USERFUNC)))
                                         symbolTable.registerSyntaxError(std::string("Operator ++  can not be used on function ") + (yyvsp[0].unionLvalue)->getName() , alpha_yylineno);
                         }
-#line 1561 "alphaBisonParser.cpp"
+#line 1562 "alphaBisonParser.cpp"
     break;
 
   case 35: /* term: lvalue PLUS_PLUS  */
-#line 149 "alphaBisonParser.y"
+#line 150 "alphaBisonParser.y"
                                     {
                                 displayLog("term", "lvalue PLUS_PLUS");
                                 if ((yyvsp[-1].unionLvalue) != nullptr && (((yyvsp[-1].unionLvalue)->getType() == Alpha::SymbolType::LIBFUNC || (yyvsp[-1].unionLvalue)->getType() == Alpha::SymbolType::USERFUNC)))
                                         symbolTable.registerSyntaxError(std::string("Operator ++  can not be used on function ") + (yyvsp[-1].unionLvalue)->getName() , alpha_yylineno);
                         }
-#line 1571 "alphaBisonParser.cpp"
+#line 1572 "alphaBisonParser.cpp"
     break;
 
   case 36: /* term: MINUS_MINUS lvalue  */
-#line 154 "alphaBisonParser.y"
+#line 155 "alphaBisonParser.y"
                                      {
                                 displayLog("term", "MINUS_MINUS lvalue");
                                 if ((yyvsp[0].unionLvalue) != nullptr && (((yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::LIBFUNC || (yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::USERFUNC)))
                                         symbolTable.registerSyntaxError(std::string("Operator --  can not be used on function ") + (yyvsp[0].unionLvalue)->getName() , alpha_yylineno);
                         }
-#line 1581 "alphaBisonParser.cpp"
+#line 1582 "alphaBisonParser.cpp"
     break;
 
   case 37: /* term: lvalue MINUS_MINUS  */
-#line 159 "alphaBisonParser.y"
+#line 160 "alphaBisonParser.y"
                                      {
                                 displayLog("term", "lvalue MINUS_MINUS");
                                 if ((yyvsp[-1].unionLvalue) != nullptr && (((yyvsp[-1].unionLvalue)->getType() == Alpha::SymbolType::LIBFUNC || (yyvsp[-1].unionLvalue)->getType() == Alpha::SymbolType::USERFUNC)))
                                         symbolTable.registerSyntaxError(std::string("Operator --  can not be used on function ") + (yyvsp[-1].unionLvalue)->getName() , alpha_yylineno);
                         }
-#line 1591 "alphaBisonParser.cpp"
+#line 1592 "alphaBisonParser.cpp"
     break;
 
   case 38: /* term: primary  */
-#line 164 "alphaBisonParser.y"
+#line 165 "alphaBisonParser.y"
                                                                 {displayLog("term", "primary");}
-#line 1597 "alphaBisonParser.cpp"
+#line 1598 "alphaBisonParser.cpp"
     break;
 
   case 39: /* $@1: %empty  */
-#line 169 "alphaBisonParser.y"
+#line 170 "alphaBisonParser.y"
                         {
-                                if ((yyvsp[0].unionLvalue) != nullptr && ((yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::LIBFUNC || (yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::USERFUNC)) 
+                                if (!lvalueIsMember && (yyvsp[0].unionLvalue) != nullptr && ((yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::LIBFUNC || (yyvsp[0].unionLvalue)->getType() == Alpha::SymbolType::USERFUNC)) 
                                         symbolTable.registerSyntaxError(std::string((yyvsp[0].unionLvalue)->getName() + " is a function, can not assign to it."), alpha_yylineno);
+                                lvalueIsMember = false;
                         }
-#line 1606 "alphaBisonParser.cpp"
+#line 1608 "alphaBisonParser.cpp"
     break;
 
   case 40: /* assignexpr: lvalue $@1 ASSIGN expr  */
-#line 173 "alphaBisonParser.y"
+#line 175 "alphaBisonParser.y"
                                                          {displayLog("assignexpr", "lvalue ASSIGN expr");}
-#line 1612 "alphaBisonParser.cpp"
+#line 1614 "alphaBisonParser.cpp"
     break;
 
   case 41: /* primary: lvalue  */
-#line 176 "alphaBisonParser.y"
+#line 178 "alphaBisonParser.y"
                                                                 {displayLog("primary", "lvalue");}
-#line 1618 "alphaBisonParser.cpp"
+#line 1620 "alphaBisonParser.cpp"
     break;
 
   case 42: /* primary: call  */
-#line 177 "alphaBisonParser.y"
+#line 179 "alphaBisonParser.y"
                                                                 {displayLog("primary", "call");}
-#line 1624 "alphaBisonParser.cpp"
+#line 1626 "alphaBisonParser.cpp"
     break;
 
   case 43: /* primary: objectdef  */
-#line 178 "alphaBisonParser.y"
+#line 180 "alphaBisonParser.y"
                                                                 {displayLog("primary", "objectdef");}
-#line 1630 "alphaBisonParser.cpp"
+#line 1632 "alphaBisonParser.cpp"
     break;
 
   case 44: /* primary: LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS  */
-#line 179 "alphaBisonParser.y"
+#line 181 "alphaBisonParser.y"
                                                                 {displayLog("primary", "LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS");}
-#line 1636 "alphaBisonParser.cpp"
+#line 1638 "alphaBisonParser.cpp"
     break;
 
   case 45: /* primary: const  */
-#line 180 "alphaBisonParser.y"
+#line 182 "alphaBisonParser.y"
                                                                 {displayLog("primary", "const");}
-#line 1642 "alphaBisonParser.cpp"
+#line 1644 "alphaBisonParser.cpp"
     break;
 
   case 46: /* lvalue: ID  */
-#line 183 "alphaBisonParser.y"
+#line 185 "alphaBisonParser.y"
                      {
                                 displayLog("lvalue", "ID");
                                 auto resultPair = symbolTable.lookUpSymbol((yyvsp[0].unionId));
@@ -1656,206 +1658,210 @@ yyreduce:
                                 else
                                 (yyval.unionLvalue) = resultPair.second;
                         }
-#line 1660 "alphaBisonParser.cpp"
+#line 1662 "alphaBisonParser.cpp"
     break;
 
   case 47: /* lvalue: LOCAL ID  */
-#line 196 "alphaBisonParser.y"
+#line 198 "alphaBisonParser.y"
                            {
                                 displayLog("lvalue","LOCAL ID");
                                 Alpha::SymbolTableEntry *entry = symbolTable.lookUpCurrentScope((yyvsp[0].unionId));
-                                if (entry == nullptr && ((symbolTable.getCurrentScope() == symbolTable.GLOBAL_SCOPE_DEPTH
-                                || symbolTable.lookUpGlobalScope((yyvsp[0].unionId))->getType() != Alpha::SymbolType::LIBFUNC)))
+                                if (symbolTable.isLibraryFunction((yyvsp[0].unionId)))
                                 {
-                                        // If here it is not a LIBFUNC, as initial lookUp was in global scope.
+                                        symbolTable.registerSyntaxError(std::string((yyvsp[0].unionId)) + " shadows library function", alpha_yylineno);
+                                        entry = nullptr;
+                                }
+                                else if (entry == nullptr) // if control reached here, it is not a LIBFUNC.
+                                {
                                         symbolTable.insertVariable((yyvsp[0].unionId), alpha_yylineno);
                                         entry = symbolTable.lookUpVariable((yyvsp[0].unionId)).second;
                                         if (entry == nullptr)
                                                 throw std::runtime_error("Insertion of a variable failed after duplicate check");
                                 }
-                                else if (entry == nullptr && (entry = symbolTable.lookUpGlobalScope((yyvsp[0].unionId)))->getType() == Alpha::SymbolType::LIBFUNC)
-                                        symbolTable.registerSyntaxError(std::string((yyvsp[0].unionId)) + " shadows library function", alpha_yylineno);
                                 (yyval.unionLvalue) = entry;
                         }
-#line 1681 "alphaBisonParser.cpp"
+#line 1684 "alphaBisonParser.cpp"
     break;
 
   case 48: /* lvalue: COLON_BLOCK ID  */
-#line 212 "alphaBisonParser.y"
+#line 215 "alphaBisonParser.y"
                                  {
                                 displayLog("lvalue","COLON_BLOCK ID");
                                 (yyval.unionLvalue) = symbolTable.lookUpGlobalScope((yyvsp[0].unionId));
                                 if ((yyval.unionLvalue) == nullptr)
                                         symbolTable.registerSyntaxError(std::string("::") + std::string((yyvsp[0].unionId)) + " not found in global scope", alpha_yylineno);
                         }
-#line 1692 "alphaBisonParser.cpp"
+#line 1695 "alphaBisonParser.cpp"
     break;
 
   case 49: /* lvalue: member  */
-#line 218 "alphaBisonParser.y"
-                                                                {displayLog("lvalue","member");}
-#line 1698 "alphaBisonParser.cpp"
-    break;
-
-  case 50: /* member: lvalue DOT ID  */
 #line 221 "alphaBisonParser.y"
-                                                                {displayLog("member","lvalue DOT ID");}
+                        {
+                                displayLog("lvalue","member");
+                                lvalueIsMember = true;
+                        }
 #line 1704 "alphaBisonParser.cpp"
     break;
 
-  case 51: /* member: lvalue LEFT_BRACKET expr RIGHT_BRACKET  */
-#line 222 "alphaBisonParser.y"
-                                                                {displayLog("member","lvalue LEFT_BRACKET expr RIGHT_BRACKET");}
+  case 50: /* member: lvalue DOT ID  */
+#line 227 "alphaBisonParser.y"
+                                                                {displayLog("member","lvalue DOT ID");}
 #line 1710 "alphaBisonParser.cpp"
     break;
 
-  case 52: /* member: call DOT ID  */
-#line 223 "alphaBisonParser.y"
-                                                                {displayLog("member","call DOT ID");}
+  case 51: /* member: lvalue LEFT_BRACKET expr RIGHT_BRACKET  */
+#line 228 "alphaBisonParser.y"
+                                                                {displayLog("member","lvalue LEFT_BRACKET expr RIGHT_BRACKET");}
 #line 1716 "alphaBisonParser.cpp"
     break;
 
-  case 53: /* member: call LEFT_BRACKET expr RIGHT_BRACKET  */
-#line 224 "alphaBisonParser.y"
-                                                                {displayLog("member","CALL LEFT_BRACKET expr RIGHT_BRACKET");}
+  case 52: /* member: call DOT ID  */
+#line 229 "alphaBisonParser.y"
+                                                                {displayLog("member","call DOT ID");}
 #line 1722 "alphaBisonParser.cpp"
     break;
 
-  case 54: /* call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
-#line 227 "alphaBisonParser.y"
-                                                                {displayLog("call","call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
+  case 53: /* member: call LEFT_BRACKET expr RIGHT_BRACKET  */
+#line 230 "alphaBisonParser.y"
+                                                                {displayLog("member","CALL LEFT_BRACKET expr RIGHT_BRACKET");}
 #line 1728 "alphaBisonParser.cpp"
     break;
 
-  case 55: /* call: lvalue callsuffix  */
-#line 228 "alphaBisonParser.y"
-                                                                {displayLog("call","lvalue callsuffix");}
+  case 54: /* call: call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
+#line 233 "alphaBisonParser.y"
+                                                                {displayLog("call","call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
 #line 1734 "alphaBisonParser.cpp"
     break;
 
-  case 56: /* call: LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
-#line 230 "alphaBisonParser.y"
-                                                                {displayLog("call","LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
+  case 55: /* call: lvalue callsuffix  */
+#line 234 "alphaBisonParser.y"
+                                                                {displayLog("call","lvalue callsuffix");}
 #line 1740 "alphaBisonParser.cpp"
     break;
 
-  case 57: /* callsuffix: normcall  */
-#line 233 "alphaBisonParser.y"
-                                                                {displayLog("callsuffix","normcall");}
+  case 56: /* call: LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
+#line 236 "alphaBisonParser.y"
+                                                                {displayLog("call","LEFT_PARENTHESIS funcdef RIGHT_PARENTHESIS LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
 #line 1746 "alphaBisonParser.cpp"
     break;
 
-  case 58: /* callsuffix: methodcall  */
-#line 234 "alphaBisonParser.y"
-                                                                {displayLog("callsuffix","methodcall");}
+  case 57: /* callsuffix: normcall  */
+#line 239 "alphaBisonParser.y"
+                                                                {displayLog("callsuffix","normcall");}
 #line 1752 "alphaBisonParser.cpp"
     break;
 
-  case 59: /* normcall: LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
-#line 237 "alphaBisonParser.y"
-                                                                {displayLog("normcall","LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
+  case 58: /* callsuffix: methodcall  */
+#line 240 "alphaBisonParser.y"
+                                                                {displayLog("callsuffix","methodcall");}
 #line 1758 "alphaBisonParser.cpp"
     break;
 
-  case 60: /* methodcall: DDOT ID LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
-#line 241 "alphaBisonParser.y"
-                                                                {displayLog("methodcall","DDOT ID LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
+  case 59: /* normcall: LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
+#line 243 "alphaBisonParser.y"
+                                                                {displayLog("normcall","LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
 #line 1764 "alphaBisonParser.cpp"
     break;
 
-  case 61: /* expr_list: expr  */
-#line 244 "alphaBisonParser.y"
-                                                                {displayLog("expr_list", "expr");}
+  case 60: /* methodcall: DDOT ID LEFT_PARENTHESIS elist RIGHT_PARENTHESIS  */
+#line 247 "alphaBisonParser.y"
+                                                                {displayLog("methodcall","DDOT ID LEFT_PARENTHESIS elist RIGHT_PARENTHESIS");}
 #line 1770 "alphaBisonParser.cpp"
     break;
 
-  case 62: /* expr_list: expr COMMA expr_list  */
-#line 245 "alphaBisonParser.y"
-                                                                {displayLog("expr_list", "expr COMMA expr_list");}
+  case 61: /* expr_list: expr  */
+#line 250 "alphaBisonParser.y"
+                                                                {displayLog("expr_list", "expr");}
 #line 1776 "alphaBisonParser.cpp"
     break;
 
-  case 63: /* elist: expr_list  */
-#line 248 "alphaBisonParser.y"
-                                                                {displayLog("elist", "expr_list");}
+  case 62: /* expr_list: expr COMMA expr_list  */
+#line 251 "alphaBisonParser.y"
+                                                                {displayLog("expr_list", "expr COMMA expr_list");}
 #line 1782 "alphaBisonParser.cpp"
     break;
 
-  case 64: /* elist: %empty  */
-#line 249 "alphaBisonParser.y"
-                                                                {displayLog("elist", "");}
+  case 63: /* elist: expr_list  */
+#line 254 "alphaBisonParser.y"
+                                                                {displayLog("elist", "expr_list");}
 #line 1788 "alphaBisonParser.cpp"
     break;
 
-  case 65: /* objectdef: LEFT_BRACKET elist RIGHT_BRACKET  */
-#line 252 "alphaBisonParser.y"
-                                                                {displayLog("objectdef", "LEFT_BRACKET elist RIGHT_BRACKET");}
+  case 64: /* elist: %empty  */
+#line 255 "alphaBisonParser.y"
+                                                                {displayLog("elist", "");}
 #line 1794 "alphaBisonParser.cpp"
     break;
 
-  case 66: /* objectdef: LEFT_BRACKET indexed RIGHT_BRACKET  */
-#line 253 "alphaBisonParser.y"
-                                                                {displayLog("objectdef", "LEFT_BRACKET indexed RIGHT_BRACKET");}
+  case 65: /* objectdef: LEFT_BRACKET elist RIGHT_BRACKET  */
+#line 258 "alphaBisonParser.y"
+                                                                {displayLog("objectdef", "LEFT_BRACKET elist RIGHT_BRACKET");}
 #line 1800 "alphaBisonParser.cpp"
     break;
 
-  case 67: /* indexed: indexedelem_list  */
-#line 256 "alphaBisonParser.y"
-                                                                {displayLog("indexed", "indexedelem_list");}
+  case 66: /* objectdef: LEFT_BRACKET indexed RIGHT_BRACKET  */
+#line 259 "alphaBisonParser.y"
+                                                                {displayLog("objectdef", "LEFT_BRACKET indexed RIGHT_BRACKET");}
 #line 1806 "alphaBisonParser.cpp"
     break;
 
-  case 68: /* indexedelem: LEFT_BRACE expr COLON expr RIGHT_BRACE  */
-#line 259 "alphaBisonParser.y"
-                                                                {displayLog("indexedelem", "LEFT_BRACE expr COLON expr RIGHT_BRACE");}
+  case 67: /* indexed: indexedelem_list  */
+#line 262 "alphaBisonParser.y"
+                                                                {displayLog("indexed", "indexedelem_list");}
 #line 1812 "alphaBisonParser.cpp"
     break;
 
+  case 68: /* indexedelem: LEFT_BRACE expr COLON expr RIGHT_BRACE  */
+#line 265 "alphaBisonParser.y"
+                                                                {displayLog("indexedelem", "LEFT_BRACE expr COLON expr RIGHT_BRACE");}
+#line 1818 "alphaBisonParser.cpp"
+    break;
+
   case 69: /* $@2: %empty  */
-#line 263 "alphaBisonParser.y"
+#line 269 "alphaBisonParser.y"
                         {
                                 symbolTable.incrementScope(isFunctionBlock); // isFunctionBlock is a bool: true, or false.
                                 isFunctionBlock = false; // Reset flag.
                         }
-#line 1821 "alphaBisonParser.cpp"
+#line 1827 "alphaBisonParser.cpp"
     break;
 
   case 70: /* block: LEFT_BRACE $@2 multi_stmt RIGHT_BRACE  */
-#line 269 "alphaBisonParser.y"
+#line 275 "alphaBisonParser.y"
                         {
                                 symbolTable.decrementScope();
                                 displayLog("block", "LEFT_BRACE multi_stmt RIGHT_BRACE");
                         }
-#line 1830 "alphaBisonParser.cpp"
+#line 1836 "alphaBisonParser.cpp"
     break;
 
   case 71: /* $@3: %empty  */
-#line 274 "alphaBisonParser.y"
+#line 280 "alphaBisonParser.y"
                         {
                                 // There might be FORMAL arguments to this function.
                                 // And because member function incrementScope() declares them, we call it.
                                 symbolTable.incrementScope(isFunctionBlock); // isFunctionBlock is a bool: true, or false.
                         }
-#line 1840 "alphaBisonParser.cpp"
+#line 1846 "alphaBisonParser.cpp"
     break;
 
   case 72: /* block: LEFT_BRACE $@3 RIGHT_BRACE  */
-#line 280 "alphaBisonParser.y"
+#line 286 "alphaBisonParser.y"
                         {
                                 symbolTable.decrementScope();
                                 displayLog("block", "LEFT_BRACE RIGHT_BRACE");
                         }
-#line 1849 "alphaBisonParser.cpp"
-    break;
-
-  case 73: /* $@4: %empty  */
-#line 288 "alphaBisonParser.y"
-                        {Alpha::Function::nameOfLastFunction = (yyvsp[0].unionId);}
 #line 1855 "alphaBisonParser.cpp"
     break;
 
+  case 73: /* $@4: %empty  */
+#line 294 "alphaBisonParser.y"
+                        {Alpha::Function::nameOfLastFunction = (yyvsp[0].unionId);}
+#line 1861 "alphaBisonParser.cpp"
+    break;
+
   case 74: /* $@5: %empty  */
-#line 292 "alphaBisonParser.y"
+#line 298 "alphaBisonParser.y"
                         {
                                 Alpha::SymbolTableEntry *currentScopeEntry = symbolTable.lookUpCurrentScope(Alpha::Function::nameOfLastFunction);
                                 if (symbolTable.isLibraryFunction(Alpha::Function::nameOfLastFunction))
@@ -1870,153 +1876,153 @@ yyreduce:
                                         isFunctionBlock = true;
                                 }
                         }
-#line 1874 "alphaBisonParser.cpp"
+#line 1880 "alphaBisonParser.cpp"
     break;
 
   case 75: /* funcdef: FUNCTION ID $@4 LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS $@5 block  */
-#line 307 "alphaBisonParser.y"
+#line 313 "alphaBisonParser.y"
                         {
                                 displayLog("funcdef", "FUNCTION ID LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block");
                         }
-#line 1882 "alphaBisonParser.cpp"
+#line 1888 "alphaBisonParser.cpp"
     break;
 
   case 76: /* $@6: %empty  */
-#line 313 "alphaBisonParser.y"
+#line 320 "alphaBisonParser.y"
                         {
-                                THIS BLOCK CAUSES ERROR ON PURPOSE... 
-                                TO REMIND THE PROGRAMMER TO ADD NAMELESS FUNCTIONS  Thank me LATER
+                                symbolTable.insertNamelessFunction(alpha_yylineno, Alpha::SymbolType::USERFUNC, Alpha::Function::idList);
+                                isFunctionBlock = true;
                         }
-#line 1891 "alphaBisonParser.cpp"
-    break;
-
-  case 77: /* funcdef: FUNCTION LEFT_PARENTHESIS idlist $@6 RIGHT_PARENTHESIS block  */
-#line 319 "alphaBisonParser.y"
-                        {displayLog("funcdef", "FUNCTION LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block");}
 #line 1897 "alphaBisonParser.cpp"
     break;
 
-  case 78: /* const: INT_CONST  */
-#line 322 "alphaBisonParser.y"
-                                                                {displayLog("const", "INT_CONST");}
+  case 77: /* funcdef: FUNCTION LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS $@6 block  */
+#line 325 "alphaBisonParser.y"
+                        {displayLog("funcdef", "FUNCTION LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block");}
 #line 1903 "alphaBisonParser.cpp"
     break;
 
-  case 79: /* const: REAL_CONST  */
-#line 323 "alphaBisonParser.y"
-                                                                {displayLog("const", "REAL_CONST");}
+  case 78: /* const: INT_CONST  */
+#line 328 "alphaBisonParser.y"
+                                                                {displayLog("const", "INT_CONST");}
 #line 1909 "alphaBisonParser.cpp"
     break;
 
-  case 80: /* const: STRING_LITERAL  */
-#line 324 "alphaBisonParser.y"
-                                                                {displayLog("const", "STRING_LITERAL");}
+  case 79: /* const: REAL_CONST  */
+#line 329 "alphaBisonParser.y"
+                                                                {displayLog("const", "REAL_CONST");}
 #line 1915 "alphaBisonParser.cpp"
     break;
 
-  case 81: /* const: NIL  */
-#line 325 "alphaBisonParser.y"
-                                                                {displayLog("const", "NIL");}
+  case 80: /* const: STRING_LITERAL  */
+#line 330 "alphaBisonParser.y"
+                                                                {displayLog("const", "STRING_LITERAL");}
 #line 1921 "alphaBisonParser.cpp"
     break;
 
-  case 82: /* const: TRUE  */
-#line 326 "alphaBisonParser.y"
-                                                                {displayLog("const", "TRUE");}
+  case 81: /* const: NIL  */
+#line 331 "alphaBisonParser.y"
+                                                                {displayLog("const", "NIL");}
 #line 1927 "alphaBisonParser.cpp"
     break;
 
-  case 83: /* const: FALSE  */
-#line 327 "alphaBisonParser.y"
-                                                                {displayLog("const", "FALSE");}
+  case 82: /* const: TRUE  */
+#line 332 "alphaBisonParser.y"
+                                                                {displayLog("const", "TRUE");}
 #line 1933 "alphaBisonParser.cpp"
     break;
 
+  case 83: /* const: FALSE  */
+#line 333 "alphaBisonParser.y"
+                                                                {displayLog("const", "FALSE");}
+#line 1939 "alphaBisonParser.cpp"
+    break;
+
   case 84: /* cs_ids: ID  */
-#line 330 "alphaBisonParser.y"
+#line 336 "alphaBisonParser.y"
                      {
                         Alpha::Function::idList.push_back(std::string((yyvsp[0].unionId)));
                         displayLog("cs_ids", "ID");
                 }
-#line 1942 "alphaBisonParser.cpp"
+#line 1948 "alphaBisonParser.cpp"
     break;
 
   case 85: /* $@7: %empty  */
-#line 334 "alphaBisonParser.y"
+#line 340 "alphaBisonParser.y"
                      {
                         Alpha::Function::idList.push_back(std::string((yyvsp[0].unionId)));
                 }
-#line 1950 "alphaBisonParser.cpp"
-    break;
-
-  case 86: /* cs_ids: ID $@7 COMMA cs_ids  */
-#line 336 "alphaBisonParser.y"
-                                                                {displayLog("cs_ids", "ID COMMA cs_ids");}
 #line 1956 "alphaBisonParser.cpp"
     break;
 
-  case 87: /* idlist: cs_ids  */
-#line 339 "alphaBisonParser.y"
-                                                                {displayLog("idlist", "cs_ids");}
+  case 86: /* cs_ids: ID $@7 COMMA cs_ids  */
+#line 342 "alphaBisonParser.y"
+                                                                {displayLog("cs_ids", "ID COMMA cs_ids");}
 #line 1962 "alphaBisonParser.cpp"
     break;
 
-  case 88: /* idlist: %empty  */
-#line 340 "alphaBisonParser.y"
-                                                                {displayLog("idlist", "");}
+  case 87: /* idlist: cs_ids  */
+#line 345 "alphaBisonParser.y"
+                                                                {displayLog("idlist", "cs_ids");}
 #line 1968 "alphaBisonParser.cpp"
     break;
 
-  case 89: /* ifstmt: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt  */
-#line 344 "alphaBisonParser.y"
-                                                                {displayLog("ifstmt", "IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt");}
+  case 88: /* idlist: %empty  */
+#line 346 "alphaBisonParser.y"
+                                                                {displayLog("idlist", "");}
 #line 1974 "alphaBisonParser.cpp"
     break;
 
-  case 90: /* ifstmt: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE stmt  */
-#line 346 "alphaBisonParser.y"
-                                                                {displayLog("ifstmt", "IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE stmt");}
+  case 89: /* ifstmt: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt  */
+#line 350 "alphaBisonParser.y"
+                                                                {displayLog("ifstmt", "IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt");}
 #line 1980 "alphaBisonParser.cpp"
     break;
 
-  case 91: /* whilestmt: WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt  */
-#line 350 "alphaBisonParser.y"
-                                                                {displayLog("whilestmt", "WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt");}
+  case 90: /* ifstmt: IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE stmt  */
+#line 352 "alphaBisonParser.y"
+                                                                {displayLog("ifstmt", "IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE stmt");}
 #line 1986 "alphaBisonParser.cpp"
     break;
 
-  case 92: /* forstmt: FOR LEFT_PARENTHESIS elist SEMI_COLON expr SEMI_COLON elist RIGHT_PARENTHESIS stmt  */
-#line 354 "alphaBisonParser.y"
-                                                                {displayLog("forstmt", "FOR LEFT_PARENTHESIS elist SEMI_CLON expr SEMI_CLON elist RIGHT_PARENTHESIS stmt");}
+  case 91: /* whilestmt: WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt  */
+#line 356 "alphaBisonParser.y"
+                                                                {displayLog("whilestmt", "WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt");}
 #line 1992 "alphaBisonParser.cpp"
     break;
 
-  case 93: /* returnstmt: RETURN SEMI_COLON  */
-#line 357 "alphaBisonParser.y"
-                                                                {displayLog("returnstmt", "RETURN SEMI_COLON");}
+  case 92: /* forstmt: FOR LEFT_PARENTHESIS elist SEMI_COLON expr SEMI_COLON elist RIGHT_PARENTHESIS stmt  */
+#line 360 "alphaBisonParser.y"
+                                                                {displayLog("forstmt", "FOR LEFT_PARENTHESIS elist SEMI_CLON expr SEMI_CLON elist RIGHT_PARENTHESIS stmt");}
 #line 1998 "alphaBisonParser.cpp"
     break;
 
-  case 94: /* returnstmt: RETURN expr SEMI_COLON  */
-#line 358 "alphaBisonParser.y"
-                                                                {displayLog("returnstmt", "RETURN expr SEMI_COLON");}
+  case 93: /* returnstmt: RETURN SEMI_COLON  */
+#line 363 "alphaBisonParser.y"
+                                                                {displayLog("returnstmt", "RETURN SEMI_COLON");}
 #line 2004 "alphaBisonParser.cpp"
     break;
 
-  case 95: /* indexedelem_list: indexedelem  */
-#line 361 "alphaBisonParser.y"
-                                                                {displayLog("indexedelem_list", "indexedelem");}
+  case 94: /* returnstmt: RETURN expr SEMI_COLON  */
+#line 364 "alphaBisonParser.y"
+                                                                {displayLog("returnstmt", "RETURN expr SEMI_COLON");}
 #line 2010 "alphaBisonParser.cpp"
     break;
 
-  case 96: /* indexedelem_list: indexedelem COMMA indexedelem_list  */
-#line 362 "alphaBisonParser.y"
-                                                                {displayLog("indexedelem_list", "indexedelem COMMA indexedelem_list");}
+  case 95: /* indexedelem_list: indexedelem  */
+#line 367 "alphaBisonParser.y"
+                                                                {displayLog("indexedelem_list", "indexedelem");}
 #line 2016 "alphaBisonParser.cpp"
     break;
 
+  case 96: /* indexedelem_list: indexedelem COMMA indexedelem_list  */
+#line 368 "alphaBisonParser.y"
+                                                                {displayLog("indexedelem_list", "indexedelem COMMA indexedelem_list");}
+#line 2022 "alphaBisonParser.cpp"
+    break;
 
-#line 2020 "alphaBisonParser.cpp"
+
+#line 2026 "alphaBisonParser.cpp"
 
       default: break;
     }

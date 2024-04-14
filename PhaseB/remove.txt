@@ -1,0 +1,58 @@
+[92m              idlist[0m:	
+[92m               block[0m:	LEFT_BRACE RIGHT_BRACE
+[92m             funcdef[0m:	FUNCTION ID LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block
+[92m                stmt[0m:	funcdef
+[92m              lvalue[0m:	ID
+[92m              lvalue[0m:	ID
+[92m             primary[0m:	lvalue
+[92m                term[0m:	primary
+[92m                expr[0m:	term
+[92m              lvalue[0m:	ID
+[92m             primary[0m:	lvalue
+[92m                term[0m:	primary
+[92m                expr[0m:	term
+[92m           expr_list[0m:	expr
+[92m           expr_list[0m:	expr COMMA expr_list
+[92m               elist[0m:	expr_list
+[92m            normcall[0m:	LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
+[92m          callsuffix[0m:	normcall
+[92m                call[0m:	lvalue callsuffix
+[92m               elist[0m:	
+[92m                call[0m:	call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
+[92m              lvalue[0m:	ID
+[92m             primary[0m:	lvalue
+[92m                term[0m:	primary
+[92m                expr[0m:	term
+[92m              lvalue[0m:	ID
+[92m             primary[0m:	lvalue
+[92m                term[0m:	primary
+[92m                expr[0m:	term
+[92m           expr_list[0m:	expr
+[92m           expr_list[0m:	expr COMMA expr_list
+[92m               elist[0m:	expr_list
+[92m                call[0m:	call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
+[92m               elist[0m:	
+[92m                call[0m:	call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
+[92m               elist[0m:	
+[92m                call[0m:	call LEFT_PARENTHESIS elist RIGHT_PARENTHESIS
+[92m              member[0m:	call DOT ID
+[92m              lvalue[0m:	member
+[92m               const[0m:	INT_CONST
+[92m             primary[0m:	const
+[92m                term[0m:	primary
+[92m                expr[0m:	term
+[92m          assignexpr[0m:	lvalue ASSIGN expr
+[92m                expr[0m:	assignexpr
+[92m                stmt[0m:	expr SEMI_COLON
+[92m          multi_stmt[0m:	stmt
+[92m          multi_stmt[0m:	stmt multi_stmt
+[92m             program[0m:	multi_stmt
+alpha__yyparse return value: 0
+[94m----------     Scope #0     ----------
+"F" [USER FUNCTION] (line 1) (scope 0)
+"a" [GLOBAL VARIABLE] (line 7) (scope 0)
+"b" [GLOBAL VARIABLE] (line 7) (scope 0)
+"x" [GLOBAL VARIABLE] (line 7) (scope 0)
+"y" [GLOBAL VARIABLE] (line 7) (scope 0)
+----------     Scope #1     ----------
+[0m[91m[0m

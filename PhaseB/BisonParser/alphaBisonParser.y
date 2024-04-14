@@ -7,6 +7,7 @@
         #include "../GeneratedFiles/alphaFlexScanner.hpp"
         #include "../alphaDefs.hpp"
         bool isFunctionBlock = false;
+        bool lvalueIsMember = false;
 %}
 
 %code requires{
@@ -167,8 +168,9 @@ term            : LEFT_PARENTHESIS expr RIGHT_PARENTHESIS       {displayLog("ter
 
 assignexpr      : lvalue
                         {
-                                if ($1 != nullptr && ($1->getType() == Alpha::SymbolType::LIBFUNC || $1->getType() == Alpha::SymbolType::USERFUNC)) 
+                                if (!lvalueIsMember && $1 != nullptr && ($1->getType() == Alpha::SymbolType::LIBFUNC || $1->getType() == Alpha::SymbolType::USERFUNC)) 
                                         symbolTable.registerSyntaxError(std::string($1->getName() + " is a function, can not assign to it."), alpha_yylineno);
+                                lvalueIsMember = false;
                         }
                   ASSIGN expr                            {displayLog("assignexpr", "lvalue ASSIGN expr");}
                 ;
@@ -196,17 +198,18 @@ lvalue          : ID {
                 | LOCAL ID {
                                 displayLog("lvalue","LOCAL ID");
                                 Alpha::SymbolTableEntry *entry = symbolTable.lookUpCurrentScope($2);
-                                if (entry == nullptr && ((symbolTable.getCurrentScope() == symbolTable.GLOBAL_SCOPE_DEPTH
-                                || symbolTable.lookUpGlobalScope($2)->getType() != Alpha::SymbolType::LIBFUNC)))
+                                if (symbolTable.isLibraryFunction($2))
                                 {
-                                        // If here it is not a LIBFUNC, as initial lookUp was in global scope.
+                                        symbolTable.registerSyntaxError(std::string($2) + " shadows library function", alpha_yylineno);
+                                        entry = nullptr;
+                                }
+                                else if (entry == nullptr) // if control reached here, it is not a LIBFUNC.
+                                {
                                         symbolTable.insertVariable($2, alpha_yylineno);
                                         entry = symbolTable.lookUpVariable($2).second;
                                         if (entry == nullptr)
                                                 throw std::runtime_error("Insertion of a variable failed after duplicate check");
                                 }
-                                else if (entry == nullptr && (entry = symbolTable.lookUpGlobalScope($2))->getType() == Alpha::SymbolType::LIBFUNC)
-                                        symbolTable.registerSyntaxError(std::string($2) + " shadows library function", alpha_yylineno);
                                 $$ = entry;
                         }
                 | COLON_BLOCK ID {
@@ -215,7 +218,10 @@ lvalue          : ID {
                                 if ($$ == nullptr)
                                         symbolTable.registerSyntaxError(std::string("::") + std::string($2) + " not found in global scope", alpha_yylineno);
                         }
-                | member                                        {displayLog("lvalue","member");}
+                | member{
+                                displayLog("lvalue","member");
+                                lvalueIsMember = true;
+                        }
                 ;
 
 member          : lvalue DOT ID                                 {displayLog("member","lvalue DOT ID");}
@@ -310,11 +316,11 @@ funcdef         : FUNCTION
                 | FUNCTION
                         LEFT_PARENTHESIS
                         idlist
-                        {
-                                THIS BLOCK CAUSES ERROR ON PURPOSE... 
-                                TO REMIND THE PROGRAMMER TO ADD NAMELESS FUNCTIONS  Thank me LATER
-                        }
                         RIGHT_PARENTHESIS
+                        {
+                                symbolTable.insertNamelessFunction(alpha_yylineno, Alpha::SymbolType::USERFUNC, Alpha::Function::idList);
+                                isFunctionBlock = true;
+                        }
                         block
                         {displayLog("funcdef", "FUNCTION LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block");}
                 ;

@@ -12,9 +12,22 @@
 namespace Alpha
 {
         SymbolTable::SymbolTable()
-            : currentScope(this->GLOBAL_SCOPE_DEPTH), maximumReachedScopeDepth(this->GLOBAL_SCOPE_DEPTH), totalSymbolCount(0)
         {
                 this->scopeTypeVector.push_back(ScopeType::GLOBAL_SCOPE);
+
+                // Loading library functions, to symbolTable.
+                this->insertFunction("print", 0, SymbolType::LIBFUNC, std::list<std::string>{});
+                this->insertFunction("input", 0, SymbolType::LIBFUNC, std::list<std::string>{});
+                this->insertFunction("objectmemberkeys", 0, SymbolType::LIBFUNC, std::list<std::string>{});
+                this->insertFunction("objecttotalmembers", 0, SymbolType::LIBFUNC, std::list<std::string>{});
+                this->insertFunction("objectcopy", 0, SymbolType::LIBFUNC, std::list<std::string>{});
+                this->insertFunction("totalarguments", 0, SymbolType::LIBFUNC, std::list<std::string>{});
+                this->insertFunction("argument", 0, SymbolType::LIBFUNC, std::list<std::string>{});
+                this->insertFunction("typeof", 0, SymbolType::LIBFUNC, std::list<std::string>{});
+                this->insertFunction("strtonum", 0, SymbolType::LIBFUNC, std::list<std::string>{});
+                this->insertFunction("sqrt", 0, SymbolType::LIBFUNC, std::list<std::string>{});
+                this->insertFunction("cos", 0, SymbolType::LIBFUNC, std::list<std::string>{});
+                this->insertFunction("sin", 0, SymbolType::LIBFUNC, std::list<std::string>{});
         }
 
         SymbolTable::~SymbolTable()
@@ -83,7 +96,7 @@ namespace Alpha
                 return returnValue;
         }
 
-        OperationResult SymbolTable::insertFunction(std::string funcName, uint32_t line, SymbolType type, std::list<std::string> &argumentNames)
+        OperationResult SymbolTable::insertFunction(std::string funcName, uint32_t line, SymbolType type, const std::list<std::string> &argumentNames)
         {
                 if (type != SymbolType::LIBFUNC && type != SymbolType::USERFUNC)
                         throw std::invalid_argument(std::string(__func__) + "(): Symbol type not a function.");
@@ -109,6 +122,12 @@ namespace Alpha
                 // At this point, we return... The think is that we havent declared the function's arguments.
                 // It is the job of the incrementScope()'s function to check the Function:argumentNames list
                 // and if it is not empty to declare them as FORMAL variables, and reset the list.
+        }
+
+        OperationResult SymbolTable::insertNamelessFunction(uint32_t line, SymbolType type, std::list <std::string> &argumentNames)
+        {
+                std::string internalReferenceName = "func#" + std::to_string(this->namelessFunctionCounter++);
+                return this->insertFunction(internalReferenceName, line, type, argumentNames);
         }
 
         SymbolTableEntry *SymbolTable::lookUpAtScopeDepth(const std::string &name, uint32_t scopeDepth)
@@ -324,7 +343,7 @@ namespace Alpha
         {
         }
 
-        Function::Function(std::string name, uint32_t scope, uint32_t line, SymbolType type, std::list<std::string> &argumentNames)
+        Function::Function(std::string name, uint32_t scope, uint32_t line, SymbolType type, const std::list<std::string> &argumentNames)
             : SymbolTableEntry(name, scope, line, type), argumentNames(argumentNames)
         {
         }
