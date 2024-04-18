@@ -7,13 +7,13 @@
 #include <stdexcept>
 #include <cstring>
 #include <iostream>
-// Todo: add prints on "verbose" mode.
 
 namespace Alpha
 {
         SymbolTable::SymbolTable()
         {
                 this->scopeTypeVector.push_back(ScopeType::GLOBAL_SCOPE);
+                this->pushNewLoopDepthCounter();
 
                 // Loading library functions, to symbolTable.
                 this->insertFunction("print", 0, SymbolType::LIBFUNC, std::list<std::string>{});
@@ -104,11 +104,17 @@ namespace Alpha
                         throw std::invalid_argument(std::string(__func__) + "(): LIBFUNCs are declared only in scope 0, line 0.");
                 std::unordered_set<std::string> uniqueChecker;
                 for (const auto &argName : argumentNames)
+                {
                         if (!uniqueChecker.insert(argName).second)
                         {
-                                this->registerSyntaxError("In the definition of the function " + funcName + ", argument " + argName + " is declarared more than once.", line);
+                                this->registerSyntaxError("In the definition of the function " + funcName + ", argument " + argName + " is already declared.", line);
                                 return OperationResult::DuplicateArgumentError;
                         }
+                        else if (this->isLibraryFunction(argName))
+                        {
+                                this->registerSyntaxError("In the definition of the function " + funcName + ", argument " + argName + " is library function.", line);
+                        }
+                }
 
                 // We create the function and pass those names to the function's argument list
                 // But yet the arguments of the function are not yet instantiated... Though we checked for duplicates.
@@ -124,9 +130,9 @@ namespace Alpha
                 // and if it is not empty to declare them as FORMAL variables, and reset the list.
         }
 
-        OperationResult SymbolTable::insertNamelessFunction(uint32_t line, SymbolType type, std::list <std::string> &argumentNames)
+        OperationResult SymbolTable::insertNamelessFunction(uint32_t line, SymbolType type, std::list<std::string> &argumentNames)
         {
-                std::string internalReferenceName = "func#" + std::to_string(this->namelessFunctionCounter++);
+                std::string internalReferenceName = "#f_" + std::to_string(this->namelessFunctionCounter++);
                 return this->insertFunction(internalReferenceName, line, type, argumentNames);
         }
 
@@ -160,6 +166,14 @@ namespace Alpha
         {
                 SymbolTableEntry *entry = this->lookUpGlobalScope(name);
                 return entry && entry->getType() == Alpha::SymbolType::LIBFUNC;
+        }
+
+        bool SymbolTable::isInsideFunctionScope()
+        {
+                for (auto scopeIterator = this->scopeTypeVector.rbegin(); scopeIterator != this->scopeTypeVector.rend(); scopeIterator++)
+                        if (*scopeIterator == ScopeType::FUNCTION_SCOPE)
+                                return true;
+                return false;
         }
 
         /* Checks from current up until global scope, if not function definition is not the middle. */
@@ -240,7 +254,7 @@ namespace Alpha
                 /* Looking for local variable in outer scope, (non-function scope).*/
                 for (int vectorIndex = this->currentScope; vectorIndex > (*listIterator)->scope; vectorIndex--)
                         if (this->scopeTypeVector[vectorIndex] == ScopeType::FUNCTION_SCOPE)
-                                return std::make_pair(OperationResult::SymbolNotFound, nullptr);
+                                return std::make_pair(OperationResult::SymbolOutsideFunction, nullptr);
                 return std::make_pair(OperationResult::Success, *listIterator);
         }
 
@@ -260,15 +274,19 @@ namespace Alpha
                 if (this->currentScope > this->maximumReachedScopeDepth)
                         this->maximumReachedScopeDepth = this->currentScope;
                 this->scopeTypeVector.push_back(isFunctionScope ? ScopeType::FUNCTION_SCOPE : ScopeType::PLAIN_SCOPE);
-                // Check if you increment this scope due to a function declaration
-                // and if the function owns any FORMAL variables (function arguments).
-                // If there are and FORMAL argument to declare, do so.
-                if (isFunctionScope && Function::idList.empty() == false)
+
+                if (isFunctionScope)
                 {
-                        for (const auto &argName : Function::idList)
+                        this->pushNewLoopDepthCounter();
+
+                        // Check if you increment this scope due to a function declaration
+                        // and if the function owns any FORMAL variables (function arguments).
+                        // If there are and FORMAL argument to declare, do so.
+                        for (const auto &argName : Function::idList) // No need to check if idList is empty, range-based loop does it.
                                 if (insertVariable(argName, Function::lineOfLastFunction, SymbolType::FORMAL) != OperationResult::Success)
                                         throw std::runtime_error(std::string(__func__) + "(): Insertion of function's arguments to new scope failed.");
                         Function::idList.clear();
+                        // New function, new Counter for while loops...
                 }
         }
 
@@ -278,6 +296,9 @@ namespace Alpha
                         throw std::runtime_error(std::string(__func__) + "(): An error occured during hiding symbols of current scope.");
                 if (this->currentScope == GLOBAL_SCOPE_DEPTH)
                         throw std::runtime_error(std::string(__func__) + "(): Tried to decrement scope, when being in global scope.");
+
+                if (this->scopeTypeVector.back() == ScopeType::FUNCTION_SCOPE)
+                        this->popLoopDepthCounter();
                 this->scopeTypeVector.pop_back();
                 this->currentScope--;
         }
@@ -285,6 +306,41 @@ namespace Alpha
         uint32_t SymbolTable::getCurrentScope() const
         {
                 return this->currentScope;
+        }
+
+        void SymbolTable::pushNewLoopDepthCounter()
+        {
+                this->loopDepthCounterStack.push(0);
+        }
+
+        void SymbolTable::popLoopDepthCounter()
+        {
+                if (this->loopDepthCounterStack.top() != 0)
+                        throw std::runtime_error(std::string("Function ") + __func__ + "(): was called while currentLoopDepthCounter was not 0.");
+                this->loopDepthCounterStack.pop();
+        }
+
+        void SymbolTable::incrementCurrentLoopDepthCounter()
+        {
+
+                if (this->loopDepthCounterStack.empty())
+                        throw std::runtime_error(std::string("Function ") + __func__ + "(): was called while stack was empty.");
+                // The above exception should not be thrown under correct usage of the stack, as the first stack frame is created in the constructor.
+                this->loopDepthCounterStack.top()++;
+        }
+
+        void SymbolTable::decrementCurrentLoopDepthCounter()
+        {
+                if (this->loopDepthCounterStack.empty())
+                        throw std::runtime_error(std::string("Function ") + __func__ + "(): was called while stack was empty.");
+                if (this->loopDepthCounterStack.top() == 0)
+                        throw std::runtime_error(std::string("Function ") + __func__ + "(): was called while current counter is already 0.");
+                this->loopDepthCounterStack.top()--;
+        }
+
+        uint32_t SymbolTable::getCurrentLoopDepthCounter()
+        {
+                return this->loopDepthCounterStack.top();
         }
 
         void SymbolTable::registerSyntaxError(std::string errorMessage, uint32_t lineNumber)
@@ -306,7 +362,7 @@ namespace Alpha
                 std::cout << UNIX_COLOR_BLUE;
                 for (uint32_t scopeDepth = this->GLOBAL_SCOPE_DEPTH; scopeDepth <= this->maximumReachedScopeDepth; scopeDepth++)
                 {
-                        std::cout << "----------     Scope #" << scopeDepth << "     ----------" << std::endl;
+                        std::cout << "--------------------     Scope #" << scopeDepth << "     --------------------" << std::endl;
                         for (uint32_t vectorIndex = 0; vectorIndex < this->symbolInsertionMap[scopeDepth].size(); vectorIndex++)
                         {
                                 auto *entry = this->symbolInsertionMap[scopeDepth][vectorIndex];
@@ -334,6 +390,7 @@ namespace Alpha
                                 std::cout << "(line " << entry->line << ")" << " "
                                           << "(scope " << entry->scope << ")" << std::endl;
                         }
+                        std::cout << std::endl;
                 }
                 std::cout << UNIX_COLOR_RESET;
         }

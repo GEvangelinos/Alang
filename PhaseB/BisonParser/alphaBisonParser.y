@@ -8,6 +8,7 @@
         #include "../alphaDefs.hpp"
         bool isFunctionBlock = false;
         bool lvalueIsMember = false;
+        int functionDepthCounter = 0;
 %}
 
 %code requires{
@@ -19,7 +20,7 @@
 %define api.prefix {alpha_yy}
   /* %parse-param {std::list<Alpha::SymbolTableEntry} */
 %defines
-%expect 1
+
 
 
 %start program
@@ -39,51 +40,19 @@
 %type <unionLvalue> lvalue
 
 /* Keyword tokens */
-%token IF
-%token ELSE
-%token WHILE
-%token FOR
-%token FUNCTION
-%token RETURN
-%token BREAK
-%token CONTINUE
-%token AND
-%token NOT
-%token OR
-%token LOCAL
-%token TRUE
-%token FALSE
-%token NIL
+%token IF ELSE WHILE FOR FUNCTION RETURN BREAK CONTINUE
+%token AND NOT OR LOCAL TRUE FALSE NIL
 
 /* Operator tokens */
-%token ASSIGN
-%token PLUS
-%token MINUS
-%token MUL
-%token DIV
-%token MOD
-%token EQUAL
-%token NOT_EQUAL
-%token PLUS_PLUS
-%token MINUS_MINUS
-%token GREATER_THAN
-%token LESS_THAN
-%token GREATER_THAN_OR_EQUAL
-%token LESS_THAN_OR_EQUAL
+%token ASSIGN PLUS MINUS MUL DIV MOD EQUAL NOT_EQUAL
+%token PLUS_PLUS MINUS_MINUS 
+%token GREATER_THAN LESS_THAN GREATER_THAN_OR_EQUAL LESS_THAN_OR_EQUAL
 
 /* Punctuation tokens */
-%token LEFT_BRACE
-%token RIGHT_BRACE
-%token LEFT_BRACKET
-%token RIGHT_BRACKET
-%token LEFT_PARENTHESIS
-%token RIGHT_PARENTHESIS
-%token SEMI_COLON
-%token COMMA
-%token COLON
-%token COLON_BLOCK
-%token DOT
-%token DDOT
+%token LEFT_BRACE RIGHT_BRACE
+%token LEFT_BRACKET RIGHT_BRACKET
+%token LEFT_PARENTHESIS RIGHT_PARENTHESIS
+%token SEMI_COLON COMMA COLON COLON_BLOCK DOT DDOT
 
 /* Priorities */
 %right ASSIGN
@@ -98,6 +67,9 @@
 %left LEFT_BRACKET RIGHT_BRACKET
 %left LEFT_PARENTHESIS RIGHT_PARENTHESIS
 
+%precedence THEN
+%precedence ELSE
+
 /* Grammar rules: */
 
 
@@ -111,8 +83,16 @@ stmt            : expr SEMI_COLON                               {displayLog("stm
                 | whilestmt                                     {displayLog("stmt","whilestmt");}
                 | forstmt                                       {displayLog("stmt","forstmt");}
                 | returnstmt                                    {displayLog("stmt","returnstmt");}
-                | BREAK SEMI_COLON                              {displayLog("stmt","BREAK SEMI_COLON");}
-                | CONTINUE SEMI_COLON                           {displayLog("stmt","CONTINUE SEMI_COLON");}
+                | BREAK SEMI_COLON {
+                        displayLog("stmt","BREAK SEMI_COLON");
+                        if (symbolTable.getCurrentLoopDepthCounter() == 0)
+                                symbolTable.registerSyntaxError("Keyword break was used outside a loop block.", alpha_yylineno);
+                        }
+                | CONTINUE SEMI_COLON {
+                        displayLog("stmt","CONTINUE SEMI_COLON");
+                        if (symbolTable.getCurrentLoopDepthCounter() == 0)
+                                symbolTable.registerSyntaxError("Keyword continue was used outside a loop block.", alpha_yylineno);
+                        }
                 | block                                         {displayLog("stmt","block");}
                 | funcdef                                       {displayLog("stmt","funcdef");}
                 | SEMI_COLON                                    {displayLog("stmt","SEMI_COLON");}
@@ -192,7 +172,10 @@ lvalue          : ID {
                                         if (resultPair.first != Alpha::OperationResult::Success)
                                                 throw std::runtime_error("Insertion of a variable failed after duplicate check.");
                                 }
-                                else
+                                else if (resultPair.first == Alpha::OperationResult::SymbolOutsideFunction)
+                                {
+                                        symbolTable.registerSyntaxError(std::string("Variable ") + $1 + " is declared outside of current function scope.", alpha_yylineno);
+                                }
                                 $$ = resultPair.second;
                         }
                 | LOCAL ID {
@@ -281,6 +264,7 @@ block           : LEFT_BRACE
                                 // There might be FORMAL arguments to this function.
                                 // And because member function incrementScope() declares them, we call it.
                                 symbolTable.incrementScope(isFunctionBlock); // isFunctionBlock is a bool: true, or false.
+                                isFunctionBlock = false; // Reset flag.
                         }
                         RIGHT_BRACE
                         {
@@ -300,18 +284,17 @@ funcdef         : FUNCTION
                                 if (symbolTable.isLibraryFunction(Alpha::Function::nameOfLastFunction))
                                         symbolTable.registerSyntaxError(std::string("Redefinition of library function ") + Alpha::Function::nameOfLastFunction + " is prohibited", alpha_yylineno);
                                 else if (currentScopeEntry && currentScopeEntry->getType() == Alpha::SymbolType::USERFUNC)
-                                        symbolTable.registerSyntaxError(std::string("Function") + Alpha::Function::nameOfLastFunction + " is already defined in this scope. Can not redifine.", alpha_yylineno);
+                                        symbolTable.registerSyntaxError(std::string("Function ") + Alpha::Function::nameOfLastFunction + " is already defined in this scope. Can not redifine.", alpha_yylineno);
                                 else if (currentScopeEntry) // We found a symbol, and it was a LIBFUNC nor a USERFUNC, thus it is a variable
                                         symbolTable.registerSyntaxError(std::string(Alpha::Function::nameOfLastFunction) + " is already defined as a variable.", alpha_yylineno);
                                 else
-                                {
-                                        symbolTable.insertFunction(Alpha::Function::nameOfLastFunction, alpha_yylineno, Alpha::SymbolType::USERFUNC, Alpha::Function::idList);
-                                        isFunctionBlock = true;
-                                }
+                                        isFunctionBlock = (symbolTable.insertFunction(Alpha::Function::nameOfLastFunction, alpha_yylineno, Alpha::SymbolType::USERFUNC, Alpha::Function::idList) == Alpha::OperationResult::Success);
+                                functionDepthCounter++;
                         }
                         block
                         {
                                 displayLog("funcdef", "FUNCTION ID LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block");
+                                functionDepthCounter--;
                         }
                 | FUNCTION
                         LEFT_PARENTHESIS
@@ -320,9 +303,13 @@ funcdef         : FUNCTION
                         {
                                 symbolTable.insertNamelessFunction(alpha_yylineno, Alpha::SymbolType::USERFUNC, Alpha::Function::idList);
                                 isFunctionBlock = true;
+                                functionDepthCounter++;
                         }
                         block
-                        {displayLog("funcdef", "FUNCTION LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block");}
+                        {
+                                displayLog("funcdef", "FUNCTION LEFT_PARENTHESIS idlist RIGHT_PARENTHESIS block");
+                                functionDepthCounter--;
+                        }
                 ;
 
 const           : INT_CONST                                     {displayLog("const", "INT_CONST");}
@@ -347,21 +334,51 @@ idlist          : cs_ids                                        {displayLog("idl
                 ;
 
 ifstmt          : IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS
-                  stmt                                          {displayLog("ifstmt", "IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt");}
+                  stmt %prec THEN                               {displayLog("ifstmt", "IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt");}
                 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS 
                   stmt ELSE  stmt                               {displayLog("ifstmt", "IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt ELSE stmt");}
                 ;
 
 whilestmt       : WHILE LEFT_PARENTHESIS expr 
-                  RIGHT_PARENTHESIS stmt                        {displayLog("whilestmt", "WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt");}
+                  RIGHT_PARENTHESIS
+                  {
+                        symbolTable.incrementCurrentLoopDepthCounter();
+                  }
+                  stmt
+                  {
+                        displayLog("whilestmt", "WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt"); 
+                        symbolTable.decrementCurrentLoopDepthCounter();
+                  }
                 ;
 
 forstmt         : FOR LEFT_PARENTHESIS elist SEMI_COLON expr 
-                  SEMI_COLON elist RIGHT_PARENTHESIS stmt       {displayLog("forstmt", "FOR LEFT_PARENTHESIS elist SEMI_CLON expr SEMI_CLON elist RIGHT_PARENTHESIS stmt");}
+                  SEMI_COLON elist RIGHT_PARENTHESIS 
+                  {
+                        symbolTable.incrementCurrentLoopDepthCounter();
+                  }
+                  stmt
+                  {
+                        displayLog("forstmt", "FOR LEFT_PARENTHESIS elist SEMI_CLON expr SEMI_CLON elist RIGHT_PARENTHESIS stmt");
+                        symbolTable.decrementCurrentLoopDepthCounter();
+                  }
                 ;
 
-returnstmt      : RETURN SEMI_COLON                             {displayLog("returnstmt", "RETURN SEMI_COLON");}
-                | RETURN expr SEMI_COLON                        {displayLog("returnstmt", "RETURN expr SEMI_COLON");}
+returnstmt      : RETURN SEMI_COLON {
+                        displayLog("returnstmt", "RETURN SEMI_COLON");
+                        //Check if in function block.
+                        if(functionDepthCounter == 0)
+                                symbolTable.registerSyntaxError("Keyword return was used outside a function block.", alpha_yylineno);
+                        else
+                                std::cout << "return INSIDE FUNCTIONS SCOPE" << std::endl;
+                        }
+                | RETURN expr SEMI_COLON {
+                        displayLog("returnstmt", "RETURN expr SEMI_COLON");
+                        //Check if in function block.
+                        if(functionDepthCounter == 0)
+                                symbolTable.registerSyntaxError("Keyword return was used outside a function block.", alpha_yylineno);
+                        else
+                                std::cout << "return INSIDE FUNCTIONS SCOPE" << std::endl;
+                        }
                 ;
 
 indexedelem_list        : indexedelem                           {displayLog("indexedelem_list", "indexedelem");}

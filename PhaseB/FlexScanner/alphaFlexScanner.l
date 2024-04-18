@@ -4,6 +4,7 @@
         #include "../GeneratedFiles/alphaBisonParser.hpp" 
         #include "alphaExceptions.hpp"
         #include "alphaLang.hpp"
+        extern Alpha::SymbolTable symbolTable;
 %}
 
 
@@ -104,7 +105,8 @@ stringInnerPart         ([^\"\\]|\\.)+
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        throw Alpha::BlockCommentEOF("Lexer error, in line: " + std::to_string(yylineno) + " EOF reached while being inside a NESTED/BLOCK COMMENT");
+        symbolTable.registerSyntaxError("Lexer error: EOF reached before closing comment", yylineno);
+        return EOF;
 }
 
 
@@ -116,7 +118,8 @@ stringInnerPart         ([^\"\\]|\\.)+
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
 }
 <INSIDE_STRING><<EOF>> {
-        throw Alpha::StringEOF("Lexer error, in line: " + std::to_string(yylineno) + " EOF reached while being inside a string");
+        symbolTable.registerSyntaxError("Lexer error: EOF reached before closing string", yylineno);
+        return EOF;
 }
 <INSIDE_STRING>{stringEndRule} {
         BEGIN(INITIAL);
@@ -125,6 +128,6 @@ stringInnerPart         ([^\"\\]|\\.)+
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
-        throw Alpha::InvalidCharacter("Lexer error, in line: " + std::to_string(yylineno) + " invalid character.");
+        symbolTable.registerSyntaxError(std::string("Lexer error: Character ") + yytext + " is invalid." , yylineno);
 }
 %%
