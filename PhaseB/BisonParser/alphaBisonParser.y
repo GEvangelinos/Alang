@@ -368,16 +368,12 @@ returnstmt      : RETURN SEMI_COLON {
                         //Check if in function block.
                         if(functionDepthCounter == 0)
                                 symbolTable.registerSyntaxError("Keyword return was used outside a function block.", alpha_yylineno);
-                        else
-                                std::cout << "return INSIDE FUNCTIONS SCOPE" << std::endl;
                         }
                 | RETURN expr SEMI_COLON {
                         displayLog("returnstmt", "RETURN expr SEMI_COLON");
                         //Check if in function block.
                         if(functionDepthCounter == 0)
                                 symbolTable.registerSyntaxError("Keyword return was used outside a function block.", alpha_yylineno);
-                        else
-                                std::cout << "return INSIDE FUNCTIONS SCOPE" << std::endl;
                         }
                 ;
 
