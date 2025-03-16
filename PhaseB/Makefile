@@ -1,19 +1,20 @@
 EXECUTABLE_NAME = alphaSyntaxAnalyzer.out
-CXX = g++ -std=c++17
-CFLAGS = -g
+CXX = g++ -std=c++20
+CXXFLAGS = -g
 
 .PHONY: createGenerateCodeDirectory bisonModule flexModule
 
 
 
 $(EXECUTABLE_NAME): generateBinaryDependecies
-	$(CXX) $(CFLAGS) -o $(EXECUTABLE_NAME)  alphaParserDriver.cpp ./BinaryFiles/*
+	$(CXX) $(CXXFLAGS) -o $(EXECUTABLE_NAME)  alphaParserDriver.cpp ./BinaryFiles/*
 
 generateBinaryDependecies: generateDependencies
-	$(CXX) $(CFLAGS) -c ./GeneratedFiles/alphaBisonParser.cpp  -o ./BinaryFiles/alphaBisonParser.o
-	$(CXX) $(CFLAGS) -c ./GeneratedFiles/alphaFlexScanner.cpp -o ./BinaryFiles/alphaFlexScanner.o
-	$(CXX) $(CFLAGS) -c ./FlexScanner/alphaLang.cpp -o ./BinaryFiles/alphaLang.o
-	$(CXX) $(CFLAGS) -c ./symbolTable.cpp -o ./BinaryFiles/symbolTable.o
+	$(CXX) $(CXXFLAGS) -c ./GeneratedFiles/alphaBisonParser.cpp  -o ./BinaryFiles/alphaBisonParser.o
+	$(CXX) $(CXXFLAGS) -c ./GeneratedFiles/alphaFlexScanner.cpp -o ./BinaryFiles/alphaFlexScanner.o
+	$(CXX) $(CXXFLAGS) -c ./FlexScanner/alphaLang.cpp -o ./BinaryFiles/alphaLang.o
+	$(CXX) $(CXXFLAGS) -c ./symbolTable.cpp -o ./BinaryFiles/symbolTable.o
+	$(CXX) $(CXXFLAGS) -c ./errorTracker.cpp -o ./BinaryFiles/errorTracker.o
 
 
 generateDependencies: generateDirectories generateAlphaLexer generateAlphaParser

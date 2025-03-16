@@ -7,6 +7,7 @@
 #include <list>
 #include <stack>
 #include <vector>
+#include "errorTracker.hpp"
 
 namespace Alpha
 {
@@ -71,7 +72,7 @@ namespace Alpha
                 std::unordered_map<uint32_t, std::vector<SymbolTableEntry *>> symbolInsertionMap;
                 std::vector<ScopeType> scopeTypeVector; // Add frames with insert, remove with hide.
                 std::stack<uint32_t> loopDepthCounterStack;
-                std::vector<std::pair<uint32_t, std::string>> syntaxErrorVector;
+
                 // Implement a stack of vectors of strings (or references/pointers) to hide effieciently symvols.
                 OperationResult insertEntry(SymbolTableEntry *newEntryPtr);
                 SymbolTableEntry *lookUpAtScopeDepth(const std::string &name, uint32_t scopeDepth);
@@ -79,6 +80,7 @@ namespace Alpha
 
         public:
                 static constexpr uint32_t GLOBAL_SCOPE_DEPTH = 0;
+                CompileTimeErrorTracker errorTracker;
                 OperationResult insertVariable(std::string name, uint32_t line, SymbolType type);
                 OperationResult insertVariable(std::string name, uint32_t line); // Inserts Variable at current scope.
                 OperationResult insertFunction(std::string name, uint32_t line, SymbolType type, const std::list<std::string> &argumentNames);
@@ -102,8 +104,7 @@ namespace Alpha
                 void decrementCurrentLoopDepthCounter();
                 uint32_t getCurrentLoopDepthCounter();
 
-                void registerSyntaxError(std::string errorMessage, uint32_t lineNumber);
-                void printSyntaxErrorVector();
+                void printErrorVector();
                 void printSymbolInsertionVector();
 
                 SymbolTable();

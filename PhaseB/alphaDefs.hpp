@@ -14,6 +14,7 @@
 
 #if defined(INSIDE_BISON_FILE)
 #include "./symbolTable.hpp"
+#include "errorTracker.hpp"
 #include <iostream>
 #include <iomanip>
 
@@ -27,7 +28,7 @@ void yyerror(std::string errorMessage)
 {
         extern Alpha::SymbolTable symbolTable;
         extern int alpha_yylineno;
-        symbolTable.registerSyntaxError(errorMessage, alpha_yylineno);
+        symbolTable.errorTracker.registerCompileTimeError(new Alpha::SyntaxError(alpha_yylineno, 0, errorMessage));
         /* TODO: what else does this function do ? */
 }
 #endif /* INSIDE_BISON_BILE */

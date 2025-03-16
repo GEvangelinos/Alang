@@ -7,6 +7,9 @@
 #include <stdexcept>
 #include <cstring>
 #include <iostream>
+#include <format>
+
+static const std::string anonymousFunctionNamePrefix = "#f_";
 
 namespace Alpha
 {
@@ -107,13 +110,11 @@ namespace Alpha
                 {
                         if (!uniqueChecker.insert(argName).second)
                         {
-                                this->registerSyntaxError("In the definition of the function " + funcName + ", argument " + argName + " is already declared.", line);
+                                this->errorTracker.registerCompileTimeError(new SyntaxError(line, 0, "In the definition of the function " + funcName + ", argument " + argName + " is already declared."));
                                 return OperationResult::DuplicateArgumentError;
                         }
                         else if (this->isLibraryFunction(argName))
-                        {
-                                this->registerSyntaxError("In the definition of the function " + funcName + ", argument " + argName + " is library function.", line);
-                        }
+                                this->errorTracker.registerCompileTimeError(new SyntaxError(line, 0, "In the definition of the function " + funcName + ", argument " + argName + " is library function."));
                 }
 
                 // We create the function and pass those names to the function's argument list
@@ -132,7 +133,7 @@ namespace Alpha
 
         OperationResult SymbolTable::insertNamelessFunction(uint32_t line, SymbolType type, std::list<std::string> &argumentNames)
         {
-                std::string internalReferenceName = "#f_" + std::to_string(this->namelessFunctionCounter++);
+                std::string internalReferenceName = anonymousFunctionNamePrefix + std::to_string(this->namelessFunctionCounter++);
                 return this->insertFunction(internalReferenceName, line, type, argumentNames);
         }
 
@@ -343,16 +344,11 @@ namespace Alpha
                 return this->loopDepthCounterStack.top();
         }
 
-        void SymbolTable::registerSyntaxError(std::string errorMessage, uint32_t lineNumber)
-        {
-                this->syntaxErrorVector.push_back(std::make_pair(lineNumber, errorMessage));
-        }
-
-        void SymbolTable::printSyntaxErrorVector()
+        void SymbolTable::printErrorVector()
         {
                 std::cout << UNIX_COLOR_RED;
-                for (auto syntaxError : this->syntaxErrorVector)
-                        std::cerr << "Syntax error line " << syntaxError.first << ": " << syntaxError.second << std::endl;
+                for (const CompileTimeError *error : this->errorTracker.gerErrorVector())
+                        std::cerr << error->toString() << std::endl;
                 std::cout << UNIX_COLOR_RESET;
         }
 
