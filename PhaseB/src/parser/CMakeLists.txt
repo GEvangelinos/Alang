@@ -1,0 +1,6 @@
+find_package(BISON QUIET)
+if(BISON_FOUND)
+        message(STATUS "Found BISON: ${BISON_EXECUTABLE} (found version ${BISON_VERSION})")
+else()
+        message(FATAL_ERROR "Could not find BISON. Please install `bison`.")
+endif()
