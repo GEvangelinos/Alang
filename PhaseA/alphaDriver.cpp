@@ -37,7 +37,7 @@ static Alpha::Token *generateCodeBasedToken(const int groupCode, Alpha::alpha_to
         return nullptr;
 }
 
-static void tokenParser(std::list<Alpha::Token *> &tokenList, std::string &possibleErrorMessage)
+static void tokenParser(std::list<Alpha::Token *> &tokenList)
 {
         struct Alpha::alpha_token_t currToken;
         try
@@ -53,17 +53,15 @@ static void tokenParser(std::list<Alpha::Token *> &tokenList, std::string &possi
         }
         catch (Alpha::BlockCommentEOF &e)
         {
-                possibleErrorMessage = e.what();
+                Alpha::lexerErrorVector.push_back(e.what());
         }
-        /* TODO: BOTH classes of exception do  the same so catch the abstract one... and make abstract... well abstract! */
         catch (Alpha::StringEOF &e)
         {
-                possibleErrorMessage = e.what();
+                Alpha::lexerErrorVector.push_back(e.what());
         }
         catch (std::runtime_error &e)
         {
-                std::cerr << "Atypical error must have occured: \n"
-                          << e.what() << std::endl;
+                Alpha::lexerErrorVector.push_back(std::string("Atypical error must have occured: ") + e.what());
         }
 }
 
@@ -110,11 +108,10 @@ static void setOutputStream(const int argc, char **const argv, FILE **const alph
         }
 }
 
-static void exportPossibleErrorMessage(std::string errorMessage, FILE *alpha_yyout)
+static void exportPossibleErrorMessage(FILE *alpha_yyout)
 {
-        if (errorMessage.empty()) /* No error message exiting. */
-                return;
-        fprintf(alpha_yyout, "%s\n", errorMessage.c_str());
+        for (std::string lexerError : Alpha::lexerErrorVector)
+                fprintf(alpha_yyout, "%s\n", lexerError.c_str());
 }
 
 int main(int argc, char **argv)
@@ -123,9 +120,8 @@ int main(int argc, char **argv)
         std::list<Alpha::Token *> tokenList;
         setInputStream(argc, argv, &yyin);
         setOutputStream(argc, argv, &yyout);
-        std::string errorMessage; /* For possibly caught errors. */
-        tokenParser(tokenList, errorMessage);
+        tokenParser(tokenList);
         exportParsedTokens(tokenList, yyout);
-        exportPossibleErrorMessage(errorMessage, yyout);
+        exportPossibleErrorMessage(yyout);
         return 0;
 }

@@ -5,6 +5,8 @@
 #include <vector>
 namespace Alpha
 {
+        extern std::vector<std::string> lexerErrorVector;
+
         struct alpha_token_t
         {
         public:
@@ -107,6 +109,7 @@ namespace Alpha
 
         public:
                 static void setStringStartingLineNumber(int lineNumber);
+                static int getStringStartingLineNumber();
                 static void appendToAssemblingBuffer(std::string stringChunk);
                 static void exportStringToken(void *yylval);
                 TokenString(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string stringContent);
@@ -124,6 +127,7 @@ namespace Alpha
                 static void exportLineCommentToken(void *yylval, unsigned int __lineNumber);
                 static void exportBlockCommentToken(void *yylval, unsigned int __endLine);
                 static void addStartLineOfBlockComment(const int startLine);
+                static std::vector<int> getStartLineOfBlockComments();
                 static bool isInNestedState();
                 TokenComment(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &commentLines, const std::string commentType);
                 std::string toString() const override;

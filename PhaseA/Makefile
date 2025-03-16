@@ -5,7 +5,7 @@ FLEX_SOURCE_GENERATED_FILE = alphaFlexScanner.cpp
 FLEX_HEADER_GENERATED_FILE = alphaFlexScanner.hpp
 
 $(EXECUTABLE_NAME): alphaDriver.cpp alphaLang.cpp alphaFlexScanner.cpp
-	$(CXX) -o $@ $^
+	$(CXX) $(CXX_FLAGS) -o $@ $^
 
 alphaFlexScanner.cpp: alphaFlexScanner.l
 	flex $^

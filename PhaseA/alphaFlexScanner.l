@@ -1,6 +1,5 @@
 %{
         #define INSIDE_FLEX_FILE
-
         #include <iostream>
         #include "alphaDefs.hpp" 
         #include "alphaLang.hpp"
@@ -20,7 +19,7 @@
 id              [a-zA-Z][a-zA-Z_0-9]*
 integer         (0[xX][0-9a-fA-F]+)|([0-9]+)
 real            ([0-9]*\.[0-9]+([eE][\+-]?[0-9]+)?)
-lineComment    "//".*
+lineComment     "//".*
 newline         "\n"
 space           [ \r\t\v]
 
@@ -32,8 +31,8 @@ commentEndRule          "\*/"
 
 stringBeginRule         \"
 stringEndRule           \"
-stringInnerPart         ([^\"\\]|\\.)+
-
+stringValidInnerPart    ([^\"\\]|\\[tn"\\])+
+stringInvalidEscapeCode "\\"([^tn"\\])
 
 
 /* Flex conditions */
@@ -110,19 +109,33 @@ stringInnerPart         ([^\"\\]|\\.)+
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        throw Alpha::BlockCommentEOF("Line: " + std::to_string(yylineno) + " EOF reached while being inside a NESTED/BLOCK COMMENT");
+        size_t nestingDepth = 0;
+        for (int startLine : Alpha::TokenComment::getStartLineOfBlockComments())
+        {
+                Alpha::lexerErrorVector.push_back("Line: " + std::to_string(startLine) + \
+                ", unclosed block-comment (Nesting depth = " + std::to_string(nestingDepth) + "). "); 
+                nestingDepth++;
+        }
+        throw Alpha::BlockCommentEOF("EOF reached with " + std::to_string(nestingDepth) + " unclosed block comments.");
 }
-
 
 {stringBeginRule} {
         BEGIN(INSIDE_STRING);
         Alpha::TokenString::setStringStartingLineNumber(yylineno);
 }
-<INSIDE_STRING>{stringInnerPart} {
+<INSIDE_STRING>{stringValidInnerPart} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
 }
+<INSIDE_STRING>{stringInvalidEscapeCode} {
+        Alpha::TokenString::appendToAssemblingBuffer(yytext);
+        Alpha::Token::exportToken(yylval, yylineno, yytext, yytext);
+        Alpha::lexerErrorVector.push_back("Line: " + std::to_string(yylineno) + ", invalid escape code " + yytext + " in string.");
+        return Alpha::invalidCharacterCode;
+}
 <INSIDE_STRING><<EOF>> {
-        throw Alpha::StringEOF("Line: " + std::to_string(yylineno) + " EOF reached while being inside a string");
+        Alpha::lexerErrorVector.push_back("Line: " + std::to_string(Alpha::TokenString::getStringStartingLineNumber()) + \
+                                          ", unclosed string");
+        throw Alpha::StringEOF("EOF reached with unclosed string.");
 }
 <INSIDE_STRING>{stringEndRule} {
         BEGIN(INITIAL);
@@ -132,8 +145,9 @@ stringInnerPart         ([^\"\\]|\\.)+
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
         Alpha::Token::exportToken(yylval, yylineno, yytext, yytext);
+        Alpha::lexerErrorVector.push_back("Line: " + std::to_string(yylineno) + ", invalid character " + yytext);
         return Alpha::invalidCharacterCode;
 }
 
-<<EOF>>          {return ALPHA_YYLEX_EOF;}
+<<EOF>> {return ALPHA_YYLEX_EOF;}
 %%

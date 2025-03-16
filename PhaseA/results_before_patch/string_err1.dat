@@ -1,0 +1,13 @@
+
+--------------------Lexical Analysis--------------------
+1:	#0	"print new line 
+"	STRING	"print new line 
+"
+3:	#1	"string with 2 slashes and double quote\""	STRING	"string with 2 slashes and double quote\""
+5:	#2	"string with ASCII enter
+"	STRING	"string with ASCII enter
+"
+8:	#3	"Illegal escape char(\m) \m"	STRING	"Illegal escape char(\m) \m"
+
+----------------End of Lexical Analysis-----------------
+Line: 10 EOF reached while being inside a string

@@ -6,6 +6,7 @@
 
 namespace Alpha
 {
+        std::vector<std::string> lexerErrorVector = std::vector<std::string>();
 
         /*** STARTOF: Local to the file (static) definitions: ***/
         static std::string toUpperCase(const std::string &input)
@@ -253,6 +254,11 @@ namespace Alpha
                         inNestedState = true;
         }
 
+        std::vector<int> TokenComment::getStartLineOfBlockComments()
+        {
+                return TokenComment::startLineOfBlockComments;
+        }
+
         bool TokenComment::isInNestedState()
         {
                 return TokenComment::inNestedState;
@@ -266,6 +272,11 @@ namespace Alpha
         void TokenString::setStringStartingLineNumber(int lineNumber)
         {
                 TokenString::stringStartingLineNumber = lineNumber;
+        }
+
+        int TokenString::getStringStartingLineNumber()
+        {
+                return TokenString::stringStartingLineNumber;
         }
 
         /* FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */

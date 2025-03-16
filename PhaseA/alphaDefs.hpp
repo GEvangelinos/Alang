@@ -16,7 +16,7 @@
 
 #else
 int alpha_yylex(void *yylval);
-#endif /* FLEX_FILE */
+#endif /* INSIDE_FLEX_FILE */
 
 #define ALPHA_YYLEX_EOF 0
 

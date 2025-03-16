@@ -1,0 +1,38 @@
+
+--------------------Lexical Analysis--------------------
+1:	#0	""	COMMENT	LINE_COMMENT
+2:	#1	"$"	TOKEN_INVALID	$
+2:	#2	"agnwstos"	ID	"agnwstos"
+2:	#3	"xarakthras"	ID	"xarakthras"
+2:	#4	"_"	TOKEN_INVALID	_
+2:	#5	"d"	ID	"d"
+2:	#6	"%"	OPERATOR	MOD
+2:	#7	"s"	ID	"s"
+4:	#8	"bool_expr"	ID	"bool_expr"
+4:	#9	"="	OPERATOR	ASSIGN
+4:	#10	"!"	TOKEN_INVALID	!
+4:	#11	"("	PUNCTUATION	LEFT_PARENTHESIS
+4:	#12	"a"	ID	"a"
+4:	#13	"&"	TOKEN_INVALID	&
+4:	#14	"&"	TOKEN_INVALID	&
+4:	#15	"b"	ID	"b"
+4:	#16	")"	PUNCTUATION	RIGHT_PARENTHESIS
+4:	#17	"|"	TOKEN_INVALID	|
+4:	#18	"|"	TOKEN_INVALID	|
+4:	#19	"b"	ID	"b"
+5:	#20	"~"	TOKEN_INVALID	~
+6:	#21	"a"	ID	"a"
+6:	#22	"="	OPERATOR	ASSIGN
+6:	#23	"("	PUNCTUATION	LEFT_PARENTHESIS
+6:	#24	"a"	ID	"a"
+6:	#25	"?"	TOKEN_INVALID	?
+6:	#26	"b"	ID	"b"
+6:	#27	":"	PUNCTUATION	COLON
+6:	#28	"12"	INTCONST	12
+6:	#29	")"	PUNCTUATION	RIGHT_PARENTHESIS
+6:	#30	";"	PUNCTUATION	SEMI_COLON
+7:	#31	"#"	TOKEN_INVALID	#
+7:	#32	"undefine"	ID	"undefine"
+7:	#33	"tokken"	ID	"tokken"
+
+----------------End of Lexical Analysis-----------------
