@@ -1,7 +1,7 @@
 %{
         #define INSIDE_FLEX_FILE
         #include <iostream>
-        #include "../GeneratedFiles/alphaBisonParser.hpp" 
+        #include "alphaParser.hpp" 
         #include "alphaExceptions.hpp"
         #include "alphaLang.hpp"
         extern Alpha::SymbolTable symbolTable;

@@ -1,7 +1,3 @@
-set(FLEX_SPEC_FILENAME "alphaScanner.l")
-set(FLEX_OUTPUT_FILENAME "alphaScanner.cpp")
-set(FLEX_HEADER_FILENAME "alphaScanner.hpp")
-
 find_package(FLEX QUIET)
 if(FLEX_FOUND)
         message(STATUS "Found FLEX: ${FLEX_EXECUTABLE} (found version ${FLEX_VERSION})")
@@ -9,10 +5,21 @@ else()
         message(FATAL_ERROR "Could not find FLEX. Please install `flex`.")
 endif()
 
+set(ALPHA_SCANNER_OUTPUT_FILEPATH ${AUTOGEN_SRC_DIR_PATH}/${FLEX_OUTPUT_FILENAME})
+set(ALPHA_SCANNER_HEADER_FILEPATH ${AUTOGEN_INCLUDE_DIR_PATH}/${FLEX_HEADER_FILENAME})
+
 FLEX_TARGET(ALPHA_SCANNER
         ${CMAKE_CURRENT_SOURCE_DIR}/${FLEX_SPEC_FILENAME}
-        ${AUTOGEN_SRC_DIR_PATH}/${FLEX_OUTPUT_FILENAME}
-        COMPILE_FLAGS "--header-file=${AUTOGEN_INCLUDE_DIR_PATH}/${FLEX_HEADER_FILENAME}"
+        ${ALPHA_SCANNER_OUTPUT_FILEPATH}
+        COMPILE_FLAGS "--header-file=${ALPHA_SCANNER_HEADER_FILEPATH}"
 )
 
-add_library(alpha )
+add_library(alpha_scanner STATIC
+        ${ALPHA_SCANNER_OUTPUT_FILEPATH}
+        alphaToken.cpp
+)
+
+target_include_directories(alpha_scanner PUBLIC
+        ${AUTOGEN_INCLUDE_DIR_PATH}
+        ${CMAKE_SOURCE_DIR}/include/scanner
+)

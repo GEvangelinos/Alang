@@ -4,3 +4,22 @@ if(BISON_FOUND)
 else()
         message(FATAL_ERROR "Could not find BISON. Please install `bison`.")
 endif()
+
+set(ALPHA_PARSER_OUTPUT_FILEPATH ${AUTOGEN_SRC_DIR_PATH}/${BISON_OUTPUT_FILENAME})
+set(ALPHA_PARSER_HEADER_FILEPATH ${AUTOGEN_INCLUDE_DIR_PATH}/${BISON_HEADER_FILENAME})
+
+BISON_TARGET(ALPHA_PARSER
+        ${CMAKE_CURRENT_SOURCE_DIR}/${BISON_SPEC_FILENAME}
+        ${ALPHA_PARSER_OUTPUT_FILEPATH}
+        COMPILE_FLAGS "--header=${ALPHA_PARSER_HEADER_FILEPATH}"
+)
+
+add_library(alpha_parser STATIC
+        ${ALPHA_PARSER_OUTPUT_FILEPATH}
+        symbolTable.cpp
+)
+
+target_include_directories(alpha_parser PUBLIC
+        ${AUTOGEN_INCLUDE_DIR_PATH}
+        ${CMAKE_SOURCE_DIR}/include/parser
+)

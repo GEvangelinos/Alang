@@ -20,8 +20,8 @@
 
 %define api.prefix {alpha_yy}
 %define parse.error detailed    /* Enable detailed error messages */
-%defines "alphaBisonParser.hpp"
-%output "alphaBisonParser.cpp"
+/* %defines "alphaBisonParser.hpp"
+%output "alphaBisonParser.cpp" */
 
 
 %start program

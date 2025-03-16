@@ -6,8 +6,8 @@
 #include <cstring>
 #include <iostream>
 #include <format>
-#include "core/symbolTable.hpp"
-#include "core/alphaDefs.hpp"
+#include "symbolTable.hpp"
+#include "alphaDefs.hpp"
 
 static const std::string anonymousFunctionNamePrefix = "#f_";
 

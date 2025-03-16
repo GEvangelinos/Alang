@@ -3,8 +3,8 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
-#include "alphaLang.hpp"
-#include "../GeneratedFiles/alphaBisonParser.hpp"
+#include "alphaToken.hpp"
+#include "alphaParser.hpp"
 
 namespace Alpha
 {
