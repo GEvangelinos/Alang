@@ -193,7 +193,7 @@ namespace Alpha
                         return *listIterator;
 
                 /* Looking for local variable in outer scope, (non-function scope).*/
-                for (int vectorIndex = this->currentScope; vectorIndex > (*listIterator)->scope; vectorIndex--)
+                for (uint32_t vectorIndex = this->currentScope; vectorIndex > (*listIterator)->scope; vectorIndex--)
                         if (this->scopeTypeVector[vectorIndex] == ScopeType::FUNCTION_SCOPE)
                                 return nullptr;
                 return *listIterator;
@@ -232,7 +232,7 @@ namespace Alpha
                         return std::make_pair(OperationResult::Success, *listIterator);
 
                 /* Looking for local variable in outer scope, (non-function scope).*/
-                for (int vectorIndex = this->currentScope; vectorIndex > (*listIterator)->scope; vectorIndex--)
+                for (uint32_t vectorIndex = this->currentScope; vectorIndex > (*listIterator)->scope; vectorIndex--)
                         if (this->scopeTypeVector[vectorIndex] == ScopeType::FUNCTION_SCOPE)
                                 return std::make_pair(OperationResult::SymbolNotFound, nullptr);
                 return std::make_pair(OperationResult::Success, *listIterator);
@@ -253,7 +253,7 @@ namespace Alpha
                         return std::make_pair(OperationResult::Success, *listIterator);
 
                 /* Looking for local variable in outer scope, (non-function scope).*/
-                for (int vectorIndex = this->currentScope; vectorIndex > (*listIterator)->scope; vectorIndex--)
+                for (uint32_t vectorIndex = this->currentScope; vectorIndex > (*listIterator)->scope; vectorIndex--)
                         if (this->scopeTypeVector[vectorIndex] == ScopeType::FUNCTION_SCOPE)
                                 return std::make_pair(OperationResult::SymbolOutsideFunction, nullptr);
                 return std::make_pair(OperationResult::Success, *listIterator);

@@ -4,9 +4,9 @@
         #include <list>
         #include <iostream>
         #include <stdexcept>
-        #include "../GeneratedFiles/alphaFlexScanner.hpp"
-        #include "../alphaDefs.hpp"
-        #include "../errorTracker.hpp"
+        #include "alphaScanner.hpp"
+        #include "alphaDefs.hpp"
+        #include "errorTracker.hpp"
         bool isFunctionBlock = false;
         bool lvalueIsMember = false;
         int functionDepthCounter = 0;
@@ -14,14 +14,12 @@
 
 %code requires
 {
-        #include "../symbolTable.hpp"
+        #include "symbolTable.hpp"
         extern Alpha::SymbolTable symbolTable;
 }
 
 %define api.prefix {alpha_yy}
 %define parse.error detailed    /* Enable detailed error messages */
-/* %defines "alphaBisonParser.hpp"
-%output "alphaBisonParser.cpp" */
 
 
 %start program

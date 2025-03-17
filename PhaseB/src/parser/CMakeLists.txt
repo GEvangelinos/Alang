@@ -14,12 +14,14 @@ BISON_TARGET(ALPHA_PARSER
         COMPILE_FLAGS "--header=${ALPHA_PARSER_HEADER_FILEPATH}"
 )
 
-add_library(alpha_parser STATIC
-        ${ALPHA_PARSER_OUTPUT_FILEPATH}
-        symbolTable.cpp
+# We create a phony target so we force BISON files to be generated before compilation.
+add_custom_target(generate_parser ALL
+        DEPENDS ${BISON_ALPHA_PARSER_OUTPUTS}
 )
 
-target_include_directories(alpha_parser PUBLIC
+add_library(alpha_parser STATIC ${ALPHA_PARSER_OUTPUT_FILEPATH})
+
+target_include_directories(alpha_parser PRIVATE
         ${AUTOGEN_INCLUDE_DIR_PATH}
-        ${CMAKE_SOURCE_DIR}/include/parser
+        ${CMAKE_SOURCE_DIR}/include/core
 )

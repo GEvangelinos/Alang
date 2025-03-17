@@ -14,12 +14,18 @@ FLEX_TARGET(ALPHA_SCANNER
         COMPILE_FLAGS "--header-file=${ALPHA_SCANNER_HEADER_FILEPATH}"
 )
 
+# We create a phony target so we force FLEX files to be generated before compilation.
+add_custom_target(generate_scanner ALL
+    DEPENDS ${FLEX_ALPHA_SCANNER_OUTPUTS}
+)
+
 add_library(alpha_scanner STATIC
         ${ALPHA_SCANNER_OUTPUT_FILEPATH}
         alphaToken.cpp
 )
 
-target_include_directories(alpha_scanner PUBLIC
+target_include_directories(alpha_scanner PRIVATE
         ${AUTOGEN_INCLUDE_DIR_PATH}
         ${CMAKE_SOURCE_DIR}/include/scanner
+        ${CMAKE_SOURCE_DIR}/include/core
 )

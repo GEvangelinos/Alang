@@ -20,8 +20,8 @@ namespace Alpha
                 static unsigned int validTokenCounter;
                 static void incrementValidTokenCounter(void);
                 static void decrementValidTokenCounter(void);
-                const unsigned int tokenNumber;
                 const unsigned int lineNumber;
+                const unsigned int tokenNumber;
                 const std::string tokenContent;
 
         protected:

@@ -1,9 +1,9 @@
 %{
         #define INSIDE_FLEX_FILE
-        #include <iostream>
+        #include <iostream> // TODO: Do you need this? 
         #include "alphaParser.hpp" 
         #include "alphaExceptions.hpp"
-        #include "alphaLang.hpp"
+        #include "alphaToken.hpp"
         extern Alpha::SymbolTable symbolTable;
 %}
 

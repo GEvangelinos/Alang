@@ -1,13 +1,13 @@
+#define INSIDE_BISON_FILE
 #include <iostream>
 #include <filesystem>
 #include <fstream>
 #include <list>
 #include <format>
-#include "./GeneratedFiles/alphaBisonParser.hpp"
-#include "./GeneratedFiles/alphaFlexScanner.hpp"
-#include "./symbolTable.hpp"
-#define INSIDE_BISON_FILE
-#include "./alphaDefs.hpp"
+#include "alphaParser.hpp"
+#include "alphaScanner.hpp"
+#include "symbolTable.hpp"
+#include "alphaDefs.hpp"
 
 Alpha::SymbolTable symbolTable;
 
@@ -83,8 +83,13 @@ int main(int argc, char **argv)
                 std::exit(severeError);
         }
 
-        std::cout << "WHERE? \n";
-        YY_BUFFER_STATE buf = alpha_yy_scan_string(fileBuffer);
+
+        /* Do we need to swap EOF with '\0' ?? */
+
+        // WHY does it read from buffer now? 
+
+
+        alpha_yy_scan_string(fileBuffer);
         auto returnValue = alpha_yyparse();
         std::cout << "alpha__yyparse return value: " << returnValue << std::endl;
         symbolTable.printSymbolInsertionVector();

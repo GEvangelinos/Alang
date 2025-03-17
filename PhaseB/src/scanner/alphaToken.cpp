@@ -9,7 +9,7 @@
 namespace Alpha
 {
         /*** STARTOF: Local to the file (static) definitions: ***/
-        static std::string toUpperCase(const std::string &input)
+        [[maybe_unused]] static std::string toUpperCase(const std::string &input)
         {
                 std::string result = input;
                 std::transform(result.begin(), result.end(), result.begin(),
@@ -188,7 +188,7 @@ namespace Alpha
                 /* Empty Constructor Body */
         }
 
-        char * TokenID::refreshLastId(const char * id)
+        char *TokenID::refreshLastId(const char *id)
         {
                 if (TokenID::lastId != nullptr)
                 {

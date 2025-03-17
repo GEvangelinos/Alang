@@ -13,7 +13,7 @@
 #endif /* INSIDE_FLEX_FILE */
 
 #if defined(INSIDE_BISON_FILE)
-#include "./symbolTable.hpp"
+#include "symbolTable.hpp"
 #include "errorTracker.hpp"
 #include <iostream>
 #include <iomanip>
