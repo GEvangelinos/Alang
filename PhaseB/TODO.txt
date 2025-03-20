@@ -1,5 +1,0 @@
-1) Add column tracking,
-
-2) Add Handlers for byson and flex, currently code in .l and .y is a mess
-
-3) Test
