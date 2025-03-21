@@ -1,10 +1,11 @@
-#include <limits>
-#include <cstring>
-#include <sstream>
-#include <stdexcept>
-#include <algorithm>
 #include "alphaToken.hpp"
-#include "alphaParser.hpp"
+#include <stdlib.h>  // for free
+#include <algorithm> // for transform
+#include <cctype>    // for toupper
+#include <cstring>   // for strcpy, strdup, size_t
+#include <limits>    // for numeric_limits
+#include <sstream>   // for basic_ostream, basic_stringstream, operator<<
+#include <stdexcept> // for overflow_error, underflow_error
 
 namespace Alpha
 {
@@ -190,12 +191,13 @@ namespace Alpha
 
         char *TokenID::refreshLastId(const char *id)
         {
-                if (TokenID::lastId != nullptr)
-                {
-                        free(TokenID::lastId);
-                        TokenID::lastId = nullptr;
-                }
-                return TokenID::lastId = strdup(id);
+                if (id == nullptr)
+                        throw std::runtime_error("Error in lexer (probably): `id` is null.");
+
+                delete[] TokenID::lastId;                        /* delete[] is safe with nullptr too (in first initialization). */
+                TokenID::lastId = new char[std::strlen(id) + 1]; /* +1 for '\0'. */
+                std::strcpy(TokenID::lastId, id);
+                return TokenID::lastId;
         }
 
         std::string TokenID::toString() const

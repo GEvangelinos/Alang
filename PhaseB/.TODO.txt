@@ -1,0 +1,10 @@
+1) Add column tracking,
+
+2) Add Handlers for byson and flex, currently code in .l and .y is a mess
+
+3) Test
+
+4) USE sanitizers
+5) USE IWYU
+6)
+/* The idea is that {} is replace by macro LOG_ACTION(rule, case), where rule and case are string filled by python script. */

@@ -405,3 +405,9 @@ namespace Alpha
         uint32_t Function::lineOfLastFunction = -1;
         std::string Function::nameOfLastFunction;
 }
+
+namespace
+{
+
+
+}

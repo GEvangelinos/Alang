@@ -11,11 +11,6 @@
 
 Alpha::SymbolTable symbolTable;
 
-static inline bool existsArgumentForFileName(const int argc) noexcept
-{
-        return argc > 1;
-}
-
 static std::streamsize fileSize(std::ifstream &inputFile)
 {
         inputFile.seekg(0, std::ios::end);
@@ -43,38 +38,36 @@ static void loadFileToInputBuffer(const std::string &filename, char **const inpu
         *inputBuffer = tempInputBuffer;
 }
 
-static void configureLexerInput(const int argc, const char *const *const argv, FILE **const alpha_yyin, char **alpha_yybuf)
+static void configureLexerInput(const int argc, const char *const *const argv, YY_BUFFER_STATE *lexer_buffer)
 {
-        if (!existsArgumentForFileName(argc))
-        {
-                std::cerr << "Redirecting input to STDIN: Argument for filename is missing." << std::endl;
-                *alpha_yyin = stdin;
-                return;
-        }
+        const char *inputFilename = argc > 1 ? argv[1] : nullptr;
 
-        if (std::filesystem::is_directory(argv[1]))
+        /* Check if filename is provided, is not a directory, and is readable. */
+        if (!inputFilename)
+                std::cerr << "Redirecting to STDIN: No filename provided." << std::endl;
+        else if (!std::filesystem::is_regular_file(inputFilename))
+                std::cerr << "Redirecting to STDIN: " << inputFilename << " is not a regular file." << std::endl;
+        else if (!std::ifstream(inputFilename).good())
+                std::cerr << "Redirecting to STDIN: Cannot open " << inputFilename << "." << std::endl;
+        else
         {
-                std::cerr << "Redirecting input to STDIN: Argument for filename corresponds to a directory." << std::endl;
-                *alpha_yyin = stdin;
+                alpha_yyin = nullptr;
+                char *alpha_yybuf;
+                loadFileToInputBuffer(argv[1], &alpha_yybuf);
+                *lexer_buffer = alpha_yy_scan_string(alpha_yybuf);
+                delete[] alpha_yybuf;
                 return;
         }
-
-        if (!std::ifstream(argv[1]).good())
-        {
-                std::cerr << "Redirecting input to STDIN: Unable to open file " << argv[1] << " for reading." << std::endl;
-                *alpha_yyin = stdin;
-                return;
-        }
-        *alpha_yyin = nullptr;
-        loadFileToInputBuffer(argv[1], alpha_yybuf);
+        /* If any check fails, default to STDIN. */
+        alpha_yyin = stdin;
 }
 
-int main(int argc, char **argv)
+static void manageParser(int argc, const char *const *const argv)
 {
-        char *fileBuffer;
+        YY_BUFFER_STATE lexer_buffer;
         try
         {
-                configureLexerInput(argc, argv, &alpha_yyin, &fileBuffer);
+                configureLexerInput(argc, argv, &lexer_buffer);
         }
         catch (std::exception &e)
         {
@@ -82,16 +75,14 @@ int main(int argc, char **argv)
                 constexpr int severeError = 2;
                 std::exit(severeError);
         }
-
-
-        /* Do we need to swap EOF with '\0' ?? */
-
-        // WHY does it read from buffer now? 
-
-
-        alpha_yy_scan_string(fileBuffer);
-        auto returnValue = alpha_yyparse();
+        int returnValue = alpha_yyparse();
         std::cout << "alpha__yyparse return value: " << returnValue << std::endl;
+        alpha_yy_delete_buffer(lexer_buffer);
+}
+
+int main(int argc, char **argv)
+{
+        manageParser(argc, argv);
         symbolTable.printSymbolInsertionVector();
         symbolTable.printErrorVector();
 }

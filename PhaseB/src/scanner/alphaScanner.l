@@ -1,9 +1,18 @@
 %{
+        
         #define INSIDE_FLEX_FILE
-        #include <iostream> // TODO: Do you need this? 
-        #include "alphaParser.hpp" 
-        #include "alphaExceptions.hpp"
-        #include "alphaToken.hpp"
+        #include <errno.h>           // for errno, EINTR
+        #include <stdio.h>           // for NULL, FILE, EOF, ferror, size_t, clearerr
+        #include <stdlib.h>          // for exit, free, malloc, realloc
+        #include <string.h>          // for memset, strlen
+        #include <unistd.h>          // for isatty
+        #include <string>            // for allocator, operator+, basic_string, char...
+        #include "alphaParser.hpp"   // for alpha_yytokentype, alpha_yylval
+        #include "alphaToken.hpp"    // for TokenString, TokenComment, TokenID
+        #include "errorTracker.hpp"  // for LexerError, CompileTimeErrorTracker
+        #include "symbolTable.hpp"   // for SymbolTable
+
+
         extern Alpha::SymbolTable symbolTable;
 %}
 
@@ -141,4 +150,6 @@ stringInvalidEscapeCode "\\"([^tn"\\])
         symbolTable.errorTracker.registerCompileTimeError(new Alpha::LexerError(
                 yylineno, 0, std::string("Lexer error: Character ") + yytext + " is invalid."));
 }
+
+<<EOF>>          {return ALPHA_YYEOF;}
 %%

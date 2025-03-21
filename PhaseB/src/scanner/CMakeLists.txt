@@ -13,10 +13,15 @@ FLEX_TARGET(ALPHA_SCANNER
         ${ALPHA_SCANNER_OUTPUT_FILEPATH}
         COMPILE_FLAGS "--header-file=${ALPHA_SCANNER_HEADER_FILEPATH}"
 )
+# Opposed to bison, flex doesn't have a way to track its produced header file, so we track it manually.
+set_source_files_properties(${ALPHA_SCANNER_HEADER_FILEPATH} PROPERTIES GENERATED TRUE)
+# Ensure `make clean` removes it
+set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${ALPHA_SCANNER_HEADER_FILEPATH}")
+
 
 # We create a phony target so we force FLEX files to be generated before compilation.
 add_custom_target(generate_scanner ALL
-    DEPENDS ${FLEX_ALPHA_SCANNER_OUTPUTS}
+        DEPENDS ${FLEX_ALPHA_SCANNER_OUTPUTS}
 )
 
 add_library(alpha_scanner STATIC
@@ -29,3 +34,5 @@ target_include_directories(alpha_scanner PRIVATE
         ${CMAKE_SOURCE_DIR}/include/scanner
         ${CMAKE_SOURCE_DIR}/include/core
 )
+
+target_compile_options(alpha_scanner PRIVATE -Wno-unused-function)

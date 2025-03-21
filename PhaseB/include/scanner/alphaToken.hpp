@@ -1,8 +1,9 @@
 #ifndef ALPHA_LANG_HPP
 #define ALPHA_LANG_HPP
 
-#include <string>
-#include <vector>
+#include <iosfwd>  // for stringstream
+#include <string>  // for string, basic_string
+
 namespace Alpha
 {
         struct alpha_token_t
