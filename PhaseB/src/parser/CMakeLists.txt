@@ -19,9 +19,13 @@ add_custom_target(generate_parser ALL
         DEPENDS ${BISON_ALPHA_PARSER_OUTPUTS}
 )
 
-add_library(alpha_parser STATIC ${ALPHA_PARSER_OUTPUT_FILEPATH})
+add_library(alpha_parser STATIC
+        ${ALPHA_PARSER_OUTPUT_FILEPATH}
+        semanticActions.cpp
+)
 
 target_include_directories(alpha_parser PRIVATE
         ${AUTOGEN_INCLUDE_DIR_PATH}
         ${CMAKE_SOURCE_DIR}/include/core
+        ${CMAKE_SOURCE_DIR}/include/parser
 )
