@@ -54,7 +54,7 @@ set(BISON_HEADER_FILENAME "alphaParser.hpp") # <-- .hpp filename of the auto-gen
 ###############################################################################################################
 
 set(FLEX_SPEC_FILENAME "alphaScanner.l") # <--  Modifying .l filename requires manual change.
-set(BISON_SPEC_FILENAME "alphaParser2.y") # <-- Modifying .y filename requires manual change.
+set(BISON_SPEC_FILENAME "alphaParser.y") # <-- Modifying .y filename requires manual change.
 
 
 # Create directory that hosts code from flex and bison
