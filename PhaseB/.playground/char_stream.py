@@ -29,12 +29,15 @@ class CharStream:
         def eof(self) -> bool:
                 return self.__index >= self.__size
 
-        def append(self, data: str | list[str]) -> None:
+        def extend(self, data: str | list[str]) -> None:
                 try:
                         self.__character_list.extend(data)
                         self.__size += len(data)
                 except TypeError:
                         raise TypeError("append() expects a str or a list[str]")
+
+        def rewind(self) -> None:
+                self.__index = 0
 
         def clear(self) -> None:
                 self.__character_list.clear()

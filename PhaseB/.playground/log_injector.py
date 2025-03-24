@@ -2,7 +2,8 @@ import sys
 import os
 import re
 from typing import NamedTuple, TextIO
-from parse_context import ParseContext, ParserState
+from fsm_context import ParseContext, ParserState
+from grammar_section_manager import grammar_section_manager
 
 
 class StartupArguments(NamedTuple):
@@ -48,48 +49,61 @@ def execute_state_before_grammar_section(ctx: ParseContext, fin: TextIO) -> Pars
                 if "%%" in line and line.strip() != "%%":
                         raise ValueError(f"Line {ctx.line_count}: Delimiter %% separating prologue and grammar rules"
                                          f" is not in a standalone line, please fix")
-                ctx.parsed_lines.append(line)
-                break
+
+                ctx.injectedCharStream.extend(line)
+                if "%%" in line:
+                        break
         else:
                 raise ValueError(f"Line {ctx.line_count}: Delimiter %% before grammar rules is missing")
         return ParserState.INSIDE_GRAMMAR_SECTION
 
 
 def execute_state_inside_grammar_section(ctx: ParseContext, fin: TextIO) -> ParserState:
-        char_stream: list[str] = []
+        # TODO: Add line counting here, because if  the following errors occur, the reported lines are wrong.
         for line in fin:
                 if "%%" in line and line.strip() != "%%":
                         raise ValueError(f"Line {ctx.line_count}: Delimiter %% separating epilogue and grammar rules"
                                          f" is not in a standalone line, please fix")
                 if "%%" in line:
                         break
-                char_stream.extend(line)
+                ctx.charStream.extend(line)
         else:
                 raise ValueError(f"Line {ctx.line_count}: Delimiter %% after grammar rules is missing, please fix")
 
-        # If control reaches here, we exited for-loop with break.
-        # We need to run the FSMs for parsing the grammar rules.
-        # Basically we need to call the manager for grammar section.
+        ctx.line_count += 1  # Required as grammar_section_manager() will start from next line.
+        grammar_section_manager(ctx=ctx)
 
         # When control reaches here, it means we have parsed all the grammar rules.
-        ctx.parsed_lines.append(line) # TODO: We append this line after we append the INJECTED GRAMMAR RULES
+        ctx.injectedCharStream.extend(line)  # TODO: We append this line after we append the INJECTED GRAMMAR RULES
         return ParserState.AFTER_GRAMMAR_SECTION
 
 
+def execute_state_after_grammar_section(ctx: ParseContext, fin: TextIO) -> ParserState:
+        for line in fin:
+                ctx.line_count += 1
+                ctx.injectedCharStream.extend(line)
+        return ParserState.FINISHED_LOG_INSERTION
+
+
 def parser_fsm(ctx: ParseContext, fin: TextIO) -> None:
-        while True:
-                match ctx.current_state:
-                        case ParserState.BEFORE_GRAMMAR_SECTION:
-                                ctx.current_state = execute_state_before_grammar_section(ctx, fin)
-                        case ParserState.INSIDE_GRAMMAR_SECTION:
-                                return
-                        case ParserState.AFTER_GRAMMAR_SECTION:
-                                return
-                        case ParserState.FINISHED_LOG_INSERTION:
-                                print("Log insertion completed")
-                                return
-                        case _:
-                                raise AssertionError(f"parser_fsm() enter unknown state, this should never happen")
+        try:
+                while True:
+                        match ctx.current_state:
+                                case ParserState.BEFORE_GRAMMAR_SECTION:
+                                        ctx.current_state = execute_state_before_grammar_section(ctx, fin)
+                                case ParserState.INSIDE_GRAMMAR_SECTION:
+                                        ctx.current_state = execute_state_inside_grammar_section(ctx, fin)
+                                case ParserState.AFTER_GRAMMAR_SECTION:
+                                        ctx.current_state = execute_state_after_grammar_section(ctx, fin)
+                                case ParserState.FINISHED_LOG_INSERTION:
+                                        return
+                                case _:
+                                        raise AssertionError(
+                                                f"parser_fsm() enter unknown state, this should never happen")
+        except ValueError as e:
+                print(f"Caught ValueError: {e}")
+        except AssertionError as e:
+                print(f"Caught AssertionError: {e}")
 
 
 def parser_manager(startup_arguments: StartupArguments) -> None:
@@ -103,8 +117,9 @@ def parser_manager(startup_arguments: StartupArguments) -> None:
 
         # If control reaches here, it means injections are completed, and we can write the modified file.
         with open(startup_arguments.output_file_name, 'w') as fout:
-                for line in ctx.parsed_lines:
-                        fout.write(line)
+                ctx.injectedCharStream.rewind()
+                while not ctx.injectedCharStream.eof():
+                        fout.write(ctx.injectedCharStream.next())
 
 
 def main() -> int:
