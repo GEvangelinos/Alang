@@ -68,32 +68,32 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 "nil"           {return NIL;} 
 
 
-"="             {return ASSIGN;} 
-"+"             {return PLUS;} 
-"-"             {return MINUS;} 
-"*"             {return MUL;} 
-"/"             {return DIV;} 
-"%"             {return MOD;} 
-"=="            {return EQUAL;} 
-"!="            {return NOT_EQUAL;} 
+"="             {return '=';} 
+"+"             {return '+';} 
+"-"             {return '-';} 
+"*"             {return '*';} 
+"/"             {return '/';} 
+"%"             {return '%';} 
+"=="            {return EQ;} 
+"!="            {return NEQ;} 
 "++"            {return PLUS_PLUS;} 
 "--"            {return MINUS_MINUS;} 
-">"             {return GREATER_THAN;} 
-"<"             {return LESS_THAN;} 
-">="            {return GREATER_THAN_OR_EQUAL;} 
-"<="            {return LESS_THAN_OR_EQUAL;} 
+">"             {return GT;} 
+"<"             {return LT;} 
+">="            {return GTE;} 
+"<="            {return LTE;} 
 
-"{"             {return LEFT_BRACE;}
-"}"             {return RIGHT_BRACE;}
-"["             {return LEFT_BRACKET;}
-"]"             {return RIGHT_BRACKET;}
-"("             {return LEFT_PARENTHESIS;}
-")"             {return RIGHT_PARENTHESIS;}
-";"             {return SEMI_COLON;}
-","             {return COMMA;}
-":"             {return COLON;}
+"{"             {return '{';}
+"}"             {return '}';}
+"["             {return '[';}
+"]"             {return ']';}
+"("             {return '(';}
+")"             {return ')';}
+";"             {return ';';}
+","             {return ',';}
+":"             {return ':';}
 "::"            {return COLON_BLOCK;}
-"."             {return DOT;}
+"."             {return '.';}
 ".."            {return DDOT;}
 
 {id}            {alpha_yylval.unionId = Alpha::TokenID::refreshLastId(yytext); return ID;}
