@@ -20,7 +20,6 @@ else()
     message(FATAL_ERROR "No suitable C++ compiler found. Please install either Clang or GCC.")
 endif()
 
-
 # General warnings
 add_compile_options(
         -Wall
