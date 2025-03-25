@@ -1,11 +1,8 @@
-from fsm_context import ParseContext
+from parser_context import ParserContext
 
-__all__ = ['advance_and_track_line']
-
-
-def advance_and_track_line(ctx: ParseContext) -> None:
+def advance_and_track_line(ctx: ParserContext) -> None:
         ch = ctx.charStream.peek()
         if ch == '\n':
-                ctx.line_count += 1
+                ctx.increment_line_counter()
         ctx.injectedCharStream.extend(ch)
         ctx.charStream.next()
