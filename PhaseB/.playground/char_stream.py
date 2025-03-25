@@ -1,5 +1,3 @@
-# char_stream.py
-
 class CharStream:
         def __init__(self):
                 self.__character_list: list[str] = []
@@ -17,6 +15,11 @@ class CharStream:
         def peek(self) -> str | None:
                 if self.__index < self.__size:
                         return self.__character_list[self.__index]
+                return None
+
+        def peek_next(self) -> str | None:
+                if self.__index + 1 < self.__size:
+                        return self.__character_list[self.__index + 1]
                 return None
 
         def next(self) -> str | None:
