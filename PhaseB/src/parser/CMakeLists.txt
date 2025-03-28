@@ -21,7 +21,7 @@ add_custom_command(
         --output ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
         --log-fn displayLog
         DEPENDS ${injector_files} ${CMAKE_CURRENT_SOURCE_DIR}/${BISON_SPEC_FILENAME}
-        COMMENT "Injecting logging in bison parser"
+        COMMENT "[PYTHON][LOG_INJECTOR] Generating log injected parser file"
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR} 
         VERBATIM
 )
