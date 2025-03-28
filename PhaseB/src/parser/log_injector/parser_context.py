@@ -16,6 +16,7 @@ class ParserContext:
                 self.in_block_comment: bool = False
                 self.found_backslash: bool = False
                 self.found_asterisk: bool = False
+                self.injected = False
 
         @property
         def logging_function_name(self) -> str:

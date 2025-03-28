@@ -1,6 +1,8 @@
 import re
 from parser_context import ParserContext
+from char_stream import CharStream
 from fsm_common import advance_and_track_line
+
 
 terminal_dict: dict[str, str] = {
         # Operator tokens
@@ -33,6 +35,9 @@ terminal_dict: dict[str, str] = {
         "DOT": ".",
         "DDOT": ".."
 }
+
+_PRODUCTION_SEPARATOR = '|'
+_RULE_END_MARKER = ';'
 
 
 def _handled_whitespace(ch: str, current_token: list[str], ctx: ParserContext) -> bool:
@@ -72,6 +77,9 @@ def _handled_braces(ch: str, current_token: list[str], ctx: ParserContext) -> bo
         if ch == '}':
                 if ctx.brace_depth <= 0:
                         raise ValueError(f"In line {ctx.line_counter}: unmatched '}}'")
+                if not ctx.injected and not is_in_midrule(ctx.charStream):
+                        _inject_log_in_codeblock(ctx)                        
+
                 ctx.decrement_brace_depth()
                 if ctx.brace_depth == 0:
                         ctx.in_block = False
@@ -79,6 +87,21 @@ def _handled_braces(ch: str, current_token: list[str], ctx: ParserContext) -> bo
         if ctx.in_block:
                 return True
         return False
+
+def is_in_midrule(cs: CharStream) -> bool:
+        index = 1
+        while True:
+                future_char:str = cs.peek_next(index)
+                index += 1
+                if future_char == None:
+                        False
+                if future_char.isspace():
+                        continue
+                if future_char in [_PRODUCTION_SEPARATOR, _RULE_END_MARKER]:
+                        return False
+                return True
+
+
 
 
 def _filter_directive_from_production(unfiltered_production: str) -> str:
@@ -91,23 +114,36 @@ def convert_terminals_to_symbols(production_rule: list[str]):
                         production_rule[i] = terminal_dict[production_rule[i]]
 
 
-def _inject_log_call_in_rule(ctx: ParserContext) -> None:
+def _inject_log_in_codeblock(ctx: ParserContext):
+        convert_terminals_to_symbols(ctx.production)
+        unfiltered_production = ' '.join(ctx.production)
+        directive_filtered_production = _filter_directive_from_production(unfiltered_production)
+        injection_string = f"{ctx.logging_function_name}(\"{ctx.lhs_nonterminal}\", \"{directive_filtered_production}\");"
+        ctx.injectedCharStream.extend(injection_string)
+        ctx.injected = True
+                
+
+
+def _inject_log_at_prodcuction_end(ctx: ParserContext) -> None:
         convert_terminals_to_symbols(ctx.production)
         unfiltered_production = ' '.join(ctx.production)
         directive_filtered_production = _filter_directive_from_production(unfiltered_production)
         injection_string = f"{{{ctx.logging_function_name}(\"{ctx.lhs_nonterminal}\", \"{directive_filtered_production}\");}}\n"
         ctx.injectedCharStream.extend(injection_string)
+        ctx.injected = True
 
 
 def _handled_production_or_rule_end(ch: str, ctx: ParserContext) -> bool:
-        if ch not in ['|', ';']:
+        if ch not in [_PRODUCTION_SEPARATOR, _RULE_END_MARKER]:
                 return False
-
-        _inject_log_call_in_rule(ctx)
+        if not ctx.injected:
+                _inject_log_at_prodcuction_end(ctx)
 
         ctx.production.clear()
-        if ch == ';':
+        if ch == _RULE_END_MARKER:
                 ctx.lhs_nonterminal = ""
+
+        ctx.injected = False
         return True
 
 
@@ -154,7 +190,7 @@ def parse_rhs_productions(ctx: ParserContext) -> None:
                 elif _handled_braces(ch, current_token, ctx):
                         pass
                 elif _handled_production_or_rule_end(ch, ctx):
-                        if ch == ';':
+                        if ch == _RULE_END_MARKER:
                                 done = True
                 else:
                         current_token.append(ch)

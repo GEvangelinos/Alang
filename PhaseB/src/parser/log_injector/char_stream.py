@@ -17,9 +17,11 @@ class CharStream:
                         return self.__character_list[self.__index]
                 return None
 
-        def peek_next(self) -> str | None:
-                if self.__index + 1 < self.__size:
-                        return self.__character_list[self.__index + 1]
+        def peek_next(self, forward_offset:int = None) -> str | None:
+                if forward_offset is None:
+                        forward_offset = 1
+                if self.__index + forward_offset < self.__size:
+                        return self.__character_list[self.__index + forward_offset]
                 return None
 
         def next(self) -> str | None:
@@ -46,3 +48,14 @@ class CharStream:
                 self.__character_list.clear()
                 self.__size = 0
                 self.__index = 0
+
+        # Warning: O(n) complexity
+        def is_char1_before_char2(self, char1: str, char2: str) -> bool:
+                for i in range(self.__index, self.__size):
+                        if self.__character_list[i] == char1:
+                                return True
+                        if self.__character_list[i] == char2:
+                                return False
+                return False
+        
+
