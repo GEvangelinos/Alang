@@ -5,6 +5,8 @@ else()
         message(WARNING "Could not find Python3. Please install `Python3`.")
 endif()
 
+file(GLOB injector_files ${CMAKE_CURRENT_SOURCE_DIR}/log_injector/*.py)
+
 # Extract Parser's basename and extension (typically .y):
 get_filename_component(parser_basename ${BISON_SPEC_FILENAME} NAME_WE)
 get_filename_component(parser_extension ${BISON_SPEC_FILENAME} EXT)
@@ -18,8 +20,9 @@ add_custom_command(
         --input ${CMAKE_CURRENT_SOURCE_DIR}/${BISON_SPEC_FILENAME}
         --output ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
         --log-fn displayLog
+        DEPENDS ${injector_files} ${CMAKE_CURRENT_SOURCE_DIR}/${BISON_SPEC_FILENAME}
         COMMENT "Injecting logging in bison parser"
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR} 
         VERBATIM
 )
 
