@@ -1,6 +1,4 @@
 %{
-        
-        #define INSIDE_FLEX_FILE
         #include <errno.h>           // for errno, EINTR
         #include <stdio.h>           // for NULL, FILE, EOF, ferror, size_t, clearerr
         #include <stdlib.h>          // for exit, free, malloc, realloc
@@ -12,14 +10,23 @@
         #include "errorTracker.hpp"  // for LexerError, CompileTimeErrorTracker
         #include "symbolTable.hpp"   // for SymbolTable
 
-
         extern Alpha::SymbolTable symbolTable;
+
+        #define YY_USER_ACTION\
+                do\
+                {\
+                        alpha_yylloc.line_start = yylineno;\
+                } while (0); /* Semi-Colon is not placed by flex, we place it manually. */
 %}
 
 
 /* Flex set options. */
 %option yylineno 
+
+
 %option noyywrap
+/* TODO: is the below line necessary? Bison already defines a prefix, does it count for scanenr too? (probably not) */
+/*       as they are different programs. */
 %option prefix="alpha_yy"
 
 /* FLex regex definitions */

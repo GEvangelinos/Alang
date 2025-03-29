@@ -8,7 +8,7 @@
 #include <format>
 #include "symbolTable.hpp"
 #include "alphaDefs.hpp"
-
+#include "cli_color.h"
 static const std::string anonymousFunctionNamePrefix = "#f_";
 
 namespace Alpha
@@ -346,16 +346,16 @@ namespace Alpha
 
         void SymbolTable::printErrorVector()
         {
-                std::cout << UNIX_COLOR_RED;
+                std::cout << COLOR_ASCII_FG_RED;
                 for (const CompileTimeError *error : this->errorTracker.gerErrorVector())
                         std::cerr << error->toString() << std::endl;
-                std::cout << UNIX_COLOR_RESET;
+                std::cout << SGR_RESET;
         }
 
         // FIXME: using vector is insufficient as you go many times over the wrong elements.
         void SymbolTable::printSymbolInsertionVector()
         {
-                std::cout << UNIX_COLOR_BLUE;
+                std::cout << COLOR_ASCII_FG_BLUE;
                 for (uint32_t scopeDepth = this->GLOBAL_SCOPE_DEPTH; scopeDepth <= this->maximumReachedScopeDepth; scopeDepth++)
                 {
                         std::cout << "--------------------     Scope #" << scopeDepth << "     --------------------" << std::endl;
@@ -388,7 +388,7 @@ namespace Alpha
                         }
                         std::cout << std::endl;
                 }
-                std::cout << UNIX_COLOR_RESET;
+                std::cout << SGR_RESET;
         }
 
         Variable::Variable(std::string name, uint32_t scope, uint32_t line, SymbolType type)

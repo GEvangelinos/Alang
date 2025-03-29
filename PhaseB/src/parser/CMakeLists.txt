@@ -12,7 +12,8 @@ get_filename_component(parser_basename ${BISON_SPEC_FILENAME} NAME_WE)
 get_filename_component(parser_extension ${BISON_SPEC_FILENAME} EXT)
 
 # Create the filename for the injected parser: 
-set(LOG_INJECTED_BISON_SPEC_FILENAME "${parser_basename}_LOGGED${parser_extension}")
+set(logged_file_marker "_LOGGED_")
+set(LOG_INJECTED_BISON_SPEC_FILENAME "${parser_basename}${logged_file_marker}${parser_extension}")
 
 add_custom_command(
         OUTPUT ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
@@ -59,4 +60,5 @@ target_include_directories(alpha_parser PRIVATE
         ${AUTOGEN_INCLUDE_DIR_PATH}
         ${CMAKE_SOURCE_DIR}/include/core
         ${CMAKE_SOURCE_DIR}/include/parser
+        ${CMAKE_SOURCE_DIR}/include/misc
 )

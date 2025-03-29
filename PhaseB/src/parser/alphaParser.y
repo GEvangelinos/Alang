@@ -1,6 +1,4 @@
 %{
-        #define INSIDE_BISON_FILE
-        #define __LOG__ ((void)0); /* Hook for python script to add logging. */
         #include <string>
         #include <list>
         #include <iostream>
@@ -9,6 +7,7 @@
         #include "alphaDefs.hpp"
         #include "errorTracker.hpp"
         #include "semantic_actions.hpp"
+        #include "logger.hpp"
         bool isFunctionBlock = false;
         bool lvalueIsMember = false;
         int functionDepthCounter = 0;
@@ -16,15 +15,32 @@
 
 %code requires
 {
+        #include <cstdint>
         #include "symbolTable.hpp"
         extern Alpha::SymbolTable symbolTable;
+        typedef struct
+        {
+                uint32_t line_start;
+                uint32_t line_end;
+                uint32_t column_start;
+                uint32_t column_end;
+                uint32_t index_start;
+                uint32_t index_end;
+        
+        }alpha_location_t;
+
+        #define YYLLOC_DEFAULT
+        do\
+        {\
+        }while(0) /* Semi-Colon is placed by bison. */
+
+
 }
 
 %define api.prefix {alpha_yy}
+%define api.location.type {alpha_location_t}
+%locations
 %define parse.error detailed    /* Enable detailed error messages */
-
-
-%start program
 
 %union{
         char *unionStringLiteral;
@@ -88,6 +104,7 @@
 %precedence THEN
 %precedence ELSE
 
+%start program /* Initial rule. */
 /* Grammar rules: */
 
 %%

@@ -1,0 +1,19 @@
+#ifndef LOGGER_HPP
+#define LOGGER_HPP
+
+#include <format>
+#include <iostream>
+#include <iomanip>
+#include "cli_color.h"
+
+static __always_inline void displayLog(const std::string lhs, const std::string rhs)
+{
+        std::cout << COLOR_ASCII_FG_GREEN
+                  << std::setw(20)
+                  << lhs
+                  << SGR_RESET
+                  << ":\t" << rhs
+                  << std::endl;
+}
+
+#endif /* LOGGER_HPP */
