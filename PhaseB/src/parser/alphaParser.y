@@ -172,8 +172,7 @@ member:
 call:
   call '(' elist ')'
 | lvalue callsuffix
-| '(' funcdef ')'
-  '(' elist ')'
+| '(' funcdef ')' '(' elist ')'
 ;
 
 callsuffix:

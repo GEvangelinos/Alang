@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-project(Alpha VERSION 0.3 LANGUAGES CXX)
+project(Alpha VERSION 0.4 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -57,7 +57,7 @@ set(BISON_SPEC_FILENAME "alphaParser.y") # <-- Modifying .y filename requires ma
 
 
 # Create directory that hosts code from flex and bison
-set(AUTOGEN_ROOT_DIR_PATH ${CMAKE_SOURCE_DIR}/autogen CACHE PATH "Path to the root directory for auto-generated files")
+set(AUTOGEN_ROOT_DIR_PATH ${CMAKE_BINARY_DIR}/autogen CACHE PATH "Path to the root directory for auto-generated files")
 set(AUTOGEN_SRC_DIR_PATH ${AUTOGEN_ROOT_DIR_PATH}/src CACHE PATH "Path to the directory for auto-generated source files")
 set(AUTOGEN_INCLUDE_DIR_PATH ${AUTOGEN_ROOT_DIR_PATH}/include CACHE PATH "Path to the directory for auto-generated header files")
 set(AUTOGEN_DIR_LIST
@@ -77,5 +77,9 @@ endforeach()
 
 add_subdirectory(src)
 
-# This property tells CMake to delete everything in ${AUTOGEN_ROOT_DIR_PATH} when a "make clean" is run.
-set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES ${AUTOGEN_ROOT_DIR_PATH})
+# This property tells CMake to delete ${AUTOGEN_ROOT_DIR_PATH} and its contents when a "make clean" is run.
+# set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES ${AUTOGEN_ROOT_DIR_PATH})
+
+# Find all files stored in `${AUTOGEN_ROOT_DIR_PATH}` and delete them (but keep the directory structure intact).
+file(GLOB_RECURSE AUTOGEN_FILES ${AUTOGEN_ROOT_DIR_PATH})
+set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${AUTOGEN_FILES}")
