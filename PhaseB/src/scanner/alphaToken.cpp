@@ -1,4 +1,4 @@
-#include "alphaToken.hpp"
+#include "scanner/alphaToken.hpp"
 #include <stdlib.h>  // for free
 #include <algorithm> // for transform
 #include <cctype>    // for toupper

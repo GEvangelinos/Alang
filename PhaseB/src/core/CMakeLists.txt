@@ -4,6 +4,5 @@ add_library(alpha_core STATIC
 )
 
 target_include_directories(alpha_core PRIVATE
-        ${CMAKE_SOURCE_DIR}/include/core
-        ${CMAKE_SOURCE_DIR}/include/misc
+        ${CMAKE_SOURCE_DIR}/include
 )

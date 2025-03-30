@@ -4,7 +4,7 @@
 #include <format>
 #include <iostream>
 #include <iomanip>
-#include "cli_color.h"
+#include "misc/cli_color.h"
 
 static __always_inline void displayLog(const std::string lhs, const std::string rhs)
 {

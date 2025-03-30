@@ -1,15 +1,15 @@
-#define INSIDE_BISON_FILE
 #include <iostream>
 #include <filesystem>
 #include <fstream>
 #include <list>
+#include <memory>
 #include <format>
 #include "alphaParser.hpp"
 #include "alphaScanner.hpp"
-#include "symbolTable.hpp"
-#include "alphaDefs.hpp"
+#include "core/symbolTable.hpp"
+#include "core/alphaDefs.hpp"
 
-Alpha::SymbolTable symbolTable;
+#define FLEX_BUFFER_END_PADDING 2
 
 static std::streamsize fileSize(std::ifstream &inputFile)
 {
@@ -18,8 +18,7 @@ static std::streamsize fileSize(std::ifstream &inputFile)
         inputFile.seekg(0, std::ios::beg);
         return fileSize;
 }
-
-static void loadFileToInputBuffer(const std::string &filename, char **const inputBuffer)
+static void loadFileToInputBuffer(const std::string &filename, std::unique_ptr<char[]> &lexer_input_buffer)
 {
         std::ifstream inputFile(filename);
         if (!inputFile)
@@ -27,18 +26,18 @@ static void loadFileToInputBuffer(const std::string &filename, char **const inpu
 
         const std::streamsize inputFileSize = fileSize(inputFile);
 
-        char *tempInputBuffer = new char[inputFileSize + 1];
-
-        if (!inputFile.read(tempInputBuffer, inputFileSize))
+        lexer_input_buffer = std::make_unique<char[]>(inputFileSize + FLEX_BUFFER_END_PADDING);
+        if (!inputFile.read(lexer_input_buffer.get(), inputFileSize))
         {
-                delete[] tempInputBuffer;
                 throw std::runtime_error("Failed reading file " + filename + ".");
         }
-        tempInputBuffer[inputFileSize] = '\0';
-        *inputBuffer = tempInputBuffer;
+        lexer_input_buffer[inputFileSize] = lexer_input_buffer[inputFileSize + 1] = '\0';
 }
 
-static void configureLexerInput(const int argc, const char *const *const argv, YY_BUFFER_STATE *lexer_buffer)
+static void configureLexerInput(const int argc,
+                                const char *const *const argv,
+                                std::unique_ptr<char[]> &lexer_input_buffer,
+                                YY_BUFFER_STATE *lexer_buffer_state)
 {
         const char *inputFilename = argc > 1 ? argv[1] : nullptr;
 
@@ -52,22 +51,24 @@ static void configureLexerInput(const int argc, const char *const *const argv, Y
         else
         {
                 alpha_yyin = nullptr;
-                char *alpha_yybuf;
-                loadFileToInputBuffer(argv[1], &alpha_yybuf);
-                *lexer_buffer = alpha_yy_scan_string(alpha_yybuf);
-                delete[] alpha_yybuf;
+                loadFileToInputBuffer(argv[1], lexer_input_buffer);
+                *lexer_buffer_state = alpha_yy_scan_string(lexer_input_buffer.get());
                 return;
         }
         /* If any check fails, default to STDIN. */
         alpha_yyin = stdin;
 }
 
-static void manageParser(int argc, const char *const *const argv)
+static void manageParser(int argc,
+                         const char *const *const argv,
+                         Alpha::SymbolTable &symbol_table,
+                         Alpha::InputBufferContext &context)
 {
-        YY_BUFFER_STATE lexer_buffer;
+        YY_BUFFER_STATE lexer_buffer_state;
+        std::unique_ptr<char[]> lexer_input_buffer;
         try
         {
-                configureLexerInput(argc, argv, &lexer_buffer);
+                configureLexerInput(argc, argv, lexer_input_buffer, &lexer_buffer_state);
         }
         catch (std::exception &e)
         {
@@ -75,14 +76,16 @@ static void manageParser(int argc, const char *const *const argv)
                 constexpr int severeError = 2;
                 std::exit(severeError);
         }
-        int returnValue = alpha_yyparse();
-        std::cout << "alpha__yyparse return value: " << returnValue << std::endl;
-        alpha_yy_delete_buffer(lexer_buffer);
+        int returnValue = alpha_yyparse(symbol_table, context);
+        std::cout << "alpha_yyparse return value: " << returnValue << std::endl;
+        alpha_yy_delete_buffer(lexer_buffer_state);
 }
 
 int main(int argc, char **argv)
 {
-        manageParser(argc, argv);
-        symbolTable.printSymbolInsertionVector();
-        symbolTable.printErrorVector();
+        Alpha::SymbolTable symbol_table;
+        Alpha::InputBufferContext context;
+        manageParser(argc, argv, symbol_table, context);
+        symbol_table.printSymbolInsertionVector();
+        symbol_table.printErrorVector();
 }

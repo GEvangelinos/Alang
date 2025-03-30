@@ -31,8 +31,7 @@ add_library(alpha_scanner STATIC
 
 target_include_directories(alpha_scanner PRIVATE
         ${AUTOGEN_INCLUDE_DIR_PATH}
-        ${CMAKE_SOURCE_DIR}/include/scanner
-        ${CMAKE_SOURCE_DIR}/include/core
+        ${CMAKE_SOURCE_DIR}/include
 )
 
 target_compile_options(alpha_scanner PRIVATE -Wno-unused-function)

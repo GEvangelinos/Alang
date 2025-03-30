@@ -23,7 +23,7 @@ add_custom_command(
         --log-fn displayLog
         DEPENDS ${injector_files} ${CMAKE_CURRENT_SOURCE_DIR}/${BISON_SPEC_FILENAME}
         COMMENT "[PYTHON][LOG_INJECTOR] Generating log injected parser file"
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR} 
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         VERBATIM
 )
 
@@ -46,7 +46,7 @@ BISON_TARGET(ALPHA_PARSER
 
 # We create a phony target so we force BISON files to be generated before compilation.
 add_custom_target(generate_parser ALL
-        DEPENDS 
+        DEPENDS
         ${BISON_ALPHA_PARSER_OUTPUTS}
         ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
 )
@@ -57,8 +57,7 @@ add_library(alpha_parser STATIC
 )
 
 target_include_directories(alpha_parser PRIVATE
-        ${AUTOGEN_INCLUDE_DIR_PATH}
-        ${CMAKE_SOURCE_DIR}/include/core
-        ${CMAKE_SOURCE_DIR}/include/parser
-        ${CMAKE_SOURCE_DIR}/include/misc
+        "${AUTOGEN_INCLUDE_DIR_PATH}"
+        "${CMAKE_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/internal"
 )

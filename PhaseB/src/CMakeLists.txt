@@ -19,5 +19,5 @@ target_link_libraries(${ALPHA_DRIVER_EXECUTABLE_NAME} PUBLIC alpha_scanner)
 
 target_include_directories(${ALPHA_DRIVER_EXECUTABLE_NAME} PRIVATE
         ${AUTOGEN_INCLUDE_DIR_PATH}
-        ${CMAKE_SOURCE_DIR}/include/core
+        ${CMAKE_SOURCE_DIR}/include
 )

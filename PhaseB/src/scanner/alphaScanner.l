@@ -6,23 +6,30 @@
         #include <unistd.h>          // for isatty
         #include <string>            // for allocator, operator+, basic_string, char...
         #include "alphaParser.hpp"   // for alpha_yytokentype, alpha_yylval
-        #include "alphaToken.hpp"    // for TokenString, TokenComment, TokenID
-        #include "errorTracker.hpp"  // for LexerError, CompileTimeErrorTracker
-        #include "symbolTable.hpp"   // for SymbolTable
+        #include "scanner/alphaToken.hpp"    // for TokenString, TokenComment, TokenID
+        #include "core/errorTracker.hpp"  // for LexerError, CompileTimeErrorTracker
+        #include "core/symbolTable.hpp"   // for SymbolTable
 
-        extern Alpha::SymbolTable symbolTable;
+        #undef YY_DECL
+        #define YY_DECL int yylex(Alpha::SymbolTable &symbol_table, Alpha::InputBufferContext &context)
 
         #define YY_USER_ACTION\
-                do\
-                {\
-                        alpha_yylloc.line_start = yylineno;\
-                } while (0); /* Semi-Colon is not placed by flex, we place it manually. */
+                do                                             \
+                {                                                           \
+                        alpha_yylloc.first_line = context.line;             \
+                        alpha_yylloc.first_column = context.column;         \
+                        alpha_yylloc.first_index = context.index;           \
+                                                                        \
+                        alpha_yylloc.last_line = context.line;              \
+                        alpha_yylloc.last_column = context.column + yyleng; \
+                        alpha_yylloc.last_index = context.index + yyleng;   \
+                                                                        \
+                        context.column += yyleng;                           \
+                        context.index += yyleng;                            \
+        }                                                           \
+        while (0); /* Semi-Colon is not placed by flex, we place it manually. */
+
 %}
-
-
-/* Flex set options. */
-%option yylineno 
-
 
 %option noyywrap
 /* TODO: is the below line necessary? Bison already defines a prefix, does it count for scanenr too? (probably not) */
@@ -121,7 +128,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        symbolTable.errorTracker.registerCompileTimeError(new Alpha::LexerError(
+        symbol_table.errorTracker.registerCompileTimeError(new Alpha::LexerError(
                 yylineno, 0, std::string("Lexer error: EOF reached before closing comment.") + \
         " Comment begun in line: " + std::to_string(Alpha::TokenComment::getCommentStartingLineNumber())));
         return EOF;
@@ -137,12 +144,12 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_STRING>{stringInvalidEscapeCode} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
-        symbolTable.errorTracker.registerCompileTimeError(new Alpha::LexerError(
+        symbol_table.errorTracker.registerCompileTimeError(new Alpha::LexerError(
                 yylineno, 0, std::string("Lexer error: Invalid escape code ") + yytext + " in string."));
         /* Do not stop scanning, but register lexer error. */
 }
 <INSIDE_STRING><<EOF>> {
-        symbolTable.errorTracker.registerCompileTimeError(new Alpha::LexerError(
+        symbol_table.errorTracker.registerCompileTimeError(new Alpha::LexerError(
                 yylineno, 0, std::string("Lexer error: EOF reached before closing string.") +\
         " String begun in line: " + std::to_string(Alpha::TokenString::getStringStartingLineNumber())));
         return EOF;
@@ -154,7 +161,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
-        symbolTable.errorTracker.registerCompileTimeError(new Alpha::LexerError(
+        symbol_table.errorTracker.registerCompileTimeError(new Alpha::LexerError(
                 yylineno, 0, std::string("Lexer error: Character ") + yytext + " is invalid."));
 }
 

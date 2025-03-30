@@ -1,6 +1,6 @@
 #define PASS() ((void)0) // TODO: remove after completion
 
-#include "symbolTable.hpp"
+#include "core/symbolTable.hpp"
 extern Alpha::SymbolTable symbolTable;
 
 void stmt__break_semicolon(void) { PASS(); }

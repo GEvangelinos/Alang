@@ -1,17 +1,29 @@
 #ifndef ALPHA_DEFS_HPP
 #define ALPHA_DEFS_HPP
 
-#include "symbolTable.hpp"
-#include "errorTracker.hpp"
+#include <cstdint>
 
-
-// FIXME: If bison files are not singular... This will cause linking problems. (So far we are good...)
-void yyerror(std::string errorMessage)
+namespace Alpha
 {
-        extern Alpha::SymbolTable symbolTable;
-        extern int alpha_yylineno;
-        symbolTable.errorTracker.registerCompileTimeError(new Alpha::SyntaxError(alpha_yylineno, 0, errorMessage));
-        /* TODO: what else does this function do ? */
+        typedef struct
+        {
+                std::uint32_t line;
+                std::uint32_t column;
+                std::uint32_t index;
+        } InputBufferContext;
+
+        /* Indicies are used to quickly track the location
+         * of the parsed rule  inside the input buffer (char *).
+         */
+        typedef struct
+        {
+                uint32_t first_line;
+                uint32_t first_column;
+                uint32_t first_index;
+                uint32_t last_line;
+                uint32_t last_column;
+                uint32_t last_index;
+        } Location;
 }
 
 #endif /* ALPHA_DEFS_HPP */

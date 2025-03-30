@@ -6,9 +6,9 @@
 #include <cstring>
 #include <iostream>
 #include <format>
-#include "symbolTable.hpp"
-#include "alphaDefs.hpp"
-#include "cli_color.h"
+#include "core/symbolTable.hpp"
+#include "core/alphaDefs.hpp"
+#include "misc/cli_color.h"
 static const std::string anonymousFunctionNamePrefix = "#f_";
 
 namespace Alpha
