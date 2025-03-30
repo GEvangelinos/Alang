@@ -84,7 +84,7 @@ static void manageParser(int argc,
 int main(int argc, char **argv)
 {
         Alpha::SymbolTable symbol_table;
-        Alpha::InputBufferContext context;
+        Alpha::InputBufferContext context = {.line = 1, .column = 1, .index = 0};
         manageParser(argc, argv, symbol_table, context);
         symbol_table.printSymbolInsertionVector();
         symbol_table.printErrorVector();

@@ -114,7 +114,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 {real}          {alpha_yylval.unionRealConst = std::stod(yytext); return REAL_CONST;}
 {integer}       {alpha_yylval.unionIntConst = std::stol(yytext); return INT_CONST;}
 {lineComment}   {/*Syntax Anal-yzer doesn't give a fuck about you... */}
-{newline}*      {/* Just eat up the new line. */}
+{newline}*      {/* Just eat up the new line. */ context.line++;}
 {space}*        {/* Just eat up the spaces. */}
 
 {commentBeginRule} {

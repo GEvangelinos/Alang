@@ -27,6 +27,11 @@
 %parse-param{Alpha::InputBufferContext &context}
 %lex-param{Alpha::SymbolTable &symbol_table}
 %lex-param{Alpha::InputBufferContext &context}
+%initial-action{
+        alpha_yylloc.first_line = 1;
+        alpha_yylloc.first_column = 1;
+        alpha_yylloc.first_index = 0;
+}
 
 %union{
         char *unionStringLiteral;
@@ -96,7 +101,9 @@
 %%
 program:
 
-| multi_stmt
+| multi_stmt {std::cout <<
+ "FIRST LINE == " << @$.first_line << "\t" <<
+ "LAST  LINE == " << @$.last_line << std::endl;}
 ;
 
 stmt:   
