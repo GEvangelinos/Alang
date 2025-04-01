@@ -24,9 +24,15 @@ namespace Arguinator
                        bool case_sensitive = ParserConsts::default_case_sensitive);
                 Parser() = delete;
 
+<<<<<<< HEAD
                 Arg &set_argument(const std::string &identifier);
                 void parse_args();
                 std::string generate_help_text() const;
+=======
+                Arg &add_argument(const std::string &identifier);
+                void parse_args();
+                std::stringstream make_help();
+>>>>>>> fb74590 (Arguinator :()
 
         private:
                 const int argc_;
@@ -46,6 +52,7 @@ namespace Arguinator
 
                 /* Modifiers: */
                 void add_input(const std::string &input);
+<<<<<<< HEAD
                 void set_provided() noexcept;
 
                 /* Accessors: */
@@ -64,6 +71,25 @@ namespace Arguinator
                 Arg(); /* Defined, private, indirect use ONLY through set_argument. */
 
                 friend Arg &Parser::set_argument(const std::string &); /* Only function that can create Args. */
+=======
+                void set_provided();
+
+                /* Accessors: */
+                size_t get_arity();
+                bool is_required();
+                bool is_provided();
+
+        private:
+                std::vector<std::string> inputs_; /* Value passed to argument. */
+                std::string help_text_;
+                size_t arity_; /* Number of required inputs (e.g --rgb 255 255 0). */
+                bool required_;
+                bool provided_;
+
+                Arg(); /* Defined, private, indirect use ONLY through add_argument. */
+
+                friend Arg &Parser::add_argument(const std::string &); /* Only function that can create Args. */
+>>>>>>> fb74590 (Arguinator :()
         }; /* class Arg */
 
         class DuplicateFlagError : std::exception
@@ -100,4 +126,8 @@ namespace Arguinator
         }; /* class UnknownFlagError */
 } /* namespace Arguinator */
 
+<<<<<<< HEAD
 #endif /* ARGUINATOR_HPP */
+=======
+#endif /* ARGUINATOR_HPP */
+>>>>>>> fb74590 (Arguinator :()
