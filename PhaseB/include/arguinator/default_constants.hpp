@@ -16,7 +16,7 @@ namespace Arguinator
         inline constexpr auto default_case_sensitive = false;
         inline constexpr auto default_argument_flag_prefix = "--";
         inline constexpr auto default_help_flag = "help";
-        inline constexpr auto default_help_description = "Show this help message and exit"
+        inline constexpr auto default_help_description = "Show this help message and exit";
     }
 
 }

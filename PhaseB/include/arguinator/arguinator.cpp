@@ -5,24 +5,97 @@
 #include <sstream>
 #include "arguinator.hpp"
 
-namespace
+namespace /* (Anonymous) */
 {
-        std::string str_to_upper(const std::string &str)
+        std::string str_to_upper(std::string str)
         {
-                std::stringstream ss;
-                for (char ch : str)
-                        ss << std::toupper(ch);
-                return ss.str();
+                std::transform(str.begin(), str.end(), str.begin(),
+                               [](unsigned char c)
+                               { return std::toupper(c); });
+                return str;
         }
 
-        std::string str_to_lower(const std::string &str)
+        std::string str_to_lower(std::string str)
         {
-                std::stringstream ss;
-                for (char ch : str)
-                        ss << std::tolower(ch);
-                return ss.str();
+                std::transform(str.begin(), str.end(), str.begin(),
+                               [](unsigned char c)
+                               { return std::tolower(c); });
+                return str;
         }
 
+        void write_help_header(const std::string &executable_name,
+                               const std::string &description,
+                               std::stringstream &ss)
+        {
+                ss << std::format("Usage: {} [options]\n"
+                                  "\n"
+                                  "{}\n"
+                                  "\n"
+                                  "options:"
+                                  "\n",
+                                  executable_name, description);
+        }
+
+        std::string generate_example_values(const std::string &arg_name, std::size_t input_count)
+        {
+                const std::string base = str_to_upper(arg_name);
+                if (input_count <= 1)
+                        return base;
+
+                /* Preallocate memory for efficient string building */
+                constexpr auto separator_size = 1;     // (space)
+                constexpr auto underscore_size = 1;    // _
+                constexpr auto average_arity_size = 2; // assumes single ditgit arity.
+                constexpr auto extra_per_input = separator_size + underscore_size + average_arity_size;
+
+                std::string example;
+                example.reserve(input_count * (base.size() + extra_per_input));
+
+                for (std::size_t i = 0; i < input_count; i++)
+                {
+                        example += base;
+                        example += "_";
+                        example += std::to_string(i + 1); // 1-based indexing for example values
+                        if (i < input_count - 1)
+                                example += " ";
+                }
+
+                return example;
+        }
+
+        void write_help_argument_section(const std::map<std::string, Arguinator::Arg> &arg_map,
+                                         const bool write_required,
+                                         std::stringstream &ss)
+        {
+                constexpr auto prefix = Arguinator::ParserConsts::default_argument_flag_prefix;
+                constexpr auto help_flag = Arguinator::ParserConsts::default_help_flag;
+
+                for (const auto &arg : arg_map)
+                {
+                        const bool should_skip = write_required != arg.second.is_required();
+                        if (should_skip)
+                                continue;
+
+                        const std::string example = generate_example_values(arg.first, arg.second.get_arity());
+                        const std::string label = std::format("{}{} {}", prefix, arg.first, example);
+                        const std::string wrapped_label = write_required
+                                                              ? std::format("{}", label)
+                                                              : std::format("[{}]", label);
+
+                        constexpr auto arg_flag_slots = 20;
+                        if (wrapped_label.length() <= arg_flag_slots) /* Based on length of label. */
+                        {
+                                /* One-line label and help text. */
+                                ss << std::format("\t{:<{}} {}\n", wrapped_label, arg_flag_slots, arg.second.get_help_text());
+                        }
+                        else
+                        {
+                                /* Multi-line label and help text. */
+                                ss << std::format("\t{}\n", wrapped_label);
+                                ss << std::format("\t{:{}} {}\n", "", arg_flag_slots, arg.second.get_help_text());
+                        }
+                }
+        }
 } /* namespace (Anonymous) */
 
 namespace Arguinator
@@ -36,16 +109,16 @@ namespace Arguinator
               description_(description),
               case_sensitive_(case_sensitive)
         {
-                this->add_argument(ParserConsts::default_help_flag)
+                this->set_argument(ParserConsts::default_help_flag)
                     .set_help(ParserConsts::default_help_description)
                     .set_arity(0); /* Help does not require any inputs. */
         }
 
-        Arg &Parser::add_argument(const std::string &identifier)
+        Arg &Parser::set_argument(const std::string &arg_name)
         {
-                auto [it, inserted] = arg_map_.emplace(identifier, Arg());
+                auto [it, inserted] = arg_map_.emplace(arg_name, Arg());
                 if (inserted)
-                        return it->second; /* First field: key(identifier), second field: value (Arg) */
+                        return it->second; /* First field: key(arg_name), second field: value (Arg) */
 
                 throw std::logic_error(std::format(
                     "Duplicate argument flag `{}`.\n"
@@ -70,7 +143,7 @@ namespace Arguinator
                                                                      ParserConsts::default_argument_flag_prefix));
                         current_arg_flag.erase(0, 2); /* Remove the -- from the argument-flag. */
                         if (current_arg_flag == ParserConsts::default_help_flag)
-                                this->display_help();
+                                throw std::logic_error("DISPLAY_HELP"); // TODO : remove throw put functionf ro displaying help
 
                         auto current_arg_record = arg_map_.find(current_arg_flag);
                         if (current_arg_record == arg_map_.end())
@@ -100,62 +173,18 @@ namespace Arguinator
                 }
         }
 
-        std::stringstream Parser::make_help()
+        std::string Parser::generate_help_text() const
         {
-                const std::string executable_name = argv_[0];
                 std::stringstream ss;
 
-                ss << std::format("Usage: {} [options]", executable_name)
-                   << '\n'
-                   << description_
-                   << '\n'
-                   << "options:"
-                   << '\n'
-                   << std::left;
+                write_help_header(argv_[0], description_, ss);
 
                 /* Append the required inputs: */
-                for (auto argument_flag : arg_map_)
-                {
-                        if (!argument_flag.second.is_required())
-                                continue;
-
-                        ss << '\t'
-                           << std::setw(20)
-                           << std::format("{}{}",
-                                          ParserConsts::default_argument_flag_prefix,
-                                          ParserConsts::default_help_flag);
-
-                        const size_t required_inputs = argument_flag.second.get_arity();
-                        for (auto input_index = 0; input_index < required_inputs; input_index++)
-                        {
-                                ss << str_to_upper(argument_flag.first);
-                                if (required_inputs > 1)
-                                        ss << "_" << std::to_string(input_index);
-                        }
-                        ss << '\n';
-                }
+                write_help_argument_section(arg_map_, true, ss);
                 /* Append the none required inputs: */
-                for (auto argument_flag : arg_map_)
-                {
-                        if (argument_flag.second.is_required())
-                                continue;
+                write_help_argument_section(arg_map_, false, ss);
 
-                        ss << '\t'
-                           << std::setw(20)
-                           << std::format("[{}{}",
-                                          ParserConsts::default_argument_flag_prefix,
-                                          ParserConsts::default_help_flag);
-
-                        const size_t required_inputs = argument_flag.second.get_arity();
-                        for (auto input_index = 0; input_index < required_inputs; input_index++)
-                        {
-                                ss << str_to_upper(argument_flag.first);
-                                if (required_inputs > 1)
-                                        ss << "_" << std::to_string(input_index);
-                        }
-                        ss << ']' << '\n';
-                }
-                return ss;
+                return ss.str();
         }
 
         Arg::Arg()
@@ -163,26 +192,26 @@ namespace Arguinator
               arity_(ArgConsts::default_arity),
               required_(ArgConsts::default_required) {}
 
-        Arg &Arg::set_arity(const std::size_t no_inputs)
+        Arg &Arg::set_arity(const std::size_t no_inputs) noexcept
         {
 
                 arity_ = no_inputs;
                 return *this;
         }
 
-        Arg &Arg::set_help(const std::string &help_text)
+        Arg &Arg::set_help(const std::string &help_text) noexcept
         {
                 help_text_ = help_text;
                 return *this;
         }
 
-        Arg &Arg::set_required()
+        Arg &Arg::set_required() noexcept
         {
                 required_ = true;
                 return *this;
         }
 
-        void Arg::set_provided()
+        void Arg::set_provided() noexcept
         {
                 provided_ = true;
         }
@@ -192,17 +221,22 @@ namespace Arguinator
                 inputs_.push_back(input);
         }
 
-        std::size_t Arg::get_arity()
+        std::size_t Arg::get_arity() const noexcept
         {
                 return arity_;
         }
 
-        bool Arg::is_required()
+        const std::string &Arg::get_help_text() const noexcept
+        {
+                return help_text_;
+        }
+
+        bool Arg::is_required() const noexcept
         {
                 return required_;
         }
 
-        bool Arg::is_provided()
+        bool Arg::is_provided() const noexcept
         {
                 return provided_;
         }

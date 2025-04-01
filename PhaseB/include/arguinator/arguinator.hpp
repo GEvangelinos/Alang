@@ -24,9 +24,9 @@ namespace Arguinator
                        bool case_sensitive = ParserConsts::default_case_sensitive);
                 Parser() = delete;
 
-                Arg &add_argument(const std::string &identifier);
+                Arg &set_argument(const std::string &identifier);
                 void parse_args();
-                std::stringstream make_help();
+                std::string generate_help_text() const;
 
         private:
                 const int argc_;
@@ -46,23 +46,24 @@ namespace Arguinator
 
                 /* Modifiers: */
                 void add_input(const std::string &input);
-                void set_provided();
+                void set_provided() noexcept;
 
                 /* Accessors: */
-                size_t get_arity();
-                bool is_required();
-                bool is_provided();
+                size_t get_arity() const noexcept;
+                const std::string &get_help_text() const noexcept;
+                bool is_required() const noexcept;
+                bool is_provided() const noexcept;
 
         private:
                 std::vector<std::string> inputs_; /* Value passed to argument. */
+                size_t arity_;                    /* Number of required inputs (e.g --rgb 255 255 0). */
                 std::string help_text_;
-                size_t arity_; /* Number of required inputs (e.g --rgb 255 255 0). */
                 bool required_;
                 bool provided_;
 
-                Arg(); /* Defined, private, indirect use ONLY through add_argument. */
+                Arg(); /* Defined, private, indirect use ONLY through set_argument. */
 
-                friend Arg &Parser::add_argument(const std::string &); /* Only function that can create Args. */
+                friend Arg &Parser::set_argument(const std::string &); /* Only function that can create Args. */
         }; /* class Arg */
 
         class DuplicateFlagError : std::exception
