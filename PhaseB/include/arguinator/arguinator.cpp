@@ -7,6 +7,8 @@
 #include <iostream>
 #include "arguinator.hpp"
 
+#define MESSAGE_WITH_CONTEXT(message)  std::format("[{}:{}:{}]\n{}", __FILE__, __LINE__, __func__, (message))
+
 namespace /* (Anonymous) */
 {
         using namespace Arguinator;
@@ -171,11 +173,11 @@ namespace Arguinator
                 if (inserted)
                         return it->second; /* First field: key(flag_name), second field: value (Flag) */
 
-                throw std::logic_error(std::format(
+                throw std::logic_error(MESSAGE_WITH_CONTEXT(std::format(
                     "Duplicate flag `{}`.\n"
                     "Each flag must be registered only once.\n"
                     "Check for accidental reuse or typos in your flag declarations.",
-                    it->first));
+                    it->first)));
         }
 
         void Parser::parse_flags_impl()
@@ -229,7 +231,8 @@ namespace Arguinator
         const std::string &Parser::operator()(const std::string &flag_name, std::size_t input_field)
         {
                 if (input_field == 0)
-                        std::range_error("Indexing field starts from 1, not 0");
+                        throw std::range_error(std::format("Invalid input_field = {}. Indexing starts from 1.", input_field));
+
                 const std::string flag_string = ParserConsts::default_flag_prefix + flag_name;
                 if (!flag_map_.contains(flag_name))
                         throw std::out_of_range(std::format("Flag {} not registered!", flag_string));
