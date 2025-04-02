@@ -3,7 +3,7 @@
 
 namespace Arguinator
 {
-    namespace ArgConsts
+    namespace FlagConsts
     {
         inline constexpr auto default_arity = 1;
         inline constexpr auto default_help_text = "";
@@ -14,9 +14,11 @@ namespace Arguinator
     namespace ParserConsts
     {
         inline constexpr auto default_case_sensitive = false;
-        inline constexpr auto default_argument_flag_prefix = "--";
+        inline constexpr auto default_flag_prefix = "--";
         inline constexpr auto default_help_flag = "help";
         inline constexpr auto default_help_description = "Show this help message and exit";
+
+        inline constexpr auto default_flag_field_size = 20;
     }
 
 }

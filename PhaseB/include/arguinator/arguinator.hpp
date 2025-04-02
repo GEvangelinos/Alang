@@ -3,17 +3,18 @@
 
 #include <string>
 #include <map>
-#include <exception>
+#include <stdexcept>
 #include <vector>
 #include "default_constants.hpp"
 
 namespace Arguinator
 {
         /* Forward declarations: */
-        class Arg;
+        class Flag;
         class Parser;
-        class DuplicateFlagError; /* Runtime Exception */
-        class ArityFlagError;     /* Runtime Exception */
+        class FlagArityError;   /* Flag Exception */
+        class FlagUnknownError; /* Flag Exception */
+        class FlagMissingError; /* Flag Exception */
 
         class Parser
         {
@@ -24,110 +25,107 @@ namespace Arguinator
                        bool case_sensitive = ParserConsts::default_case_sensitive);
                 Parser() = delete;
 
-<<<<<<< HEAD
-                Arg &set_argument(const std::string &identifier);
-                void parse_args();
-                std::string generate_help_text() const;
-=======
-                Arg &add_argument(const std::string &identifier);
-                void parse_args();
-                std::stringstream make_help();
->>>>>>> fb74590 (Arguinator :()
+                Flag &set_flag(const std::string &identifier);
+                void parse_flags();
+                bool found(const std::string &flag_name) const;
+                std::size_t count(const std::string &flag_name) const;
+
+                const std::string &operator()(const std::string &flag_name, std::size_t input_field = 1);
+                const std::vector<std::string> &operator[](const std::string &flag_name);
 
         private:
                 const int argc_;
                 const char *const *const argv_;
                 const std::string description_;
                 const bool case_sensitive_;
-                std::map<std::string, Arg> arg_map_;
+                std::map<std::string, Flag> flag_map_;
+
+                void parse_flags_impl();
+                std::string generate_help_text() const;
+                [[noreturn]] void display_help_page();
         }; /* class Parser */
 
-        class Arg
+        class Flag
         {
         public:
                 /* Fluent Builders */
-                Arg &set_arity(size_t no_inputs) noexcept;
-                Arg &set_help(const std::string &help_text) noexcept;
-                Arg &set_required() noexcept;
+                Flag &set_arity(std::size_t no_inputs) noexcept;
+                Flag &set_help(const std::string &help_text) noexcept;
+                Flag &set_required() noexcept;
 
                 /* Modifiers: */
                 void add_input(const std::string &input);
-<<<<<<< HEAD
                 void set_provided() noexcept;
 
                 /* Accessors: */
-                size_t get_arity() const noexcept;
+                std::size_t get_arity() const noexcept;
                 const std::string &get_help_text() const noexcept;
                 bool is_required() const noexcept;
                 bool is_provided() const noexcept;
+                const std::string &get_name() const noexcept;
+                const std::vector<std::string> &get_inputs() const noexcept;
+
+                Flag() = delete;
 
         private:
-                std::vector<std::string> inputs_; /* Value passed to argument. */
-                size_t arity_;                    /* Number of required inputs (e.g --rgb 255 255 0). */
+                const std::string name_;
+                std::vector<std::string> inputs_; /* Value(s) passed to flag. */
+                std::size_t arity_;               /* Number of required inputs (e.g --rgb 255 255 0). */
                 std::string help_text_;
                 bool required_;
                 bool provided_;
 
-                Arg(); /* Defined, private, indirect use ONLY through set_argument. */
+                Flag(const std::string &name); /* Defined, private, indirect use ONLY through set_flag(). */
 
-                friend Arg &Parser::set_argument(const std::string &); /* Only function that can create Args. */
-=======
-                void set_provided();
+                friend Flag &Parser::set_flag(const std::string &); /* Only function that can create Flags. */
+        }; /* class Flag */
 
-                /* Accessors: */
-                size_t get_arity();
-                bool is_required();
-                bool is_provided();
-
-        private:
-                std::vector<std::string> inputs_; /* Value passed to argument. */
-                std::string help_text_;
-                size_t arity_; /* Number of required inputs (e.g --rgb 255 255 0). */
-                bool required_;
-                bool provided_;
-
-                Arg(); /* Defined, private, indirect use ONLY through add_argument. */
-
-                friend Arg &Parser::add_argument(const std::string &); /* Only function that can create Args. */
->>>>>>> fb74590 (Arguinator :()
-        }; /* class Arg */
-
-        class DuplicateFlagError : std::exception
+        class FlagError : public std::runtime_error
         {
         public:
-                explicit DuplicateFlagError(const std::string &error_message);
+                using std::runtime_error::runtime_error;
+        };
 
-                const char *what() const noexcept override;
-
-        private:
-                std::string error_message_;
-        }; /* class DuplicateFlagError */
-
-        class ArityFlagError : std::exception
+        class FlagArityError : public FlagError
         {
         public:
-                explicit ArityFlagError(const std::string &error_message);
-
-                const char *what() const noexcept override;
+                explicit FlagArityError(const std::string &flag_name,
+                                        std::size_t expected_arity,
+                                        std::size_t provided_arity);
 
         private:
-                std::string error_message_;
-        }; /* class ArityFlagError */
+                static std::string build_error_message(const std::string &flag_name,
+                                                       std::size_t expected_arity,
+                                                       std::size_t provided_arity);
+        }; /* class FlagArityError */
 
-        class UnknownFlagError : std::exception
+        class FlagUnknownError : public FlagError
         {
         public:
-                explicit UnknownFlagError(const std::string &error_message);
-
-                const char *what() const noexcept override;
+                explicit FlagUnknownError(const std::string &flag_name);
 
         private:
-                std::string error_message_;
-        }; /* class UnknownFlagError */
+                static std::string build_error_message(const std::string &flag_name);
+        }; /* class FlagUnknownError */
+
+        class FlagMissingError : public FlagError
+        {
+        public:
+                FlagMissingError(const std::string &missing_flag);
+                FlagMissingError(const std::vector<std::string> &missing_flags_vector);
+
+        private:
+                static std::string build_error_message(const std::vector<std::string> &missing_flags_vector);
+        }; /* class FlagMissingError */
+
+        class FlagFormatError : public FlagError
+        {
+        public:
+                FlagFormatError(const std::string &flag_string);
+
+        private:
+                static std::string build_error_message(const std::string &flag_string);
+        }; /* class FlagFormatError */
 } /* namespace Arguinator */
 
-<<<<<<< HEAD
 #endif /* ARGUINATOR_HPP */
-=======
-#endif /* ARGUINATOR_HPP */
->>>>>>> fb74590 (Arguinator :()

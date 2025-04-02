@@ -1,12 +1,16 @@
 #include <cctype>
+#include <cstring>
 #include <format>
 #include <iomanip>
 #include <stdexcept>
 #include <sstream>
+#include <iostream>
 #include "arguinator.hpp"
 
 namespace /* (Anonymous) */
 {
+        using namespace Arguinator;
+
         std::string str_to_upper(std::string str)
         {
                 std::transform(str.begin(), str.end(), str.begin(),
@@ -36,9 +40,9 @@ namespace /* (Anonymous) */
                                   executable_name, description);
         }
 
-        std::string generate_example_values(const std::string &arg_name, std::size_t input_count)
+        std::string generate_example_values(const std::string &flag_name, std::size_t input_count)
         {
-                const std::string base = str_to_upper(arg_name);
+                const std::string base = str_to_upper(flag_name);
                 if (input_count <= 1)
                         return base;
 
@@ -59,42 +63,88 @@ namespace /* (Anonymous) */
                         if (i < input_count - 1)
                                 example += " ";
                 }
-
                 return example;
         }
 
-        void write_help_argument_section(const std::map<std::string, Arguinator::Arg> &arg_map,
-                                         const bool write_required,
-                                         std::stringstream &ss)
+        void write_help_flag_section(const std::map<std::string, Flag> &flag_map,
+                                     const bool write_required,
+                                     std::stringstream &ss)
         {
-                constexpr auto prefix = Arguinator::ParserConsts::default_argument_flag_prefix;
-                constexpr auto help_flag = Arguinator::ParserConsts::default_help_flag;
+                constexpr auto prefix = ParserConsts::default_flag_prefix;
+                constexpr auto help_flag = ParserConsts::default_help_flag;
 
-                for (const auto &arg : arg_map)
+                for (const auto &flag_entry : flag_map)
                 {
-                        const bool should_skip = write_required != arg.second.is_required();
+                        const std::string &flag_name = flag_entry.first;
+                        const Flag &flag = flag_entry.second;
+
+                        const bool should_skip = write_required != flag.is_required();
                         if (should_skip)
                                 continue;
 
-                        const std::string example = generate_example_values(arg.first, arg.second.get_arity());
-                        const std::string label = std::format("{}{} {}", prefix, arg.first, example);
+                        const std::string example = generate_example_values(flag_name, flag.get_arity());
+                        const std::string label = std::format("{}{} {}", prefix, flag_name, example);
                         const std::string wrapped_label = write_required
                                                               ? std::format("{}", label)
                                                               : std::format("[{}]", label);
 
-                        constexpr auto arg_flag_slots = 20;
-                        if (wrapped_label.length() <= arg_flag_slots) /* Based on length of label. */
-                        {
-                                /* One-line label and help text. */
-                                ss << std::format("\t{:<{}} {}\n", wrapped_label, arg_flag_slots, arg.second.get_help_text());
-                        }
+                        if (wrapped_label.length() <= ParserConsts::default_flag_field_size)
+                                ss << std::format("\t{:<{}} {}\n", wrapped_label, ParserConsts::default_flag_field_size, flag.get_help_text());
                         else
                         {
                                 /* Multi-line label and help text. */
                                 ss << std::format("\t{}\n", wrapped_label);
-                                ss << std::format("\t{:{}} {}\n", "", arg_flag_slots, arg.second.get_help_text());
+                                ss << std::format("\t{:{}} {}\n", "", ParserConsts::default_flag_field_size, flag.get_help_text());
                         }
                 }
+        }
+
+        void assert_flag_format(const std::string &flag_string)
+        {
+                if (!flag_string.starts_with(ParserConsts::default_flag_prefix))
+                        throw FlagFormatError(flag_string);
+        }
+
+        void strip_flag_prefix(std::string &flag)
+        {
+                constexpr auto prefix_len = std::strlen(ParserConsts::default_flag_prefix);
+                flag.erase(0, prefix_len); /* Remove the -- from the flag. */
+        }
+
+        void ensure_known_flag(const std::string &flag_name, const std::map<std::string, Flag> &flag_map)
+        {
+                if (!flag_map.contains(flag_name))
+                        throw FlagUnknownError(flag_name);
+        }
+
+        void process_flag_inputs(const int argc,
+                                 const char *const *const argv,
+                                 Flag &flag,
+                                 std::size_t &flag_index)
+        {
+                const std::size_t expected_inputs = flag.get_arity();
+                std::size_t matched_inputs = 0;
+                while (flag_index < argc && matched_inputs < expected_inputs)
+                {
+                        flag.add_input(argv[flag_index]);
+                        matched_inputs++;
+                        flag_index++;
+                }
+                if (matched_inputs < expected_inputs)
+                        throw FlagArityError(flag.get_name(), expected_inputs, matched_inputs);
+                flag.set_provided();
+        }
+
+        void ensure_required_flags_present(std::map<std::string, Flag> flag_map)
+        {
+                std::vector<std::string> missing_flags_vector; /* Flags that are required but missing. */
+                for (auto flag_entry : flag_map)
+                {
+                        if (flag_entry.second.is_required() && !flag_entry.second.is_provided())
+                                missing_flags_vector.push_back(flag_entry.first);
+                }
+                if (!missing_flags_vector.empty())
+                        throw FlagMissingError(missing_flags_vector);
         }
 } /* namespace (Anonymous) */
 
@@ -109,68 +159,94 @@ namespace Arguinator
               description_(description),
               case_sensitive_(case_sensitive)
         {
-                this->set_argument(ParserConsts::default_help_flag)
+                /* Parser must always contain the --help flag. */
+                this->set_flag(ParserConsts::default_help_flag)
                     .set_help(ParserConsts::default_help_description)
                     .set_arity(0); /* Help does not require any inputs. */
         }
 
-        Arg &Parser::set_argument(const std::string &arg_name)
+        Flag &Parser::set_flag(const std::string &flag_name)
         {
-                auto [it, inserted] = arg_map_.emplace(arg_name, Arg());
+                auto [it, inserted] = flag_map_.emplace(flag_name, Flag(flag_name));
                 if (inserted)
-                        return it->second; /* First field: key(arg_name), second field: value (Arg) */
+                        return it->second; /* First field: key(flag_name), second field: value (Flag) */
 
                 throw std::logic_error(std::format(
-                    "Duplicate argument flag `{}`.\n"
+                    "Duplicate flag `{}`.\n"
                     "Each flag must be registered only once.\n"
-                    "Check for accidental reuse or typos in your argument declarations.",
+                    "Check for accidental reuse or typos in your flag declarations.",
                     it->first));
         }
 
-        void Parser::parse_args()
+        void Parser::parse_flags_impl()
         {
-                const std::string executable_name = argv_[0];
-
-                std::size_t arg_index = 1; /* We begin from index 1 to skip name of program. */
-                while (arg_index < argc_)
+                std::size_t flag_index = 1; /* We begin from index 1 to skip name of program. */
+                while (flag_index < argc_)
                 {
-                        std::string current_arg_flag = argv_[arg_index]; /* First arg must be a flag (--argument-flag). */
+                        std::string current_flag_name = argv_[flag_index]; /* First argument must be a flag (--example-flag). */
 
-                        if (!current_arg_flag.starts_with(ParserConsts::default_argument_flag_prefix))
-                                throw std::runtime_error(std::format("Argument flags must be prefixed with {}, got {} (ex. {}argument-flag). ",
-                                                                     ParserConsts::default_argument_flag_prefix,
-                                                                     current_arg_flag,
-                                                                     ParserConsts::default_argument_flag_prefix));
-                        current_arg_flag.erase(0, 2); /* Remove the -- from the argument-flag. */
-                        if (current_arg_flag == ParserConsts::default_help_flag)
-                                throw std::logic_error("DISPLAY_HELP"); // TODO : remove throw put functionf ro displaying help
-
-                        auto current_arg_record = arg_map_.find(current_arg_flag);
-                        if (current_arg_record == arg_map_.end())
-                                throw UnknownFlagError(std::format("Program `{}`, does not expect argument flag `{}`.",
-                                                                   executable_name, current_arg_flag));
-                        arg_index++;
-
-                        const std::size_t expected_inputs = current_arg_record->second.get_arity();
-                        std::size_t matched_inputs = 0;
-                        while (arg_index < argc_ && matched_inputs < expected_inputs)
-                        {
-                                current_arg_record->second.add_input(argv_[arg_index]);
-                                matched_inputs++;
-                                arg_index++;
-                        }
-                        if (matched_inputs < expected_inputs)
-                                throw ArityFlagError(std::format("Argument flag {} expected {} arguments, got {}. ",
-                                                                 current_arg_flag, expected_inputs, matched_inputs));
-                        current_arg_record->second.set_provided();
+                        assert_flag_format(current_flag_name);
+                        strip_flag_prefix(current_flag_name);
+                        if (current_flag_name == ParserConsts::default_help_flag)
+                                display_help_page(); /* NORETURN */
+                        ensure_known_flag(current_flag_name, flag_map_);
+                        auto &current_flag = flag_map_.find(current_flag_name)->second;
+                        process_flag_inputs(argc_, argv_, current_flag, ++flag_index);
                 }
+                ensure_required_flags_present(flag_map_);
+        }
 
-                for (auto arg : arg_map_)
+        void Parser::parse_flags()
+        {
+                try
                 {
-                        std::vector<std::string> missing_arg_flags;
-                        if (arg.second.is_required() && !arg.second.is_provided())
-                                missing_arg_flags.push_back(arg.first);
+                        this->parse_flags_impl();
                 }
+                catch (FlagError &e)
+                {
+                        std::cerr << e.what() << std::endl;
+                }
+        }
+
+        bool Parser::found(const std::string &flag_name) const
+        {
+                const std::string flag_string = ParserConsts::default_flag_prefix + flag_name;
+                if (!flag_map_.contains(flag_name))
+                        throw std::out_of_range(std::format("Flag {} not registered!", flag_string));
+
+                return flag_map_.at(flag_name).is_provided();
+        }
+
+        std::size_t Parser::count(const std::string &flag_name) const
+        {
+                if (this->found(flag_name))
+                        return flag_map_.at(flag_name).get_inputs().size();
+
+                const std::string flag_string = ParserConsts::default_flag_prefix + flag_name;
+                throw std::out_of_range(std::format("Flag {} not registered!", flag_string));
+        }
+
+        const std::string &Parser::operator()(const std::string &flag_name, std::size_t input_field)
+        {
+                if (input_field == 0)
+                        std::range_error("Indexing field starts from 1, not 0");
+                const std::string flag_string = ParserConsts::default_flag_prefix + flag_name;
+                if (!flag_map_.contains(flag_name))
+                        throw std::out_of_range(std::format("Flag {} not registered!", flag_string));
+
+                const Flag &flag = flag_map_.at(flag_name);
+                if (input_field > flag.get_arity())
+                        throw std::out_of_range(std::format("Flag {} has arity {} but field #{} requested.",
+                                                            flag_string, flag.get_arity(), input_field));
+                return flag.get_inputs().at(input_field - 1); /* -1 to convert input_field to vector index. */
+        }
+
+        const std::vector<std::string> &Parser::operator[](const std::string &flag_name)
+        {
+                const std::string flag_string = ParserConsts::default_flag_prefix + flag_name;
+                if (!flag_map_.contains(flag_name))
+                        throw std::out_of_range(std::format("Flag {} not registered!", flag_string));
+                return flag_map_.at(flag_name).get_inputs();
         }
 
         std::string Parser::generate_help_text() const
@@ -180,88 +256,130 @@ namespace Arguinator
                 write_help_header(argv_[0], description_, ss);
 
                 /* Append the required inputs: */
-                write_help_argument_section(arg_map_, true, ss);
+                write_help_flag_section(flag_map_, true, ss);
                 /* Append the none required inputs: */
-                write_help_argument_section(arg_map_, false, ss);
+                write_help_flag_section(flag_map_, false, ss);
 
                 return ss.str();
         }
 
-        Arg::Arg()
-            : help_text_(ArgConsts::default_help_text),
-              arity_(ArgConsts::default_arity),
-              required_(ArgConsts::default_required) {}
+        [[noreturn]] void Parser::display_help_page()
+        {
+                std::cout << this->generate_help_text();
+                std::exit(0);
+        }
 
-        Arg &Arg::set_arity(const std::size_t no_inputs) noexcept
+        Flag::Flag(const std::string &name)
+            : name_(name),
+              help_text_(FlagConsts::default_help_text),
+              arity_(FlagConsts::default_arity),
+              required_(FlagConsts::default_required) {}
+
+        Flag &Flag::set_arity(const std::size_t no_inputs) noexcept
         {
 
                 arity_ = no_inputs;
                 return *this;
         }
 
-        Arg &Arg::set_help(const std::string &help_text) noexcept
+        Flag &Flag::set_help(const std::string &help_text) noexcept
         {
                 help_text_ = help_text;
                 return *this;
         }
 
-        Arg &Arg::set_required() noexcept
+        Flag &Flag::set_required() noexcept
         {
                 required_ = true;
                 return *this;
         }
 
-        void Arg::set_provided() noexcept
+        void Flag::set_provided() noexcept
         {
                 provided_ = true;
         }
 
-        void Arg::add_input(const std::string &input)
+        void Flag::add_input(const std::string &input)
         {
                 inputs_.push_back(input);
         }
 
-        std::size_t Arg::get_arity() const noexcept
+        std::size_t Flag::get_arity() const noexcept
         {
                 return arity_;
         }
 
-        const std::string &Arg::get_help_text() const noexcept
+        const std::string &Flag::get_help_text() const noexcept
         {
                 return help_text_;
         }
 
-        bool Arg::is_required() const noexcept
+        bool Flag::is_required() const noexcept
         {
                 return required_;
         }
 
-        bool Arg::is_provided() const noexcept
+        bool Flag::is_provided() const noexcept
         {
                 return provided_;
         }
 
-        DuplicateFlagError::DuplicateFlagError(const std::string &error_message)
-            : error_message_(error_message) {}
-
-        const char *DuplicateFlagError::what() const noexcept
+        const std::string &Flag::get_name() const noexcept
         {
-                return error_message_.c_str();
+                return name_;
         }
 
-        ArityFlagError::ArityFlagError(const std::string &error_message)
-            : error_message_(error_message) {}
-
-        const char *ArityFlagError::what() const noexcept
+        const std::vector<std::string> &Flag::get_inputs() const noexcept
         {
-                return error_message_.c_str();
+                return inputs_;
         }
 
-        UnknownFlagError::UnknownFlagError(const std::string &error_message)
-            : error_message_(error_message) {}
+        FlagArityError::FlagArityError(const std::string &flag_name,
+                                       std::size_t expected_arity,
+                                       std::size_t provided_arity)
+            : FlagError(build_error_message(flag_name, expected_arity, provided_arity)) {}
 
-        const char *UnknownFlagError::what() const noexcept
+        std::string FlagArityError::build_error_message(const std::string &flag_name,
+                                                        std::size_t expected_arity,
+                                                        std::size_t provided_arity)
         {
-                return error_message_.c_str();
+                return std::format("{}{} expected {} inputs, got {}. ",
+                                   ParserConsts::default_flag_prefix,
+                                   flag_name,
+                                   expected_arity,
+                                   provided_arity);
+        }
+
+        FlagUnknownError::FlagUnknownError(const std::string &flag_name)
+            : FlagError(build_error_message(flag_name)) {}
+
+        std::string FlagUnknownError::build_error_message(const std::string &flag_name)
+        {
+                return std::format("{}{} flag is unknown", ParserConsts::default_flag_prefix, flag_name);
+        }
+
+        FlagMissingError::FlagMissingError(const std::string &error_message)
+            : FlagError(error_message) {}
+
+        FlagMissingError::FlagMissingError(const std::vector<std::string> &missing_flags_vector)
+            : FlagError(build_error_message(missing_flags_vector)) {}
+
+        std::string FlagMissingError::build_error_message(const std::vector<std::string> &missing_flags_vector)
+        {
+                std::stringstream ss;
+                ss << "Arguinator error, the following flags are required:\n";
+                for (auto flag_name : missing_flags_vector)
+                        ss << '\t' << ParserConsts::default_flag_prefix << flag_name << '\n';
+                ss << "Use flag " << ParserConsts::default_flag_prefix << ParserConsts::default_help_flag << " to display options menu.";
+                return ss.str();
+        }
+
+        FlagFormatError::FlagFormatError(const std::string &flag_string)
+            : FlagError(build_error_message(flag_string)) {}
+
+        std::string FlagFormatError::build_error_message(const std::string &flag_string)
+        {
+                return std::format("Flags must be prefixed with {}. Got: {}",
+                                   ParserConsts::default_flag_prefix, flag_string);
         }
 } /* namespace Arguinator */
