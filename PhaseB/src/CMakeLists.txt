@@ -1,3 +1,4 @@
+add_subdirectory(arguinator)
 add_subdirectory(core)
 add_subdirectory(parser)
 add_subdirectory(scanner)
@@ -12,6 +13,7 @@ add_custom_target(generate_parser_scanner ALL DEPENDS
 
 add_executable(${ALPHA_DRIVER_EXECUTABLE_NAME} alphaDriver.cpp)
 
+target_link_libraries(${ALPHA_DRIVER_EXECUTABLE_NAME} PUBLIC arguinator)
 target_link_libraries(${ALPHA_DRIVER_EXECUTABLE_NAME} PUBLIC alpha_core)
 target_link_libraries(${ALPHA_DRIVER_EXECUTABLE_NAME} PUBLIC alpha_parser)
 target_link_libraries(${ALPHA_DRIVER_EXECUTABLE_NAME} PUBLIC alpha_scanner)

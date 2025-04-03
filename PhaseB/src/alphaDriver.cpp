@@ -6,10 +6,9 @@
 #include <format>
 #include "alphaParser.hpp"
 #include "alphaScanner.hpp"
+#include "arguinator/arguinator.hpp"
 #include "core/symbolTable.hpp"
 #include "core/alphaDefs.hpp"
-
-#define FLEX_BUFFER_END_PADDING 2
 
 static std::streamsize fileSize(std::ifstream &inputFile)
 {
@@ -20,13 +19,14 @@ static std::streamsize fileSize(std::ifstream &inputFile)
 }
 static void loadFileToInputBuffer(const std::string &filename, std::unique_ptr<char[]> &lexer_input_buffer)
 {
+        constexpr auto flex_buffer_end_padding = 2;
         std::ifstream inputFile(filename);
         if (!inputFile)
                 throw std::runtime_error("Failed opening " + filename + " for reading.");
 
         const std::streamsize inputFileSize = fileSize(inputFile);
 
-        lexer_input_buffer = std::make_unique<char[]>(inputFileSize + FLEX_BUFFER_END_PADDING);
+        lexer_input_buffer = std::make_unique<char[]>(inputFileSize + flex_buffer_end_padding);
         if (!inputFile.read(lexer_input_buffer.get(), inputFileSize))
         {
                 throw std::runtime_error("Failed reading file " + filename + ".");
@@ -34,24 +34,18 @@ static void loadFileToInputBuffer(const std::string &filename, std::unique_ptr<c
         lexer_input_buffer[inputFileSize] = lexer_input_buffer[inputFileSize + 1] = '\0';
 }
 
-static void configureLexerInput(const int argc,
-                                const char *const *const argv,
+static void configureLexerInput(const std::string &input_filename,
                                 std::unique_ptr<char[]> &lexer_input_buffer,
                                 YY_BUFFER_STATE *lexer_buffer_state)
 {
-        const char *inputFilename = argc > 1 ? argv[1] : nullptr;
-
-        /* Check if filename is provided, is not a directory, and is readable. */
-        if (!inputFilename)
-                std::cerr << "Redirecting to STDIN: No filename provided." << std::endl;
-        else if (!std::filesystem::is_regular_file(inputFilename))
-                std::cerr << "Redirecting to STDIN: " << inputFilename << " is not a regular file." << std::endl;
-        else if (!std::ifstream(inputFilename).good())
-                std::cerr << "Redirecting to STDIN: Cannot open " << inputFilename << "." << std::endl;
+        if (!std::filesystem::is_regular_file(input_filename))
+                std::cerr << "Redirecting to STDIN: " << input_filename << " is not a regular file." << std::endl;
+        else if (!std::ifstream(input_filename).good())
+                std::cerr << "Redirecting to STDIN: Cannot open " << input_filename << "." << std::endl;
         else
         {
                 alpha_yyin = nullptr;
-                loadFileToInputBuffer(argv[1], lexer_input_buffer);
+                loadFileToInputBuffer(input_filename, lexer_input_buffer);
                 *lexer_buffer_state = alpha_yy_scan_string(lexer_input_buffer.get());
                 return;
         }
@@ -59,16 +53,15 @@ static void configureLexerInput(const int argc,
         alpha_yyin = stdin;
 }
 
-static void manageParser(int argc,
-                         const char *const *const argv,
-                         Alpha::SymbolTable &symbol_table,
-                         Alpha::InputBufferContext &context)
+static void manageParser(const std::string &input_filename,
+                         Alpha::SymbolTable &symbol_table)
 {
         YY_BUFFER_STATE lexer_buffer_state;
         std::unique_ptr<char[]> lexer_input_buffer;
+        Alpha::InputBufferContext context(input_filename);
         try
         {
-                configureLexerInput(argc, argv, lexer_input_buffer, &lexer_buffer_state);
+                configureLexerInput(input_filename, lexer_input_buffer, &lexer_buffer_state);
         }
         catch (std::exception &e)
         {
@@ -81,11 +74,25 @@ static void manageParser(int argc,
         alpha_yy_delete_buffer(lexer_buffer_state);
 }
 
+static Arguinator::Parser create_cli_parser(int argc, const char *const *const argv)
+{
+        const std::string alpha_driver_description = "DESCRIPTION OF ALPHA_DRIVER";
+        // A tool for syntactical analysis on programming language Alpha
+        Arguinator::Parser parser(argc, argv, alpha_driver_description);
+        parser.set_flag("input-file")
+            .set_help("Use flag to provide the alpha file you want to parse.")
+            .set_arity(1)
+            .set_required();
+        parser.parse_flags();
+        return parser;
+}
+
 int main(int argc, char **argv)
 {
         Alpha::SymbolTable symbol_table;
-        Alpha::InputBufferContext context = {.line = 1, .column = 1, .index = 0};
-        manageParser(argc, argv, symbol_table, context);
+        Arguinator::Parser cli_parser = create_cli_parser(argc, argv);
+        std::cout << cli_parser["input-file"].at(0) << std::endl;
+        manageParser(cli_parser("input-file"), symbol_table);
         symbol_table.printSymbolInsertionVector();
         symbol_table.printErrorVector();
 }

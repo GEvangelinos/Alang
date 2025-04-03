@@ -1,13 +1,13 @@
 #include <cctype>
-#include <cstring>
 #include <format>
 #include <iomanip>
 #include <stdexcept>
 #include <sstream>
 #include <iostream>
-#include "arguinator.hpp"
+#include "arguinator/arguinator.hpp"
+#include "misc/smart_assert.h"
 
-#define MESSAGE_WITH_CONTEXT(message)  std::format("[{}:{}:{}]\n{}", __FILE__, __LINE__, __func__, (message))
+#define MESSAGE_WITH_CONTEXT(message) std::format("[{}:{}:{}]\n{}", __FILE__, __LINE__, __func__, (message))
 
 namespace /* (Anonymous) */
 {
@@ -21,7 +21,7 @@ namespace /* (Anonymous) */
                 return str;
         }
 
-        std::string str_to_lower(std::string str)
+        [[maybe_unused]] std::string str_to_lower(std::string str)
         {
                 std::transform(str.begin(), str.end(), str.begin(),
                                [](unsigned char c)
@@ -72,9 +72,6 @@ namespace /* (Anonymous) */
                                      const bool write_required,
                                      std::stringstream &ss)
         {
-                constexpr auto prefix = ParserConsts::default_flag_prefix;
-                constexpr auto help_flag = ParserConsts::default_help_flag;
-
                 for (const auto &flag_entry : flag_map)
                 {
                         const std::string &flag_name = flag_entry.first;
@@ -85,7 +82,7 @@ namespace /* (Anonymous) */
                                 continue;
 
                         const std::string example = generate_example_values(flag_name, flag.get_arity());
-                        const std::string label = std::format("{}{} {}", prefix, flag_name, example);
+                        const std::string label = std::format("{}{} {}", ParserConsts::default_flag_prefix, flag_name, example);
                         const std::string wrapped_label = write_required
                                                               ? std::format("{}", label)
                                                               : std::format("[{}]", label);
@@ -109,8 +106,8 @@ namespace /* (Anonymous) */
 
         void strip_flag_prefix(std::string &flag)
         {
-                constexpr auto prefix_len = std::strlen(ParserConsts::default_flag_prefix);
-                flag.erase(0, prefix_len); /* Remove the -- from the flag. */
+                constexpr auto prefix_len = sizeof(ParserConsts::default_flag_prefix) - 1; /* -1, cause sizeof() count '\0' too. */
+                flag.erase(0, prefix_len);                                                 /* Remove the -- from the flag. */
         }
 
         void ensure_known_flag(const std::string &flag_name, const std::map<std::string, Flag> &flag_map)
@@ -119,7 +116,7 @@ namespace /* (Anonymous) */
                         throw FlagUnknownError(flag_name);
         }
 
-        void process_flag_inputs(const int argc,
+        void process_flag_inputs(const std::size_t argc,
                                  const char *const *const argv,
                                  Flag &flag,
                                  std::size_t &flag_index)
@@ -134,7 +131,6 @@ namespace /* (Anonymous) */
                 }
                 if (matched_inputs < expected_inputs)
                         throw FlagArityError(flag.get_name(), expected_inputs, matched_inputs);
-                flag.set_provided();
         }
 
         void ensure_required_flags_present(std::map<std::string, Flag> flag_map)
@@ -154,16 +150,17 @@ namespace Arguinator
 {
         Parser::Parser(int argc,
                        const char *const *argv,
-                       const std::string &description,
-                       bool case_sensitive)
+                       const std::string &description)
             : argc_(argc),
               argv_(argv),
-              description_(description),
-              case_sensitive_(case_sensitive)
+              description_(description)
         {
+                /* We want to assert, because internally we convert to std::size_t, plus argc <= 0 makes no sense. */
+                SMART_ASSERT(argc > 0, argv != nullptr);
+
                 /* Parser must always contain the --help flag. */
                 this->set_flag(ParserConsts::default_help_flag)
-                    .set_help(ParserConsts::default_help_description)
+                    .set_help(ParserConsts::default_help_text)
                     .set_arity(0); /* Help does not require any inputs. */
         }
 
@@ -194,6 +191,7 @@ namespace Arguinator
                         ensure_known_flag(current_flag_name, flag_map_);
                         auto &current_flag = flag_map_.find(current_flag_name)->second;
                         process_flag_inputs(argc_, argv_, current_flag, ++flag_index);
+                        current_flag.set_provided();
                 }
                 ensure_required_flags_present(flag_map_);
         }
@@ -207,6 +205,7 @@ namespace Arguinator
                 catch (FlagError &e)
                 {
                         std::cerr << e.what() << std::endl;
+                        std::exit(1);
                 }
         }
 
@@ -274,9 +273,10 @@ namespace Arguinator
 
         Flag::Flag(const std::string &name)
             : name_(name),
-              help_text_(FlagConsts::default_help_text),
               arity_(FlagConsts::default_arity),
-              required_(FlagConsts::default_required) {}
+              help_text_(FlagConsts::default_help_text),
+              required_(FlagConsts::default_required),
+              provided_(false) {}
 
         Flag &Flag::set_arity(const std::size_t no_inputs) noexcept
         {
@@ -373,7 +373,8 @@ namespace Arguinator
                 ss << "Arguinator error, the following flags are required:\n";
                 for (auto flag_name : missing_flags_vector)
                         ss << '\t' << ParserConsts::default_flag_prefix << flag_name << '\n';
-                ss << "Use flag " << ParserConsts::default_flag_prefix << ParserConsts::default_help_flag << " to display options menu.";
+                ss << '\n';
+                ss << "!! Use flag " << ParserConsts::default_flag_prefix << ParserConsts::default_help_flag << " to display options menu.";
                 return ss.str();
         }
 

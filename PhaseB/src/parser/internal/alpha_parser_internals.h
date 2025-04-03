@@ -27,8 +27,8 @@ int alpha_yylex(Alpha::SymbolTable &symbol_table, Alpha::InputBufferContext &inp
                             YYRHSLOC(Rhs, 0).last_line;                         \
                         (Current).first_column = (Current).last_column =        \
                             YYRHSLOC(Rhs, 0).last_column;                       \
-                        (Current).first_index = (Current).last_index =        \
-                            YYRHSLOC(Rhs, 0).last_index;                       \
+                        (Current).first_index = (Current).last_index =          \
+                            YYRHSLOC(Rhs, 0).last_index;                        \
                 }                                                               \
         } while (0)
 

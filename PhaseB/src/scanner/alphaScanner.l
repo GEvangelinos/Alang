@@ -14,20 +14,19 @@
         #define YY_DECL int yylex(Alpha::SymbolTable &symbol_table, Alpha::InputBufferContext &context)
 
         #define YY_USER_ACTION\
-                do                                             \
+                do                                                          \
                 {                                                           \
                         alpha_yylloc.first_line = context.line;             \
                         alpha_yylloc.first_column = context.column;         \
                         alpha_yylloc.first_index = context.index;           \
-                                                                        \
+                                                                            \
                         alpha_yylloc.last_line = context.line;              \
                         alpha_yylloc.last_column = context.column + yyleng; \
                         alpha_yylloc.last_index = context.index + yyleng;   \
-                                                                        \
+                                                                            \
                         context.column += yyleng;                           \
                         context.index += yyleng;                            \
-        }                                                           \
-        while (0); /* Semi-Colon is not placed by flex, we place it manually. */
+                }while (0); /* Semi-Colon is not placed by flex, we place it manually. */
 
 %}
 

@@ -35,3 +35,5 @@ target_include_directories(alpha_scanner PRIVATE
 )
 
 target_compile_options(alpha_scanner PRIVATE -Wno-unused-function)
+
+#TODO : remove o-unused-function flag and try to use [[unused]] instead.

@@ -21,8 +21,7 @@ namespace Arguinator
         public:
                 Parser(int argc,
                        const char *const *argv,
-                       const std::string &description,
-                       bool case_sensitive = ParserConsts::default_case_sensitive);
+                       const std::string &description);
                 Parser() = delete;
 
                 Flag &set_flag(const std::string &identifier);
@@ -34,10 +33,9 @@ namespace Arguinator
                 const std::vector<std::string> &operator[](const std::string &flag_name);
 
         private:
-                const int argc_;
+                std::size_t argc_;
                 const char *const *const argv_;
                 const std::string description_;
-                const bool case_sensitive_;
                 std::map<std::string, Flag> flag_map_;
 
                 void parse_flags_impl();
@@ -48,16 +46,23 @@ namespace Arguinator
         class Flag
         {
         public:
+                /* Rule of 5 */
+                Flag(const Flag &other) = default;
+                Flag(Flag &&other) noexcept = delete;
+                Flag &operator=(Flag &&other) noexcept = delete;
+                ~Flag() noexcept = default;
+
+                Flag() = delete;
+
                 /* Fluent Builders */
                 Flag &set_arity(std::size_t no_inputs) noexcept;
                 Flag &set_help(const std::string &help_text) noexcept;
                 Flag &set_required() noexcept;
 
-                /* Modifiers: */
+                /* Modifiers */
                 void add_input(const std::string &input);
-                void set_provided() noexcept;
 
-                /* Accessors: */
+                /* Accessors */
                 std::size_t get_arity() const noexcept;
                 const std::string &get_help_text() const noexcept;
                 bool is_required() const noexcept;
@@ -65,20 +70,22 @@ namespace Arguinator
                 const std::string &get_name() const noexcept;
                 const std::vector<std::string> &get_inputs() const noexcept;
 
-                Flag() = delete;
-
         private:
+                /* Private constructor */
+                Flag(const std::string &name); // Only usable via set_flag()
+
+                /* Internal modifiers */
+                void set_provided() noexcept;
+
                 const std::string name_;
-                std::vector<std::string> inputs_; /* Value(s) passed to flag. */
-                std::size_t arity_;               /* Number of required inputs (e.g --rgb 255 255 0). */
+                std::size_t arity_; // Number of required inputs (e.g. --rgb 255 255 0)
                 std::string help_text_;
                 bool required_;
                 bool provided_;
+                std::vector<std::string> inputs_; // Values passed to flag
 
-                Flag(const std::string &name); /* Defined, private, indirect use ONLY through set_flag(). */
-
-                friend Flag &Parser::set_flag(const std::string &); /* Only function that can create Flags. */
-        }; /* class Flag */
+                friend class Parser;
+        };
 
         class FlagError : public std::runtime_error
         {
