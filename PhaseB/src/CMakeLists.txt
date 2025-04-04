@@ -11,7 +11,7 @@ add_custom_target(generate_parser_scanner ALL DEPENDS
         generate_scanner
 )
 
-add_executable(${ALPHA_DRIVER_EXECUTABLE_NAME} alphaDriver.cpp)
+add_executable(${ALPHA_DRIVER_EXECUTABLE_NAME} alpha_driver.cpp)
 
 target_link_libraries(${ALPHA_DRIVER_EXECUTABLE_NAME} PUBLIC arguinator)
 target_link_libraries(${ALPHA_DRIVER_EXECUTABLE_NAME} PUBLIC alpha_core)

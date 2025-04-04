@@ -16,42 +16,42 @@
 #define TRUE_COLOR_FG(r, g, b) "\033[38;2;" #r ";" #g ";" #b "m"
 #define TRUE_COLOR_BG(r, g, b) "\033[48;2;" #r ";" #g ";" #b "m"
 
-// Reds and Pinks
+/* Reds and Pinks */
 #define COLOR_FG_RED TRUE_COLOR_FG(255, 0, 0)
 #define COLOR_FG_PINK TRUE_COLOR_FG(255, 192, 203)
 #define COLOR_FG_CRIMSON TRUE_COLOR_FG(220, 20, 60)
 
-// Oranges and Yellows
+/* Oranges and Yellows */
 #define COLOR_FG_ORANGE TRUE_COLOR_FG(255, 165, 0)
 #define COLOR_FG_YELLOW TRUE_COLOR_FG(255, 255, 0)
 #define COLOR_FG_GOLD TRUE_COLOR_FG(255, 215, 0)
 
-// Greens
+/* Greens */
 #define COLOR_FG_GREEN TRUE_COLOR_FG(0, 255, 0)
 #define COLOR_FG_LIME TRUE_COLOR_FG(191, 255, 0)
 #define COLOR_FG_MINT TRUE_COLOR_FG(152, 255, 152)
 
-// Blues
+/* Blues */
 #define COLOR_FG_BLUE TRUE_COLOR_FG(0, 0, 255)
 #define COLOR_FG_SKY TRUE_COLOR_FG(135, 206, 235)
 #define COLOR_FG_NAVY TRUE_COLOR_FG(0, 0, 128)
 
-// Purples
+/* Purples */
 #define COLOR_FG_PURPLE TRUE_COLOR_FG(128, 0, 128)
 #define COLOR_FG_VIOLET TRUE_COLOR_FG(148, 0, 211)
 #define COLOR_FG_LAVENDER TRUE_COLOR_FG(230, 230, 250)
 
-// Grays
+/* Grays */
 #define COLOR_FG_DARK_GRAY TRUE_COLOR_FG(50, 50, 50)
 #define COLOR_FG_GRAY TRUE_COLOR_FG(128, 128, 128)
 #define COLOR_FG_LIGHT_GRAY TRUE_COLOR_FG(200, 200, 200)
 
-// Neutrals
+/* Neutrals */
 #define COLOR_FG_BLACK TRUE_COLOR_FG(0, 0, 0)
 #define COLOR_FG_WHITE TRUE_COLOR_FG(255, 255, 255)
 #define COLOR_FG_SILVER TRUE_COLOR_FG(192, 192, 192)
 
-// Special Colors
+/* Special Colors */
 #define COLOR_FG_CYAN TRUE_COLOR_FG(0, 255, 255)
 #define COLOR_FG_TEAL TRUE_COLOR_FG(0, 128, 128)
 #define COLOR_FG_PEACH TRUE_COLOR_FG(255, 229, 180)

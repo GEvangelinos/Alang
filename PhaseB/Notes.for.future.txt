@@ -1,0 +1,3 @@
+You can find the context of each note, by searching the random numerical code.
+
+NOTE(6243636488438628): Well if lvalue is in runtime we should check if that member is a variable or a member function. 

@@ -5,29 +5,11 @@
         #include <string.h>          // for memset, strlen
         #include <unistd.h>          // for isatty
         #include <string>            // for allocator, operator+, basic_string, char...
-        #include "alphaParser.hpp"   // for alpha_yytokentype, alpha_yylval
-        #include "scanner/alphaToken.hpp"    // for TokenString, TokenComment, TokenID
-        #include "core/errorTracker.hpp"  // for LexerError, CompileTimeErrorTracker
-        #include "core/symbolTable.hpp"   // for SymbolTable
-
-        #undef YY_DECL
-        #define YY_DECL int yylex(Alpha::SymbolTable &symbol_table, Alpha::InputBufferContext &context)
-
-        #define YY_USER_ACTION\
-                do                                                          \
-                {                                                           \
-                        alpha_yylloc.first_line = context.line;             \
-                        alpha_yylloc.first_column = context.column;         \
-                        alpha_yylloc.first_index = context.index;           \
-                                                                            \
-                        alpha_yylloc.last_line = context.line;              \
-                        alpha_yylloc.last_column = context.column + yyleng; \
-                        alpha_yylloc.last_index = context.index + yyleng;   \
-                                                                            \
-                        context.column += yyleng;                           \
-                        context.index += yyleng;                            \
-                }while (0); /* Semi-Colon is not placed by flex, we place it manually. */
-
+        #include "scanner/alpha_scanner_context.hpp"
+        #include "alpha_parser.hpp"   // for alpha_yytokentype, alpha_yylval
+        #include "core/alpha_error_tracker.hpp"  // for LexerError, CompileTimeErrorTracker
+        #include "scanner/alpha_token.hpp"    // for TokenString, TokenComment, TokenID
+        #include "scanner/_internal_alpha_scanner.hpp"
 %}
 
 %option noyywrap
@@ -109,11 +91,11 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 "."             {return '.';}
 ".."            {return DDOT;}
 
-{id}            {alpha_yylval.unionId = Alpha::TokenID::refreshLastId(yytext); return ID;}
-{real}          {alpha_yylval.unionRealConst = std::stod(yytext); return REAL_CONST;}
-{integer}       {alpha_yylval.unionIntConst = std::stol(yytext); return INT_CONST;}
-{lineComment}   {/*Syntax Anal-yzer doesn't give a fuck about you... */}
-{newline}*      {/* Just eat up the new line. */ context.line++;}
+{id}            {alpha_yylval.union_id = Alpha::TokenID::refreshLastId(yytext); return ID;}
+{real}          {alpha_yylval.union_real_const = std::stod(yytext); return REAL_CONST;}
+{integer}       {alpha_yylval.union_int_const = std::stol(yytext); return INT_CONST;}
+{lineComment}   {/* Syntax Anal-yzer doesn't give a fuck about you... */}
+{newline}*      { scanner_context.line_++; }
 {space}*        {/* Just eat up the spaces. */}
 
 {commentBeginRule} {
@@ -127,9 +109,8 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        symbol_table.errorTracker.registerCompileTimeError(new Alpha::LexerError(
-                yylineno, 0, std::string("Lexer error: EOF reached before closing comment.") + \
-        " Comment begun in line: " + std::to_string(Alpha::TokenComment::getCommentStartingLineNumber())));
+        error_tracker.register_compile_time_error(new Alpha::LexerError(
+                alpha_yylloc, "EOF reached before closing comment."));
         return EOF;
 }
 
@@ -143,25 +124,24 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_STRING>{stringInvalidEscapeCode} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
-        symbol_table.errorTracker.registerCompileTimeError(new Alpha::LexerError(
-                yylineno, 0, std::string("Lexer error: Invalid escape code ") + yytext + " in string."));
+        error_tracker.register_compile_time_error(new Alpha::LexerError(
+                alpha_yylloc, std::string("Lexer error: Invalid escape code ") + yytext + " in string."));
         /* Do not stop scanning, but register lexer error. */
 }
 <INSIDE_STRING><<EOF>> {
-        symbol_table.errorTracker.registerCompileTimeError(new Alpha::LexerError(
-                yylineno, 0, std::string("Lexer error: EOF reached before closing string.") +\
-        " String begun in line: " + std::to_string(Alpha::TokenString::getStringStartingLineNumber())));
+        error_tracker.register_compile_time_error(new Alpha::LexerError(
+                alpha_yylloc, "Lexer error: EOF reached before closing string."));
         return EOF;
 }
 <INSIDE_STRING>{stringEndRule} {
         BEGIN(INITIAL);
-        Alpha::TokenString::exportStringToken(&(alpha_yylval.unionStringLiteral));
+        Alpha::TokenString::exportStringToken(&(alpha_yylval.union_string_literal));
         return STRING_LITERAL;
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
-        symbol_table.errorTracker.registerCompileTimeError(new Alpha::LexerError(
-                yylineno, 0, std::string("Lexer error: Character ") + yytext + " is invalid."));
+        error_tracker.register_compile_time_error(new Alpha::LexerError(
+                alpha_yylloc, std::string("Lexer error: Character ") + yytext + " is invalid."));
 }
 
 <<EOF>>          {return ALPHA_YYEOF;}

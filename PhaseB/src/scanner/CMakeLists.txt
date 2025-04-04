@@ -26,12 +26,12 @@ add_custom_target(generate_scanner ALL
 
 add_library(alpha_scanner STATIC
         ${ALPHA_SCANNER_OUTPUT_FILEPATH}
-        alphaToken.cpp
+        alpha_token.cpp
 )
 
 target_include_directories(alpha_scanner PRIVATE
-        ${AUTOGEN_INCLUDE_DIR_PATH}
-        ${CMAKE_SOURCE_DIR}/include
+        "${AUTOGEN_INCLUDE_DIR_PATH}"
+        "${CMAKE_SOURCE_DIR}/include"
 )
 
 target_compile_options(alpha_scanner PRIVATE -Wno-unused-function)

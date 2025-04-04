@@ -7,17 +7,17 @@ option(DEBUG_MODE "DEBUG_MDOE: enables extra sanity checking inside the code" OF
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
 ###############################################################################################################
-set(ALPHA_DRIVER_EXECUTABLE_NAME "alphaDriver.out" CACHE STRING "Name of the main executable (e.g., the syntax analyzer)")
+set(ALPHA_DRIVER_EXECUTABLE_NAME "alpha_driver.out" CACHE STRING "Name of the main executable (e.g., the syntax analyzer)")
 set(AUTOGEN_ROOT_DIR_NAME "autogen" CACHE STRING "Name of the directory where auto-generated files are stored")
-set(FLEX_OUTPUT_FILENAME "alphaScanner.cpp" CACHE STRING "Filename of the Flex-generated C++ source file")
-set(FLEX_HEADER_FILENAME "alphaScanner.hpp" CACHE STRING "Filename of the Flex-generated header file")
-set(BISON_OUTPUT_FILENAME "alphaParser.cpp" CACHE STRING "Filename of the Bison-generated C++ source file")
-set(BISON_HEADER_FILENAME "alphaParser.hpp" CACHE STRING "Filename of the Bison-generated header file")
+set(FLEX_OUTPUT_FILENAME "alpha_scanner.cpp" CACHE STRING "Filename of the Flex-generated C++ source file")
+set(FLEX_HEADER_FILENAME "alpha_scanner.hpp" CACHE STRING "Filename of the Flex-generated header file")
+set(BISON_OUTPUT_FILENAME "alpha_parser.cpp" CACHE STRING "Filename of the Bison-generated C++ source file")
+set(BISON_HEADER_FILENAME "alpha_parser.hpp" CACHE STRING "Filename of the Bison-generated header file")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/executables" CACHE PATH "Directory where compiled executables will be placed")
 ###############################################################################################################
 
-set(FLEX_SPEC_FILENAME "alphaScanner.l") # <--  Modifying .l filename requires manual change.
-set(BISON_SPEC_FILENAME "alphaParser.y") # <-- Modifying .y filename requires manual change.
+set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l") # <-- Modifying .l filename requires manual change.
+set(BISON_SPEC_FILENAME "alpha_parser_spec.y") # <-- Modifying .y filename requires manual change.
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -56,15 +56,16 @@ if(ENABLE_IWYU)
         endif()
 endif()
 
+set(DEBUG_MODE ON) # TODO unset when done, I did this so I dont forget it on testing.
 if(DEBUG_MODE)
         add_compile_definitions(DEBUG_MODE)
         message(WARNING "CMAKE: Running in DEBUG_MODE.")
 endif()
 
 # Create directory that hosts code from flex and bison
-set(AUTOGEN_ROOT_DIR_PATH ${CMAKE_BINARY_DIR}/autogen CACHE PATH "Path to the root directory for auto-generated files")
-set(AUTOGEN_SRC_DIR_PATH ${AUTOGEN_ROOT_DIR_PATH}/src CACHE PATH "Path to the directory for auto-generated source files")
-set(AUTOGEN_INCLUDE_DIR_PATH ${AUTOGEN_ROOT_DIR_PATH}/include CACHE PATH "Path to the directory for auto-generated header files")
+set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/autogen" CACHE PATH "Path to the root directory for auto-generated files")
+set(AUTOGEN_SRC_DIR_PATH "${AUTOGEN_ROOT_DIR_PATH}/src" CACHE PATH "Path to the directory for auto-generated source files")
+set(AUTOGEN_INCLUDE_DIR_PATH "${AUTOGEN_ROOT_DIR_PATH}/include" CACHE PATH "Path to the directory for auto-generated header files")
 set(AUTOGEN_DIR_LIST
         ${AUTOGEN_ROOT_DIR_PATH}
         ${AUTOGEN_SRC_DIR_PATH}

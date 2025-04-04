@@ -72,17 +72,17 @@ namespace Arguinator
 
         private:
                 /* Private constructor */
-                Flag(const std::string &name); // Only usable via set_flag()
+                Flag(const std::string &name); /* Only usable via set_flag() */
 
                 /* Internal modifiers */
                 void set_provided() noexcept;
 
                 const std::string name_;
-                std::size_t arity_; // Number of required inputs (e.g. --rgb 255 255 0)
+                std::size_t arity_; /* Number of required inputs (e.g. --rgb 255 255 0) */
                 std::string help_text_;
                 bool required_;
                 bool provided_;
-                std::vector<std::string> inputs_; // Values passed to flag
+                std::vector<std::string> inputs_; /* Values passed to flag */
 
                 friend class Parser;
         };

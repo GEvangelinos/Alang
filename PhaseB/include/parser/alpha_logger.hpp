@@ -6,7 +6,7 @@
 #include <iomanip>
 #include "misc/cli_color.h"
 
-static __always_inline void displayLog(const std::string lhs, const std::string rhs)
+static void display_log(const std::string &lhs, const std::string &rhs)
 {
         std::cout << COLOR_ASCII_FG_GREEN
                   << std::setw(20)
