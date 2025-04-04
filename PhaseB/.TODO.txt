@@ -6,5 +6,33 @@
 
 4) USE sanitizers
 5) USE IWYU
-6)
-/* The idea is that {} is replace by macro LOG_ACTION(rule, case), where rule and case are string filled by python script. */
+6) COMPLETED ---> /* The idea is that {} is replace by macro LOG_ACTION(rule, case), where rule and case are string filled by python script. */
+
+7)Want help auto-documenting your grammar into markdown or LaTeX for a badass appendix in your final report?
+
+8) Make an include guard to check the include guards and put guards manually if not there.
+
+9) Think if you want to use:
+
+/* %define api.symbol.prefix {ALPHA_SYM_} */
+/* %define api.token.prefix {ALPHA_TOK_} */
+/* %define api.value.type variant  <<-- ALLOWS C++ types for unions like STD::STRING. */ 
+
+
+10) Add location tracking for tokens that span multiple lines (like comments or strings or anything else you think of that fits the " tokens spanning multiple lines")
+
+11) Put privates in the end of the class
+
+12) parse multiple input files at once.
+
+13) Convert scanner stuff to snake_case
+
+14) Add noexcept in semantic_actions.cpp
+
+15) Add `Location` field in SymbolTableEntry so you can report where symbol have already been defined in syntax errors. 
+
+16) Convert simply types (where you currently use `auto` keyword to the actual type)
+
+KEYWORDS of my exercise
+
+SEPERATION OF CONCERNS
