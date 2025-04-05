@@ -24,12 +24,11 @@
 %define api.location.type {Alpha::Location}
 %locations
 
-%parse-param{Alpha::ScannerContext &scanner_context}
-%parse-param{Alpha::ParserContext &parser_context}
+%parse-param{Alpha::Context &context}
 %parse-param{Alpha::SymbolTable &symbol_table}
 %parse-param{Alpha::ErrorTracker &error_tracker}
 
-%lex-param{Alpha::ScannerContext &scanner_context}
+%lex-param{Alpha::ScannerContext context.scanner_context}
 %lex-param{Alpha::ErrorTracker &error_tracker}
 
 %union{

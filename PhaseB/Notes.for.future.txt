@@ -1,3 +1,9 @@
 You can find the context of each note, by searching the random numerical code.
 
 NOTE(6243636488438628): Well if lvalue is in runtime we should check if that member is a variable or a member function. 
+
+NOTE(4873249234798273): You can do tests each time you combile/build your program, so you know each change you,
+    make is somewhat solid, and doesnt break other components. (Tests for Scanner, and Parser)
+
+NOTE(8489327462374520): Add PGO training to your compiler, create a directory with tests cases run them and 
+    recompile for add PGO optimization (PGO = Profile Guided optimization)

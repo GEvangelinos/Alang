@@ -60,6 +60,7 @@ namespace Alpha
                 const SymbolType type_;
                 bool is_active_;
         };
+        
         class SymbolTable
         {
         public:
