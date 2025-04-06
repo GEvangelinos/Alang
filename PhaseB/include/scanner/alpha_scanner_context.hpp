@@ -1,5 +1,5 @@
-#ifndef SCANNER_CONTEXT_HPP
-#define SCANNER_CONTEXT_HPP
+#ifndef scnr_ctx_HPP
+#define scnr_ctx_HPP
 
 #include <string>
 #include "core/alpha_location.hpp"
@@ -7,19 +7,19 @@
 
 namespace Alpha
 {
-    struct ScannerContext
+    struct ScnrCTX
     {
         u32 line_;
         u32 column_;
         u32 index_;
         const std::string filename_;
 
-        ScannerContext() = delete;
-        ScannerContext(const std::string &filename)
+        ScnrCTX() = delete;
+        ScnrCTX(const std::string &filename)
             : line_(1),
               column_(1),
               index_(0),
               filename_(filename) {}
     };
 }
-#endif /* SCANNER_CONTEXT */
+#endif /* scnr_ctx */

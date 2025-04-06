@@ -3,6 +3,7 @@
         #include <stdio.h>           // for NULL, FILE, EOF, ferror, size_t, clearerr
         #include <stdlib.h>          // for exit, free, malloc, realloc
         #include <string.h>          // for memset, strlen
+        #include <format>
         #include <unistd.h>          // for isatty
         #include <string>            // for allocator, operator+, basic_string, char...
         #include "scanner/alpha_scanner_context.hpp"
@@ -95,7 +96,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 {real}          {alpha_yylval.union_real_const = std::stod(yytext); return REAL_CONST;}
 {integer}       {alpha_yylval.union_int_const = std::stol(yytext); return INT_CONST;}
 {lineComment}   {/* Syntax Anal-yzer doesn't give a fuck about you... */}
-{newline}*      { scanner_context.line_++; }
+{newline}*      { scnr_ctx.line_++; }
 {space}*        {/* Just eat up the spaces. */}
 
 {commentBeginRule} {
@@ -103,14 +104,13 @@ stringInvalidEscapeCode "\\"([^tn"\\])
         Alpha::TokenComment::setCommentStartingLineNumber(yylineno);
 } /* No return until complete token or EOF. */
 <INSIDE_COMMENT_BLOCK>{commentBeginRule} {
-} /* Artifact from PHASE A with nested comments? */
+} /* TODO: What's that? Artifact from PHASE A with nested comments? */
 <INSIDE_COMMENT_BLOCK>{commentEndRule} {
                 BEGIN(INITIAL);
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        error_tracker.register_compile_time_error(new Alpha::LexerError(
-                alpha_yylloc, "EOF reached before closing comment."));
+        error_tracker.register_lexer_error("EOF reached before closing comment.", alpha_yylloc);
         return EOF;
 }
 
@@ -124,13 +124,13 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_STRING>{stringInvalidEscapeCode} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
-        error_tracker.register_compile_time_error(new Alpha::LexerError(
-                alpha_yylloc, std::string("Lexer error: Invalid escape code ") + yytext + " in string."));
+        error_tracker.register_lexer_error(
+                std::format("Lexer error: Invalid escape code {} in string.", yytext), alpha_yylloc);
         /* Do not stop scanning, but register lexer error. */
 }
 <INSIDE_STRING><<EOF>> {
-        error_tracker.register_compile_time_error(new Alpha::LexerError(
-                alpha_yylloc, "Lexer error: EOF reached before closing string."));
+        error_tracker.register_lexer_error(
+                "Lexer error: EOF reached before closing string.", alpha_yylloc);
         return EOF;
 }
 <INSIDE_STRING>{stringEndRule} {
@@ -140,8 +140,8 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
-        error_tracker.register_compile_time_error(new Alpha::LexerError(
-                alpha_yylloc, std::string("Lexer error: Character ") + yytext + " is invalid."));
+        error_tracker.register_lexer_error(
+                std::format("Lexer error: Character {} is invalid.", yytext), alpha_yylloc);
 }
 
 <<EOF>>          {return ALPHA_YYEOF;}

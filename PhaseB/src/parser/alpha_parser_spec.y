@@ -21,14 +21,15 @@
 %define api.prefix {alpha_yy}
 %define parse.error detailed    /* Enable detailed error messages */
 
-%define api.location.type {Alpha::Location}
+%define api.location.type {Alpha::CodeLocation}
 %locations
 
-%parse-param{Alpha::Context &context}
+%parse-param{Alpha::ScnrCTX &scnr_ctx}
+%parse-param{Alpha::PrsrCTX &prsr_ctx}
 %parse-param{Alpha::SymbolTable &symbol_table}
 %parse-param{Alpha::ErrorTracker &error_tracker}
 
-%lex-param{Alpha::ScannerContext context.scanner_context}
+%lex-param{Alpha::ScnrCTX &scnr_ctx}
 %lex-param{Alpha::ErrorTracker &error_tracker}
 
 %union{
@@ -36,7 +37,7 @@
         char *union_id;
         long union_int_const;
         double union_real_const;
-        const Alpha::SymbolTableEntry *union_lvalue;
+        const Alpha::Symbol *union_lvalue;
 }
 
 %token <union_string_literal> STRING_LITERAL
@@ -102,26 +103,30 @@ program:
 | multi_stmt
 ;
 
-stmt:   
-  expr ';'
-| ifstmt
-| whilestmt
-| forstmt
-| returnstmt
-| BREAK ';'     { stmt__break_semicolon(parser_context, error_tracker, @1); }
-| CONTINUE ';'  { stmt__continue_semicolon(parser_context, error_tracker, @1); }
-| block
-| funcdef
-| ';'
-;
-
 multi_stmt:
   stmt
 | stmt multi_stmt
 ;
 
+stmt:   
+  expr ';'
+| if_stmt
+| while_stmt
+| for_stmt
+| return_stmt
+| loopcontrol_stmt ';'
+| block
+| funcdef
+| ';'
+;
+
+loopcontrol_stmt:
+  BREAK     //{ loopcontrol_stmt__break(prsr_ctx, @1, error_tracker); }
+| CONTINUE  //{ loopcontrol_stmt__continue(prsr_ctx, @1, error_tracker); }
+
+
 expr:
-  assignexpr
+  assign_expr
 | expr '+' expr
 | expr '-' expr
 | expr '*' expr
@@ -142,15 +147,15 @@ term:
   '(' expr ')'
 | '-' expr %prec UMINUS
 | NOT expr
-| PLUS_PLUS lvalue    { term__plusplus_lvalue(error_tracker, $2, @$); }
-| lvalue  PLUS_PLUS   { term__lvalue_plusplus(error_tracker, $1, @$); }
-| MINUS_MINUS lvalue  { term__minusminus_lvalue(error_tracker, $2, @$); }
-| lvalue MINUS_MINUS  { term__lvalue_minusminus(error_tracker, $1, @$); }
+| PLUS_PLUS lvalue
+| lvalue  PLUS_PLUS
+| MINUS_MINUS lvalue
+| lvalue MINUS_MINUS
 | primary                                 
 ;
 
-assignexpr:
-  lvalue { assignexpr__lvalue(parser_context, error_tracker, $1, @1); } '=' expr
+assign_expr:
+  lvalue '=' expr
 ;
 
 primary:
@@ -162,10 +167,10 @@ primary:
 ;
 
 lvalue:
-  ID             { lvalue__id(symbol_table, error_tracker, &$$, $1, @1); }
-| LOCAL ID       { lvalue__local_id(symbol_table, error_tracker, &$$, $2, @$, @2); }
-| COLON_BLOCK ID { lvalue__colonblock_id(symbol_table, error_tracker, &$$, $2, @$); }
-| member         { lvalue__member(parser_context); }
+  ID
+| LOCAL ID
+| COLON_BLOCK ID
+| member
 ;
 
 member:
@@ -218,17 +223,13 @@ indexedelem:
 ;
 
 block:
-  '{' { block__leftbrace(symbol_table); } multi_stmt  '}'  { block__leftbrace_multistmt_rightbrace(symbol_table); }
-| '{' { block__leftbrace(symbol_table); }             '}'  { block__leftbrace_rightbrace(symbol_table); }
+  '{' multi_stmt  '}'
+| '{'             '}'
 ;
 
 funcdef:
-  FUNCTION ID '(' idlist ')'
-  { funcdef__function_id_lparen_idlist_rparen(symbol_table, parser_context, error_tracker, $2, @$); } block
-  { funcdef__function_id_lparen_idlist_rparen_block(parser_context); }
-| FUNCTION '(' idlist ')'
-  { funcdef__function_lparen_idlist_rparen(symbol_table, parser_context, @$); } block
-  { funcdef__function_lparen_idlist_rparen_block(parser_context); }
+  FUNCTION ID '(' idlist ')' block
+| FUNCTION    '(' idlist ')' block
 ;
 
 const:
@@ -241,8 +242,8 @@ const:
 ;
 
 cs_ids:
-  ID { csids__id(parser_context, $1); }
-| ID { csids__id(parser_context, $1); } ',' cs_ids
+  ID
+| ID ',' cs_ids
 ;
 
 idlist:
@@ -250,27 +251,26 @@ idlist:
 | cs_ids
 ;
 
-ifstmt:
+if_stmt:
   IF '(' expr ')' stmt %prec THEN
 | IF '(' expr ')' stmt ELSE stmt
 ;
 
-whilestmt:
-  WHILE '(' expr ')'
-  {whilestmt__while_lparen_expr_rparen(parser_context);} stmt
-  {whilestmt__while_lparen_expr_rparen_stmt(parser_context); }
+while_stmt:
+  WHILE '(' expr ')' stmt
 ;
 
-forstmt:
-  FOR '(' elist ';' expr ';' elist ')'
-  { forstmt__for_lparen_elist_semicolon_expr_semicolon_elist_rparen(parser_context); }
-  stmt
-  { forstmt__for_lparen_elist_semicolon_expr_semicolon_elist_rparen_stmt(parser_context); }
+for_stmt:
+  FOR '(' elist ';' expr ';' elist ')' stmt
 ;
 
-returnstmt:
-  RETURN ';' {returnstmt__return_semicolon(parser_context, error_tracker,@1); }
-| RETURN expr ';' {returnstmt__return_expr_semicolon(parser_context, error_tracker, @1); }
+funcctrl_stmt: //OK
+  RETURN //{ funcctrl_stmt__return(prsr_ctx, error_tracker, @1); }
+;
+
+return_stmt: //OK
+  funcctrl_stmt ';'
+| funcctrl_stmt expr ';'
 ;
 
 indexedelem_list:

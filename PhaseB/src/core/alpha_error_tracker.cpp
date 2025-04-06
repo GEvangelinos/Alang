@@ -3,29 +3,37 @@
 
 namespace Alpha
 {
-    CompileTimeError::CompileTimeError(const SourceRange &error_range, const std::string &error_message)
-        : error_range_(error_range), error_message_(error_message) {}
+    CompileTimeError::CodeMessage::CodeMessage(const std::string &message, std::optional<CodeLocation> location)
+        : message_(message), location_(location) {}
 
-    std::string CompileTimeError::to_string() const
+    CompileTimeError::CompileTimeError(const std::string &error_message, CodeLocation error_location,
+                                       const std::string &note_message, CodeLocation note_location)
+        : error_(error_message, error_location),
+          notes_{{note_message, note_location}} {}
+
+    CompileTimeError::CompileTimeError(const std::string &error_message, CodeLocation error_location)
+        : error_(error_message, error_location) {}
+
+    LexerError::LexerError(const std::string &error_message, CodeLocation error_location)
+        : CompileTimeError(error_message, error_location) {}
+
+    SyntaxError::SyntaxError(const std::string &error_message, CodeLocation error_location)
+        : CompileTimeError(error_message, error_location) {}
+
+    void ErrorTracker::register_lexer_error(const std::string &error_message, CodeLocation error_location)
     {
-        return std::format("{} {}", this->get_error_type(), error_message_); // TODO: this is outdated, write g++/clang++ style errors.
+        error_vector_.push_back(new LexerError(error_message, error_location));
     }
 
-    LexerError::LexerError(const Location &error_location, const std::string &error_message)
-        : LexerError(SourceRange(error_location), error_message) {} /* Implicit conversion (I have special constructor). */
-
-    LexerError::LexerError(const SourceRange &error_range, const std::string &error_message)
-        : CompileTimeError(error_range, error_message) {}
-
-    SyntaxError::SyntaxError(const Location &error_location, const std::string &error_message)
-        : SyntaxError(SourceRange(error_location), error_message) {} /* Implicit conversion (I have special constructor). */
-
-    SyntaxError::SyntaxError(const SourceRange &error_range, const std::string &error_message)
-        : CompileTimeError(error_range, error_message) {}
-
-    void ErrorTracker::register_compile_time_error(const CompileTimeError *const error)
+    void ErrorTracker::register_syntax_error(const std::string &error_message, CodeLocation error_location)
     {
-        error_vector_.push_back(error);
+        error_vector_.push_back(new SyntaxError(error_message, error_location));
+    }
+
+    void ErrorTracker::register_syntax_error(const std::string &error_message, CodeLocation error_location,
+                                             const std::string &note, CodeLocation note_location)
+    {
+        error_vector_.push_back(new SyntaxError(error_message, error_location, note, note_location));
     }
 
     const std::vector<const CompileTimeError *> &ErrorTracker::ger_error_vector() const

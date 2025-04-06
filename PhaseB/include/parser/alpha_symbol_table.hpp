@@ -1,3 +1,4 @@
+// NOTE: Formatting may appear off due to auto-formatter differences between environments.
 #ifndef SYMBOL_TABLE_HPP
 #define SYMBOL_TABLE_HPP
 
@@ -16,18 +17,7 @@
 namespace Alpha
 {
         static constexpr u32 GLOBAL_SCOPE_DEPTH = 0;
-        static constexpr SourceRange LIBFUNC_SOURCE_RANGE = SourceRange(0, 0);
-        static const std::list<std::pair<std::string, Location>> LIBFUNC_ARGUMENT_INFO;
-        static constexpr std::string ANONYMOUS_FUNCTION_NAME_PREFIX = "#f_";
-
-        enum class SymbolType
-        {
-                GLOBAL, /* Global variables (scope level 0). */
-                FORMAL, /* Function arguments (formal parameters) */
-                LOCAL,  /* Local variables (non-formal, scope level >= 1) */
-                USERFUNC,
-                LIBFUNC
-        };
+        static const char *ANONYMOUS_FUNCTION_NAME_PREFIX = "SavvidisLemeKaiKleme#";
 
         enum class ScopeType // Todo: Please rename these enums...
         {
@@ -36,120 +26,96 @@ namespace Alpha
                 LOCAL_SCOPE
         };
 
-        class SymbolTableEntry
+        struct Parameter
+        {
+                const std::string &name_;
+                const CodeLocation location_;
+        };
+
+        class Symbol
         {
         public:
-                const std::string &name() const noexcept;
-                u32 scope() const noexcept;
-                SourceRange source_range() const noexcept;
-                u32 line() const; /* TODO: Calculate it useing ranges.*/
-                SymbolType type() const noexcept;
-                bool is_active() const noexcept;
-                void activate() noexcept;
-                void deactivate() noexcept;
-
-                SymbolTableEntry() = delete;
+                enum class Type
+                {
+                        GLOBAL, // Global variables (scope level 0).
+                        FORMAL, // Function arguments (formal parameters)
+                        LOCAL,  // Local variables (non-formal, scope level >= 1)
+                        USERFUNC,
+                        LIBFUNC
+                };
+                // clang-format off
+                const std::string &name() const noexcept { return name_; }
+                Type type()               const noexcept { return type_; }
+                u32 scope()               const noexcept { return scope_; }
+                CodeLocation location()   const noexcept { return location_; }
+                bool is_active()          const noexcept { return is_active_; }
+                void activate()                 noexcept { is_active_ = true; }
+                void deactivate()               noexcept { is_active_ = false; }
+                bool is_function()        const noexcept { return type_ == Type::LIBFUNC ||
+                                                                  type_ == Type::USERFUNC; }
+                bool is_variable()        const noexcept { return !this->is_function(); }
+                // clang-format on
 
         protected:
-                SymbolTableEntry(const std::string &name, u32 scope, SourceRange source_range, SymbolType type) noexcept;
+                Symbol(const std::string &name, u32 scope, Type type, CodeLocation location) noexcept
+                    : name_(name), scope_(scope), type_(type), location_(location) {}
 
         private:
                 const std::string name_;
                 const u32 scope_;
-                const SourceRange source_range_;
-                const SymbolType type_;
+                const Type type_;
+                const CodeLocation location_;
                 bool is_active_;
         };
-        
+
         class SymbolTable
         {
         public:
-                const SymbolTableEntry *insert_variable(
-                    const std::string &name,
-                    std::optional<SymbolType> symbol_type_opt,
-                    const SourceRange &source_range);
+                Status insert_variable(const std::string &name, Symbol::Type type, CodeLocation location);
+                Status insert_formal_variable(const std::string &name, CodeLocation location);
 
-                const SymbolTableEntry *insert_function(
-                    std::optional<std::string> name,
-                    SymbolType symbol_type,
-                    const std::list<std::pair<std::string, Location>> &arguments_info,
-                    const SourceRange &source_range);
+                Status insert_function(const std::string &name, Symbol::Type type, const std::list<Parameter> &,
+                                       CodeLocation location);
+                Status insert_anonymous_function(const std::list<Parameter> &, CodeLocation location);
 
-                const SymbolTableEntry *lookup_global(const std::string &name) const;
-                const SymbolTableEntry *lookup_local(const std::string &name) const;
-                const SymbolTableEntry *lookup_chain(const std::string &name, const SymbolType type) const; // Inclusive to current and global scope.
-                const SymbolTableEntry *lookup_function(const std::string &name) const;                     // Inclusive to current and global scope.
-                const SymbolTableEntry *lookup_variable(const std::string &name) const;                     // Inclusive to current and global scope.
-                const SymbolTableEntry *lookup_symbol(const std::string &name) const;                       // Inclusive to current and global scope.
+                const Symbol *lookup_global(const std::string &name) const;
+                const Symbol *lookup_between(const std::string &name, u32 scope) const;
+                const Symbol *lookup_local(const std::string &name, u32 scope) const;
+                const Symbol *lookup_function(const std::string &name) const;
+                const Symbol *lookup_variable(const std::string &name) const;
+                const Symbol *lookup_symbol(const std::string &name) const;
 
-                bool is_library_function(const std::string &name);
-                bool is_in_function_scope();
+                bool is_lib_function(const std::string &name);
+
                 void hide_current_scope_symbols();
 
-                u32 active_scope_depth() const;
-                void enter_scope(bool is_function_scope);
-                void exit_scope();
-
-                void push_new_loop_depth_counter();
-                void pop_loop_depth_counter();
-                u32 active_loop_depth() const;
-                void enter_loop();
-                void exit_loop();
-
-                void print_symbol_insertion_vector();
-
-                SymbolTable(ParserContext &parser_context, ErrorTracker &error_tracker_ref);
+                SymbolTable();
                 ~SymbolTable();
 
         private:
-                u32 active_scope_depth_;
-                u32 line_of_last_function;
-                u32 maximum_reached_scope_depth_;
-                u32 anonymous_function_counter_;
-                u32 total_symbol_count_;
-                std::unordered_map<std::string, std::list<SymbolTableEntry *>> symbol_map_;
-                std::unordered_map<u32, std::vector<SymbolTableEntry *>> symbol_insertion_map_;
-                std::vector<ScopeType> scope_type_vector_; /* Add frames with insert, remove with hide. */
-                std::stack<u32> loop_depth_counter_stack_; /* 1 Stack-frame per function. */
-
-                ErrorTracker &error_tracker_;   /* COUPLED... :(O) */
-                ParserContext &parser_context_; /* COUPLED... :(O) */
-
-                // TODO: Implement a stack of vectors of strings (or references/pointers) to hide effieciently symvols.
-                const SymbolTableEntry *insert_entry(SymbolTableEntry *entry_ptr);
-                const SymbolTableEntry *lookup_at_scope_depth(const std::string &name, u32 scope_depth) const;
+                const Symbol *lookup_symbol();
+                class Variable;
+                class Function;
         };
 
-        class VariableEntry : public SymbolTableEntry
+
+        class SymbolTable::Variable : public Symbol
         {
         private:
-                VariableEntry(const std::string &name, u32 scope, SourceRange source_range, SymbolType type);
-
-                friend const SymbolTableEntry *SymbolTable::insert_variable(
-                    const std::string &name,
-                    std::optional<SymbolType> symbol_type_opt,
-                    const SourceRange &source_range);
+                Variable(const std::string &name, u32 scope, Symbol::Type type, CodeLocation location)
+                    : Symbol(name, scope, type, location) {}
         };
 
-        class FunctionEntry : public SymbolTableEntry
+        class SymbolTable::Function : public Symbol
         {
         private:
-                FunctionEntry(
-                    const std::string &name,
-                    u32 scope,
-                    SourceRange source_range,
-                    SymbolType type,
-                    const std::list<std::string> &argument_names);
+                Function(const std::string &name, u32 scope, Symbol::Type type,
+                         std::list<Parameter> &&parameter_list, CodeLocation location)
+                    : Symbol(name, scope, type, location), parameter_list_(std::move(parameter_list)) {}
 
-                std::list<std::string> argument_name_list_;
-
-                friend const SymbolTableEntry *SymbolTable::insert_function(
-                    std::optional<std::string>,
-                    SymbolType,
-                    const std::list<std::pair<std::string, Location>> &,
-                    const SourceRange &);
+                    // TODO: Const list reference or std::move() efficiently?
+                std::list<Parameter> parameter_list_;
         };
-
 } /* namespace Alpha */
 
-#endif /* SYMBOL_TABLE_HPP */
+#endif // SYMBOL_TABLE_HPP

@@ -3,8 +3,35 @@
 
 #include <cstdint>
 
+// clang-format off
+#ifdef DEBUG_MODE
+        // Disable inlining to ensure that a function visible debug symbols.
+        #define DEBUG_ALWAYS_INLINE
+#elif defined(__GNUC__) || defined(__clang__)
+        #define DEBUG_ALWAYS_INLINE inline __attribute__((always_inline))
+#elif defined(_MSC_VER)
+        #define DEBUG_ALWAYS_INLINE __forceinline
+#else
+        #define DEBUG_ALWAYS_INLINE inline
+#endif
+
+#if defined(__GNUC__) || defined(__clang__)
+        #define UNREACHABLE() __builtin_unreachable()
+#elif defined(_MSC_VER)
+        #define UNREACHABLE() __assume(false)
+#else
+        #define UNREACHABLE() std::abort()
+#endif
+// clang-format on
+
 namespace Alpha
 {
+    enum class Status
+    {
+        SUCCESS,
+        FAILURE
+    };
+
     /* Fixed-width unsigned integers. */
     using u8 = std::uint8_t;
     using u16 = std::uint16_t;
@@ -32,10 +59,9 @@ namespace Alpha
     /* Floating-point types. */
     using f32 = float;
     using f64 = double;
-    using f128 = long double;
 
-    static_assert(sizeof(f32) == 4);
-    static_assert(sizeof(f64) == 8);
+    static_assert(sizeof(f32) == 4, "Type `f32` is not 4 bytes on current system");
+    static_assert(sizeof(f64) == 8, "Type `f64` is not 8 bytes on current system");
 }
 
 #endif /* ALPHA_TYPES_HPP */

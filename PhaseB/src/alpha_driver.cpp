@@ -69,8 +69,8 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
 
 static void launch_alpha_parser(const std::string &input_filename)
 {
-        Alpha::ScannerContext scanner_context(input_filename);
-        Alpha::ParserContext parser_context;
+        Alpha::ScnrCTX scnr_ctx(input_filename);
+        Alpha::PrsrCTX prsr_ctx;
         Alpha::SymbolTable symbol_table;
         Alpha::ErrorTracker error_tracker;
         YY_BUFFER_STATE lexer_buffer_state;
@@ -85,7 +85,7 @@ static void launch_alpha_parser(const std::string &input_filename)
                 constexpr int severeError = 2;
                 std::exit(severeError);
         }
-        int returnValue = alpha_yyparse(scanner_context, parser_context, symbol_table, error_tracker);
+        int returnValue = alpha_yyparse(scnr_ctx, prsr_ctx, symbol_table, error_tracker);
         std::cout << "alpha_yyparse return value: " << returnValue << std::endl; // TODO: UGLY AS FUCK FIX.
         alpha_yy_delete_buffer(lexer_buffer_state);
 }

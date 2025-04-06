@@ -4,19 +4,37 @@
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <optional>
 #include "core/alpha_location.hpp"
 namespace Alpha
 {
+
         /* TODO: implement clang-gcc like error reporting. */
         class CompileTimeError
         {
         protected:
-                const SourceRange error_range_;
-                const std::string error_message_;
+                struct CodeMessage
+                {
+                        const std::string message_;
+                        const std::optional<CodeLocation> location_;
+                        CodeMessage(const std::string &message, std::optional<CodeLocation> location);
+                };
+
+                CodeMessage error_;
+                std::vector<CodeMessage> notes_;
+
+                CompileTimeError(const std::string &error, CodeLocation error_location,
+                                 const std::string &note, CodeLocation note_location);
+
+                CompileTimeError(const std::string &error, CodeLocation error_location);
 
         public:
-                CompileTimeError(const SourceRange &error_range, const std::string &error_message);
                 CompileTimeError() = delete;
+
+                /* NOTE(2387091987120976)TODO: Do you really need both? Also Does the use need to know if it
+                 * lexer of syntax error, in GCC you just know its an error, not which component
+                 * triggered it, maybe add extra flag to show who triggered it, (custom argparse)!
+                 * */
                 virtual std::string get_error_type() const = 0;
                 virtual std::string to_string() const;
         };
@@ -24,8 +42,8 @@ namespace Alpha
         class LexerError : public CompileTimeError
         {
         public:
-                LexerError(const Location &error_location, const std::string &error_message);
-                LexerError(const SourceRange &error_range, const std::string &error_message);
+                LexerError(const std::string &error, const CodeLocation error_location);
+
                 LexerError() = delete;
 
                 std::string get_error_type() const override { return "Lexer Error"; }
@@ -34,8 +52,11 @@ namespace Alpha
         class SyntaxError : public CompileTimeError
         {
         public:
-                SyntaxError(const Location &error_location, const std::string &error_message);
-                SyntaxError(const SourceRange &errro_range, const std::string &error_message);
+                SyntaxError(const std::string &error, const CodeLocation error_location);
+
+                SyntaxError(const std::string &error, const CodeLocation error_location,
+                            const std::string &note, const CodeLocation note_location);
+
                 SyntaxError() = delete;
 
                 std::string get_error_type() const override { return "Syntax Error"; }
@@ -46,7 +67,13 @@ namespace Alpha
         public:
                 ErrorTracker() = default;
 
-                void register_compile_time_error(const CompileTimeError *error);
+                void register_lexer_error(const std::string &error, CodeLocation error_location);
+
+                void register_syntax_error(const std::string &error, CodeLocation error_location);
+
+                void register_syntax_error(const std::string &error, CodeLocation error_location,
+                                           const std::string &note, CodeLocation note_location);
+
                 const std::vector<const CompileTimeError *> &ger_error_vector() const;
 
         private:

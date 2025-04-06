@@ -12,16 +12,11 @@
 #define YY_USER_ACTION                                                        \
         do                                                                    \
         {                                                                     \
-                alpha_yylloc.first_line_ = scanner_context.line_;             \
-                alpha_yylloc.first_column_ = scanner_context.column_;         \
-                alpha_yylloc.first_index_ = scanner_context.index_;           \
+                alpha_yylloc.first_index_ = scnr_ctx.index_;           \
+                alpha_yylloc.last_index_ = scnr_ctx.index_ + yyleng;   \
                                                                               \
-                alpha_yylloc.last_line_ = scanner_context.line_;              \
-                alpha_yylloc.last_column_ = scanner_context.column_ + yyleng; \
-                alpha_yylloc.last_index_ = scanner_context.index_ + yyleng;   \
-                                                                              \
-                scanner_context.column_ += yyleng;                            \
-                scanner_context.index_ += yyleng;                             \
+                scnr_ctx.column_ += yyleng;                            \
+                scnr_ctx.index_ += yyleng;                             \
         } while (0); /* Semi-Colon is not placed by flex, we place it manually. */
 
 #endif /* ALPHA_SCANNER_INTERNALS_HPP */
