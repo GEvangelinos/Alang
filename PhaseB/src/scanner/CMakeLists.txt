@@ -34,6 +34,9 @@ target_include_directories(alpha_scanner PRIVATE
         "${CMAKE_SOURCE_DIR}/include"
 )
 
+# TODO do you need to?
+target_link_libraries(alpha_scanner PRIVATE alpha_core)
+
 target_compile_options(alpha_scanner PRIVATE -Wno-unused-function)
 
 #TODO : remove o-unused-function flag and try to use [[unused]] instead.

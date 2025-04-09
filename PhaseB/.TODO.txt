@@ -33,6 +33,22 @@
 
 16) Convert simply types (where you currently use `auto` keyword to the actual type)
 
+17) convert all error_message variable names to error (in most case context is smalll and you can easily see it a std::string) 
 KEYWORDS of my exercise
 
+18) Color notes in blue like in picture 3 in `ErrorReports` folder
+
+19) Throw warning or error if a function is called with the wrong number of arguments
+
+20) Functionize the code block in scanner (.l file).
+
+21) Check all contructors use {} instead of () to initialize (safer, and modern C++)
+
+22)    Make sure that only private fields in classes end with _ 
+
+23) Use clang-tidy (Static analysis, finds bad patterns and so on....)
+
+24) Remove name from class `Symbol`, you dont need to name each symbol..
+
+because map already stores
 SEPERATION OF CONCERNS

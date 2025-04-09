@@ -12,7 +12,8 @@ namespace Alpha
                 u32 last_index_;
 
                 constexpr CodeLocation() noexcept
-                    : first_index_(0), last_index_(0) {}
+                    : first_index_(0),
+                      last_index_(0) {}
 
                 constexpr CodeLocation(u32 first_index, u32 last_index) noexcept
                     : first_index_(first_index),

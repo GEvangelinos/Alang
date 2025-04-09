@@ -118,3 +118,12 @@ QUESTION_2: (Enter warnings.. like "string"-- or (unary) -"fuck me" there can be
     Want help drafting a full ExprInfo or integrating it with your AST node structure? You're right at that sweet spot.
 
     
+
+
+
+
+
+
+
+
+    Make sure that only private fields in classes end with _ 

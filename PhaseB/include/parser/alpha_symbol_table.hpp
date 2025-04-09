@@ -16,8 +16,8 @@
 
 namespace Alpha
 {
-        static constexpr u32 GLOBAL_SCOPE_DEPTH = 0;
-        static const char *ANONYMOUS_FUNCTION_NAME_PREFIX = "SavvidisLemeKaiKleme#";
+        class Symbol;
+        using SymbolTableEntry = Symbol;
 
         enum class ScopeType // Todo: Please rename these enums...
         {
@@ -26,44 +26,50 @@ namespace Alpha
                 LOCAL_SCOPE
         };
 
+        enum class SymbolType
+        {
+                GLOBAL, // Global variables (scope level 0).
+                FORMAL, // Function arguments (formal parameters)
+                LOCAL,  // Local variables (non-formal, scope level >= 1)
+                USERFUNC,
+                LIBFUNC
+        };
+
         struct Parameter
         {
                 const std::string &name_;
                 const CodeLocation location_;
         };
 
-        class Symbol
+        static bool is_type_function(SymbolType type)
+        {
+                return type == SymbolType::LIBFUNC ||
+                       type == SymbolType::USERFUNC;
+        }
+
+        static bool is_type_varible(SymbolType type) { return !is_type_function(type); }
+
+        class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
         {
         public:
-                enum class Type
-                {
-                        GLOBAL, // Global variables (scope level 0).
-                        FORMAL, // Function arguments (formal parameters)
-                        LOCAL,  // Local variables (non-formal, scope level >= 1)
-                        USERFUNC,
-                        LIBFUNC
-                };
                 // clang-format off
-                const std::string &name() const noexcept { return name_; }
-                Type type()               const noexcept { return type_; }
+                SymbolType type()         const noexcept { return type_; }
                 u32 scope()               const noexcept { return scope_; }
                 CodeLocation location()   const noexcept { return location_; }
                 bool is_active()          const noexcept { return is_active_; }
                 void activate()                 noexcept { is_active_ = true; }
                 void deactivate()               noexcept { is_active_ = false; }
-                bool is_function()        const noexcept { return type_ == Type::LIBFUNC ||
-                                                                  type_ == Type::USERFUNC; }
-                bool is_variable()        const noexcept { return !this->is_function(); }
+                bool is_function()        const noexcept { return is_type_function(type_); }
+                bool is_variable()        const noexcept { return is_type_varible(type_); }
                 // clang-format on
 
         protected:
-                Symbol(const std::string &name, u32 scope, Type type, CodeLocation location) noexcept
-                    : name_(name), scope_(scope), type_(type), location_(location) {}
+                Symbol(u32 scope, SymbolType type, CodeLocation location) noexcept
+                    : scope_(scope), type_(type), location_(location) {}
 
         private:
-                const std::string name_;
                 const u32 scope_;
-                const Type type_;
+                const SymbolType type_;
                 const CodeLocation location_;
                 bool is_active_;
         };
@@ -71,12 +77,15 @@ namespace Alpha
         class SymbolTable
         {
         public:
-                Status insert_variable(const std::string &name, Symbol::Type type, CodeLocation location);
-                Status insert_formal_variable(const std::string &name, CodeLocation location);
+                void insert_variable(const std::string &name, SymbolType type,
+                                     u32 scope, CodeLocation location);
 
-                Status insert_function(const std::string &name, Symbol::Type type, const std::list<Parameter> &,
-                                       CodeLocation location);
-                Status insert_anonymous_function(const std::list<Parameter> &, CodeLocation location);
+                void insert_function(const std::string &name, SymbolType type,
+                                     u32 scope, CodeLocation location,
+                                     std::list<Parameter> &&argument_list);
+
+                void insert_anonymous(u32 scope, CodeLocation location,
+                                      const std::list<Parameter> &argument_list);
 
                 const Symbol *lookup_global(const std::string &name) const;
                 const Symbol *lookup_between(const std::string &name, u32 scope) const;
@@ -93,27 +102,36 @@ namespace Alpha
                 ~SymbolTable();
 
         private:
-                const Symbol *lookup_symbol();
                 class Variable;
                 class Function;
-        };
 
+                template <typename SymbolKind, typename... ArgumentList>
+                void insert_symbol(const std::string &name, SymbolType type,
+                                   u32 scope, CodeLocation location, ArgumentList &&...arg_list);
+
+                const Symbol *lookup_symbol();
+
+                using SymbolName = std::string;
+                using SymbolList = std::list<Symbol>;
+                std::unordered_map<SymbolName, SymbolList> symbol_map_;
+        };
 
         class SymbolTable::Variable : public Symbol
         {
-        private:
-                Variable(const std::string &name, u32 scope, Symbol::Type type, CodeLocation location)
-                    : Symbol(name, scope, type, location) {}
+        public:
+                Variable(u32 scope, SymbolType type, CodeLocation location)
+                    : Symbol(scope, type, location) {}
         };
 
         class SymbolTable::Function : public Symbol
         {
-        private:
-                Function(const std::string &name, u32 scope, Symbol::Type type,
-                         std::list<Parameter> &&parameter_list, CodeLocation location)
-                    : Symbol(name, scope, type, location), parameter_list_(std::move(parameter_list)) {}
+        public:
+                Function(u32 scope, SymbolType type, CodeLocation location,
+                         std::list<Parameter> &&parameter_list)
+                    : Symbol(scope, type, location), parameter_list_(std::move(parameter_list)) {}
 
-                    // TODO: Const list reference or std::move() efficiently?
+        private:
+                // TODO: Const list reference or std::move() efficiently?
                 std::list<Parameter> parameter_list_;
         };
 } /* namespace Alpha */

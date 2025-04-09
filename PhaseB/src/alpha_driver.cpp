@@ -69,8 +69,8 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
 
 static void launch_alpha_parser(const std::string &input_filename)
 {
-        Alpha::ScnrCTX scnr_ctx(input_filename);
-        Alpha::PrsrCTX prsr_ctx;
+        Alpha::LexerCtx scnr_ctx(input_filename);
+        Alpha::ParseCtx prsr_ctx;
         Alpha::SymbolTable symbol_table;
         Alpha::ErrorTracker error_tracker;
         YY_BUFFER_STATE lexer_buffer_state;

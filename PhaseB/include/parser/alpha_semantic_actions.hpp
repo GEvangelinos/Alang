@@ -6,24 +6,21 @@
 #include "parser/alpha_parser_context.hpp"
 #include "parser/alpha_symbol_table.hpp"
 
-namespace Alpha
-{
+using namespace Alpha;
 
-    void loopcontrol_stmt__break(
-        const PrsrCTX &prsr_ctx,
-        CodeLocation code_location,
-        ErrorTracker &error_tracker);
+void loopcontrol_stmt__break(
+    const ParseCtx &parse_ctx,
+    CodeLocation code_location,
+    ErrorTracker &error_tracker);
 
-    void loopcontrolstmt__continue(
-        const PrsrCTX &prsr_ctx,
-        CodeLocation code_location,
-        ErrorTracker &error_tracker);
+void loopcontrol_stmt__continue(
+    const ParseCtx &parse_ctx,
+    CodeLocation code_location,
+    ErrorTracker &error_tracker);
 
-    void funcctrl_stmt__return(
-        const PrsrCTX &prsr_ctx,
-        CodeLocation code_location,
-        ErrorTracker &error_tracker);
-
-} /* namespace Alpha */
+void funcctrl_stmt__return(
+    const ParseCtx &parse_ctx,
+    CodeLocation code_location,
+    ErrorTracker &error_tracker);
 
 #endif /* SEMANTIC_ACTIONS_HPP */

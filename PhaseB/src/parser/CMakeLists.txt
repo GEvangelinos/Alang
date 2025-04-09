@@ -55,10 +55,13 @@ add_library(alpha_parser STATIC
         ${ALPHA_PARSER_OUTPUT_FILEPATH}
         alpha_semantic_actions.cpp
         alpha_symbol_table.cpp
+        alpha_parser_context.cpp
 )
 
 target_include_directories(alpha_parser PRIVATE
         "${AUTOGEN_INCLUDE_DIR_PATH}"
         "${CMAKE_SOURCE_DIR}/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}/internal"
 )
+
+# TODO do you need to?
+target_link_libraries(alpha_parser PRIVATE alpha_core)

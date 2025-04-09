@@ -1,93 +1,91 @@
-#ifndef prsr_ctx_HPP
-#define prsr_ctx_HPP
+#ifndef ALPHA_PARSER_CONTEXT_HPP
+#define ALPHA_PARSER_CONTEXT_HPP
 
 #include <stack>
+#include <limits>
 #include "core/alpha_types.hpp"
+#include "misc/smart_assert.h"
+#include "core/alpha_types.hpp"
+#include "core/alpha_konstants.hpp"
 
 namespace Alpha
 {
-        static constexpr u32 INITIAL_FUNCTION_NESTING_DEPTH = 0;
-        static constexpr u32 INITIAL_LOOP_NESTING_DEPTH = 0;
+        // Tags for depth counters.
+        // clang-format off
+        struct ScopeTag{};
+        struct FunctionTag{};
+        struct LoopTag {};
+        // clang-format on
 
-        class PrsrCTX
+        template <typename Tag>
+        class Counter
         {
-                struct StateFlags
-                {
-                        bool flag1 : 1;
-                        bool flag2 : 1;
-                        bool flag3 : 1;
-                        bool flag4 : 1;
-                        bool flag5 : 1;
-                        bool flag6: 1;
-                        bool flag7 : 1;
-                        bool flag8 : 1;
-                        bool flag9 : 10;
-                        bool flag10 : 10;
-                        bool flag11 : 10;
-                        bool flag12 : 10;
-                };
-
-                static constexpr int ff = sizeof(StateFlags);
-
         public:
-                PrsrCTX()
-                    : function_nesting_depth_(INITIAL_FUNCTION_NESTING_DEPTH) {}
+                Counter() : value_(0) {}
+                Counter(u32 initial_value) : value_(initial_value) {}
 
-                // clang-format off
-                u32 function_nesting_depth() const noexcept { return function_nesting_depth_; }
-                void enter_function()              noexcept {      ++function_nesting_depth_; }
-                void exit_function()               noexcept {      --function_nesting_depth_; }
+                ~Counter() = default;
+                Counter(const Counter &) = delete;
+                Counter(Counter &&) = delete;
+                Counter &operator=(const Counter &) = delete;
+                Counter &operator=(Counter &&) = delete;
 
-                /* TODO: Can these go easily on parser's context? (Easily? and elegantly?) */
-                void push_new_loop_depth_counter();
-                void pop_loop_depth_counter();
-                u32 loop_depth() const;
-                void enter_loop();
-                void exit_loop();
-
-                u32 current_scope() const noexcept { return current_scope_; }
-                void enter_scope()        noexcept { ++current_scope_; }
-                void exit_scope()         noexcept { --current_scope_; }
-                // clang-format on
+                u32 value() const noexcept;
+                void inc() noexcept;
+                void dec() noexcept;
 
         private:
-                u32 current_scope_;
-                u32 function_nesting_depth_;
-                std::stack<u32> loop_depth_counters_; // New counter appended with each function.
+                u32 value_;
         };
 
-}
-// clang-format off
-                // public:
-                //       lvalue_is_member_(false),
-                //       is_function_block_(false)
-                //
-                // bool lvalue_is_member() const     noexcept { return lvalue_is_member_; }
-                // void set_lvalue_is_member()       noexcept { lvalue_is_member_ = true; }
-                // void clear_lvalue_is_member()     noexcept { lvalue_is_member_ = false; }
-                //
-                // bool is_function_block() const    noexcept { return is_function_block_; }
-                // void set_is_function_block()      noexcept { is_function_block_ = true; }
-                // void clear_is_function_block()    noexcept { is_function_block_ = false; }
-                //
-                // private:
-                // bool lvalue_is_member_;
-                // bool is_function_block_;
-// clang-format-on
+        // Explicit template instantiations
+        extern template class Counter<ScopeTag>;
+        extern template class Counter<FunctionTag>;
+        extern template class Counter<LoopTag>;
 
-        // class Const
+        class ControlFlowCtx
+        {
+        public:
+                ControlFlowCtx() = default;
+                ~ControlFlowCtx() = default;
+
+                ControlFlowCtx(const ControlFlowCtx &) = delete;
+                ControlFlowCtx(ControlFlowCtx &&) = delete;
+                ControlFlowCtx &operator=(const ControlFlowCtx &) = delete;
+                ControlFlowCtx &operator=(ControlFlowCtx &&) = delete;
+
+                void enter_function();
+                void exit_function();
+                void enter_loop() noexcept;
+                void exit_loop() noexcept;
+                u32 loop_depth() const noexcept;
+                u32 function_depth() const noexcept;
+
+        private:
+                std::stack<Counter<LoopTag>> frame_stack_;
+        };
+
+        // struct StateFlags
         // {
-        //         enum class Terminal
-        //         {
-        //                 INT_CONST,
-        //                 REAL_CONST,
-        //                 STRING_LITERAL,
-        //                 NIL,
-        //                 TRUE,
-        //                 FALSE,
-        //         };
+        //         bool flag1 : 1;
+        //         bool flag2 : 1;
+        //         bool flag3 : 1;
         // };
-// ConstTerminal last_const_terminal() const noexcept { return last_const_terminal_; }
-                // void update_last_const_terminal(ConstTerminal terminal) noexcept { last_const_terminal_ = terminal; }
-                // ConstTerminal last_const_terminal_;
-#endif// prsr_ctx_MANAGER_HPP
+
+        class ParseCtx
+        {
+        public:
+                Counter<ScopeTag> current_scope;
+                ControlFlowCtx ctrl_flow_ctx;
+
+                ParseCtx() = default;
+                ~ParseCtx() = default;
+
+                ParseCtx(const ParseCtx &) = delete;
+                ParseCtx(ParseCtx &&) = delete;
+                ParseCtx &operator=(const ParseCtx &) = delete;
+                ParseCtx &operator=(ParseCtx &&) = delete;
+        };
+
+} // namespace Alpha
+#endif // ALPHA_PARSER_CONTEXT_HPP

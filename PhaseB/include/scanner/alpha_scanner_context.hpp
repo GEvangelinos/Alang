@@ -7,15 +7,15 @@
 
 namespace Alpha
 {
-    struct ScnrCTX
+    struct LexerCtx
     {
         u32 line_;
         u32 column_;
         u32 index_;
         const std::string filename_;
 
-        ScnrCTX() = delete;
-        ScnrCTX(const std::string &filename)
+        LexerCtx() = delete;
+        LexerCtx(const std::string &filename)
             : line_(1),
               column_(1),
               index_(0),

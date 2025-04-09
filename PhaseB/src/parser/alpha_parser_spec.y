@@ -6,7 +6,41 @@
         #include "alpha_scanner.hpp"
         #include "parser/alpha_logger.hpp"
         #include "parser/alpha_semantic_actions.hpp"
-        #include "parser/_internal_alpha_parser.hpp"
+        #include "core/alpha_shared_interface.hpp"
+        #include "scanner/alpha_scanner_context.hpp"
+        #include "parser/alpha_parser_context.hpp"
+        extern ALPHA_YYLEX_SIGNATURE;
+
+        #define YYLLOC_DEFAULT(Current, Rhs, N)                                         \
+                do                                                                      \
+                {                                                                       \
+                        if (N)                                                          \
+                        {                                                               \
+                                (Current).first_index_ = YYRHSLOC(Rhs, 1).first_index_; \
+                                (Current).last_index_ = YYRHSLOC(Rhs, N).last_index_;   \
+                        }                                                               \
+                        else                                                            \
+                        {                                                               \
+                                (Current).first_index_ = YYRHSLOC(Rhs, 0).last_index_;  \
+                                (Current).last_index_ = YYRHSLOC(Rhs, 0).last_index_;   \
+                        }                                                               \
+                } while (0)
+
+        static void alpha_yyerror(Alpha::LexerCtx &lexer_ctx,
+                                Alpha::ParseCtx &parse_ctx,
+                                Alpha::SymbolTable &symbol_table,
+                                Alpha::ErrorTracker &error_tracker,
+                                const std::string &error_message)
+        {
+        #ifdef DEBUG_MODE
+        /* TODO, fill to be able to print errors: */
+                (void)lexer_ctx;
+                (void)parse_ctx;
+                (void)symbol_table;
+                (void)error_tracker;
+                (void)error_message;
+        #endif // DEBUG_MODE
+}
 %}
 
 %code requires
@@ -24,12 +58,12 @@
 %define api.location.type {Alpha::CodeLocation}
 %locations
 
-%parse-param{Alpha::ScnrCTX &scnr_ctx}
-%parse-param{Alpha::PrsrCTX &prsr_ctx}
+%parse-param{Alpha::LexerCtx &lexer_ctx}
+%parse-param{Alpha::ParseCtx &parse_ctx}
 %parse-param{Alpha::SymbolTable &symbol_table}
 %parse-param{Alpha::ErrorTracker &error_tracker}
 
-%lex-param{Alpha::ScnrCTX &scnr_ctx}
+%lex-param{Alpha::LexerCtx &lexer_ctx}
 %lex-param{Alpha::ErrorTracker &error_tracker}
 
 %union{
@@ -121,8 +155,8 @@ stmt:
 ;
 
 loopcontrol_stmt:
-  BREAK     //{ loopcontrol_stmt__break(prsr_ctx, @1, error_tracker); }
-| CONTINUE  //{ loopcontrol_stmt__continue(prsr_ctx, @1, error_tracker); }
+  BREAK    { loopcontrol_stmt__break(parse_ctx, @1, error_tracker); }
+| CONTINUE { loopcontrol_stmt__continue(parse_ctx, @1, error_tracker); }
 
 
 expr:
@@ -265,7 +299,7 @@ for_stmt:
 ;
 
 funcctrl_stmt: //OK
-  RETURN //{ funcctrl_stmt__return(prsr_ctx, error_tracker, @1); }
+  RETURN { funcctrl_stmt__return(parse_ctx, @1, error_tracker); }
 ;
 
 return_stmt: //OK
