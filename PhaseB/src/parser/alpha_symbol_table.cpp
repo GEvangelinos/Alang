@@ -1,5 +1,7 @@
 #include "parser/alpha_symbol_table.hpp"
 #include "misc/sanity_assert.h"
+#include "core/alpha_konstants.hpp"
+#include <format>
 
 namespace Alpha
 {
@@ -56,6 +58,13 @@ namespace Alpha
                 insert_symbol<Function>(name, type, scope, location, std::move(argument_list));
         }
 
-        // void insert_anonymous(u32 scope, CodeLocation location,
-        //                       const std::list<Parameter> &argument_list)
+        void SymbolTable::insert_anonymous(u32 scope, CodeLocation location,
+                                           std::list<Parameter> &&argument_list)
+        {
+                std::string anonymous_name = std::format(
+                    "{}{}", k_anonymous_function_prefix, anonymous_counter_.post_inc());
+
+                insert_function(anonymous_name, SymbolType::USERFUNC,
+                                scope, location, std::move(argument_list));
+        }
 }

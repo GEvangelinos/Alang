@@ -7,42 +7,15 @@
 #include "misc/smart_assert.h"
 #include "core/alpha_types.hpp"
 #include "core/alpha_konstants.hpp"
+#include "core/alpha_templates.hpp"
 
 namespace Alpha
 {
-        // Tags for depth counters.
         // clang-format off
         struct ScopeTag{};
         struct FunctionTag{};
         struct LoopTag {};
         // clang-format on
-
-        template <typename Tag>
-        class Counter
-        {
-        public:
-                Counter() : value_(0) {}
-                Counter(u32 initial_value) : value_(initial_value) {}
-
-                ~Counter() = default;
-                Counter(const Counter &) = delete;
-                Counter(Counter &&) = delete;
-                Counter &operator=(const Counter &) = delete;
-                Counter &operator=(Counter &&) = delete;
-
-                u32 value() const noexcept;
-                void inc() noexcept;
-                void dec() noexcept;
-
-        private:
-                u32 value_;
-        };
-
-        // Explicit template instantiations
-        extern template class Counter<ScopeTag>;
-        extern template class Counter<FunctionTag>;
-        extern template class Counter<LoopTag>;
-
         class ControlFlowCtx
         {
         public:

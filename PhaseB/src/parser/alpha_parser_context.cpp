@@ -4,27 +4,6 @@
 
 namespace Alpha
 {
-        template <typename Tag>
-        u32 Counter<Tag>::value() const noexcept { return value_; }
-
-        template <typename Tag>
-        void Counter<Tag>::inc() noexcept
-        {
-                SANITY_ASSERT_LT(value_, std::numeric_limits<decltype(value_)>::max());
-                ++value_;
-        }
-
-        template <typename Tag>
-        void Counter<Tag>::dec() noexcept
-        {
-                SANITY_ASSERT_GT(value_, std::numeric_limits<decltype(value_)>::min());
-                --value_;
-        }
-
-        template class Counter<ScopeTag>;
-        template class Counter<FunctionTag>;
-        template class Counter<LoopTag>;
-
         void ControlFlowCtx::enter_function()
         {
                 SANITY_ASSERT_LT(frame_stack_.size(), k_frame_stack_max_size);

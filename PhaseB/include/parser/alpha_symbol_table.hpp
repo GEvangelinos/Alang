@@ -85,7 +85,7 @@ namespace Alpha
                                      std::list<Parameter> &&argument_list);
 
                 void insert_anonymous(u32 scope, CodeLocation location,
-                                      const std::list<Parameter> &argument_list);
+                                      std::list<Parameter> &&argument_list);
 
                 const Symbol *lookup_global(const std::string &name) const;
                 const Symbol *lookup_between(const std::string &name, u32 scope) const;
@@ -110,6 +110,9 @@ namespace Alpha
                                    u32 scope, CodeLocation location, ArgumentList &&...arg_list);
 
                 const Symbol *lookup_symbol();
+
+                struct AnonymousTag{};
+                Counter<AnonymousTag> anonymous_counter_;
 
                 using SymbolName = std::string;
                 using SymbolList = std::list<Symbol>;
