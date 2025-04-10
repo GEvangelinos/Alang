@@ -12,6 +12,16 @@ namespace Alpha
         /* TODO: implement clang-gcc like error reporting. */
         class CompileTimeError
         {
+        public:
+                CompileTimeError() = delete;
+
+                /* NOTE(2387091987120976)TODO: Do you really need both? Also Does the use need to know if it
+                 * lexer of syntax error, in GCC you just know its an error, not which component
+                 * triggered it, maybe add extra flag to show who triggered it, (custom argparse)!
+                 * */
+                virtual std::string get_error_type() const noexcept = 0;
+                virtual const std::string &to_string() const;
+
         protected:
                 struct CodeMessage
                 {
@@ -27,16 +37,6 @@ namespace Alpha
                                  const std::string &note, CodeLocation note_location);
 
                 CompileTimeError(const std::string &error, CodeLocation error_location);
-
-        public:
-                CompileTimeError() = delete;
-
-                /* NOTE(2387091987120976)TODO: Do you really need both? Also Does the use need to know if it
-                 * lexer of syntax error, in GCC you just know its an error, not which component
-                 * triggered it, maybe add extra flag to show who triggered it, (custom argparse)!
-                 * */
-                virtual std::string get_error_type() const = 0;
-                virtual std::string to_string() const;
         };
 
         class LexerError : public CompileTimeError
@@ -46,7 +46,7 @@ namespace Alpha
 
                 LexerError() = delete;
 
-                std::string get_error_type() const override { return "Lexer Error"; }
+                std::string get_error_type() const noexcept override { return "Lexer Error"; }
         };
 
         class SyntaxError : public CompileTimeError
@@ -59,7 +59,7 @@ namespace Alpha
 
                 SyntaxError() = delete;
 
-                std::string get_error_type() const override { return "Syntax Error"; }
+                std::string get_error_type() const noexcept override { return "Syntax Error"; }
         };
 
         class ErrorTracker

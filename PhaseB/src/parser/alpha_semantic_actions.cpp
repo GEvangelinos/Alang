@@ -80,16 +80,4 @@ void lvalue__id(SymbolTable &symbol_table, const ParseCtx &parse_ctx,
                 CodeLocation id_location, ErrorTracker &error_tracker)
 {
         DEBUG_SMART_ASSERT(!id_name.empty()); // INTERNAL_ERROR: `id_name` must never be empty.
-
-        const Symbol *local_symbol = symbol_table.lookup_local(id_name, parse_ctx.current_scope.value());
-        if (local_symbol && local_symbol->is_variable())
-                return; // Found in local/formal scope.
-
-        const Symbol *resolved_symbol = symbol_table.lookup_between(id_name, parse_ctx.current_scope.value());
-        if (resolved_symbol && resolved_symbol->is_variable())
-        {
-                std::string error = std::format("variable `{}` outside access region", id_name);
-                std::string note = std::format("variable `{}` previously declared here", id_name);
-                error_tracker.register_syntax_error(error, id_location, note, resolved_symbol->location());
-        }
 }

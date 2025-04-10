@@ -1,5 +1,6 @@
 #ifndef ALPHA_KONSTANTS_HPP
 #define ALPHA_KONSTANTS_HPP
+
 #include "core/alpha_types.hpp"
 
 namespace Alpha
@@ -10,7 +11,7 @@ namespace Alpha
 
         // SymbolTable's contants
         static constexpr char k_anonymous_function_prefix[] = "SavvidisLemeKaiKleme#";
-        static constexpr u32 k_global_scope_depth = 0;
+        static constexpr u32 k_global_scope = 0;
 
 
 }

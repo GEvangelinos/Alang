@@ -50,5 +50,13 @@ KEYWORDS of my exercise
 
 24) Remove name from class `Symbol`, you dont need to name each symbol..
 
+25) Check you use _ in all private attributes of classes/structs/types.
+
+26) check you use this-> in all methods you call in classes.
+
+
+27) Sort implementation funtions in .cpp so that they appear in same order as in .hpp
+
+
 because map already stores
 SEPERATION OF CONCERNS

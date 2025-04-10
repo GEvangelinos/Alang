@@ -13,6 +13,8 @@
 #include "core/alpha_types.hpp"
 #include "core/alpha_error_tracker.hpp"
 #include "parser/alpha_parser_context.hpp"
+#include <unordered_set>
+#include <initializer_list>
 
 namespace Alpha
 {
@@ -77,46 +79,46 @@ namespace Alpha
         class SymbolTable
         {
         public:
-                void insert_variable(const std::string &name, SymbolType type,
+                using SymbolName = std::string;
+                void insert_variable(const std::string &symbol_name, SymbolType type,
                                      u32 scope, CodeLocation location);
 
-                void insert_function(const std::string &name, SymbolType type,
+                void insert_function(const std::string &symbol_name, SymbolType type,
                                      u32 scope, CodeLocation location,
-                                     std::list<Parameter> &&argument_list);
+                                     std::list<Parameter> &&argument_list = {});
 
                 void insert_anonymous(u32 scope, CodeLocation location,
                                       std::list<Parameter> &&argument_list);
 
-                const Symbol *lookup_global(const std::string &name) const;
-                const Symbol *lookup_between(const std::string &name, u32 scope) const;
-                const Symbol *lookup_local(const std::string &name, u32 scope) const;
-                const Symbol *lookup_function(const std::string &name) const;
-                const Symbol *lookup_variable(const std::string &name) const;
-                const Symbol *lookup_symbol(const std::string &name) const;
+                const Symbol *lookup_global(const std::string &symbol_name) const noexcept;
+                const Symbol *lookup_chain(const std::string &symbol_name, u32 scope) const noexcept;
+                const Symbol *lookup_local(const std::string &symbol_name, u32 scope) const noexcept;
 
-                bool is_lib_function(const std::string &name);
+                // TODO: REMOVE following:
+                // const Symbol *lookup_function(const std::string &symbol_name) const;
+                // const Symbol *lookup_variable(const std::string &symbol_name) const;
 
-                void hide_current_scope_symbols();
+                bool is_lib_function(const std::string &symbol_name);
+
+                void hide_scope_symbols(u32 scope);
 
                 SymbolTable();
-                ~SymbolTable();
+                ~SymbolTable() = default;
 
         private:
                 class Variable;
                 class Function;
 
                 template <typename SymbolKind, typename... ArgumentList>
-                void insert_symbol(const std::string &name, SymbolType type,
+                void insert_symbol(const std::string &symbol_name, SymbolType type,
                                    u32 scope, CodeLocation location, ArgumentList &&...arg_list);
 
-                const Symbol *lookup_symbol();
-
-                struct AnonymousTag{};
+                struct AnonymousTag
+                {
+                };
                 Counter<AnonymousTag> anonymous_counter_;
-
-                using SymbolName = std::string;
-                using SymbolList = std::list<Symbol>;
-                std::unordered_map<SymbolName, SymbolList> symbol_map_;
+                std::unordered_map<SymbolName, std::list<Symbol>> symbol_map_;
+                std::unordered_set<SymbolName> library_function_set_;
         };
 
         class SymbolTable::Variable : public Symbol
@@ -135,7 +137,7 @@ namespace Alpha
 
         private:
                 // TODO: Const list reference or std::move() efficiently?
-                std::list<Parameter> parameter_list_;
+                const std::list<Parameter> parameter_list_;
         };
 } /* namespace Alpha */
 
