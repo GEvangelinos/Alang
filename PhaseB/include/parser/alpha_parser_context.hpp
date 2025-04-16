@@ -64,15 +64,17 @@ namespace Alpha
                 inline void exit_loop() noexcept;
                 inline u32 loop_depth() const noexcept;
 
-                inline void append_function_argument(const std::string &name, CodeLocation location);
-                inline std::list<Parameter> extract_function_arguments();
+                inline void append_function_parameter(const std::string &name, CodeLocation location);
+                inline std::list<Parameter> retrieve_function_parameters();
+                inline std::list<Parameter> extract_function_parameters();
+                inline void clear_function_arguments();
 
         private:
                 ToggleSwitch skip_next_scope_increment_;
                 u32 current_scope_;
                 using LoopCounter = u32;
                 std::stack<LoopCounter> frame_stack_;
-                std::list<Parameter> function_arguments_;
+                std::list<Parameter> function_parameters_;
         };
 
         ParseCtx::ParseCtx()
@@ -141,14 +143,24 @@ namespace Alpha
 
         u32 ParseCtx::current_scope() const noexcept { return current_scope_; }
 
-        void ParseCtx::append_function_argument(const std::string &name, CodeLocation location)
+        void ParseCtx::append_function_parameter(const std::string &name, CodeLocation location)
         {
-                function_arguments_.emplace_back(name, location);
+                function_parameters_.emplace_back(name, location);
         }
 
-        std::list<Parameter> ParseCtx::extract_function_arguments()
+        std::list<Parameter> ParseCtx::retrieve_function_parameters()
         {
-                return std::move(function_arguments_);
+                return function_parameters_;
+        }
+
+        std::list<Parameter> ParseCtx::extract_function_parameters()
+        {
+                return std::move(function_parameters_);
+        }
+
+        void ParseCtx::clear_function_arguments()
+        {
+                function_parameters_.clear();
         }
 } // namespace Alpha
 #endif // ALPHA_PARSER_CONTEXT_HPP

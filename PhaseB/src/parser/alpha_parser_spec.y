@@ -262,14 +262,10 @@ block:
 ;
 
 funcDef:
-  FUNCTION ID '('
-  { funcDef__function_id_lparen(parse_ctx); }
-  funcArgList ')'
+  FUNCTION ID '(' funcArgList ')'
   { funcDef__function_id_lparen_idList_rparen(symbol_table, parse_ctx, $2, @2, error_tracker); }
   block
-| FUNCTION '('
-  { funcDef__function_lparen(parse_ctx); }
-  funcArgList ')'
+| FUNCTION '(' funcArgList ')'
   { funcDef__function_lparen_idList_rparen(symbol_table, parse_ctx, @1); }
   block
 ;

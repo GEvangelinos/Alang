@@ -18,18 +18,12 @@ void loopCtrlStmt__continue(
     CodeLocation continue_location,
     ErrorTracker &error_tracker);
 
-void funcDef__function_id_lparen(
-    ParseCtx &parse_ctx);
-
 void funcDef__function_id_lparen_idList_rparen(
     SymbolTable &symbol_table,
     ParseCtx &parse_ctx,
     const char *id_name,
     CodeLocation id_location,
     ErrorTracker &error_tracker);
-
-void funcDef__function_lparen(
-    ParseCtx &parse_ctx);
 
 void funcDef__function_lparen_idList_rparen(
     SymbolTable &symbol_table,

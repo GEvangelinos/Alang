@@ -55,10 +55,10 @@ namespace Alpha
 
                 void insert_function(const std::string &symbol_name, SymbolType type,
                                      u32 scope, CodeLocation location,
-                                     std::list<Parameter> argument_list = {});
+                                     const std::list<Parameter> &argument_list);
 
                 void insert_anonymous(u32 scope, CodeLocation location,
-                                      std::list<Parameter> argument_list);
+                                      const std::list<Parameter> &argument_list);
 
                 const Symbol *lookup_global(const std::string &symbol_name) const noexcept;
                 const Symbol *lookup_chain(const std::string &symbol_name, u32 scope) const noexcept;
@@ -127,11 +127,10 @@ namespace Alpha
         {
         public:
                 Function(u32 scope, SymbolType type, CodeLocation location,
-                         std::list<Parameter> &&parameter_list)
-                    : Symbol(scope, type, location), parameter_list_(std::move(parameter_list)) {}
+                         const std::list<Parameter> &parameter_list)
+                    : Symbol(scope, type, location), parameter_list_(parameter_list) {}
 
         private:
-                // TODO: Const list reference or std::move() efficiently?
                 const std::list<Parameter> parameter_list_;
         };
 } /* namespace Alpha */

@@ -41,14 +41,14 @@ namespace Alpha
 
                 SANITY_ASSERT_GT(symbol_name.size(), 0);
 
-                // All symbol with same symbol_name (on different scopes).
+                // All symbols with same symbol_name (on different scopes).
                 std::list<Symbol> &synonym_symbols = symbol_map_[symbol_name];
 
                 auto it = synonym_symbols.begin();
                 for (; it != synonym_symbols.end(); ++it)
                 {
                         // Same scope and active symbol before insert is error
-                        // User of `insert_variable` should do loopup_first.
+                        // User of `insert_variable` should do lookup_first.
                         SANITY_ASSERT_FALSE(scope == it->scope() && it->is_active());
                         if (scope < it->scope())
                                 break;
@@ -73,14 +73,15 @@ namespace Alpha
 
         void SymbolTable::insert_function(const std::string &symbol_name, SymbolType type,
                                           u32 scope, CodeLocation location,
-                                          std::list<Parameter> argument_list)
+                                          const std::list<Parameter> &argument_list)
         {
                 SANITY_ASSERT_TRUE(is_type_function(type));
-                insert_symbol<Function>(symbol_name, type, scope, location, std::move(argument_list));
+
+                insert_symbol<Function>(symbol_name, type, scope, location, argument_list);
         }
 
         void SymbolTable::insert_anonymous(u32 scope, CodeLocation location,
-                                           std::list<Parameter> argument_list)
+                                           const std::list<Parameter> &argument_list)
         {
                 std::string anonymous_name = std::format(
                     "{}{}", k_anonymous_function_prefix, anonymous_counter_++);
@@ -126,7 +127,7 @@ namespace Alpha
                 // Load library functions
                 for (SymbolName name : library_function_names)
                 {
-                        insert_function(name, SymbolType::LIBFUNC, 0, CodeLocation(0, 0));
+                        insert_function(name, SymbolType::LIBFUNC, 0, CodeLocation(0, 0), {});
                         library_function_set_.insert(name);
                 }
         }
