@@ -55,7 +55,6 @@ add_library(alpha_parser STATIC
         ${ALPHA_PARSER_OUTPUT_FILEPATH}
         alpha_semantic_actions.cpp
         alpha_symbol_table.cpp
-        alpha_parser_context.cpp
 )
 
 target_include_directories(alpha_parser PRIVATE

@@ -9,7 +9,6 @@
 #include <iostream>
 #include <utility>
 
-
 #define STRINGIFY(_x) #_x
 
 using namespace Alpha;
@@ -38,46 +37,119 @@ namespace // Anonymous
                 }
         };
 
-        void loopcontrol_stmt__loopkeyword_impl(const ParseCtx &parse_ctx, CodeLocation location,
-                                                ErrorTracker &error_tracker, Loop::Keyword keyword) noexcept
+        void loopcontrol_stmt__loopkeyword_impl(const ParseCtx &parse_ctx, CodeLocation keyword_location,
+                                                ErrorTracker &error_tracker, Loop::Keyword keyword)
         {
-                if (parse_ctx.ctrl_flow_ctx.loop_depth() > 0)
+                if (parse_ctx.loop_depth() > 0)
                         return;
 
                 std::string keyword_name = Loop::to_string(keyword);
                 std::string error = std::format("`{}` statement not in a loop statement", keyword_name);
-                error_tracker.register_syntax_error(error, location);
+                error_tracker.register_syntax_error(error, keyword_location);
         }
 } // namespace Anonymous
 
 // +-----------------------------------------------------------------+
 // |---------------- SEMANTIC_ACTION_FUNCTIONS_BELOW ----------------|
 // +-----------------------------------------------------------------+
-void loopcontrol_stmt__break(const ParseCtx &parse_ctx, CodeLocation location,
-                             ErrorTracker &error_tracker)
+void loopCtrlStmt__break(const ParseCtx &parse_ctx, CodeLocation break_location,
+                         ErrorTracker &error_tracker)
 {
-        loopcontrol_stmt__loopkeyword_impl(parse_ctx, location, error_tracker, Loop::Keyword::BREAK);
+        loopcontrol_stmt__loopkeyword_impl(parse_ctx, break_location, error_tracker, Loop::Keyword::BREAK);
 }
 
-void loopcontrol_stmt__continue(const ParseCtx &parse_ctx, CodeLocation location,
-                                ErrorTracker &error_tracker)
+void loopCtrlStmt__continue(const ParseCtx &parse_ctx, CodeLocation continue_location,
+                            ErrorTracker &error_tracker)
 {
-        loopcontrol_stmt__loopkeyword_impl(parse_ctx, location, error_tracker, Loop::Keyword::CONTINUE);
+        loopcontrol_stmt__loopkeyword_impl(parse_ctx, continue_location, error_tracker, Loop::Keyword::CONTINUE);
 }
 
-void funcctrl_stmt__return(const ParseCtx &parse_ctx, CodeLocation location,
-                           ErrorTracker &error_tracker)
+void funcCtrlStmt__return(const ParseCtx &parse_ctx, CodeLocation return_location,
+                          ErrorTracker &error_tracker)
 {
-        if (parse_ctx.ctrl_flow_ctx.function_depth() > 0)
+        if (parse_ctx.function_depth() > 0)
                 return;
 
         std::string error = "`return` statement not in a function statement";
-        error_tracker.register_syntax_error(error, location);
+        error_tracker.register_syntax_error(error, return_location);
 }
 
 void lvalue__id(SymbolTable &symbol_table, const ParseCtx &parse_ctx,
                 Symbol **lvalue, const std::string &id_name,
                 CodeLocation id_location, ErrorTracker &error_tracker)
 {
-        DEBUG_SMART_ASSERT(!id_name.empty()); // INTERNAL_ERROR: `id_name` must never be empty.
+        SANITY_ASSERT_FALSE(id_name.empty()); // INTERNAL_ERROR: `id_name` must never be empty.
+}
+
+void funcDef__function_id_lparen(ParseCtx &parse_ctx)
+{
+        parse_ctx.enter_function();
+}
+
+void funcDef__function_id_lparen_idList_rparen(SymbolTable &symbol_table, ParseCtx &parse_ctx,
+                                               const char *id_name, CodeLocation id_location,
+                                               ErrorTracker &error_tracker)
+{
+        if (symbol_table.is_lib_function(id_name))
+        {
+                const std::string error = std::format("redefinition of library function `{}`", id_name);
+                error_tracker.register_syntax_error(error, id_location);
+                return;
+        }
+
+        const Symbol *local_symbol = symbol_table.lookup_local(id_name, parse_ctx.current_scope());
+        if (local_symbol == nullptr)
+                return;
+        else if (local_symbol->is_function())
+        {
+                const std::string error = std::format("redefinition of `function {}`", id_name);
+                const std::string note = std::format("previous definition of `function {}` here", id_name);
+                error_tracker.register_syntax_error(error, id_location, note, local_symbol->location());
+        }
+        else if (local_symbol->is_variable())
+        {
+                const std::string error = std::format("`{}` defined as a function", id_name);
+                const std::string note = std::format("`{}` previously defined as a variable here", id_name);
+                error_tracker.register_syntax_error(error, id_location, note, local_symbol->location());
+        }
+        symbol_table.insert_function(id_name, SymbolType::USERFUNC,
+                                     parse_ctx.current_scope(), id_location,
+                                     parse_ctx.extract_function_arguments());
+}
+
+void funcDef__function_lparen(ParseCtx &parse_ctx)
+{
+        parse_ctx.enter_function();
+}
+
+void funcDef__function_lparen_idList_rparen(SymbolTable &symbol_table, ParseCtx &parse_ctx,
+                                            CodeLocation function_location)
+{
+        symbol_table.insert_anonymous(parse_ctx.current_scope(), function_location,
+                                      parse_ctx.extract_function_arguments());
+}
+
+void funcArgs__id(ParseCtx &parse_ctx, const char *id_name, CodeLocation id_location)
+{
+        parse_ctx.append_function_argument(id_name, id_location);
+}
+
+void whileStmt__whileHeader(ParseCtx &parse_ctx) noexcept
+{
+        parse_ctx.enter_loop();
+}
+
+void whileStmt__whileHeader_stmt(ParseCtx &parse_ctx) noexcept
+{
+        parse_ctx.exit_loop();
+}
+
+void forStmt__forHeader(ParseCtx &parse_ctx) noexcept
+{
+        parse_ctx.enter_loop();
+}
+
+void forStmt__forHeader_stmt(ParseCtx &parse_ctx) noexcept
+{
+        parse_ctx.exit_loop();
 }

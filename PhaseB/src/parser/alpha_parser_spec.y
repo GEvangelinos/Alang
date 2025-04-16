@@ -133,34 +133,34 @@
 
 %%
 program:
-
-| multi_stmt
+  // (empty)
+| multiStmt
 ;
 
-multi_stmt:
+multiStmt:
   stmt
-| stmt multi_stmt
+| stmt multiStmt
 ;
 
 stmt:   
   expr ';'
-| if_stmt
-| while_stmt
-| for_stmt
-| return_stmt
-| loopcontrol_stmt ';'
+| ifStmt
+| whileStmt
+| forStmt
+| returnStmt
+| loopCtrlStmt ';'
 | block
-| funcdef
+| funcDef
 | ';'
 ;
 
-loopcontrol_stmt:
-  BREAK    { loopcontrol_stmt__break(parse_ctx, @1, error_tracker); }
-| CONTINUE { loopcontrol_stmt__continue(parse_ctx, @1, error_tracker); }
+loopCtrlStmt:
+  BREAK    { loopCtrlStmt__break(parse_ctx, @1, error_tracker); }
+| CONTINUE { loopCtrlStmt__continue(parse_ctx, @1, error_tracker); }
 
 
 expr:
-  assign_expr
+  assignExpr
 | expr '+' expr
 | expr '-' expr
 | expr '*' expr
@@ -188,15 +188,15 @@ term:
 | primary                                 
 ;
 
-assign_expr:
+assignExpr:
   lvalue '=' expr
 ;
 
 primary:
   lvalue
 | call
-| objectdef
-| '(' funcdef ')'
+| objectDef
+| '(' funcDef ')'
 | const
 ;
 
@@ -216,54 +216,62 @@ member:
 
 call:
   call '(' elist ')'
-| lvalue callsuffix
-| '(' funcdef ')' '(' elist ')'
+| lvalue callSuffix
+| '(' funcDef ')' '(' elist ')'
 ;
 
-callsuffix:
-  normcall
-| methodcall
+callSuffix:
+  normalCall
+| methodCall
 ;
 
-normcall:
+normalCall:
   '(' elist ')'
 ;
 
-methodcall:
+methodCall:
   DDOT ID '(' elist ')'
 ;
 
-expr_list:
+exprList:
   expr
-| expr ',' expr_list
+| expr ',' exprList
 ;
 
 elist:
-
-| expr_list
+  // (empty)
+| exprList
 ;
 
-objectdef:
+objectDef:
   '[' elist ']'
 | '[' indexed ']'
 ;
 
 indexed:
-  indexedelem_list
+  indexedElemList
 ;
 
-indexedelem:
+indexedElem:
   '{' expr ':' expr '}'
 ;
 
 block:
-  '{' multi_stmt  '}'
+  '{' multiStmt  '}'
 | '{'             '}'
 ;
 
-funcdef:
-  FUNCTION ID '(' idlist ')' block
-| FUNCTION    '(' idlist ')' block
+funcDef:
+  FUNCTION ID '('
+  { funcDef__function_id_lparen(parse_ctx); }
+  funcArgList ')'
+  { funcDef__function_id_lparen_idList_rparen(symbol_table, parse_ctx, $2, @2, error_tracker); }
+  block
+| FUNCTION '('
+  { funcDef__function_lparen(parse_ctx); }
+  funcArgList ')'
+  { funcDef__function_lparen_idList_rparen(symbol_table, parse_ctx, @1); }
+  block
 ;
 
 const:
@@ -275,41 +283,55 @@ const:
 | FALSE
 ;
 
-cs_ids:
-  ID
-| ID ',' cs_ids
+funcArgs:
+  ID { funcArgs__id(parse_ctx, $1, @1); }
+| ID { funcArgs__id(parse_ctx, $1, @1); } ',' funcArgs
 ;
 
-idlist:
-
-| cs_ids
+funcArgList:
+  // (empty)
+| funcArgs
 ;
 
-if_stmt:
+ifStmt:
   IF '(' expr ')' stmt %prec THEN
 | IF '(' expr ')' stmt ELSE stmt
 ;
 
-while_stmt:
-  WHILE '(' expr ')' stmt
+whileHeader:
+  WHILE '(' expr ')' 
 ;
 
-for_stmt:
-  FOR '(' elist ';' expr ';' elist ')' stmt
+whileStmt:
+  whileHeader
+  { whileStmt__whileHeader(parse_ctx); }
+  stmt
+  { whileStmt__whileHeader_stmt(parse_ctx); }
 ;
 
-funcctrl_stmt: //OK
-  RETURN { funcctrl_stmt__return(parse_ctx, @1, error_tracker); }
+forHeader:
+  FOR '(' elist ';' expr ';' elist ')'
 ;
 
-return_stmt: //OK
-  funcctrl_stmt ';'
-| funcctrl_stmt expr ';'
+forStmt:
+  forHeader
+  { forStmt__forHeader(parse_ctx); } 
+  stmt
+  { forStmt__forHeader_stmt(parse_ctx); }
 ;
 
-indexedelem_list:
-  indexedelem
-| indexedelem ',' indexedelem_list
+funcCtrlStmt: //OK
+  RETURN { funcCtrlStmt__return(parse_ctx, @1, error_tracker); }
+;
+
+returnStmt: //OK
+  funcCtrlStmt ';'
+| funcCtrlStmt expr ';'
+;
+
+indexedElemList:
+  indexedElem
+| indexedElem ',' indexedElemList
 ;
 
 %%

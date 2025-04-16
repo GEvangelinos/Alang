@@ -8,19 +8,54 @@
 
 using namespace Alpha;
 
-void loopcontrol_stmt__break(
+void loopCtrlStmt__break(
     const ParseCtx &parse_ctx,
-    CodeLocation code_location,
+    CodeLocation break_location,
     ErrorTracker &error_tracker);
 
-void loopcontrol_stmt__continue(
+void loopCtrlStmt__continue(
     const ParseCtx &parse_ctx,
-    CodeLocation code_location,
+    CodeLocation continue_location,
     ErrorTracker &error_tracker);
 
-void funcctrl_stmt__return(
-    const ParseCtx &parse_ctx,
-    CodeLocation code_location,
+void funcDef__function_id_lparen(
+    ParseCtx &parse_ctx);
+
+void funcDef__function_id_lparen_idList_rparen(
+    SymbolTable &symbol_table,
+    ParseCtx &parse_ctx,
+    const char *id_name,
+    CodeLocation id_location,
     ErrorTracker &error_tracker);
+
+void funcDef__function_lparen(
+    ParseCtx &parse_ctx);
+
+void funcDef__function_lparen_idList_rparen(
+    SymbolTable &symbol_table,
+    ParseCtx &parse_ctx,
+    CodeLocation function_location);
+
+void funcArgs__id(
+    ParseCtx &parse_ctx,
+    const char *id_name,
+    CodeLocation id_location);
+
+void funcCtrlStmt__return(
+    const ParseCtx &parse_ctx,
+    CodeLocation return_location,
+    ErrorTracker &error_tracker);
+
+void whileStmt__whileHeader(
+    ParseCtx &parse_ctx) noexcept;
+
+void whileStmt__whileHeader_stmt(
+    ParseCtx &parse_ctx) noexcept;
+
+void forStmt__forHeader(
+    ParseCtx &parse_ctx) noexcept;
+
+void forStmt__forHeader_stmt(
+    ParseCtx &parse_ctx) noexcept;
 
 #endif /* SEMANTIC_ACTIONS_HPP */

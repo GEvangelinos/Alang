@@ -13,6 +13,7 @@
 #include "core/alpha_types.hpp"
 #include "core/alpha_error_tracker.hpp"
 #include "parser/alpha_parser_context.hpp"
+#include "_parser_common.hpp"
 #include <unordered_set>
 #include <initializer_list>
 
@@ -37,44 +38,13 @@ namespace Alpha
                 LIBFUNC
         };
 
-        struct Parameter
-        {
-                const std::string &name_;
-                const CodeLocation location_;
-        };
-
-        static bool is_type_function(SymbolType type)
+        static DEBUG_ALWAYS_INLINE bool is_type_function(SymbolType type)
         {
                 return type == SymbolType::LIBFUNC ||
                        type == SymbolType::USERFUNC;
         }
 
-        static bool is_type_varible(SymbolType type) { return !is_type_function(type); }
-
-        class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
-        {
-        public:
-                // clang-format off
-                SymbolType type()         const noexcept { return type_; }
-                u32 scope()               const noexcept { return scope_; }
-                CodeLocation location()   const noexcept { return location_; }
-                bool is_active()          const noexcept { return is_active_; }
-                void activate()                 noexcept { is_active_ = true; }
-                void deactivate()               noexcept { is_active_ = false; }
-                bool is_function()        const noexcept { return is_type_function(type_); }
-                bool is_variable()        const noexcept { return is_type_varible(type_); }
-                // clang-format on
-
-        protected:
-                Symbol(u32 scope, SymbolType type, CodeLocation location) noexcept
-                    : scope_(scope), type_(type), location_(location) {}
-
-        private:
-                const u32 scope_;
-                const SymbolType type_;
-                const CodeLocation location_;
-                bool is_active_;
-        };
+        static DEBUG_ALWAYS_INLINE bool is_type_varible(SymbolType type) { return !is_type_function(type); }
 
         class SymbolTable
         {
@@ -85,10 +55,10 @@ namespace Alpha
 
                 void insert_function(const std::string &symbol_name, SymbolType type,
                                      u32 scope, CodeLocation location,
-                                     std::list<Parameter> &&argument_list = {});
+                                     std::list<Parameter> argument_list = {});
 
                 void insert_anonymous(u32 scope, CodeLocation location,
-                                      std::list<Parameter> &&argument_list);
+                                      std::list<Parameter> argument_list);
 
                 const Symbol *lookup_global(const std::string &symbol_name) const noexcept;
                 const Symbol *lookup_chain(const std::string &symbol_name, u32 scope) const noexcept;
@@ -113,12 +83,37 @@ namespace Alpha
                 void insert_symbol(const std::string &symbol_name, SymbolType type,
                                    u32 scope, CodeLocation location, ArgumentList &&...arg_list);
 
-                struct AnonymousTag
-                {
-                };
-                Counter<AnonymousTag> anonymous_counter_;
+                u32 anonymous_counter_;
                 std::unordered_map<SymbolName, std::list<Symbol>> symbol_map_;
                 std::unordered_set<SymbolName> library_function_set_;
+        };
+
+        class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
+        {
+        public:
+                // clang-format off
+                DEBUG_ALWAYS_INLINE SymbolType type()       const noexcept { return type_; }
+                DEBUG_ALWAYS_INLINE u32 scope()             const noexcept { return scope_; }
+                DEBUG_ALWAYS_INLINE CodeLocation location() const noexcept { return location_; }
+                DEBUG_ALWAYS_INLINE bool is_function()      const noexcept { return is_type_function(type_); }
+                DEBUG_ALWAYS_INLINE bool is_variable()      const noexcept { return is_type_varible(type_); }
+                // clang-format on
+
+        protected:
+                Symbol(u32 scope, SymbolType type, CodeLocation location) noexcept
+                    : scope_(scope), type_(type), location_(location) {}
+
+        private:
+                const u32 scope_;
+                const SymbolType type_;
+                const CodeLocation location_;
+                bool is_active_;
+
+                DEBUG_ALWAYS_INLINE bool is_active() const noexcept { return is_active_; }
+                DEBUG_ALWAYS_INLINE void activate() noexcept { is_active_ = true; }
+                DEBUG_ALWAYS_INLINE void deactivate() noexcept { is_active_ = false; }
+
+                friend class SymbolTable;
         };
 
         class SymbolTable::Variable : public Symbol

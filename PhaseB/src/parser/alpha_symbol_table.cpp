@@ -2,7 +2,10 @@
 #include "misc/sanity_assert.h"
 #include "core/alpha_konstants.hpp"
 #include <format>
+#include <sstream>
 #include <initializer_list>
+
+#define STRINGIFY(_x) #_x
 
 namespace Alpha
 {
@@ -70,17 +73,17 @@ namespace Alpha
 
         void SymbolTable::insert_function(const std::string &symbol_name, SymbolType type,
                                           u32 scope, CodeLocation location,
-                                          std::list<Parameter> &&argument_list)
+                                          std::list<Parameter> argument_list)
         {
                 SANITY_ASSERT_TRUE(is_type_function(type));
                 insert_symbol<Function>(symbol_name, type, scope, location, std::move(argument_list));
         }
 
         void SymbolTable::insert_anonymous(u32 scope, CodeLocation location,
-                                           std::list<Parameter> &&argument_list)
+                                           std::list<Parameter> argument_list)
         {
                 std::string anonymous_name = std::format(
-                    "{}{}", k_anonymous_function_prefix, anonymous_counter_.post_inc());
+                    "{}{}", k_anonymous_function_prefix, anonymous_counter_++);
 
                 insert_function(anonymous_name, SymbolType::USERFUNC,
                                 scope, location, std::move(argument_list));
@@ -118,6 +121,7 @@ namespace Alpha
         }
 
         SymbolTable::SymbolTable()
+            : anonymous_counter_(0)
         {
                 // Load library functions
                 for (SymbolName name : library_function_names)
@@ -174,5 +178,4 @@ namespace Alpha
                                 return &(*symbol_it);
                 return nullptr;
         }
-
 }

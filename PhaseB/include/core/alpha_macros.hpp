@@ -4,11 +4,13 @@
 #include <format>
 #include <iostream>
 
-#define PRINT_INTERNAL_ERROR(_message)                                                          \
-        std::cerr << std::format("{}:{} | {}() --> {}", __FILE__, __LINE__, __func__, _message) \
-                  << std::endl
-
-#define REPORT_UNREACHABLE_VIOLATION(_message_if_reached) PRINT_INTERNAL_ERROR(_message_if_reached)
+#define REPORT_UNREACHABLE_VIOLATION(_message_if_reached)                                   \
+        do                                                                                  \
+        {                                                                                   \
+                std::cerr << std::format("{}:{} | {}() --> Unreachable Violation: {}",      \
+                                         __FILE__, __LINE__, __func__, _message_if_reached) \
+                          << std::endl;                                                     \
+        } while (0)
 
 // clang-format off
 #ifdef DEBUG_MODE
@@ -17,7 +19,7 @@
 #elif defined(__GNUC__) || defined(__clang__)
         #define DEBUG_ALWAYS_INLINE inline __attribute__((always_inline))
 #elif defined(_MSC_VER)
-        #define DEBUG_ALWAYS_INLINE __forceinline
+        #define DEBUG_ALWAYS_INLINE inline __forceinline
 #else
         #define DEBUG_ALWAYS_INLINE inline
 #endif
