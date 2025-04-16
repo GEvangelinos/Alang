@@ -13,8 +13,8 @@ terminal_dict: dict[str, str] = {
         "MOD": "%",
         "EQ": "==",
         "NEQ": "!=",
-        "PLUS_PLUS": "++",
-        "MINUS_MINUS": "--",
+        "INC": "++",
+        "DEC": "--",
         "GT": ">",
         "LT": "<",
         "GTE": ">=",
@@ -29,9 +29,9 @@ terminal_dict: dict[str, str] = {
         "SEMICOLON": ";",
         "COMMA": ",",
         "COLON": ":",
-        "COLON_BLOCK": "::",
+        "GLOBAL": "::",
         "DOT": ".",
-        "DDOT": "..",
+        "METHOD_CALL": "..",
 }
 
 _PRODUCTION_SEPARATOR = "|"

@@ -91,20 +91,20 @@
 
 /* Operator tokens */
 %token '='
-%token '+'              '-'
-%token '*'              '/'             '%'
-%token '>'              '<'      
-%token GTE              LTE
-%token EQ               NEQ      
-%token MINUS_MINUS      PLUS_PLUS         
+%token '+'      '-'
+%token '*'      '/'     '%'
+%token '>'      '<'      
+%token GTE      LTE
+%token EQ       NEQ      
+%token DEC      INC        
 
 /* Punctuation tokens */
 %token  '{'             '}'
 %token  '['             ']'
 %token  '('             ')'
 %token  ';'             ','
-%token  '.'             DDOT
-%token  ':'             COLON_BLOCK
+%token  '.'             METHOD_CALL
+%token  ':'             GLOBAL
 
 /* Priorities */
 %right '='
@@ -118,9 +118,9 @@
 %left '+' '-'
 %left '*' '/' '%'
 
-%right NOT PLUS_PLUS MINUS_MINUS UMINUS
+%right NOT INC DEC UMINUS
 
-%left '.' DDOT
+%left '.' METHOD_CALL
 
 %left '[' ']'
 %left '(' ')'
@@ -181,15 +181,15 @@ term:
   '(' expr ')'
 | '-' expr %prec UMINUS
 | NOT expr
-| PLUS_PLUS lvalue
-| lvalue  PLUS_PLUS
-| MINUS_MINUS lvalue
-| lvalue MINUS_MINUS
+| INC lvalue
+| lvalue  INC
+| DEC lvalue
+| lvalue DEC
 | primary                                 
 ;
 
 assignExpr:
-  lvalue '=' expr
+  lvalue { assignExpr__lvalue($1, error_tracker); } '=' expr
 ;
 
 primary:
@@ -201,9 +201,9 @@ primary:
 ;
 
 lvalue:
-  ID
-| LOCAL ID
-| COLON_BLOCK ID
+  ID { lvalue__id(symbol_table, parse_ctx, $1, @1, $$, error_tracker); }
+| LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $1, @1, $$, error_tracker); } 
+| GLOBAL ID { lvalue__global_id(symbol_table, parse_ctx, $1, @1, $$, error_tracker); }
 | member
 ;
 
@@ -230,7 +230,7 @@ normalCall:
 ;
 
 methodCall:
-  DDOT ID '(' elist ')'
+  METHOD_CALL ID '(' elist ')'
 ;
 
 exprList:
@@ -257,17 +257,19 @@ indexedElem:
 ;
 
 block:
-  '{' multiStmt  '}'
-| '{'             '}'
+  '{' { block__lbrace(parse_ctx); } multiStmt  '}' { block_lbrace_multiStmt_rbrace(parse_ctx); }
+| '{' { block__lbrace(parse_ctx); }            '}' { block_lbrace_rbrace(parse_ctx); }
 ;
 
 funcDef:
   FUNCTION ID '(' funcArgList ')'
   { funcDef__function_id_lparen_idList_rparen(symbol_table, parse_ctx, $2, @2, error_tracker); }
   block
+  { funcDef__function_id_lparen_idList_rparen_block(parse_ctx); }
 | FUNCTION '(' funcArgList ')'
   { funcDef__function_lparen_idList_rparen(symbol_table, parse_ctx, @1); }
   block
+  { funcDef__function_lparen_idList_rparen_block(parse_ctx); }
 ;
 
 const:

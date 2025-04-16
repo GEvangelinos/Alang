@@ -88,8 +88,8 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 "%"             {return '%';} 
 "=="            {return EQ;} 
 "!="            {return NEQ;} 
-"++"            {return PLUS_PLUS;} 
-"--"            {return MINUS_MINUS;} 
+"++"            {return INC;} 
+"--"            {return DEC;} 
 ">"             {return GT;} 
 "<"             {return LT;} 
 ">="            {return GTE;} 
@@ -104,9 +104,9 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 ";"             {return ';';}
 ","             {return ',';}
 ":"             {return ':';}
-"::"            {return COLON_BLOCK;}
+"::"            {return GLOBAL;}
 "."             {return '.';}
-".."            {return DDOT;}
+".."            {return METHOD_CALL;}
 
 {id}            {alpha_yylval.union_id = Alpha::TokenID::refreshLastId(yytext); return ID;}
 {real}          {alpha_yylval.union_real_const = std::stod(yytext); return REAL_CONST;}

@@ -18,6 +18,27 @@ void loopCtrlStmt__continue(
     CodeLocation continue_location,
     ErrorTracker &error_tracker);
 
+void lvalue__id(
+    SymbolTable &symbol_table,
+    ParseCtx &parse_ctx,
+    const char *id_name,
+    CodeLocation id_location,
+    ErrorTracker &error_tracker);
+
+void lvalue__local_id(
+    SymbolTable &symbol_table,
+    ParseCtx &parse_ctx,
+    const char *id_name,
+    CodeLocation id_location,
+    ErrorTracker &error_tracker);
+
+void lvalue__global_id(
+    SymbolTable &symbol_table,
+    ParseCtx &parse_ctx,
+    const char *id_name,
+    CodeLocation id_location,
+    ErrorTracker &error_tracker);
+
 void funcDef__function_id_lparen_idList_rparen(
     SymbolTable &symbol_table,
     ParseCtx &parse_ctx,
@@ -30,6 +51,12 @@ void funcDef__function_lparen_idList_rparen(
     ParseCtx &parse_ctx,
     CodeLocation function_location);
 
+void funcDef__function_id_lparen_idList_rparen_block(
+    ParseCtx &parse_ctx);
+
+void funcDef__function_lparen_idList_rparen_block(
+    ParseCtx &parse_ctx);
+
 void funcArgs__id(
     ParseCtx &parse_ctx,
     const char *id_name,
@@ -39,6 +66,15 @@ void funcCtrlStmt__return(
     const ParseCtx &parse_ctx,
     CodeLocation return_location,
     ErrorTracker &error_tracker);
+
+void block__lbrace(
+    ParseCtx &parse_ctx);
+
+void block_lbrace_multiStmt_rbrace(
+    ParseCtx &parse_ctx);
+
+void block_lbrace_rbrace(
+    ParseCtx &parse_ctx);
 
 void whileStmt__whileHeader(
     ParseCtx &parse_ctx) noexcept;

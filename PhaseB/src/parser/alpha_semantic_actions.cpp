@@ -56,7 +56,7 @@ namespace // Anonymous
                                                      current_scope, parameter.location_);
         }
 
-        bool DEBUG_ALWAYS_INLINE is_conflicting_named_function(SymbolTable &symbol_table, ParseCtx &parse_ctx,
+        bool DEBUG_ALWAYS_INLINE registered_function_name_conflicts(SymbolTable &symbol_table, ParseCtx &parse_ctx,
                                                                     const char *id_name, CodeLocation id_location,
                                                                     ErrorTracker &error_tracker)
         {
@@ -112,18 +112,56 @@ void funcCtrlStmt__return(const ParseCtx &parse_ctx, CodeLocation return_locatio
         error_tracker.register_syntax_error(error, return_location);
 }
 
-void lvalue__id(SymbolTable &symbol_table, const ParseCtx &parse_ctx,
-                Symbol **lvalue, const std::string &id_name,
-                CodeLocation id_location, ErrorTracker &error_tracker)
+void lvalue__id(SymbolTable &symbol_table, ParseCtx &parse_ctx,
+                const char *id_name, CodeLocation id_location,
+                Symbol **lvalue, ErrorTracker &error_tracker)
 {
-        SANITY_ASSERT_FALSE(id_name.empty()); // INTERNAL_ERROR: `id_name` must never be empty.
 }
+
+void lvalue__local_id(
+    SymbolTable &symbol_table,
+    ParseCtx &parse_ctx,
+    const char *id_name,
+    CodeLocation id_location,
+    ErrorTracker &error_tracker);
+
+void lvalue__global_id(
+    SymbolTable &symbol_table,
+    ParseCtx &parse_ctx,
+    const char *id_name,
+    CodeLocation id_location,
+    ErrorTracker &error_tracker);
+
+void block__lbrace(ParseCtx &parse_ctx)
+{
+        parse_ctx.enter_block();
+}
+void block_lbrace_multiStmt_rbrace(ParseCtx &parse_ctx)
+{
+        parse_ctx.exit_block();
+}
+
+void block_lbrace_rbrace(ParseCtx &parse_ctx)
+{
+        parse_ctx.exit_block();
+}
+
+void funcDef__function_id_lparen_idList_rparen_block(ParseCtx &parse_ctx)
+{
+        parse_ctx.exit_function();
+}
+
+void funcDef__function_lparen_idList_rparen_block(ParseCtx &parse_ctx)
+{
+        parse_ctx.exit_function();
+}
+
 
 void funcDef__function_id_lparen_idList_rparen(SymbolTable &symbol_table, ParseCtx &parse_ctx,
                                                const char *id_name, CodeLocation id_location,
                                                ErrorTracker &error_tracker)
 {
-        if (!is_conflicting_named_function(symbol_table, parse_ctx, id_name, id_location, error_tracker))
+        if (!registered_function_name_conflicts(symbol_table, parse_ctx, id_name, id_location, error_tracker))
                 symbol_table.insert_function(id_name, SymbolType::USERFUNC,
                                              parse_ctx.current_scope(), id_location,
                                              parse_ctx.retrieve_function_parameters());

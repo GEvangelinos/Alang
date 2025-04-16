@@ -45,7 +45,7 @@ namespace Alpha
         {
         public:
                 inline ParseCtx();
-                ~ParseCtx() = default;
+                inline ~ParseCtx();
 
                 ParseCtx(const ParseCtx &) = delete;
                 ParseCtx(ParseCtx &&) = delete;
@@ -81,6 +81,17 @@ namespace Alpha
             : current_scope_(k_global_scope)
         {
                 skip_next_scope_increment_.disable();
+
+                // We push a stackframe, for loops that might occur outside functions.
+                // So every frame corresponds to a function except the first.
+                frame_stack_.push(0);
+        }
+
+        ParseCtx::~ParseCtx()
+        {
+                // Constructor had pushed a stackframe for loops that might occur outside functions.
+                // So at the end we expect a single frame to exist.
+                SANITY_ASSERT_EQ(frame_stack_.size(), k_frame_count_outside_functions);
         }
 
         void ParseCtx::enter_block() noexcept
@@ -115,7 +126,10 @@ namespace Alpha
 
         void ParseCtx::exit_function() noexcept
         {
-                SANITY_ASSERT_GT(frame_stack_.size(), 0);
+                // A frame always exist for loops outside functions.
+                SANITY_ASSERT_GT(frame_stack_.size(), k_frame_count_outside_functions);
+                // All loops must be closed before exiting function.
+                SANITY_ASSERT_EQ(frame_stack_.top(), 0);
                 frame_stack_.pop();
         }
 
