@@ -17,7 +17,7 @@
                         if ((_value)_rel_op(_limit))                                                                        \
                                 break;                                                                                      \
                         const char *error_message = "SANITY_ASSERT_" #_assert_suffix "(" #_value ", " #_limit "): failed!"; \
-                        std::cerr << std::format("{}:{}: {}(): {}. Reason ({} %s {}) is false.\n",                          \
+                        std::cerr << std::format("{}:{}: {}(): {}. Reason ({} {} {}) is false.\n",                          \
                                                 __FILENAME__, __LINE__, __func__,                                          \
                                                 error_message, (_value), #_rel_op, (_limit))                               \
                                 << std::endl;                                                                             \

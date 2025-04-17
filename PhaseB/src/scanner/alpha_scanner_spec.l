@@ -126,7 +126,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        error_tracker.register_lexer_error("EOF reached before closing comment.", alpha_yylloc);
+        et.register_lexer_error("EOF reached before closing comment.", alpha_yylloc);
         return EOF;
 }
 
@@ -140,12 +140,12 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_STRING>{stringInvalidEscapeCode} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
-        error_tracker.register_lexer_error(
+        et.register_lexer_error(
                 std::format("Lexer error: Invalid escape code {} in string.", yytext), alpha_yylloc);
         /* Do not stop scanning, but register lexer error. */
 }
 <INSIDE_STRING><<EOF>> {
-        error_tracker.register_lexer_error(
+        et.register_lexer_error(
                 "Lexer error: EOF reached before closing string.", alpha_yylloc);
         return EOF;
 }
@@ -156,7 +156,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
-        error_tracker.register_lexer_error(
+        et.register_lexer_error(
                 std::format("Lexer error: Character {} is invalid.", yytext), alpha_yylloc);
 }
 

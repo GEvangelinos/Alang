@@ -5,11 +5,18 @@
 #include <vector>
 #include <cstdint>
 #include <optional>
+#include <list>
 #include "core/alpha_location.hpp"
 namespace Alpha
 {
 
-        /* TODO: implement clang-gcc like error reporting. */
+        struct CodeMessage
+        {
+                const std::string message_;
+                const std::optional<Location> location_;
+                CodeMessage(const std::string &message, std::optional<Location> location);
+        };
+
         class CompileTimeError
         {
         public:
@@ -23,26 +30,22 @@ namespace Alpha
                 virtual const std::string &to_string() const;
 
         protected:
-                struct CodeMessage
-                {
-                        const std::string message_;
-                        const std::optional<CodeLocation> location_;
-                        CodeMessage(const std::string &message, std::optional<CodeLocation> location);
-                };
-
                 CodeMessage error_;
-                std::vector<CodeMessage> notes_;
+                std::list<CodeMessage> note_list;
 
-                CompileTimeError(const std::string &error, CodeLocation error_location,
-                                 const std::string &note, CodeLocation note_location);
+                CompileTimeError(const std::string &error, Location error_location);
 
-                CompileTimeError(const std::string &error, CodeLocation error_location);
+                CompileTimeError(const std::string &error, Location error_location,
+                                 const std::string &note, Location note_location);
+
+                CompileTimeError(const std::string &error, Location error_location,
+                                std::list<CodeMessage> &&note_list);
         };
 
         class LexerError : public CompileTimeError
         {
         public:
-                LexerError(const std::string &error, const CodeLocation error_location);
+                LexerError(const std::string &error, const Location error_location);
 
                 LexerError() = delete;
 
@@ -52,10 +55,13 @@ namespace Alpha
         class SyntaxError : public CompileTimeError
         {
         public:
-                SyntaxError(const std::string &error, const CodeLocation error_location);
+                SyntaxError(const std::string &error, const Location error_location);
 
-                SyntaxError(const std::string &error, const CodeLocation error_location,
-                            const std::string &note, const CodeLocation note_location);
+                SyntaxError(const std::string &error, const Location error_location,
+                            const std::string &note, const Location note_location);
+
+                SyntaxError(const std::string &error, const Location error_location,
+                            std::list<CodeMessage> &&note_list);
 
                 SyntaxError() = delete;
 
@@ -67,12 +73,15 @@ namespace Alpha
         public:
                 ErrorTracker() = default;
 
-                void register_lexer_error(const std::string &error, CodeLocation error_location);
+                void register_lexer_error(const std::string &error, Location error_location);
 
-                void register_syntax_error(const std::string &error, CodeLocation error_location);
+                void register_syntax_error(const std::string &error, Location error_location);
 
-                void register_syntax_error(const std::string &error, CodeLocation error_location,
-                                           const std::string &note, CodeLocation note_location);
+                void register_syntax_error(const std::string &error, Location error_location,
+                                           const std::string &note, Location note_location);
+
+                void register_syntax_error(const std::string &error, Location error_location,
+                                           std::list<CodeMessage> &&note_list);
 
                 const std::vector<const CompileTimeError *> &ger_error_vector() const;
 

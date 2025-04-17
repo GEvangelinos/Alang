@@ -10,46 +10,49 @@ using namespace Alpha;
 
 void loopCtrlStmt__break(
     const ParseCtx &parse_ctx,
-    CodeLocation break_location,
-    ErrorTracker &error_tracker);
+    Location break_location,
+    ErrorTracker &et);
 
 void loopCtrlStmt__continue(
     const ParseCtx &parse_ctx,
-    CodeLocation continue_location,
-    ErrorTracker &error_tracker);
+    Location continue_location,
+    ErrorTracker &et);
 
 void lvalue__id(
-    SymbolTable &symbol_table,
+    SymbolTable &st,
     ParseCtx &parse_ctx,
     const char *id_name,
-    CodeLocation id_location,
-    ErrorTracker &error_tracker);
+    Location id_location,
+    const Symbol **lvalue,
+    ErrorTracker &et);
 
 void lvalue__local_id(
-    SymbolTable &symbol_table,
+    SymbolTable &st,
     ParseCtx &parse_ctx,
     const char *id_name,
-    CodeLocation id_location,
-    ErrorTracker &error_tracker);
+    Location id_location,
+    const Symbol **lvalue,
+    ErrorTracker &et);
 
 void lvalue__global_id(
-    SymbolTable &symbol_table,
-    ParseCtx &parse_ctx,
+    SymbolTable &st,
     const char *id_name,
-    CodeLocation id_location,
-    ErrorTracker &error_tracker);
+    Location id_location,
+    const Symbol **lvalue,
+    ErrorTracker &et);
 
 void funcDef__function_id_lparen_idList_rparen(
-    SymbolTable &symbol_table,
+    SymbolTable &st,
     ParseCtx &parse_ctx,
     const char *id_name,
-    CodeLocation id_location,
-    ErrorTracker &error_tracker);
+    Location id_location,
+    ErrorTracker &et);
 
 void funcDef__function_lparen_idList_rparen(
-    SymbolTable &symbol_table,
+    SymbolTable &st,
     ParseCtx &parse_ctx,
-    CodeLocation function_location);
+    Location function_location,
+    ErrorTracker &et);
 
 void funcDef__function_id_lparen_idList_rparen_block(
     ParseCtx &parse_ctx);
@@ -60,20 +63,22 @@ void funcDef__function_lparen_idList_rparen_block(
 void funcArgs__id(
     ParseCtx &parse_ctx,
     const char *id_name,
-    CodeLocation id_location);
+    Location id_location);
 
 void funcCtrlStmt__return(
     const ParseCtx &parse_ctx,
-    CodeLocation return_location,
-    ErrorTracker &error_tracker);
+    Location return_location,
+    ErrorTracker &et);
 
 void block__lbrace(
     ParseCtx &parse_ctx);
 
-void block_lbrace_multiStmt_rbrace(
+void block__lbrace_multiStmt_rbrace(
+    SymbolTable &st,
     ParseCtx &parse_ctx);
 
-void block_lbrace_rbrace(
+void block__lbrace_rbrace(
+    SymbolTable &st,
     ParseCtx &parse_ctx);
 
 void whileStmt__whileHeader(

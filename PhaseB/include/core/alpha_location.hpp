@@ -5,26 +5,26 @@
 
 namespace Alpha
 {
-        struct CodeLocation
+        struct Location
         {
         public:
                 u32 first_index_;
                 u32 last_index_;
 
-                constexpr CodeLocation() noexcept
+                constexpr Location() noexcept
                     : first_index_(0),
                       last_index_(0) {}
 
-                constexpr CodeLocation(u32 first_index, u32 last_index) noexcept
+                constexpr Location(u32 first_index, u32 last_index) noexcept
                     : first_index_(first_index),
                       last_index_(last_index) {}
 
-                CodeLocation(const CodeLocation &other) noexcept = default;
-                CodeLocation &operator=(const CodeLocation &other) noexcept = default;
+                Location(const Location &other) noexcept = default;
+                Location &operator=(const Location &other) noexcept = default;
 
-                CodeLocation(CodeLocation &&other) noexcept = default;
-                CodeLocation &operator=(CodeLocation &&other) noexcept = default;
-                ~CodeLocation() noexcept = default;
+                Location(Location &&other) noexcept = default;
+                Location &operator=(Location &&other) noexcept = default;
+                ~Location() noexcept = default;
         };
 }
 

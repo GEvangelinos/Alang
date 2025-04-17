@@ -55,7 +55,7 @@
 %define api.prefix {alpha_yy}
 %define parse.error detailed    /* Enable detailed error messages */
 
-%define api.location.type {Alpha::CodeLocation}
+%define api.location.type {Alpha::Location}
 %locations
 
 %parse-param{Alpha::LexerCtx &lexer_ctx}
@@ -189,7 +189,7 @@ term:
 ;
 
 assignExpr:
-  lvalue { assignExpr__lvalue($1, error_tracker); } '=' expr
+  lvalue /*{ assignExpr__lvalue($1, error_tracker); }*/ '=' expr // TODO: NOT OKAY!
 ;
 
 primary:
@@ -201,9 +201,9 @@ primary:
 ;
 
 lvalue:
-  ID { lvalue__id(symbol_table, parse_ctx, $1, @1, $$, error_tracker); }
-| LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $1, @1, $$, error_tracker); } 
-| GLOBAL ID { lvalue__global_id(symbol_table, parse_ctx, $1, @1, $$, error_tracker); }
+  ID { lvalue__id(symbol_table, parse_ctx, $1, @1, &$$, error_tracker); }
+| LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $2, @2, &$$, error_tracker); } 
+| GLOBAL ID { lvalue__global_id(symbol_table, $2, @2, &$$, error_tracker); }
 | member
 ;
 
@@ -257,8 +257,8 @@ indexedElem:
 ;
 
 block:
-  '{' { block__lbrace(parse_ctx); } multiStmt  '}' { block_lbrace_multiStmt_rbrace(parse_ctx); }
-| '{' { block__lbrace(parse_ctx); }            '}' { block_lbrace_rbrace(parse_ctx); }
+  '{' { block__lbrace(parse_ctx); } multiStmt  '}' { block__lbrace_multiStmt_rbrace(symbol_table ,parse_ctx); }
+| '{' { block__lbrace(parse_ctx); }            '}' { block__lbrace_rbrace(symbol_table, parse_ctx); }
 ;
 
 funcDef:
@@ -267,7 +267,7 @@ funcDef:
   block
   { funcDef__function_id_lparen_idList_rparen_block(parse_ctx); }
 | FUNCTION '(' funcArgList ')'
-  { funcDef__function_lparen_idList_rparen(symbol_table, parse_ctx, @1); }
+  { funcDef__function_lparen_idList_rparen(symbol_table, parse_ctx, @1, error_tracker); }
   block
   { funcDef__function_lparen_idList_rparen_block(parse_ctx); }
 ;

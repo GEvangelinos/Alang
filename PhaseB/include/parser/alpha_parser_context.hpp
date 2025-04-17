@@ -14,13 +14,6 @@
 
 namespace Alpha
 {
-        // struct StateFlags
-        // {
-        //         bool flag1 : 1;
-        //         bool flag2 : 1;
-        //         bool flag3 : 1;
-        // };
-
         class ToggleSwitch
         {
         public:
@@ -41,6 +34,30 @@ namespace Alpha
                 bool state_ = false; // Initially the switch is off.
         };
 
+        class FunctionDataFrame
+        {
+        public:
+                FunctionDataFrame(const std::string &name, u32 scope, Location location)
+                    : name_(name),
+                      scope_(scope),
+                      location_(location),
+                      loop_counter_(0) {}
+
+                DEBUG_ALWAYS_INLINE const std::string &name() const noexcept { return name_; }
+                DEBUG_ALWAYS_INLINE u32 scope() const noexcept { return scope_; }
+                DEBUG_ALWAYS_INLINE Location location() const noexcept { return location_; }
+
+                DEBUG_ALWAYS_INLINE u32 loop_counter() const noexcept { return loop_counter_; }
+                DEBUG_ALWAYS_INLINE void loop_counter_inc() noexcept { ++loop_counter_; }
+                DEBUG_ALWAYS_INLINE void loop_counter_dec() noexcept { --loop_counter_; }
+
+        private:
+                const std::string name_;
+                const u32 scope_;
+                const Location location_;
+                u32 loop_counter_;
+        };
+
         class ParseCtx
         {
         public:
@@ -56,15 +73,18 @@ namespace Alpha
                 inline void exit_block() noexcept;
                 inline u32 current_scope() const noexcept;
 
-                inline void enter_function();
+                inline void enter_function(const std::string &function_name, Location function_location);
                 inline void exit_function() noexcept;
-                inline u32 function_depth() const noexcept;
+                inline u32 current_function_nesting_depth() const noexcept;
+                inline u32 current_function_scope() const noexcept;
+                inline const std::string &current_function_name() const noexcept;
+                inline Location current_function_location() const noexcept;
 
                 inline void enter_loop() noexcept;
                 inline void exit_loop() noexcept;
                 inline u32 loop_depth() const noexcept;
 
-                inline void append_function_parameter(const std::string &name, CodeLocation location);
+                inline void append_function_parameter(const std::string &name, Location location);
                 inline std::list<Parameter> retrieve_function_parameters();
                 inline std::list<Parameter> extract_function_parameters();
                 inline void clear_function_arguments();
@@ -72,8 +92,7 @@ namespace Alpha
         private:
                 ToggleSwitch skip_next_scope_increment_;
                 u32 current_scope_;
-                using LoopCounter = u32;
-                std::stack<LoopCounter> frame_stack_;
+                std::stack<FunctionDataFrame> frame_stack_;
                 std::list<Parameter> function_parameters_;
         };
 
@@ -84,14 +103,14 @@ namespace Alpha
 
                 // We push a stackframe, for loops that might occur outside functions.
                 // So every frame corresponds to a function except the first.
-                frame_stack_.push(0);
+                frame_stack_.emplace(FunctionDataFrame(k_global_data_frame_name, k_global_scope, {0, 0}));
         }
 
         ParseCtx::~ParseCtx()
         {
                 // Constructor had pushed a stackframe for loops that might occur outside functions.
                 // So at the end we expect a single frame to exist.
-                SANITY_ASSERT_EQ(frame_stack_.size(), k_frame_count_outside_functions);
+                SANITY_ASSERT_EQ(frame_stack_.size(), k_data_frames_outside_functions);
         }
 
         void ParseCtx::enter_block() noexcept
@@ -116,48 +135,68 @@ namespace Alpha
                 --current_scope_;
         }
 
-        void ParseCtx::enter_function()
+        void ParseCtx::enter_function(const std::string &function_name, Location function_location)
         {
-                ++current_scope_;
-                skip_next_scope_increment_.enable();
                 SANITY_ASSERT_LT(frame_stack_.size(), k_max_function_nesting);
-                frame_stack_.push(0);
+                frame_stack_.emplace(FunctionDataFrame(function_name, current_scope_++, function_location));
+                skip_next_scope_increment_.enable();
         }
 
         void ParseCtx::exit_function() noexcept
         {
                 // A frame always exist for loops outside functions.
-                SANITY_ASSERT_GT(frame_stack_.size(), k_frame_count_outside_functions);
+                SANITY_ASSERT_GT(frame_stack_.size(), k_data_frames_outside_functions);
                 // All loops must be closed before exiting function.
-                SANITY_ASSERT_EQ(frame_stack_.top(), 0);
+                SANITY_ASSERT_EQ(frame_stack_.top().loop_counter(), 0);
                 frame_stack_.pop();
         }
 
         void ParseCtx::enter_loop() noexcept
         {
                 SANITY_ASSERT_GT(frame_stack_.size(), 0);
-                SANITY_ASSERT_LT(frame_stack_.top(), k_max_loop_nesting);
-                ++frame_stack_.top();
+                SANITY_ASSERT_LT(frame_stack_.top().loop_counter(), k_max_loop_nesting);
+                frame_stack_.top().loop_counter_inc();
         }
 
         void ParseCtx::exit_loop() noexcept
         {
                 SANITY_ASSERT_GT(frame_stack_.size(), 0);
-                SANITY_ASSERT_GT(frame_stack_.top(), 0);
-                --frame_stack_.top();
+                SANITY_ASSERT_GT(frame_stack_.top().loop_counter(), 0);
+                frame_stack_.top().loop_counter_dec();
         }
 
         u32 ParseCtx::loop_depth() const noexcept
         {
                 SANITY_ASSERT_GT(frame_stack_.size(), 0);
-                return frame_stack_.top();
+                return frame_stack_.top().loop_counter();
         }
 
-        u32 ParseCtx::function_depth() const noexcept { return frame_stack_.size(); }
+        u32 ParseCtx::current_function_scope() const noexcept
+        {
+                return frame_stack_.top().scope();
+        }
 
-        u32 ParseCtx::current_scope() const noexcept { return current_scope_; }
+        Location ParseCtx::current_function_location() const noexcept
+        {
+                return frame_stack_.top().location();
+        }
 
-        void ParseCtx::append_function_parameter(const std::string &name, CodeLocation location)
+        const std::string &ParseCtx::current_function_name() const noexcept
+        {
+                return frame_stack_.top().name();
+        }
+
+        u32 ParseCtx::current_function_nesting_depth() const noexcept
+        {
+                return frame_stack_.size() - k_data_frames_outside_functions;
+        }
+
+        u32 ParseCtx::current_scope() const noexcept
+        {
+                return current_scope_;
+        }
+
+        void ParseCtx::append_function_parameter(const std::string &name, Location location)
         {
                 function_parameters_.emplace_back(name, location);
         }
