@@ -233,6 +233,18 @@ void lvalue__local_id(
                 *lvalue = st.insert_local(id_name, parse_ctx.current_scope(), id_location);
 }
 
+void assignExpr__lvalue_assign_expr(
+    const Symbol *const lvalue,
+    Location assignExpr_location,
+    ErrorTracker &et)
+{
+        if (!lvalue->is_function())
+                return;
+
+        std::string error = std::format("assignment of function `{}`", lvalue->name());
+        et.register_syntax_error(error, assignExpr_location);
+}
+
 void lvalue__global_id(
     SymbolTable &st,
     const char *id_name,
@@ -243,15 +255,17 @@ void lvalue__global_id(
         *lvalue = st.lookup_global(id_name);
         if (*lvalue != nullptr)
                 return;
+
         std::string error = std::format("variable `::{}` not found in global scope", id_name);
         et.register_syntax_error(error, id_location);
 }
 
-void block__lbrace(ParseCtx &parse_ctx)
+void block__lbrace(ParseCtx &parse_ctx) noexcept
 {
         parse_ctx.enter_block();
 }
-void block__lbrace_multiStmt_rbrace(SymbolTable &st, ParseCtx &parse_ctx)
+
+void block__lbrace_multiStmt_rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept
 {
         st.hide_scope_symbols(parse_ctx.current_scope());
         parse_ctx.exit_block();
@@ -263,12 +277,12 @@ void block__lbrace_rbrace(SymbolTable &st, ParseCtx &parse_ctx)
         parse_ctx.exit_block();
 }
 
-void funcDef__function_id_lparen_idList_rparen_block(ParseCtx &parse_ctx)
+void funcDef__function_id_lparen_idList_rparen_block(ParseCtx &parse_ctx) noexcept
 {
         parse_ctx.exit_function();
 }
 
-void funcDef__function_lparen_idList_rparen_block(ParseCtx &parse_ctx)
+void funcDef__function_lparen_idList_rparen_block(ParseCtx &parse_ctx) noexcept
 {
         parse_ctx.exit_function();
 }
@@ -327,4 +341,10 @@ void forStmt__forHeader(ParseCtx &parse_ctx) noexcept
 void forStmt__forHeader_stmt(ParseCtx &parse_ctx) noexcept
 {
         parse_ctx.exit_loop();
+}
+
+void lvalue__member(const Symbol **const lvalue) noexcept
+{
+        // We can not resolve members at compile time.
+        *lvalue = nullptr;
 }

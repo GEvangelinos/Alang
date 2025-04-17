@@ -189,7 +189,7 @@ term:
 ;
 
 assignExpr:
-  lvalue /*{ assignExpr__lvalue($1, error_tracker); }*/ '=' expr // TODO: NOT OKAY!
+  lvalue '=' expr { assignExpr__lvalue_assign_expr($1, @$, error_tracker); }
 ;
 
 primary:
@@ -204,7 +204,7 @@ lvalue:
   ID { lvalue__id(symbol_table, parse_ctx, $1, @1, &$$, error_tracker); }
 | LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $2, @2, &$$, error_tracker); } 
 | GLOBAL ID { lvalue__global_id(symbol_table, $2, @2, &$$, error_tracker); }
-| member
+| member { lvalue__member(&$$); }
 ;
 
 member:

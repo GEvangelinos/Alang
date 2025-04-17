@@ -65,7 +65,7 @@ namespace Alpha
 
                 bool is_lib_function(const std::string &symbol_name) const;
 
-                void hide_scope_symbols(u32 scope);
+                void hide_scope_symbols(u32 scope) noexcept;
 
                 SymbolTable();
                 ~SymbolTable() = default;
@@ -87,18 +87,20 @@ namespace Alpha
         {
         public:
                 // clang-format off
-                DEBUG_ALWAYS_INLINE SymbolType type()       const noexcept { return type_; }
-                DEBUG_ALWAYS_INLINE u32 scope()             const noexcept { return scope_; }
+                DEBUG_ALWAYS_INLINE SymbolType type()   const noexcept { return type_; }
+                DEBUG_ALWAYS_INLINE u32 scope()         const noexcept { return scope_; }
                 DEBUG_ALWAYS_INLINE Location location() const noexcept { return location_; }
-                DEBUG_ALWAYS_INLINE bool is_function()      const noexcept { return is_type_function(type_); }
-                DEBUG_ALWAYS_INLINE bool is_variable()      const noexcept { return is_type_varible(type_); }
+                DEBUG_ALWAYS_INLINE bool is_function()  const noexcept { return is_type_function(type_); }
+                DEBUG_ALWAYS_INLINE bool is_variable()  const noexcept { return is_type_varible(type_); }
+                DEBUG_ALWAYS_INLINE const std::string& name() const noexcept { return name_;}
                 // clang-format on
 
         protected:
-                Symbol(u32 scope, SymbolType type, Location location) noexcept
-                    : scope_(scope), type_(type), location_(location) {}
+                Symbol(const std::string &name, u32 scope, SymbolType type, Location location) noexcept
+                    : name_(name), scope_(scope), type_(type), location_(location) {}
 
         private:
+                const std::string &name_;
                 const u32 scope_;
                 const SymbolType type_;
                 const Location location_;
@@ -114,16 +116,16 @@ namespace Alpha
         class SymbolTable::Variable : public Symbol
         {
         public:
-                Variable(u32 scope, SymbolType type, Location location)
-                    : Symbol(scope, type, location) {}
+                Variable(const std::string &name, u32 scope, SymbolType type, Location location)
+                    : Symbol(name, scope, type, location) {}
         };
 
         class SymbolTable::Function : public Symbol
         {
         public:
-                Function(u32 scope, SymbolType type, Location location,
+                Function(const std::string &name, u32 scope, SymbolType type, Location location,
                          const std::list<Parameter> &parameter_list)
-                    : Symbol(scope, type, location), parameter_list_(parameter_list) {}
+                    : Symbol(name, scope, type, location), parameter_list_(parameter_list) {}
 
         private:
                 const std::list<Parameter> parameter_list_;

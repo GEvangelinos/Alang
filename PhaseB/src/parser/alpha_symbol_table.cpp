@@ -23,7 +23,14 @@ namespace Alpha
             "cos",
             "sin"};
 
-        // Can I use here in SymbolTable::SymbolTable() // constructor?
+        template <typename Key, typename Value>
+        const Key &get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
+        {
+                auto [item_it, inserted] = umap.try_emplace(key);
+                SANITY_ASSERT_FALSE(inserted);       // This function is meant to be used for existing keys.
+                const Key &key_ref = item_it->first; // First item part of item is Key, second is Value.
+                return key_ref;
+        }
 
         template <typename T>
         inline constexpr bool always_false = false;
@@ -53,8 +60,9 @@ namespace Alpha
                         if (scope < it->scope())
                                 break;
                 }
-                auto inserted_it = synonym_symbols.emplace(it, SymbolKind(scope, type, location,
-                                                                 std::forward<ArgumentList>(arg_list)...));
+                auto &symbol_name_ref = get_umap_key_ref<SymbolName, std::list<Symbol>>(symbol_map_, symbol_name);
+                auto inserted_it = synonym_symbols.emplace(it, SymbolKind(symbol_name_ref, scope, type, location,
+                                                                          std::forward<ArgumentList>(arg_list)...));
                 return &(*inserted_it);
         }
 
@@ -108,7 +116,7 @@ namespace Alpha
         //    - This shouldn't happen unless lookups are happening *before* insertions.
         // 3) Yeah, I know... this could be 3 lines of elegance...
         //    But it already caught two nasty bugs -- so it's staying!
-        void SymbolTable::hide_scope_symbols(u32 scope)
+        void SymbolTable::hide_scope_symbols(u32 scope) noexcept
         {
                 for (auto &synonym_symbols : symbol_map_)
                 {
