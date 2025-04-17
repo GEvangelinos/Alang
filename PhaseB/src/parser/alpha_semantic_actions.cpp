@@ -48,17 +48,50 @@ namespace // Anonymous
                 error_tracker.register_syntax_error(error, keyword_location);
         }
 
-        void register_function_parameters(SymbolTable &symbol_table, u32 current_scope,
-                                          const std::list<Parameter> &parameter_list)
+        bool DEBUG_ALWAYS_INLINE registered_parameter_name_conflict(const SymbolTable &symbol_table,
+                                                                    u32 current_scope,
+                                                                    const Parameter &parameter,
+                                                                    ErrorTracker &error_tracker)
         {
-                for (const Parameter &parameter : parameter_list)
-                        symbol_table.insert_variable(parameter.name_, SymbolType::FORMAL,
-                                                     current_scope, parameter.location_);
+                // 1) Library‐function conflict
+                if (symbol_table.is_lib_function(parameter.name()))
+                {
+                        const std::string error = std::format(
+                            "`{}` is a library function, cant declare it as formal");
+                        error_tracker.register_syntax_error(error, parameter.location());
+                        return true;
+                }
+                const Symbol *local_symbol = symbol_table.lookup_local(parameter.name(), current_scope);
+                // 2) Parameter‐redeclared conflict
+                if (local_symbol)
+                {
+                        const std::string error = std::format(
+                            "redefinition of parameter `{}`", parameter.name());
+                        const std::string note = std::format(
+                            "previous definition of `{}` here", parameter.name());
+                        error_tracker.register_syntax_error(
+                            error, parameter.location(), note, local_symbol->location());
+                        return true;
+                }
+                return false;
         }
 
-        bool DEBUG_ALWAYS_INLINE registered_function_name_conflicts(SymbolTable &symbol_table, ParseCtx &parse_ctx,
-                                                                    const char *id_name, CodeLocation id_location,
-                                                                    ErrorTracker &error_tracker)
+        void insert_function_parameters(SymbolTable &symbol_table, u32 current_scope,
+                                        const std::list<Parameter> &parameter_list, ErrorTracker &error_tracker)
+        {
+                for (const Parameter &parameter : parameter_list)
+                {
+                        if (registered_parameter_name_conflict(symbol_table, current_scope, parameter, error_tracker))
+                                continue;
+
+                        symbol_table.insert_variable(parameter.name(), SymbolType::FORMAL,
+                                                     current_scope, parameter.location());
+                }
+        }
+
+        bool DEBUG_ALWAYS_INLINE registered_function_name_conflict(SymbolTable &symbol_table, ParseCtx &parse_ctx,
+                                                                   const char *id_name, CodeLocation id_location,
+                                                                   ErrorTracker &error_tracker)
         {
                 if (symbol_table.is_lib_function(id_name))
                 {
@@ -116,6 +149,9 @@ void lvalue__id(SymbolTable &symbol_table, ParseCtx &parse_ctx,
                 const char *id_name, CodeLocation id_location,
                 Symbol **lvalue, ErrorTracker &error_tracker)
 {
+        const u32 current_scope = parse_ctx.current_scope();
+        const Symbol *chain_symbol = symbol_table.lookup_chain(id_name, current_scope);
+        if ()
 }
 
 void lvalue__local_id(
@@ -156,29 +192,28 @@ void funcDef__function_lparen_idList_rparen_block(ParseCtx &parse_ctx)
         parse_ctx.exit_function();
 }
 
-
 void funcDef__function_id_lparen_idList_rparen(SymbolTable &symbol_table, ParseCtx &parse_ctx,
                                                const char *id_name, CodeLocation id_location,
                                                ErrorTracker &error_tracker)
 {
-        if (!registered_function_name_conflicts(symbol_table, parse_ctx, id_name, id_location, error_tracker))
+        if (!registered_function_name_conflict(symbol_table, parse_ctx, id_name, id_location, error_tracker))
                 symbol_table.insert_function(id_name, SymbolType::USERFUNC,
                                              parse_ctx.current_scope(), id_location,
                                              parse_ctx.retrieve_function_parameters());
         parse_ctx.enter_function();
-        register_function_parameters(symbol_table, parse_ctx.current_scope(),
-                                     parse_ctx.extract_function_parameters());
+        insert_function_parameters(symbol_table, parse_ctx.current_scope(),
+                                   parse_ctx.extract_function_parameters(), error_tracker);
         parse_ctx.clear_function_arguments();
 }
 
 void funcDef__function_lparen_idList_rparen(SymbolTable &symbol_table, ParseCtx &parse_ctx,
-                                            CodeLocation function_location)
+                                            CodeLocation function_location, ErrorTracker &error_tracker)
 {
         symbol_table.insert_anonymous(parse_ctx.current_scope(), function_location,
                                       parse_ctx.retrieve_function_parameters());
         parse_ctx.enter_function();
-        register_function_parameters(symbol_table, parse_ctx.current_scope(),
-                                     parse_ctx.extract_function_parameters());
+        insert_function_parameters(symbol_table, parse_ctx.current_scope(),
+                                   parse_ctx.extract_function_parameters(), error_tracker);
         parse_ctx.clear_function_arguments();
 }
 

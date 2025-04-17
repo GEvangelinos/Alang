@@ -60,15 +60,15 @@ namespace Alpha
                 void insert_anonymous(u32 scope, CodeLocation location,
                                       const std::list<Parameter> &argument_list);
 
-                const Symbol *lookup_global(const std::string &symbol_name) const noexcept;
-                const Symbol *lookup_chain(const std::string &symbol_name, u32 scope) const noexcept;
-                const Symbol *lookup_local(const std::string &symbol_name, u32 scope) const noexcept;
+                const Symbol *lookup_global(const std::string &symbol_name) const;
+                const Symbol *lookup_chain(const std::string &symbol_name, u32 scope) const;
+                const Symbol *lookup_local(const std::string &symbol_name, u32 scope) const;
 
                 // TODO: REMOVE following:
                 // const Symbol *lookup_function(const std::string &symbol_name) const;
                 // const Symbol *lookup_variable(const std::string &symbol_name) const;
 
-                bool is_lib_function(const std::string &symbol_name);
+                bool is_lib_function(const std::string &symbol_name) const;
 
                 void hide_scope_symbols(u32 scope);
 

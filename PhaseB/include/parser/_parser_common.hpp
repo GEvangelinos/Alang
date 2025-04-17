@@ -7,12 +7,16 @@ namespace Alpha
 {
         class Parameter
         {
-        public:
-                const std::string &name_;
+        private:
+                const std::string name_;
                 const CodeLocation location_;
 
+        public:
                 Parameter(const std::string &name, CodeLocation location)
                     : name_(name), location_(location) {}
+
+                DEBUG_ALWAYS_INLINE const std::string &name() const noexcept { return name_; }
+                DEBUG_ALWAYS_INLINE CodeLocation location() const noexcept { return location_; }
         };
 } // namespace Alpha
 #endif //_PARSER_COMMON_HPP

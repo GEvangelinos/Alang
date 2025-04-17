@@ -61,12 +61,14 @@ if(ENABLE_IWYU)
 endif()
 
 if(DEBUG_MODE)
+        add_compile_options(-g)
         add_compile_definitions(DEBUG_MODE)
         message(WARNING "CMAKE: Running with DEBUG_MODE ON")
 endif()
 
 if(SANITY_MODE)
         add_compile_definitions(SANITY_MODE)
+        add_compile_options(-Wexceptions)
         message(WARNING "CMAKE: Running with SANITY_MODE ON")
 endif()
 

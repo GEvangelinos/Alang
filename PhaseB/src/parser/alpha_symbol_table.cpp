@@ -116,7 +116,7 @@ namespace Alpha
                 }
         }
 
-        bool SymbolTable::is_lib_function(const std::string &symbol_name)
+        bool SymbolTable::is_lib_function(const std::string &symbol_name) const
         {
                 return library_function_set_.contains(symbol_name);
         }
@@ -132,7 +132,7 @@ namespace Alpha
                 }
         }
 
-        const Symbol *SymbolTable::lookup_local(const std::string &symbol_name, u32 scope) const noexcept
+        const Symbol *SymbolTable::lookup_local(const std::string &symbol_name, u32 scope) const
         {
                 // Does `symbol_name` exist ?
                 const auto it = symbol_map_.find(symbol_name);
@@ -152,7 +152,7 @@ namespace Alpha
                 return nullptr;
         }
 
-        const Symbol *SymbolTable::lookup_global(const std::string &symbol_name) const noexcept
+        const Symbol *SymbolTable::lookup_global(const std::string &symbol_name) const
         {
                 // Does `symbol_name` exist ?
                 const auto it = symbol_map_.find(symbol_name);
@@ -166,13 +166,14 @@ namespace Alpha
                 return nullptr;
         }
 
-        const Symbol *SymbolTable::lookup_chain(const std::string &symbol_name, u32 scope) const noexcept
+        const Symbol *SymbolTable::lookup_chain(const std::string &symbol_name, u32 scope) const
         {
                 // Does `symbol_name` exist ?
                 const auto it = symbol_map_.find(symbol_name);
                 if (it == symbol_map_.end())
                         return nullptr;
 
+                // We search from inner to outer scope (end to begin)
                 const auto &scope_list = it->second;
                 for (auto symbol_it = scope_list.crbegin(); symbol_it != scope_list.crend(); ++symbol_it)
                         if (symbol_it->scope() <= scope && symbol_it->is_active())
