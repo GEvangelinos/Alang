@@ -32,38 +32,27 @@ namespace Alpha
                 return key_ref;
         }
 
-        template <typename T>
-        inline constexpr bool always_false = false;
-
-        template <typename SymbolKind, typename... ArgumentList>
+        template <typename SymbolKind, typename... ParameterList>
+                requires(std::is_same_v<SymbolKind, SymbolTable::Variable> ||
+                         std::is_same_v<SymbolKind, SymbolTable::Function>)
         const Symbol *SymbolTable::insert_symbol(const std::string &symbol_name, SymbolType type,
-                                                 u32 scope, Location location, ArgumentList &&...arg_list)
+                                                 u32 scope, Location location, ParameterList &&...arg_list)
         {
-                if constexpr (std::is_same_v<SymbolKind, Variable>)
-                        static_assert(sizeof...(arg_list) == 0, "Variables do not take arguments");
-                else if constexpr (std::is_same_v<SymbolKind, Function>)
-                        static_assert(sizeof...(arg_list) == 1, "Functions take exactly 1 argument list");
-                else
-                        static_assert(always_false<SymbolKind>, "insert_symbol() accepts only Variable or Function");
-
                 SANITY_ASSERT_GT(symbol_name.size(), 0);
 
-                // All symbols with same symbol_name (on different scopes).
-                std::list<Symbol> &synonym_symbols = symbol_map_[symbol_name];
+                auto &[symbol_name_ref, synonym_symbols] = *symbol_map_.try_emplace(symbol_name).first;
 
                 auto it = synonym_symbols.begin();
                 for (; it != synonym_symbols.end(); ++it)
                 {
                         // Same scope and active symbol before insert is error
                         // User of `insert_FUNCTION` should do lookup_first.
-                        SANITY_ASSERT_FALSE(scope == it->scope() && it->is_active());
-                        if (scope < it->scope())
+                        SANITY_ASSERT_FALSE(it->scope() == scope && it->is_active());
+                        if (it->scope() > scope)
                                 break;
                 }
-                auto &symbol_name_ref = get_umap_key_ref<SymbolName, std::list<Symbol>>(symbol_map_, symbol_name);
-                auto inserted_it = synonym_symbols.emplace(it, SymbolKind(symbol_name_ref, scope, type, location,
-                                                                          std::forward<ArgumentList>(arg_list)...));
-                return &(*inserted_it);
+                SymbolKind new_symbol(symbol_name_ref, scope, type, location, std::forward<ParameterList>(arg_list)...);
+                return &*synonym_symbols.emplace(it, std::move(new_symbol));
         }
 
         // Explicit instantiations for insert_symbol()
@@ -128,8 +117,8 @@ namespace Alpha
                                         continue;
                                 if (scope > symbol.scope()) // After deactivation we should exit from here
                                         break;
-                                SANITY_ASSERT_FALSE(deactivated_symbols == 0 && symbol.is_active());
-                                symbol.deactivate(); // Check if already deactivates is redundant.
+                                SANITY_ASSERT_FALSE(deactivated_symbols > 0 && symbol.is_active());
+                                symbol.deactivate(); // Check if already deactivated is redundant.
                                 SANITY_CODE(++deactivated_symbols);
                         }
                 }

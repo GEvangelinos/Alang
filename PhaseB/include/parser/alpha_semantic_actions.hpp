@@ -18,6 +18,26 @@ void loopCtrlStmt__continue(
     Location continue_location,
     ErrorTracker &et);
 
+void term__inc_lvalue(
+    const Symbol *lvalue,
+    Location term_location,
+    ErrorTracker &et);
+
+void term__lvalue_inc(
+    const Symbol *lvalue,
+    Location term_location,
+    ErrorTracker &et);
+
+void term__dec_lvalue(
+    const Symbol *lvalue,
+    Location term_location,
+    ErrorTracker &et);
+
+void term__lvalue_dec(
+    const Symbol *lvalue,
+    Location term_location,
+    ErrorTracker &et);
+
 void lvalue__id(
     SymbolTable &st,
     ParseCtx &parse_ctx,

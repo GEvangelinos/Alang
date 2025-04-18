@@ -149,6 +149,23 @@ namespace // Anonymous
                     std::list<CodeMessage>{{note1, current_function_location},
                                            {note2, resolved_symbol->location()}});
         }
+
+        inline constexpr char k_increment_str[] = "increment";
+        inline constexpr char k_decrement_str[] = "decrement";
+
+        template <const char * op_name>
+        void term__lvalue_op(
+            const Symbol *lvalue,
+            Location term_location,
+            ErrorTracker &et)
+        {
+                if (lvalue == nullptr)
+                        return;
+                if (lvalue->is_variable())
+                        return;
+                std::string error = std::format("{} operator can not be used on function", op_name);
+                et.register_syntax_error(error, term_location);
+        }
 } // namespace Anonymous
 
 // +-----------------------------------------------------------------+
@@ -243,6 +260,38 @@ void assignExpr__lvalue_assign_expr(
 
         std::string error = std::format("assignment of function `{}`", lvalue->name());
         et.register_syntax_error(error, assignExpr_location);
+}
+
+void term__inc_lvalue(
+    const Symbol *lvalue,
+    Location term_location,
+    ErrorTracker &et)
+{
+        term__lvalue_op<k_increment_str>(lvalue, term_location, et);
+}
+
+void term__lvalue_inc(
+    const Symbol *lvalue,
+    Location term_location,
+    ErrorTracker &et)
+{
+        term__lvalue_op<k_increment_str>(lvalue, term_location, et);
+}
+
+void term__dec_lvalue(
+    const Symbol *lvalue,
+    Location term_location,
+    ErrorTracker &et)
+{
+        term__lvalue_op<k_decrement_str>(lvalue, term_location, et);
+}
+
+void term__lvalue_dec(
+    const Symbol *lvalue,
+    Location term_location,
+    ErrorTracker &et)
+{
+        term__lvalue_op<k_decrement_str>(lvalue, term_location, et);
 }
 
 void lvalue__global_id(

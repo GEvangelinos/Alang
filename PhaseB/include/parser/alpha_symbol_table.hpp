@@ -74,9 +74,11 @@ namespace Alpha
                 class Variable;
                 class Function;
 
-                template <typename SymbolKind, typename... ArgumentList>
+                template <typename SymbolKind, typename... ParameterList>
+                        requires(std::is_same_v<SymbolKind, Variable> ||
+                                 std::is_same_v<SymbolKind, Function>)
                 const Symbol *insert_symbol(const std::string &symbol_name, SymbolType type,
-                                            u32 scope, Location location, ArgumentList &&...arg_list);
+                                            u32 scope, Location location, ParameterList &&...arg_list);
 
                 u32 anonymous_counter_;
                 std::unordered_map<SymbolName, std::list<Symbol>> symbol_map_;

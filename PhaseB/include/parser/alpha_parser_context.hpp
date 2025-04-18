@@ -99,8 +99,6 @@ namespace Alpha
         ParseCtx::ParseCtx()
             : current_scope_(k_global_scope)
         {
-                skip_next_scope_increment_.disable();
-
                 // We push a stackframe, for loops that might occur outside functions.
                 // So every frame corresponds to a function except the first.
                 frame_stack_.emplace(FunctionDataFrame(k_global_data_frame_name, k_global_scope, {0, 0}));

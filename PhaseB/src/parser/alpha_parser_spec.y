@@ -181,10 +181,11 @@ term:
   '(' expr ')'
 | '-' expr %prec UMINUS
 | NOT expr
-| INC lvalue
-| lvalue  INC
-| DEC lvalue
-| lvalue DEC
+| INC lvalue { term__inc_lvalue($2, @$, error_tracker); }
+| lvalue INC { term__lvalue_inc($1, @$, error_tracker); }
+| DEC lvalue { term__dec_lvalue($2, @$, error_tracker); }
+| lvalue DEC { term__lvalue_dec($1, @$, error_tracker); }
+
 | primary                                 
 ;
 
