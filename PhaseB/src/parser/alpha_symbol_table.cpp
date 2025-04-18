@@ -9,27 +9,34 @@
 
 namespace Alpha
 {
-        std::initializer_list<SymbolTable::SymbolName> library_function_names = {
-            "print",
-            "input",
-            "objectmemberkeys",
-            "objecttotalmembers",
-            "objectcopy",
-            "totalarguments",
-            "argument",
-            "typeof",
-            "strtonum",
-            "sqrt",
-            "cos",
-            "sin"};
-
-        template <typename Key, typename Value>
-        const Key &get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
+        namespace detail
         {
-                auto [item_it, inserted] = umap.try_emplace(key);
-                SANITY_ASSERT_FALSE(inserted);       // This function is meant to be used for existing keys.
-                const Key &key_ref = item_it->first; // First item part of item is Key, second is Value.
-                return key_ref;
+                template <typename Key, typename Value>
+                const Key &get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
+                {
+                        auto [item_it, inserted] = umap.try_emplace(key);
+                        SANITY_ASSERT_FALSE(inserted);       // This function is meant to be used for existing keys.
+                        const Key &key_ref = item_it->first; // First item part of item is Key, second is Value.
+                        return key_ref;
+                }
+
+                template <typename SynonymContainer>
+                typename SynonymContainer::const_iterator
+                find_insert_position(const SynonymContainer &synonym_symbols, u32 scope)
+                {
+                        auto symbol_it = synonym_symbols.begin();
+                        for (; symbol_it != synonym_symbols.end(); ++symbol_it)
+                        {
+                                // Same scope and active symbol before insert is error
+                                // User of `insert_FUNCTION` should do lookup_first.
+                                SANITY_ASSERT_FALSE(symbol_it->scope() == scope &&
+                                                    symbol_it->is_active());
+                                if (symbol_it->scope() > scope)
+                                        break;
+                        }
+                        return symbol_it;
+                }
+
         }
 
         template <typename SymbolKind, typename... ParameterList>
@@ -39,20 +46,17 @@ namespace Alpha
                                                  u32 scope, Location location, ParameterList &&...arg_list)
         {
                 SANITY_ASSERT_GT(symbol_name.size(), 0);
-
-                auto &[symbol_name_ref, synonym_symbols] = *symbol_map_.try_emplace(symbol_name).first;
-
-                auto it = synonym_symbols.begin();
-                for (; it != synonym_symbols.end(); ++it)
-                {
-                        // Same scope and active symbol before insert is error
-                        // User of `insert_FUNCTION` should do lookup_first.
-                        SANITY_ASSERT_FALSE(it->scope() == scope && it->is_active());
-                        if (it->scope() > scope)
-                                break;
-                }
+                auto [symbol_map_it, _] = symbol_map_.try_emplace(symbol_name);
+                auto &symbol_name_ref = symbol_map_it->first;
+                auto &synonym_symbols = symbol_map_it->second;
+                auto symbol_it = detail::find_insert_position(synonym_symbols, scope);
                 SymbolKind new_symbol(symbol_name_ref, scope, type, location, std::forward<ParameterList>(arg_list)...);
-                return &*synonym_symbols.emplace(it, std::move(new_symbol));
+                auto list_it = synonym_symbols.emplace(symbol_it, std::move(new_symbol));
+                const Symbol *symbol_ptr = &*list_it;
+                if (scope >= symbols_per_scope_.size())
+                        symbols_per_scope_.resize(scope + 1);
+                symbols_per_scope_[scope].push_back(symbol_ptr);
+                return symbol_ptr;
         }
 
         // Explicit instantiations for insert_symbol()
@@ -61,6 +65,11 @@ namespace Alpha
 
         template const Symbol *SymbolTable::insert_symbol<SymbolTable::Function>(
             const std::string &, SymbolType, u32, Location, std::list<Parameter> &&);
+
+        const std::vector<std::vector<const Symbol *>> &SymbolTable::symbols_per_scope() const
+        {
+                return symbols_per_scope_;
+        }
 
         const Symbol *SymbolTable::insert_global(const std::string &symbol_name, Location location)
         {

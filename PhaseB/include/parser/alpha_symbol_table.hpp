@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <list>
 #include <string>
+#include <set>
 #include <unordered_map>
 #include <vector>
 #include <stack>
@@ -43,6 +44,30 @@ namespace Alpha
         {
         public:
                 using SymbolName = std::string;
+                using SymbolMap = std::unordered_map<SymbolName, std::list<Symbol>>;
+                using ScopeID = u32;
+                
+                std::initializer_list<SymbolTable::SymbolName> library_function_names = {
+                    "print",
+                    "input",
+                    "objectmemberkeys",
+                    "objecttotalmembers",
+                    "objectcopy",
+                    "totalarguments",
+                    "argument",
+                    "typeof",
+                    "strtonum",
+                    "sqrt",
+                    "cos",
+                    "sin"};
+
+                SymbolTable();
+                ~SymbolTable() = default;
+                SymbolTable(const SymbolTable &) = delete;
+                SymbolTable(const SymbolTable &&) = delete;
+                SymbolTable &operator=(const SymbolTable &) = delete;
+                SymbolTable &operator=(const SymbolTable &&) = delete;
+
                 const Symbol *insert_global(const std::string &symbol_name, Location location);
                 const Symbol *insert_formal(const std::string &symbol_name, u32 scope,
                                             Location location);
@@ -67,8 +92,8 @@ namespace Alpha
 
                 void hide_scope_symbols(u32 scope) noexcept;
 
-                SymbolTable();
-                ~SymbolTable() = default;
+                const std::vector<std::vector<const Symbol *>> &
+                symbols_per_scope() const;
 
         private:
                 class Variable;
@@ -81,7 +106,8 @@ namespace Alpha
                                             u32 scope, Location location, ParameterList &&...arg_list);
 
                 u32 anonymous_counter_;
-                std::unordered_map<SymbolName, std::list<Symbol>> symbol_map_;
+                SymbolMap symbol_map_;
+                std::vector<std::vector<const Symbol *>> symbols_per_scope_;
                 std::unordered_set<SymbolName> library_function_set_;
         };
 
@@ -95,6 +121,7 @@ namespace Alpha
                 DEBUG_ALWAYS_INLINE bool is_function()  const noexcept { return is_type_function(type_); }
                 DEBUG_ALWAYS_INLINE bool is_variable()  const noexcept { return is_type_varible(type_); }
                 DEBUG_ALWAYS_INLINE const std::string& name() const noexcept { return name_;}
+                DEBUG_ALWAYS_INLINE bool is_active() const noexcept { return is_active_; }
                 // clang-format on
 
         protected:
@@ -108,7 +135,6 @@ namespace Alpha
                 const Location location_;
                 bool is_active_;
 
-                DEBUG_ALWAYS_INLINE bool is_active() const noexcept { return is_active_; }
                 DEBUG_ALWAYS_INLINE void activate() noexcept { is_active_ = true; }
                 DEBUG_ALWAYS_INLINE void deactivate() noexcept { is_active_ = false; }
 

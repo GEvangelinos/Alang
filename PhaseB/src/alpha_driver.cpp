@@ -37,8 +37,8 @@ static void load_file_to_input_buffer(const std::string &filename, std::unique_p
 }
 
 static void configure_lexer_input(const std::string &input_filename,
-                                std::unique_ptr<char[]> &lexer_input_buffer,
-                                YY_BUFFER_STATE *lexer_buffer_state)
+                                  std::unique_ptr<char[]> &lexer_input_buffer,
+                                  YY_BUFFER_STATE *lexer_buffer_state)
 {
         if (!std::filesystem::is_regular_file(input_filename))
                 std::cerr << "Redirecting to STDIN: " << input_filename << " is not a regular file." << std::endl;
@@ -59,7 +59,7 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
 {
         const std::string alpha_driver_description = "A tool for syntactical analysis on programming language Alpha"; // TODO: put in static header.
         Arguinator::Parser parser(argc, argv, alpha_driver_description);
-        parser.set_flag("input-file") // TODO: put in static header: MAYBE? or in constexpr here? :w
+        parser.set_flag("input-file")                                          // TODO: put in static header: MAYBE? or in constexpr here? :w
             .set_help("Use flag to provide the alpha file you want to parse.") // TODO: Put in static header
             .set_arity(1)
             .set_required();
@@ -88,6 +88,12 @@ static void launch_alpha_parser(const std::string &input_filename)
         int returnValue = alpha_yyparse(lexer_ctx, parse_ctx, st, et);
         std::cout << "alpha_yyparse return value: " << returnValue << std::endl; // TODO: UGLY AS FUCK FIX.
         alpha_yy_delete_buffer(lexer_buffer_state);
+}
+
+void display_symbol_table_contents(const Alpha::SymbolTable &st)
+{
+        const auto &symbol_per_scope_vector = st.symbols_per_scope();
+
 }
 
 int main(int argc, char **argv)
