@@ -70,7 +70,7 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
         return parser;
 }
 
-void display_symbol_table(const Alpha::SymbolTable &st, const Alpha::LocationTracker &lt)
+static void display_symbol_table(const Alpha::SymbolTable &st, const Alpha::LocationTracker &lt)
 {
         std::cout << COLOR_ASCII_FG_BLUE;
         const auto &symbol_per_scope_vector = st.symbols_per_scope();
@@ -83,15 +83,19 @@ void display_symbol_table(const Alpha::SymbolTable &st, const Alpha::LocationTra
                 std::cout << std::format("--------------------     Scope #{}     --------------------\n", scope);
                 for (auto symbol_ptr : symbol_per_scope_vector[scope])
                         std::cout << std::format(
-                            "\"{}\" [{}] (line {}) (scope {})\n",
+                            "\"{}\" [{}] (line {}[B:{}, E:{}]) (scope {})\n",
                             symbol_ptr->name(),
                             Alpha::to_string(symbol_ptr->type()),
                             lt.find_symbol_line(symbol_ptr->location()),
+                            symbol_ptr->location().first_index_,
+                            symbol_ptr->location().last_index_,
+
                             symbol_ptr->scope());
                 std::cout << std::endl;
         }
         std::cout << SGR_RESET;
 }
+
 static void launch_alpha_parser(const std::string &input_filename)
 {
         Alpha::LexerCtx lexer_ctx(input_filename);
@@ -116,9 +120,13 @@ static void launch_alpha_parser(const std::string &input_filename)
         display_symbol_table(st, lt);
         alpha_yy_delete_buffer(lexer_buffer_state);
 }
-
+#include <filesystem>
 int main(int argc, char **argv)
 {
         Arguinator::Parser cli_parser = launch_cli_parser(argc, argv);
-        launch_alpha_parser(cli_parser("input-file"));
+
+        std::cout << std::filesystem::current_path() << std::endl;
+        // TODO :put together
+        const std::string &file_name = cli_parser("input-file");
+        launch_alpha_parser(file_name);
 }
