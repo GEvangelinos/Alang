@@ -57,6 +57,45 @@ KEYWORDS of my exercise
 
 27) Sort implementation funtions in .cpp so that they appear in same order as in .hpp
 
+28) A meh idea: Strip .y from function calls completely. and make your python script ad the functions (based on what's available in semantic_rule.hpp)
+
+
+29) Pass through valgrind
+
+28) Pass through clang sanitizers
+
+29) Switch to k_, s_, m_  system. instead of suffix k_
+
+30) use this->  members (try it.. you can do global search and replace between m_ and this->)
+
+31) Read you whole code and add sanity assert in critical parts or edge cases. 
+✅ Syntax Error:
+
+A violation of the grammar rules of the language.
+
+    ❌ "if (x 5)" → missing operator
+
+    ❌ "int return;" → invalid statement structure
+
+🧠 Detected by: Parser
+✅ Semantic Error:
+
+Code that is grammatically correct but meaningfully invalid in the language.
+
+    ❌ "x = y + true;" → type mismatch
+
+    ❌ "return x;" in a void function
+
+    ❌ Using undeclared variables
+
+🧠 Detected by: Semantic analysis phase (after parsing)
+⚖️ TL;DR:
+Error Type	Example	Detected By	When?
+Syntax	Missing ;, bad structure	Parser	During parsing
+Semantic	Type errors, undeclared names	Analyzer	After parsing
+
+Both are compile-time errors, but they come from different stages.
+
 
 because map already stores
 SEPERATION OF CONCERNS
