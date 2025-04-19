@@ -11,6 +11,8 @@
 #include "alpha_scanner.hpp"
 #include "alpha_parser.hpp"
 #include "core/alpha_error_tracker.hpp"
+#include "core/alpha_types.hpp"
+#include "misc/cli_color.h"
 
 static std::streamsize filesize(std::ifstream &inputFile)
 {
@@ -19,6 +21,7 @@ static std::streamsize filesize(std::ifstream &inputFile)
         inputFile.seekg(0, std::ios::beg);
         return filesize;
 }
+
 static void load_file_to_input_buffer(const std::string &filename, std::unique_ptr<char[]> &lexer_input_buffer)
 {
         constexpr auto flex_buffer_end_padding = 2;
@@ -67,12 +70,35 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
         return parser;
 }
 
+void display_symbol_table(const Alpha::SymbolTable &st, const Alpha::LocationTracker &lt)
+{
+        std::cout << COLOR_ASCII_FG_BLUE;
+        const auto &symbol_per_scope_vector = st.symbols_per_scope();
+        for (Alpha::u32 scope = Alpha::k_global_scope;
+             scope < symbol_per_scope_vector.size();
+             scope++)
+        {
+                // if (symbol_per_scope_vector[scope].empty())
+                //         continue;
+                std::cout << std::format("--------------------     Scope #{}     --------------------\n", scope);
+                for (auto symbol_ptr : symbol_per_scope_vector[scope])
+                        std::cout << std::format(
+                            "\"{}\" [{}] (line {}) (scope {})\n",
+                            symbol_ptr->name(),
+                            Alpha::to_string(symbol_ptr->type()),
+                            lt.find_symbol_line(symbol_ptr->location()),
+                            symbol_ptr->scope());
+                std::cout << std::endl;
+        }
+        std::cout << SGR_RESET;
+}
 static void launch_alpha_parser(const std::string &input_filename)
 {
         Alpha::LexerCtx lexer_ctx(input_filename);
         Alpha::ParseCtx parse_ctx;
         Alpha::SymbolTable st;
         Alpha::ErrorTracker et;
+        Alpha::LocationTracker lt;
         YY_BUFFER_STATE lexer_buffer_state;
         std::unique_ptr<char[]> lexer_input_buffer;
         try
@@ -85,15 +111,10 @@ static void launch_alpha_parser(const std::string &input_filename)
                 constexpr int severeError = 2;
                 std::exit(severeError);
         }
-        int returnValue = alpha_yyparse(lexer_ctx, parse_ctx, st, et);
+        int returnValue = alpha_yyparse(lexer_ctx, parse_ctx, st, et, lt);
         std::cout << "alpha_yyparse return value: " << returnValue << std::endl; // TODO: UGLY AS FUCK FIX.
+        display_symbol_table(st, lt);
         alpha_yy_delete_buffer(lexer_buffer_state);
-}
-
-void display_symbol_table_contents(const Alpha::SymbolTable &st)
-{
-        const auto &symbol_per_scope_vector = st.symbols_per_scope();
-
 }
 
 int main(int argc, char **argv)

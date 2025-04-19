@@ -9,7 +9,7 @@
 
 namespace Alpha
 {
-        namespace detail
+        namespace Detail
         {
                 template <typename Key, typename Value>
                 const Key &get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
@@ -21,7 +21,7 @@ namespace Alpha
                 }
 
                 template <typename SynonymContainer>
-                typename SynonymContainer::const_iterator
+                DEBUG_ALWAYS_INLINE typename SynonymContainer::const_iterator
                 find_insert_position(const SynonymContainer &synonym_symbols, u32 scope)
                 {
                         auto symbol_it = synonym_symbols.begin();
@@ -37,6 +37,12 @@ namespace Alpha
                         return symbol_it;
                 }
 
+                void ensure_scope_slot(auto &symbols_per_scope, u32 scope)
+                {
+                        if (scope >= symbols_per_scope.size())
+                                symbols_per_scope.resize(scope + 1);
+                }
+
         }
 
         template <typename SymbolKind, typename... ParameterList>
@@ -49,12 +55,10 @@ namespace Alpha
                 auto [symbol_map_it, _] = symbol_map_.try_emplace(symbol_name);
                 auto &symbol_name_ref = symbol_map_it->first;
                 auto &synonym_symbols = symbol_map_it->second;
-                auto symbol_it = detail::find_insert_position(synonym_symbols, scope);
+                auto symbol_it = Detail::find_insert_position(synonym_symbols, scope);
                 SymbolKind new_symbol(symbol_name_ref, scope, type, location, std::forward<ParameterList>(arg_list)...);
-                auto list_it = synonym_symbols.emplace(symbol_it, std::move(new_symbol));
-                const Symbol *symbol_ptr = &*list_it;
-                if (scope >= symbols_per_scope_.size())
-                        symbols_per_scope_.resize(scope + 1);
+                const Symbol *symbol_ptr = &*synonym_symbols.emplace(symbol_it, std::move(new_symbol));
+                Detail::ensure_scope_slot(symbols_per_scope_, scope);
                 symbols_per_scope_[scope].push_back(symbol_ptr);
                 return symbol_ptr;
         }
@@ -65,11 +69,6 @@ namespace Alpha
 
         template const Symbol *SymbolTable::insert_symbol<SymbolTable::Function>(
             const std::string &, SymbolType, u32, Location, std::list<Parameter> &&);
-
-        const std::vector<std::vector<const Symbol *>> &SymbolTable::symbols_per_scope() const
-        {
-                return symbols_per_scope_;
-        }
 
         const Symbol *SymbolTable::insert_global(const std::string &symbol_name, Location location)
         {
@@ -142,9 +141,9 @@ namespace Alpha
             : anonymous_counter_(0)
         {
                 // Load library functions
-                for (SymbolName name : library_function_names)
+                for (SymbolName name : k_library_function_names)
                 {
-                        insert_function(name, SymbolType::LIBFUNC, 0, Location(0, 0), {});
+                        insert_function(name, SymbolType::LIBFUNC, k_global_scope, Location(0, 0), {});
                         library_function_set_.insert(name);
                 }
         }

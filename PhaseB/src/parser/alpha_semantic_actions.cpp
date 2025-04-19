@@ -48,7 +48,7 @@ namespace // Anonymous
 
                 std::string keyword_name = Loop::to_string(keyword);
                 std::string error = std::format("`{}` statement not in a loop statement", keyword_name);
-                et.register_syntax_error(error, keyword_location);
+                et.report_syntax_error(error, keyword_location);
         }
 
         bool DEBUG_ALWAYS_INLINE reported_parameter_name_conflict(
@@ -62,7 +62,7 @@ namespace // Anonymous
                 {
                         const std::string error = std::format(
                             "`{}` is a library function, can't declare it as formal", parameter.name());
-                        et.register_syntax_error(error, parameter.location());
+                        et.report_syntax_error(error, parameter.location());
                         return true;
                 }
                 const Symbol *formal_symbol = st.lookup_local(parameter.name(), current_scope);
@@ -75,7 +75,7 @@ namespace // Anonymous
                             "redefinition of parameter `{}`", parameter.name());
                         const std::string note = std::format(
                             "previous definition of `{}` here", parameter.name());
-                        et.register_syntax_error(
+                        et.report_syntax_error(
                             error, parameter.location(), note, formal_symbol->location());
                         return true;
                 }
@@ -107,7 +107,7 @@ namespace // Anonymous
                 if (st.is_lib_function(id_name))
                 {
                         const std::string error = std::format("redefinition of library function `{}`", id_name);
-                        et.register_syntax_error(error, id_location);
+                        et.report_syntax_error(error, id_location);
                         return true;
                 }
 
@@ -118,13 +118,13 @@ namespace // Anonymous
                 {
                         const std::string error = std::format("redefinition of `function {}`", id_name);
                         const std::string note = std::format("previous definition of `function {}` here", id_name);
-                        et.register_syntax_error(error, id_location, note, resolved_symbol->location());
+                        et.report_syntax_error(error, id_location, note, resolved_symbol->location());
                 }
                 else if (resolved_symbol->is_variable())
                 {
                         const std::string error = std::format("`{}` defined as a function", id_name);
                         const std::string note = std::format("`{}` previously defined as a variable here", id_name);
-                        et.register_syntax_error(error, id_location, note, resolved_symbol->location());
+                        et.report_syntax_error(error, id_location, note, resolved_symbol->location());
                 }
                 return true;
         }
@@ -144,7 +144,7 @@ namespace // Anonymous
                     "current function `{}` declared here", current_function_name);
                 const std::string note2 = std::format(
                     "variable `{}` declared here", id_name);
-                et.register_syntax_error(
+                et.report_syntax_error(
                     error, id_location,
                     std::list<CodeMessage>{{note1, current_function_location},
                                            {note2, resolved_symbol->location()}});
@@ -164,7 +164,7 @@ namespace // Anonymous
                 if (lvalue->is_variable())
                         return;
                 std::string error = std::format("{} operator can not be used on function", op_name);
-                et.register_syntax_error(error, term_location);
+                et.report_syntax_error(error, term_location);
         }
 } // namespace Anonymous
 
@@ -196,7 +196,7 @@ void funcCtrlStmt__return(
                 return;
 
         std::string error = "`return` statement not in a function statement";
-        et.register_syntax_error(error, return_location);
+        et.report_syntax_error(error, return_location);
 }
 
 void lvalue__id(
@@ -236,7 +236,7 @@ void lvalue__local_id(
         if (st.is_lib_function(id_name))
         {
                 std::string error = std::format("shadowing of library function `{}`", id_name);
-                et.register_syntax_error(error, id_location);
+                et.report_syntax_error(error, id_location);
                 *lvalue = st.lookup_global(id_name);
                 SANITY_ASSERT_TRUE(*lvalue != nullptr); // a library function is always resolved at global scope.
                 return;
@@ -259,7 +259,7 @@ void assignExpr__lvalue_assign_expr(
                 return;
 
         std::string error = std::format("assignment of function `{}`", lvalue->name());
-        et.register_syntax_error(error, assignExpr_location);
+        et.report_syntax_error(error, assignExpr_location);
 }
 
 void term__inc_lvalue(
@@ -306,7 +306,7 @@ void lvalue__global_id(
                 return;
 
         std::string error = std::format("variable `::{}` not found in global scope", id_name);
-        et.register_syntax_error(error, id_location);
+        et.report_syntax_error(error, id_location);
 }
 
 void block__lbrace(ParseCtx &parse_ctx) noexcept

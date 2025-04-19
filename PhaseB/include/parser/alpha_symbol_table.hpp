@@ -20,8 +20,22 @@
 
 namespace Alpha
 {
+
         class Symbol;
-        using SymbolTableEntry = Symbol;
+
+        const std::initializer_list<std::string> k_library_function_names = {
+            "print",
+            "input",
+            "objectmemberkeys",
+            "objecttotalmembers",
+            "objectcopy",
+            "totalarguments",
+            "argument",
+            "typeof",
+            "strtonum",
+            "sqrt",
+            "cos",
+            "sin"};
 
         enum class SymbolType
         {
@@ -32,13 +46,29 @@ namespace Alpha
                 LIBFUNC
         };
 
+        inline std::string_view to_string(SymbolType type)
+        {
+                switch (type)
+                {
+                case Alpha::SymbolType::LIBFUNC:
+                        return "LIBRARY FUNCTION";
+                case Alpha::SymbolType::GLOBAL:
+                        return "GLOBAL VARIABLE";
+                case Alpha::SymbolType::USERFUNC:
+                        return "USER FUNCTION";
+                case Alpha::SymbolType::FORMAL:
+                        return "FORMAL ARGUMENT";
+                case Alpha::SymbolType::LOCAL:
+                        return "LOCAL VARIABLE";
+                }
+                UNREACHABLE("You forgot to register a `SymbolType`");
+        }
+
         static DEBUG_ALWAYS_INLINE bool is_type_function(SymbolType type)
         {
                 return type == SymbolType::LIBFUNC ||
                        type == SymbolType::USERFUNC;
         }
-
-        static DEBUG_ALWAYS_INLINE bool is_type_varible(SymbolType type) { return !is_type_function(type); }
 
         class SymbolTable
         {
@@ -46,20 +76,6 @@ namespace Alpha
                 using SymbolName = std::string;
                 using SymbolMap = std::unordered_map<SymbolName, std::list<Symbol>>;
                 using ScopeID = u32;
-                
-                std::initializer_list<SymbolTable::SymbolName> library_function_names = {
-                    "print",
-                    "input",
-                    "objectmemberkeys",
-                    "objecttotalmembers",
-                    "objectcopy",
-                    "totalarguments",
-                    "argument",
-                    "typeof",
-                    "strtonum",
-                    "sqrt",
-                    "cos",
-                    "sin"};
 
                 SymbolTable();
                 ~SymbolTable() = default;
@@ -84,16 +100,11 @@ namespace Alpha
                 const Symbol *lookup_chain(const std::string &symbol_name, u32 scope) const;
                 const Symbol *lookup_local(const std::string &symbol_name, u32 scope) const;
 
-                // TODO: REMOVE following:
-                // const Symbol *lookup_function(const std::string &symbol_name) const;
-                // const Symbol *lookup_variable(const std::string &symbol_name) const;
-
                 bool is_lib_function(const std::string &symbol_name) const;
 
                 void hide_scope_symbols(u32 scope) noexcept;
 
-                const std::vector<std::vector<const Symbol *>> &
-                symbols_per_scope() const;
+                const auto &symbols_per_scope() const { return symbols_per_scope_; }
 
         private:
                 class Variable;
@@ -110,6 +121,8 @@ namespace Alpha
                 std::vector<std::vector<const Symbol *>> symbols_per_scope_;
                 std::unordered_set<SymbolName> library_function_set_;
         };
+
+        static DEBUG_ALWAYS_INLINE bool is_type_varible(SymbolType type) { return !is_type_function(type); }
 
         class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
         {

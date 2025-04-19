@@ -1,5 +1,5 @@
-#ifndef scnr_ctx_HPP
-#define scnr_ctx_HPP
+#ifndef SCANNER_CONTEXT_HPP
+#define SCANNER_CONTEXT_HPP
 
 #include <string>
 #include "core/alpha_location.hpp"
@@ -7,19 +7,21 @@
 
 namespace Alpha
 {
-    struct LexerCtx
-    {
-        u32 line_;
-        u32 column_;
-        u32 index_;
-        const std::string filename_;
+        struct LexerCtx
+        {
+                u32 index_;
+                const std::string filename_;
 
-        LexerCtx() = delete;
-        LexerCtx(const std::string &filename)
-            : line_(1),
-              column_(1),
-              index_(0),
-              filename_(filename) {}
-    };
+                LexerCtx() = delete;
+                LexerCtx(const std::string &filename)
+                    : index_(0),
+                      filename_(filename) {}
+
+                LexerCtx(const LexerCtx &) = delete;
+                LexerCtx(const LexerCtx &&) = delete;
+                LexerCtx operator=(const LexerCtx &) = delete;
+                LexerCtx operator=(LexerCtx &&) = delete;
+                ~LexerCtx() = default;
+        };
 }
-#endif /* scnr_ctx */
+#endif // SCANNER_CONTEXT_HPP

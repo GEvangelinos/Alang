@@ -30,6 +30,7 @@
                                 Alpha::ParseCtx &parse_ctx,
                                 Alpha::SymbolTable &symbol_table,
                                 Alpha::ErrorTracker &error_tracker,
+                                Alpha::LocationTracker & lt,
                                 const std::string &error_message)
         {
         #ifdef DEBUG_MODE
@@ -40,7 +41,7 @@
                 (void)error_tracker;
                 (void)error_message;
         #endif // DEBUG_MODE
-}
+        }
 %}
 
 %code requires
@@ -62,9 +63,11 @@
 %parse-param{Alpha::ParseCtx &parse_ctx}
 %parse-param{Alpha::SymbolTable &symbol_table}
 %parse-param{Alpha::ErrorTracker &error_tracker}
+%parse-param{Alpha::LocationTracker &location_tracker}
 
 %lex-param{Alpha::LexerCtx &lexer_ctx}
 %lex-param{Alpha::ErrorTracker &error_tracker}
+%lex-param{Alpha::LocationTracker &location_tracker}
 
 %union{
         char *union_string_literal;

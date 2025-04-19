@@ -73,14 +73,14 @@ namespace Alpha
         public:
                 ErrorTracker() = default;
 
-                void register_lexer_error(const std::string &error, Location error_location);
+                void report_lexer_error(const std::string &error, Location error_location);
 
-                void register_syntax_error(const std::string &error, Location error_location);
+                void report_syntax_error(const std::string &error, Location error_location);
 
-                void register_syntax_error(const std::string &error, Location error_location,
+                void report_syntax_error(const std::string &error, Location error_location,
                                            const std::string &note, Location note_location);
 
-                void register_syntax_error(const std::string &error, Location error_location,
+                void report_syntax_error(const std::string &error, Location error_location,
                                            std::list<CodeMessage> &&note_list);
 
                 const std::vector<const CompileTimeError *> &ger_error_vector() const;

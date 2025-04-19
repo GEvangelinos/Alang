@@ -11,6 +11,7 @@
         #include "core/alpha_error_tracker.hpp"  // for LexerError, CompileTimeErrorTracker
         #include "scanner/alpha_token.hpp"    // for TokenString, TokenComment, TokenID
         #include "core/alpha_shared_interface.hpp"
+        #include "core/alpha_location.hpp"
 
         #ifdef YY_DECL
         #undef YY_DECL
@@ -18,14 +19,13 @@
 
         #define YY_DECL ALPHA_YYLEX_SIGNATURE
 
-        #define YY_USER_ACTION                                                        \
-                do                                                                    \
-                {                                                                     \
-                        alpha_yylloc.first_index_ = scnr_ctx.index_;           \
-                        alpha_yylloc.last_index_ = scnr_ctx.index_ + yyleng;   \
-                                                                                \
-                        scnr_ctx.column_ += yyleng;                            \
-                        scnr_ctx.index_ += yyleng;                             \
+        #define YY_USER_ACTION                                                \
+                do                                                            \
+                {                                                             \
+                        alpha_yylloc.first_index_ = lexer_ctx.index_;         \
+                        alpha_yylloc.last_index_ = lexer_ctx.index_ + yyleng; \
+                                                                              \
+                        lexer_ctx.index_ += yyleng;                           \
                 } while (0); /* Semi-Colon is not placed by flex, we place it manually. */
 %}
 
@@ -112,7 +112,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 {real}          {alpha_yylval.union_real_const = std::stod(yytext); return REAL_CONST;}
 {integer}       {alpha_yylval.union_int_const = std::stol(yytext); return INT_CONST;}
 {lineComment}   {/* Syntax Anal-yzer doesn't give a fuck about you... */}
-{newline}*      { scnr_ctx.line_++; }
+{newline}*      {lt.append_line(lexer_ctx.index_);}
 {space}*        {/* Just eat up the spaces. */}
 
 {commentBeginRule} {
@@ -126,7 +126,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        et.register_lexer_error("EOF reached before closing comment.", alpha_yylloc);
+        et.report_lexer_error("EOF reached before closing comment.", alpha_yylloc);
         return EOF;
 }
 
@@ -140,12 +140,12 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_STRING>{stringInvalidEscapeCode} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
-        et.register_lexer_error(
+        et.report_lexer_error(
                 std::format("Lexer error: Invalid escape code {} in string.", yytext), alpha_yylloc);
         /* Do not stop scanning, but register lexer error. */
 }
 <INSIDE_STRING><<EOF>> {
-        et.register_lexer_error(
+        et.report_lexer_error(
                 "Lexer error: EOF reached before closing string.", alpha_yylloc);
         return EOF;
 }
@@ -156,7 +156,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
-        et.register_lexer_error(
+        et.report_lexer_error(
                 std::format("Lexer error: Character {} is invalid.", yytext), alpha_yylloc);
 }
 
