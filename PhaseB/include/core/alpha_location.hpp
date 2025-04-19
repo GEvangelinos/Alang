@@ -36,15 +36,16 @@ namespace Alpha
         class LocationTracker
         {
         public:
-                LocationTracker();
+                LocationTracker(u32 max_valid_index);
                 void append_line(u32 start_index) { line_start_indices_.push_back(start_index); }
+
                 LineRange find_lines(u32 first_index, u32 last_index) const;
                 LineRange find_lines(Location location) const;
                 u32 find_symbol_line(Location location) const; // Symbol is always defined in 1 line.
 
         private:
                 std::vector<u32> line_start_indices_;
-                u32 max_valid_index_;
+                const u32 max_valid_index_;
 
                 u32 find_line(u32 index) const;
         };

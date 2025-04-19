@@ -43,7 +43,6 @@ lineComment     "//".*
 newline         "\n"
 space           [ \r\t\v]
 
-anyCharacter            .|\n
 anyCharacterButNewLine  .
 
 commentBeginRule        "/\*"
@@ -51,7 +50,12 @@ commentEndRule          "\*/"
 
 stringBeginRule         \"
 stringEndRule           \"
-stringValidInnerPart    ([^\"\\]|\\[tn"\\])+
+
+/* Newlines are valid inside strings, but we exclude '\n' here */
+/* so that it matches a separate {newline} rule, allowing us */
+/* to update the line tracker explicitly when a line break occurs. */
+stringValidInnerPart    ([^\n\"\\]|\\[tn"\\])+
+
 stringInvalidEscapeCode "\\"([^tn"\\])
 
 
@@ -112,19 +116,20 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 {real}          {alpha_yylval.union_real_const = std::stod(yytext); return REAL_CONST;}
 {integer}       {alpha_yylval.union_int_const = std::stol(yytext); return INT_CONST;}
 {lineComment}   {/* Syntax Anal-yzer doesn't give a fuck about you... */}
-{newline}*      {lt.append_line(lexer_ctx.index_);}
-{space}*        {/* Just eat up the spaces. */}
+{newline}       {lt.append_line(lexer_ctx.index_);}
+{space}+        {/* Just eat up the spaces. */}
 
 {commentBeginRule} {
         BEGIN(INSIDE_COMMENT_BLOCK);
         Alpha::TokenComment::setCommentStartingLineNumber(yylineno);
 } /* No return until complete token or EOF. */
-<INSIDE_COMMENT_BLOCK>{commentBeginRule} {
-} /* TODO: What's that? Artifact from PHASE A with nested comments? */
 <INSIDE_COMMENT_BLOCK>{commentEndRule} {
                 BEGIN(INITIAL);
 }
-<INSIDE_COMMENT_BLOCK>{anyCharacter} { /* Just eat up any character use see. */}
+<INSIDE_COMMENT_BLOCK>{newline} {
+        lt.append_line(lexer_ctx.index_);
+}
+<INSIDE_COMMENT_BLOCK>{anyCharacterButNewLine} {/* Just eat up any character use see. */}
 <INSIDE_COMMENT_BLOCK><<EOF>> {
         et.report_lexer_error("EOF reached before closing comment.", alpha_yylloc);
         return EOF;
@@ -134,6 +139,9 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 {stringBeginRule} {
         BEGIN(INSIDE_STRING);
         Alpha::TokenString::setStringStartingLineNumber(yylineno);
+}
+<INSIDE_STRING>{newline} {
+        lt.append_line(lexer_ctx.index_);
 }
 <INSIDE_STRING>{stringValidInnerPart} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);

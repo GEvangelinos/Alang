@@ -6,7 +6,8 @@
 
 namespace Alpha
 {
-        LocationTracker::LocationTracker()
+        LocationTracker::LocationTracker(u32 max_valid_index)
+            : max_valid_index_(max_valid_index)
         {
                 line_start_indices_.push_back(k_no_line); // Pushes virtual line 0.
         }
@@ -42,7 +43,7 @@ namespace Alpha
 
         u32 LocationTracker::find_symbol_line(Location location) const
         {
-               auto [begin_line, end_line] = find_lines(location);
+                auto [begin_line, end_line] = find_lines(location);
 
                 if (begin_line != end_line)
                         throw std::logic_error("Bug: Symbol spans multiple lines. Symbol must be defined on a single line.");

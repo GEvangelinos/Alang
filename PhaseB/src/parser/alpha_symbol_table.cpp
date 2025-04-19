@@ -106,6 +106,7 @@ namespace Alpha
                                        scope, location, std::move(argument_list));
         }
 
+#ifdef DEBUG_MODE
         // SANITY code here catches 2 nasty bugs:
         // 1) An active symbol appearing *after* an inactive one in the same scope.
         //    - Active symbols must always appear *before* inactive ones at the same scope.
@@ -131,6 +132,14 @@ namespace Alpha
                         }
                 }
         }
+#else
+        void SymbolTable::hide_scope_symbols(u32 scope) noexcept
+        {
+                SANITY_ASSERT_LTE(scope, symbols_per_scope_.size());
+                for (Symbol *symbol_ptr : symbols_per_scope_[scope])
+                        symbol_ptr->deactivate();
+        }
+#endif // DEBUG_MODE
 
         bool SymbolTable::is_lib_function(const std::string &symbol_name) const
         {
