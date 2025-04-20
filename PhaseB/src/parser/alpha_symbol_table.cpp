@@ -32,7 +32,7 @@ namespace Alpha
                                 // User of `insert_FUNCTION` should do lookup_first.
                                 SANITY_ASSERT_FALSE(symbol_it->scope() == scope &&
                                                     symbol_it->is_active());
-                                if (symbol_it->scope() == scope) // A nasty bug lived here :D
+                                if (symbol_it->scope() >= scope) // A nastier bug lived here :D
                                         break;
                         }
                         return symbol_it;
