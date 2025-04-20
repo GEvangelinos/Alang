@@ -1,5 +1,5 @@
 #include "core/alpha_location.hpp"
-#include "misc/sanity_assert.h"
+#include "utils/sanity_assert.h"
 #include <algorithm>
 #include <stdexcept>
 #include "core/alpha_konstants.hpp"

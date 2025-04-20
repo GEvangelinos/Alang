@@ -3,7 +3,7 @@
 #include <fstream>
 #include <list>
 #include <memory>
-#include <format>
+#include "utils/format_adapter.hpp"
 #include "arguinator/arguinator.hpp"
 #include "parser/alpha_symbol_table.hpp"
 #include "core/alpha_location.hpp"
@@ -12,7 +12,7 @@
 #include "alpha_parser.hpp"
 #include "core/alpha_error_tracker.hpp"
 #include "core/alpha_types.hpp"
-#include "misc/cli_color.h"
+#include "utils/cli_color.h"
 
 static std::streamsize filesize(std::ifstream &inputFile)
 {
@@ -22,40 +22,32 @@ static std::streamsize filesize(std::ifstream &inputFile)
         return filesize;
 }
 
-static void load_file_to_input_buffer(const std::string &filename, std::unique_ptr<char[]> &lexer_input_buffer)
+static auto make_lexer_scan_buffer(std::ifstream &input_file)
 {
-        constexpr auto flex_buffer_end_padding = 2;
-        std::ifstream inputFile(filename);
-        if (!inputFile)
-                throw std::runtime_error("Failed opening " + filename + " for reading.");
+        constexpr auto k_flex_EOF_padding = 2;
 
-        const std::streamsize inputFileSize = filesize(inputFile);
+        if (!input_file)
+                throw std::runtime_error("Invalid input file stream.");
 
-        lexer_input_buffer = std::make_unique<char[]>(inputFileSize + flex_buffer_end_padding);
-        if (!inputFile.read(lexer_input_buffer.get(), inputFileSize))
-        {
-                throw std::runtime_error("Failed reading file " + filename + ".");
-        }
-        lexer_input_buffer[inputFileSize] = lexer_input_buffer[inputFileSize + 1] = '\0';
+        const auto input_file_size = filesize(input_file);
+        const auto buffer_size = input_file_size + k_flex_EOF_padding;
+        auto buffer = std::make_unique<char[]>(buffer_size);
+
+        if (!input_file.read(buffer.get(), input_file_size))
+                throw std::runtime_error("Failed reading input_file.");
+
+        buffer[input_file_size] = buffer[input_file_size + 1] = '\0';
+        return std::make_pair(std::move(buffer), buffer_size); // RVO
 }
 
-static void configure_lexer_input(const std::string &input_filename,
-                                  std::unique_ptr<char[]> &lexer_input_buffer,
-                                  YY_BUFFER_STATE *lexer_buffer_state)
+static std::ifstream open_alpha_source_file(const std::string &filename)
 {
-        if (!std::filesystem::is_regular_file(input_filename))
-                std::cerr << "Redirecting to STDIN: " << input_filename << " is not a regular file." << std::endl;
-        else if (!std::ifstream(input_filename).good())
-                std::cerr << "Redirecting to STDIN: Cannot open " << input_filename << "." << std::endl;
-        else
-        {
-                alpha_yyin = nullptr;
-                load_file_to_input_buffer(input_filename, lexer_input_buffer);
-                *lexer_buffer_state = alpha_yy_scan_string(lexer_input_buffer.get());
-                return;
-        }
-        /* If any check fails, default to STDIN. */
-        alpha_yyin = stdin;
+        if (!std::filesystem::is_regular_file(filename))
+                throw std::invalid_argument(fmt_ns::format("{} is not a regular file.", filename));
+        std::ifstream inputFile(filename);
+        if (!inputFile)
+                throw std::invalid_argument(fmt_ns::format("Failed opening {} for reading.", filename));
+        return std::move(inputFile); // Should prefer RVO ?
 }
 
 static Arguinator::Parser launch_cli_parser(int argc, const char *const *const argv)
@@ -80,41 +72,29 @@ static void display_symbol_table(const Alpha::SymbolTable &st, const Alpha::Loca
         {
                 // if (symbol_per_scope_vector[scope].empty())
                 //         continue;
-                std::cout << std::format("--------------------     Scope #{}     --------------------\n", scope);
+                std::cout << fmt_ns::format("--------------------     Scope #{}     --------------------\n", scope);
                 for (auto symbol_ptr : symbol_per_scope_vector[scope])
-                        std::cout << std::format(
-                            "\"{}\" [{}] (line {}[B:{}, E:{}]) (scope {})\n",
+                        std::cout << fmt_ns::format(
+                            "\"{}\" [{}] (line {}) (scope {})\n",
                             symbol_ptr->name(),
                             Alpha::to_string(symbol_ptr->type()),
                             lt.find_symbol_line(symbol_ptr->location()),
-                            symbol_ptr->location().first_index_,
-                            symbol_ptr->location().last_index_,
-
                             symbol_ptr->scope());
                 std::cout << std::endl;
         }
         std::cout << SGR_RESET;
 }
 
-static void launch_alpha_parser(const std::string &input_filename)
+static void launch_alpha_parser(const std::string &source_file_name)
 {
-        Alpha::LexerCtx lexer_ctx(input_filename);
+        std::ifstream alpha_source_file = open_alpha_source_file(source_file_name);
+        Alpha::LexerCtx lexer_ctx(source_file_name);
         Alpha::ParseCtx parse_ctx;
         Alpha::SymbolTable st;
         Alpha::ErrorTracker et;
-        Alpha::LocationTracker lt;
-        YY_BUFFER_STATE lexer_buffer_state;
-        std::unique_ptr<char[]> lexer_input_buffer;
-        try
-        {
-                configure_lexer_input(input_filename, lexer_input_buffer, &lexer_buffer_state);
-        }
-        catch (std::exception &e)
-        {
-                std::cerr << e.what() << std::endl;
-                constexpr int severeError = 2;
-                std::exit(severeError);
-        }
+        Alpha::LocationTracker lt(filesize(alpha_source_file));
+        auto lexer_buffer = make_lexer_scan_buffer(alpha_source_file);
+        auto lexer_buffer_state = alpha_yy_scan_buffer(lexer_buffer.first.get(),lexer_buffer.second);
         int returnValue = alpha_yyparse(lexer_ctx, parse_ctx, st, et, lt);
         std::cout << "alpha_yyparse return value: " << returnValue << std::endl; // TODO: UGLY AS FUCK FIX.
         display_symbol_table(st, lt);

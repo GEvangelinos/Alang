@@ -1,13 +1,13 @@
 #ifndef ALPHA_MACROS_HPP
 #define ALPHA_MACROS_HPP
 
-#include <format>
+#include "utils/format_adapter.hpp"
 #include <iostream>
 
 #define REPORT_UNREACHABLE_VIOLATION(_message_if_reached)                                   \
         do                                                                                  \
         {                                                                                   \
-                std::cerr << std::format("{}:{} | {}() --> Unreachable Violation: {}",      \
+                std::cerr << fmt_ns::format("{}:{} | {}() --> Unreachable Violation: {}",      \
                                          __FILE__, __LINE__, __func__, _message_if_reached) \
                           << std::endl;                                                     \
         } while (0)

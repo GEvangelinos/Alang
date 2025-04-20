@@ -118,7 +118,7 @@ namespace Alpha
 
                 u32 anonymous_counter_;
                 SymbolMap symbol_map_;
-                std::vector<std::vector<Symbol *const>> symbols_per_scope_;
+                std::vector<std::vector<Symbol *>> symbols_per_scope_;
                 std::unordered_set<SymbolName> library_function_set_;
         };
 

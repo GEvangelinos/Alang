@@ -1,7 +1,7 @@
 #include "parser/alpha_symbol_table.hpp"
-#include "misc/sanity_assert.h"
+#include "utils/sanity_assert.h"
 #include "core/alpha_konstants.hpp"
-#include <format>
+#include "utils/format_adapter.hpp"
 #include <sstream>
 #include <initializer_list>
 
@@ -57,7 +57,7 @@ namespace Alpha
                 auto &synonym_symbols = symbol_map_it->second;
                 auto symbol_it = Detail::find_insert_position(synonym_symbols, scope);
                 SymbolKind new_symbol(symbol_name_ref, scope, type, location, std::forward<ParameterList>(arg_list)...);
-                const Symbol *symbol_ptr = &*synonym_symbols.emplace(symbol_it, std::move(new_symbol));
+                Symbol *symbol_ptr = &*synonym_symbols.emplace(symbol_it, std::move(new_symbol));
                 Detail::ensure_scope_slot(symbols_per_scope_, scope);
                 symbols_per_scope_[scope].push_back(symbol_ptr);
                 return symbol_ptr;
@@ -99,7 +99,7 @@ namespace Alpha
         const Symbol *SymbolTable::insert_anonymous(u32 scope, Location location,
                                                     const std::list<Parameter> &argument_list)
         {
-                std::string anonymous_name = std::format(
+                std::string anonymous_name = fmt_ns::format(
                     "{}{}", k_private_anonymous_prefix, anonymous_counter_++);
 
                 return insert_function(anonymous_name, SymbolType::USERFUNC,

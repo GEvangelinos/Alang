@@ -3,9 +3,9 @@
 #include "core/alpha_location.hpp"
 #include "core/alpha_types.hpp"
 #include "core/alpha_error_tracker.hpp"
-#include "misc/smart_assert.h"
+#include "utils/smart_assert.h"
 #include "core/alpha_macros.hpp"
-#include <format>
+#include "utils/format_adapter.hpp"
 #include <iostream>
 #include <utility>
 #include "core/alpha_macros.hpp"
@@ -47,7 +47,7 @@ namespace // Anonymous
                         return;
 
                 std::string keyword_name = Loop::to_string(keyword);
-                std::string error = std::format("`{}` statement not in a loop statement", keyword_name);
+                std::string error = fmt_ns::format("`{}` statement not in a loop statement", keyword_name);
                 et.report_syntax_error(error, keyword_location);
         }
 
@@ -60,7 +60,7 @@ namespace // Anonymous
                 // Library‐function conflict
                 if (st.is_lib_function(parameter.name()))
                 {
-                        const std::string error = std::format(
+                        const std::string error = fmt_ns::format(
                             "`{}` is a library function, can't declare it as formal", parameter.name());
                         et.report_syntax_error(error, parameter.location());
                         return true;
@@ -71,9 +71,9 @@ namespace // Anonymous
                 {
                         // Parameter should produce name conflicts only with themselves.
                         SANITY_ASSERT_TRUE(formal_symbol->type() == SymbolType::FORMAL);
-                        const std::string error = std::format(
+                        const std::string error = fmt_ns::format(
                             "redefinition of parameter `{}`", parameter.name());
-                        const std::string note = std::format(
+                        const std::string note = fmt_ns::format(
                             "previous definition of `{}` here", parameter.name());
                         et.report_syntax_error(
                             error, parameter.location(), note, formal_symbol->location());
@@ -106,7 +106,7 @@ namespace // Anonymous
         {
                 if (st.is_lib_function(id_name))
                 {
-                        const std::string error = std::format("redefinition of library function `{}`", id_name);
+                        const std::string error = fmt_ns::format("redefinition of library function `{}`", id_name);
                         et.report_syntax_error(error, id_location);
                         return true;
                 }
@@ -116,14 +116,14 @@ namespace // Anonymous
                         return false;
                 if (resolved_symbol->is_function())
                 {
-                        const std::string error = std::format("redefinition of `function {}`", id_name);
-                        const std::string note = std::format("previous definition of `function {}` here", id_name);
+                        const std::string error = fmt_ns::format("redefinition of `function {}`", id_name);
+                        const std::string note = fmt_ns::format("previous definition of `function {}` here", id_name);
                         et.report_syntax_error(error, id_location, note, resolved_symbol->location());
                 }
                 else if (resolved_symbol->is_variable())
                 {
-                        const std::string error = std::format("`{}` defined as a function", id_name);
-                        const std::string note = std::format("`{}` previously defined as a variable here", id_name);
+                        const std::string error = fmt_ns::format("`{}` defined as a function", id_name);
+                        const std::string note = fmt_ns::format("`{}` previously defined as a variable here", id_name);
                         et.report_syntax_error(error, id_location, note, resolved_symbol->location());
                 }
                 return true;
@@ -137,12 +137,12 @@ namespace // Anonymous
             const Symbol *resolved_symbol,
             ErrorTracker &et)
         {
-                const std::string error = std::format(
+                const std::string error = fmt_ns::format(
                     "variable `{}` is declared outside current function `{}`.",
                     id_name, current_function_name);
-                const std::string note1 = std::format(
+                const std::string note1 = fmt_ns::format(
                     "current function `{}` declared here", current_function_name);
-                const std::string note2 = std::format(
+                const std::string note2 = fmt_ns::format(
                     "variable `{}` declared here", id_name);
                 et.report_syntax_error(
                     error, id_location,
@@ -163,7 +163,7 @@ namespace // Anonymous
                         return;
                 if (lvalue->is_variable())
                         return;
-                std::string error = std::format("{} operator can not be used on function", op_name);
+                std::string error = fmt_ns::format("{} operator can not be used on function", op_name);
                 et.report_syntax_error(error, term_location);
         }
 } // namespace Anonymous
@@ -235,7 +235,7 @@ void lvalue__local_id(
 {
         if (st.is_lib_function(id_name))
         {
-                std::string error = std::format("shadowing of library function `{}`", id_name);
+                std::string error = fmt_ns::format("shadowing of library function `{}`", id_name);
                 et.report_syntax_error(error, id_location);
                 *lvalue = st.lookup_global(id_name);
                 SANITY_ASSERT_TRUE(*lvalue != nullptr); // a library function is always resolved at global scope.
@@ -258,7 +258,7 @@ void assignExpr__lvalue_assign_expr(
         if (!lvalue->is_function())
                 return;
 
-        std::string error = std::format("assignment of function `{}`", lvalue->name());
+        std::string error = fmt_ns::format("assignment of function `{}`", lvalue->name());
         et.report_syntax_error(error, assignExpr_location);
 }
 
@@ -305,7 +305,7 @@ void lvalue__global_id(
         if (*lvalue != nullptr)
                 return;
 
-        std::string error = std::format("variable `::{}` not found in global scope", id_name);
+        std::string error = fmt_ns::format("variable `::{}` not found in global scope", id_name);
         et.report_syntax_error(error, id_location);
 }
 

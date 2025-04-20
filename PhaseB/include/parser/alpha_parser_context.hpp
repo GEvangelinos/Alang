@@ -5,10 +5,10 @@
 #include <limits>
 #include <list>
 #include "core/alpha_types.hpp"
-#include "misc/smart_assert.h"
+#include "utils/smart_assert.h"
 #include "core/alpha_types.hpp"
 #include "core/alpha_konstants.hpp"
-#include "misc/sanity_assert.h"
+#include "utils/sanity_assert.h"
 #include "core/alpha_macros.hpp"
 #include "_parser_common.hpp"
 

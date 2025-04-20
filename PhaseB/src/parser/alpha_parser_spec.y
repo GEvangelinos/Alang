@@ -160,7 +160,7 @@ stmt:
 loopCtrlStmt:
   BREAK    { loopCtrlStmt__break(parse_ctx, @1, error_tracker); }
 | CONTINUE { loopCtrlStmt__continue(parse_ctx, @1, error_tracker); }
-
+;
 
 expr:
   assignExpr
@@ -169,14 +169,14 @@ expr:
 | expr '*' expr
 | expr '/' expr
 | expr '%' expr
-| expr GT expr
+| expr GT  expr
 | expr GTE expr
-| expr LT expr
+| expr LT  expr
 | expr LTE expr
-| expr EQ expr
+| expr EQ  expr
 | expr NEQ expr
 | expr AND expr
-| expr OR expr
+| expr OR  expr
 | term
 ;
 
@@ -188,8 +188,7 @@ term:
 | lvalue INC { term__lvalue_inc($1, @$, error_tracker); }
 | DEC lvalue { term__dec_lvalue($2, @$, error_tracker); }
 | lvalue DEC { term__lvalue_dec($1, @$, error_tracker); }
-
-| primary                                 
+| primary
 ;
 
 assignExpr:

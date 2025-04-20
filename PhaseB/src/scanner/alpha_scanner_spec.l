@@ -3,7 +3,7 @@
         #include <stdio.h>           // for NULL, FILE, EOF, ferror, size_t, clearerr
         #include <stdlib.h>          // for exit, free, malloc, realloc
         #include <string.h>          // for memset, strlen
-        #include <format>
+        #include "utils/format_adapter.hpp"
         #include <unistd.h>          // for isatty
         #include <string>            // for allocator, operator+, basic_string, char...
         #include "scanner/alpha_scanner_context.hpp"
@@ -149,7 +149,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 <INSIDE_STRING>{stringInvalidEscapeCode} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
         et.report_lexer_error(
-                std::format("Lexer error: Invalid escape code {} in string.", yytext), alpha_yylloc);
+                fmt_ns::format("Lexer error: Invalid escape code {} in string.", yytext), alpha_yylloc);
         /* Do not stop scanning, but register lexer error. */
 }
 <INSIDE_STRING><<EOF>> {
@@ -165,7 +165,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
         et.report_lexer_error(
-                std::format("Lexer error: Character {} is invalid.", yytext), alpha_yylloc);
+                fmt_ns::format("Lexer error: Character {} is invalid.", yytext), alpha_yylloc);
 }
 
 <<EOF>>          {return ALPHA_YYEOF;}

@@ -1,4 +1,4 @@
-#include <format>
+#include "utils/format_adapter.hpp"
 #include "core/alpha_error_tracker.hpp"
 
 namespace Alpha

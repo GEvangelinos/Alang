@@ -1,10 +1,10 @@
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 
-#include <format>
+#include "utils/format_adapter.hpp"
 #include <iostream>
 #include <iomanip>
-#include "misc/cli_color.h"
+#include "utils/cli_color.h"
 
 static void display_log(const std::string &lhs, const std::string &rhs)
 {

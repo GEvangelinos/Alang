@@ -63,4 +63,6 @@ target_include_directories(alpha_parser PRIVATE
 )
 
 # TODO do you need to?
-target_link_libraries(alpha_parser PRIVATE alpha_core)
+target_link_libraries(alpha_parser PRIVATE
+        alpha_core
+)
