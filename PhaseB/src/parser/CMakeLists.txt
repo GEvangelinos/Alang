@@ -45,8 +45,7 @@ BISON_TARGET(ALPHA_PARSER
 )
 
 # We create a phony target so we force BISON files to be generated before compilation.
-add_custom_target(generate_parser ALL
-        DEPENDS
+add_custom_target(generate_parser ALL DEPENDS
         ${BISON_ALPHA_PARSER_OUTPUTS}
         ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
 )

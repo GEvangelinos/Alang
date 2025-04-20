@@ -139,7 +139,10 @@ namespace Alpha
 
         protected:
                 Symbol(const std::string &name, u32 scope, SymbolType type, Location location) noexcept
-                    : name_(name), scope_(scope), type_(type), location_(location) {}
+                    : name_(name),
+                      scope_(scope),
+                      type_(type),
+                      location_(location) { activate(); }
 
         private:
                 const std::string &name_;

@@ -20,9 +20,7 @@ set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${ALPHA_SCANNER_HEAD
 
 
 # We create a phony target so we force FLEX files to be generated before compilation.
-add_custom_target(generate_scanner ALL
-        DEPENDS ${FLEX_ALPHA_SCANNER_OUTPUTS}
-)
+add_custom_target(generate_scanner ALL DEPENDS "${FLEX_ALPHA_SCANNER_OUTPUTS}")
 
 add_library(alpha_scanner STATIC
         ${ALPHA_SCANNER_OUTPUT_FILEPATH}

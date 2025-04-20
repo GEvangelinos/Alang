@@ -4,6 +4,7 @@
 #include "utils/format_adapter.hpp"
 #include <sstream>
 #include <initializer_list>
+#include <iomanip>
 
 #define STRINGIFY(_x) #_x
 
@@ -116,17 +117,38 @@ namespace Alpha
         //    But it already caught two nasty bugs -- so it's staying!
         void SymbolTable::hide_scope_symbols(u32 scope) noexcept
         {
+                // TODO REMOVE DEBUG:
+                for (const auto &synonym_symbols : symbol_map_)
+                {
+                        std::cerr << std::left << std::setw(20) << synonym_symbols.first << ":";
+                        for (auto &symbol : synonym_symbols.second)
+                        {
+                                std::cerr << "|" << symbol.scope();
+                                if (symbol.is_active())
+                                        std::cerr << "A";
+                                else
+                                        std::cerr << "D";
+                                std::cerr << "|";
+                        }
+                        std::cerr << std::endl;
+                }
+
                 for (auto &synonym_symbols : symbol_map_)
                 {
                         SANITY_CODE(u32 deactivated_symbols = 0);
                         auto &symbol_list = synonym_symbols.second;
                         for (auto &symbol : symbol_list)
                         {
+
                                 if (scope < symbol.scope())
                                         continue;
                                 if (scope > symbol.scope()) // After deactivation we should exit from here
                                         break;
-                                SANITY_ASSERT_FALSE(deactivated_symbols > 0 && symbol.is_active());
+                                SANITY_CODE(
+                                    if (deactivated_symbols > 0 && symbol.is_active())
+                                            std::cerr
+                                        << "Symbol: " << symbol.name() << "causes abort" << std::endl;
+                                    SANITY_ASSERT_FALSE(deactivated_symbols > 0 && symbol.is_active()););
                                 symbol.deactivate(); // Check if already deactivated is redundant.
                                 SANITY_CODE(++deactivated_symbols);
                         }
