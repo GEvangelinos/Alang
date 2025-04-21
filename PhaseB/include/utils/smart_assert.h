@@ -120,12 +120,12 @@ extern "C"
 // ✅ Active in debug mode: evaluates and runs full SMART_ASSERT logic
 #define DEBUG_SMART_ASSERT(...) SMART_ASSERT(__VA_ARGS__)
 // ✅ Also active in debug mode: same as above, runs full logic
-#define DEBUG_SMART_ASSERT_NOEVAL(...) SMART_ASSERT(__VA_ARGS__)
+#define DEBUG_SMART_ASSERT_EVAL(...) SMART_ASSERT(__VA_ARGS__)
 #else
 // 🟡 In release mode: disables assertion logic, but still evaluates expressions (preserves side effects)
-#define DEBUG_SMART_ASSERT(...) ((void)(__VA_ARGS__))
+#define DEBUG_SMART_ASSERT_EVAL(...) ((void)(__VA_ARGS__))
 // 🛑 In release mode: disables assertion and also skips evaluating expressions (no side effects)
-#define DEBUG_SMART_ASSERT_NOEVAL(...) ((void)0)
+#define DEBUG_SMART_ASSERT(...) ((void)0)
 #endif /* DEBUG_MODE */
 
 #ifdef __cplusplus

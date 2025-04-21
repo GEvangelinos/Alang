@@ -51,15 +51,15 @@ namespace Alpha
                 switch (type)
                 {
                 case Alpha::SymbolType::LIBFUNC:
-                        return "LIBRARY FUNCTION";
+                        return "LIBRARY_FUNCTION";
                 case Alpha::SymbolType::GLOBAL:
-                        return "GLOBAL VARIABLE";
+                        return "GLOBAL_VARIABLE";
                 case Alpha::SymbolType::USERFUNC:
-                        return "USER FUNCTION";
+                        return "USER_FUNCTION";
                 case Alpha::SymbolType::FORMAL:
-                        return "FORMAL ARGUMENT";
+                        return "FORMAL_ARGUMENT";
                 case Alpha::SymbolType::LOCAL:
-                        return "LOCAL VARIABLE";
+                        return "LOCAL_VARIABLE";
                 }
                 UNREACHABLE("You forgot to register a `SymbolType`");
         }
@@ -118,7 +118,9 @@ namespace Alpha
 
                 u32 anonymous_counter_;
                 SymbolMap symbol_map_;
-                std::vector<std::vector<Symbol *>> symbols_per_scope_;
+                std::vector<std::vector<const Symbol *>> symbols_per_scope_; // Are inserted in sorted order based on symbol insertion.
+                std::vector<std::vector<Symbol *>> actives_per_scope_; // Are inserted in sorted order based on symbol insertion.
+
                 std::unordered_set<SymbolName> library_function_set_;
         };
 

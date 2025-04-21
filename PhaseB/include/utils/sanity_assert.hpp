@@ -47,10 +47,10 @@
         SANITY_ASSERT_ZZENERATOR(EQ, ==, _val1, _val2)
 
 #define SANITY_ASSERT_TRUE(_condition) \
-        SANITY_ASSERT_ZZENERATOR(TRUE, ==, _condition, 1)
+        SANITY_ASSERT_ZZENERATOR(TRUE, ==, _condition, true)
 
 #define SANITY_ASSERT_FALSE(_condition) \
-        SANITY_ASSERT_ZZENERATOR(FALSE, ==, _condition, 0)
+        SANITY_ASSERT_ZZENERATOR(FALSE, ==, _condition, false)
 
 #ifdef SANITY_MODE
         #define SANITY_CODE(_code) _code

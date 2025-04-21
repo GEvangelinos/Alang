@@ -265,14 +265,16 @@ block:
 ;
 
 funcDef:
-  FUNCTION ID '(' funcArgList ')'
-  { funcDef__function_id_lparen_idList_rparen(symbol_table, parse_ctx, $2, @2, error_tracker); }
+  FUNCTION ID 
+  { funcdef__function_id(parse_ctx, $2, @2); }
+  '(' funcArgList ')'
+  { funcDef__function_id_lparen_funcArgList_rparen(symbol_table, parse_ctx, error_tracker); }
   block
-  { funcDef__function_id_lparen_idList_rparen_block(parse_ctx); }
+  { funcDef__function_id_lparen_funcArgList_rparen_block(parse_ctx); }
 | FUNCTION '(' funcArgList ')'
-  { funcDef__function_lparen_idList_rparen(symbol_table, parse_ctx, @1, error_tracker); }
+  { funcDef__function_lparen_funcArgList_rparen(symbol_table, parse_ctx, @1, error_tracker); }
   block
-  { funcDef__function_lparen_idList_rparen_block(parse_ctx); }
+  { funcDef__function_lparen_funcArgList_rparen_block(parse_ctx); }
 ;
 
 const:

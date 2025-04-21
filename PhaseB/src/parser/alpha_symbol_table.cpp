@@ -1,5 +1,5 @@
 #include "parser/alpha_symbol_table.hpp"
-#include "utils/sanity_assert.h"
+#include "utils/smart_assert.h"
 #include "core/alpha_konstants.hpp"
 #include "utils/format_adapter.hpp"
 #include <sstream>
@@ -10,13 +10,13 @@
 
 namespace Alpha
 {
-        namespace Detail
+        namespace
         {
                 template <typename Key, typename Value>
                 const Key &get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
                 {
                         auto [item_it, inserted] = umap.try_emplace(key);
-                        SANITY_ASSERT_FALSE(inserted);       // This function is meant to be used for existing keys.
+                        DEBUG_SMART_ASSERT(!inserted);       // This function is meant to be used for existing keys.
                         const Key &key_ref = item_it->first; // First item part of item is Key, second is Value.
                         return key_ref;
                 }
@@ -30,8 +30,7 @@ namespace Alpha
                         {
                                 // Same scope and active symbol before insert is error
                                 // User of `insert_FUNCTION` should do lookup_first.
-                                SANITY_ASSERT_FALSE(symbol_it->scope() == scope &&
-                                                    symbol_it->is_active());
+                                DEBUG_SMART_ASSERT(symbol_it->scope() != scope || !symbol_it->is_active());
                                 if (symbol_it->scope() >= scope) // A bug with a bugged, bug patch lived here :D.
                                         break;                   // This comments pays its respects to Savvidis for teaching defensive programming.
                         }
@@ -52,15 +51,19 @@ namespace Alpha
         const Symbol *SymbolTable::insert_symbol(const std::string &symbol_name, SymbolType type,
                                                  u32 scope, Location location, ParameterList &&...arg_list)
         {
-                SANITY_ASSERT_GT(symbol_name.size(), 0);
+                DEBUG_SMART_ASSERT(symbol_name.size() > 0);
                 auto [symbol_map_it, _] = symbol_map_.try_emplace(symbol_name);
                 auto &symbol_name_ref = symbol_map_it->first;
                 auto &synonym_symbols = symbol_map_it->second;
-                auto symbol_it = Detail::find_insert_position(synonym_symbols, scope);
+                auto symbol_it = find_insert_position(synonym_symbols, scope);
                 SymbolKind new_symbol(symbol_name_ref, scope, type, location, std::forward<ParameterList>(arg_list)...);
                 Symbol *symbol_ptr = &*synonym_symbols.emplace(symbol_it, std::move(new_symbol));
-                Detail::ensure_scope_slot(symbols_per_scope_, scope);
+                DEBUG_SMART_ASSERT(symbol_ptr != nullptr);
+
+                ensure_scope_slot(actives_per_scope_, scope);
+                ensure_scope_slot(symbols_per_scope_, scope);
                 symbols_per_scope_[scope].push_back(symbol_ptr);
+                actives_per_scope_[scope].push_back(symbol_ptr);
                 return symbol_ptr;
         }
 
@@ -92,7 +95,7 @@ namespace Alpha
                                                    u32 scope, Location location,
                                                    const std::list<Parameter> &argument_list)
         {
-                SANITY_ASSERT_TRUE(is_type_function(type));
+                DEBUG_SMART_ASSERT(is_type_function(type));
 
                 return insert_symbol<Function>(symbol_name, type, scope, location, argument_list);
         }
@@ -107,61 +110,26 @@ namespace Alpha
                                        scope, location, std::move(argument_list));
         }
 
-#ifdef DEBUG_MODE
-        // SANITY code here catches 2 nasty bugs:
-        // 1) An active symbol appearing *after* an inactive one in the same scope.
-        //    - Active symbols must always appear *before* inactive ones at the same scope.
-        // 2) More than one active symbol in the same scope.
-        //    - This shouldn't happen unless lookups are happening *before* insertions.
-        // 3) Yeah, I know... this could be 3 lines of elegance...
-        //    But it already caught two nasty bugs -- so it's staying!
         void SymbolTable::hide_scope_symbols(u32 scope) noexcept
         {
-                // TODO REMOVE DEBUG:
-                for (const auto &synonym_symbols : symbol_map_)
-                {
-                        std::cerr << std::left << std::setw(20) << synonym_symbols.first << ":";
-                        for (auto &symbol : synonym_symbols.second)
-                        {
-                                std::cerr << "|" << symbol.scope();
-                                if (symbol.is_active())
-                                        std::cerr << "A";
-                                else
-                                        std::cerr << "D";
-                                std::cerr << "|";
-                        }
-                        std::cerr << std::endl;
-                }
+                DEBUG_SMART_ASSERT(scope > k_global_scope);
 
-                for (auto &synonym_symbols : symbol_map_)
-                {
-                        SANITY_CODE(u32 deactivated_symbols = 0);
-                        auto &symbol_list = synonym_symbols.second;
-                        for (auto &symbol : symbol_list)
-                        {
+                if (scope >= actives_per_scope_.size())
+                        return; // We don't have symbols at that scope yet. (Empty block at higher scope)
 
-                                if (scope < symbol.scope())
-                                        continue;
-                                if (scope > symbol.scope()) // After deactivation we should exit from here
-                                        break;
-                                SANITY_CODE(
-                                    if (deactivated_symbols > 0 && symbol.is_active())
-                                            std::cerr
-                                        << "Symbol: " << symbol.name() << "causes abort" << std::endl;
-                                    SANITY_ASSERT_FALSE(deactivated_symbols > 0 && symbol.is_active()););
-                                symbol.deactivate(); // Check if already deactivated is redundant.
-                                SANITY_CODE(++deactivated_symbols);
-                        }
-                }
-        }
-#else
-        void SymbolTable::hide_scope_symbols(u32 scope) noexcept
-        {
-                SANITY_ASSERT_LTE(scope, symbols_per_scope_.size());
-                for (Symbol *symbol_ptr : symbols_per_scope_[scope])
+                std::vector<Symbol *> &actives_in_scope = actives_per_scope_[scope];
+
+                for (Symbol *symbol_ptr : actives_in_scope)
+                {
+                        DEBUG_SMART_ASSERT(symbol_ptr != nullptr);
                         symbol_ptr->deactivate();
+                }
+
+                // At this point, all active symbols in the scope have been deactivated.
+                // Since there are no more active symbols in this scope, we can safely
+                // clear the vector. (It keeps it capacity, it zeroes its size.)
+                actives_in_scope.clear();
         }
-#endif // DEBUG_MODE
 
         bool SymbolTable::is_lib_function(const std::string &symbol_name) const
         {

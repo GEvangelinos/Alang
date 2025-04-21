@@ -41,7 +41,7 @@ void term__lvalue_dec(
 void lvalue__id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    const char *id_name,
+    const std::string &id_name,
     Location id_location,
     const Symbol **lvalue,
     ErrorTracker &et);
@@ -49,26 +49,29 @@ void lvalue__id(
 void lvalue__local_id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    const char *id_name,
+    const std::string &id_name,
     Location id_location,
     const Symbol **lvalue,
     ErrorTracker &et);
 
 void lvalue__global_id(
     SymbolTable &st,
-    const char *id_name,
+    const std::string &id_name,
     Location id_location,
     const Symbol **lvalue,
     ErrorTracker &et);
 
-void funcDef__function_id_lparen_idList_rparen(
+void funcdef__function_id(
+    ParseCtx &parse_ctx,
+    const std::string &id_name,
+    Location id_location);
+
+void funcDef__function_id_lparen_funcArgList_rparen(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    const char *id_name,
-    Location id_location,
     ErrorTracker &et);
 
-void funcDef__function_lparen_idList_rparen(
+void funcDef__function_lparen_funcArgList_rparen(
     SymbolTable &st,
     ParseCtx &parse_ctx,
     Location function_location,
@@ -84,13 +87,13 @@ void assignExpr__lvalue_assign_expr(
     Location assignExpr_location,
     ErrorTracker &et);
 
-void funcDef__function_id_lparen_idList_rparen_block(ParseCtx &parse_ctx) noexcept;
+void funcDef__function_id_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept;
 
-void funcDef__function_lparen_idList_rparen_block(ParseCtx &parse_ctx) noexcept;
+void funcDef__function_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept;
 
 void funcArgs__id(
     ParseCtx &parse_ctx,
-    const char *id_name,
+    const std::string &id_name,
     Location id_location);
 
 void funcCtrlStmt__return(

@@ -26,17 +26,17 @@ namespace Arguinator
 
                 Flag &set_flag(const std::string &identifier);
                 void parse_flags();
-                bool found(const std::string &flag_name) const;
                 std::size_t count(const std::string &flag_name) const;
 
-                const std::string &operator()(const std::string &flag_name, std::size_t input_field = 1);
-                const std::vector<std::string> &operator[](const std::string &flag_name);
+                const Flag &operator[](const std::string &flag_name) const;
 
         private:
                 std::size_t argc_;
                 const char *const *const argv_;
                 const std::string description_;
                 std::map<std::string, Flag> flag_map_;
+
+                bool found(const std::string &flag_name) const;
 
                 void parse_flags_impl();
                 std::string generate_help_text() const;
@@ -69,6 +69,9 @@ namespace Arguinator
                 bool is_provided() const noexcept;
                 const std::string &get_name() const noexcept;
                 const std::vector<std::string> &get_inputs() const noexcept;
+
+                /* By default it returns first input, helpful in argument with arity 1*/
+                const std::string &get_input(std::size_t input_field = 1) const;
 
         private:
                 /* Private constructor */

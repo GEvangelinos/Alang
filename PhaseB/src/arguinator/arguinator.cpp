@@ -35,19 +35,21 @@ namespace /* (Anonymous) */
                                std::stringstream &ss)
         {
                 ss << fmt_ns::format("Usage: {} [options]\n"
-                                  "\n"
-                                  "{}\n"
-                                  "\n"
-                                  "options:"
-                                  "\n",
-                                  executable_name, description);
+                                     "\n"
+                                     "{}\n"
+                                     "\n"
+                                     "options:"
+                                     "\n",
+                                     executable_name, description);
         }
 
-        std::string generate_example_values(const std::string &flag_name, std::size_t input_count)
+        std::string generate_example_values(const std::string &flag_name, std::size_t arity)
         {
                 const std::string base = str_to_upper(flag_name);
-                if (input_count <= 1)
-                        return base;
+                if (arity == 0)
+                        return ""; // No inputs expected → no example
+                if (arity == 1)
+                        return base; // Single input → just show flag name
 
                 /* Preallocate memory for efficient string building */
                 constexpr auto separator_size = 1;     // (space)
@@ -56,14 +58,14 @@ namespace /* (Anonymous) */
                 constexpr auto extra_per_input = separator_size + underscore_size + average_arity_size;
 
                 std::string example;
-                example.reserve(input_count * (base.size() + extra_per_input));
+                example.reserve(arity * (base.size() + extra_per_input));
 
-                for (std::size_t i = 0; i < input_count; i++)
+                for (std::size_t i = 0; i < arity; i++)
                 {
                         example += base;
                         example += "_";
                         example += std::to_string(i + 1); // 1-based indexing for example values
-                        if (i < input_count - 1)
+                        if (i < arity - 1)
                                 example += " ";
                 }
                 return example;
@@ -228,28 +230,12 @@ namespace Arguinator
                 throw std::out_of_range(fmt_ns::format("Flag {} not registered!", flag_string));
         }
 
-        const std::string &Parser::operator()(const std::string &flag_name, std::size_t input_field)
-        {
-                if (input_field == 0)
-                        throw std::range_error(fmt_ns::format("Invalid input_field = {}. Indexing starts from 1.", input_field));
-
-                const std::string flag_string = ParserConsts::default_flag_prefix + flag_name;
-                if (!flag_map_.contains(flag_name))
-                        throw std::out_of_range(fmt_ns::format("Flag {} not registered!", flag_string));
-
-                const Flag &flag = flag_map_.at(flag_name);
-                if (input_field > flag.get_arity())
-                        throw std::out_of_range(fmt_ns::format("Flag {} has arity {} but field #{} requested.",
-                                                            flag_string, flag.get_arity(), input_field));
-                return flag.get_inputs().at(input_field - 1); /* -1 to convert input_field to vector index. */
-        }
-
-        const std::vector<std::string> &Parser::operator[](const std::string &flag_name)
+        const Flag &Parser::operator[](const std::string &flag_name) const
         {
                 const std::string flag_string = ParserConsts::default_flag_prefix + flag_name;
                 if (!flag_map_.contains(flag_name))
                         throw std::out_of_range(fmt_ns::format("Flag {} not registered!", flag_string));
-                return flag_map_.at(flag_name).get_inputs();
+                return flag_map_.at(flag_name);
         }
 
         std::string Parser::generate_help_text() const
@@ -338,6 +324,18 @@ namespace Arguinator
                 return inputs_;
         }
 
+        const std::string &Flag::get_input(std::size_t input_field) const
+        {
+                if (input_field == 0)
+                        throw std::range_error("Input_field 0 is invalid. Indexing starts from 1.");
+
+                const std::string flag_string = ParserConsts::default_flag_prefix + name_;
+                if (input_field > arity_)
+                        throw std::out_of_range(fmt_ns::format("Flag {} has arity {} but field #{} requested.",
+                                                               flag_string, arity_, input_field));
+                return inputs_.at(input_field - 1); /* -1 to convert input_field to vector index. */
+        }
+
         FlagArityError::FlagArityError(const std::string &flag_name,
                                        std::size_t expected_arity,
                                        std::size_t provided_arity)
@@ -348,10 +346,10 @@ namespace Arguinator
                                                         std::size_t provided_arity)
         {
                 return fmt_ns::format("{}{} expected {} inputs, got {}. ",
-                                   ParserConsts::default_flag_prefix,
-                                   flag_name,
-                                   expected_arity,
-                                   provided_arity);
+                                      ParserConsts::default_flag_prefix,
+                                      flag_name,
+                                      expected_arity,
+                                      provided_arity);
         }
 
         FlagUnknownError::FlagUnknownError(const std::string &flag_name)
@@ -385,6 +383,6 @@ namespace Arguinator
         std::string FlagFormatError::build_error_message(const std::string &flag_string)
         {
                 return fmt_ns::format("Flags must be prefixed with {}. Got: {}",
-                                   ParserConsts::default_flag_prefix, flag_string);
+                                      ParserConsts::default_flag_prefix, flag_string);
         }
 } /* namespace Arguinator */

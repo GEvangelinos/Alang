@@ -3,11 +3,9 @@ project(Alpha VERSION 0.5 LANGUAGES CXX)
 
 # === Configurable build options ===
 option(ENABLE_IWYU "Enable include-what-you-use integration" OFF)
-option(DEBUG_MODE "DEBUG_MDOE: enables extra sanity checking inside the code, (enables SANITY_MODE too)" OFF)
-option(SANITY_MODE "Enable sanity assertions (SANITY_ASSERT_* macros)" OFF)
+option(DEBUG_MODE "DEBUG_MDOE: enables extra sanity checking inside the code" OFF)
 
 set(DEBUG_MODE ON) # TODO unset when done, I did this so I dont forget it on testing.
-set(SANITY_MODE ON) # TODO unset when done, I did this so I dont forget it on testing.
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
 ###############################################################################################################
@@ -64,12 +62,6 @@ if(DEBUG_MODE)
         add_compile_options(-g)
         add_compile_definitions(DEBUG_MODE)
         message(WARNING "CMAKE: Running with DEBUG_MODE ON")
-endif()
-
-if(SANITY_MODE)
-        add_compile_definitions(SANITY_MODE)
-        add_compile_options(-Wexceptions)
-        message(WARNING "CMAKE: Running with SANITY_MODE ON")
 endif()
 
 # Create directory that hosts code from flex and bison

@@ -1,5 +1,5 @@
 #include "core/alpha_location.hpp"
-#include "utils/sanity_assert.h"
+#include "utils/smart_assert.h"
 #include <algorithm>
 #include <stdexcept>
 #include "core/alpha_konstants.hpp"
@@ -14,7 +14,7 @@ namespace Alpha
 
         u32 LocationTracker::find_line(u32 index) const
         {
-                SANITY_ASSERT_TRUE(std::is_sorted(line_start_indices_.begin(), line_start_indices_.end()));
+                DEBUG_SMART_ASSERT(std::is_sorted(line_start_indices_.begin(), line_start_indices_.end()));
 
                 if (index > max_valid_index_)
                         throw std::logic_error("Bug: LocationTracker received out-of-bounds index.");
