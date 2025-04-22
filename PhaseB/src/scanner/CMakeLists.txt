@@ -27,6 +27,8 @@ add_library(alpha_scanner STATIC
         alpha_token.cpp
 )
 
+add_dependencies(alpha_scanner generate_parser_scanner)
+
 target_include_directories(alpha_scanner PRIVATE
         "${AUTOGEN_INCLUDE_DIR_PATH}"
         "${CMAKE_SOURCE_DIR}/include"

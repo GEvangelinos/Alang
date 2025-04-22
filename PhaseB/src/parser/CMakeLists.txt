@@ -20,7 +20,7 @@ add_custom_command(
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/log_injector/main.py # -B is used to disable .pyc (__pycache)
         --input ${CMAKE_CURRENT_SOURCE_DIR}/${BISON_SPEC_FILENAME}
         --output ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
-        --log-fn display_log
+        --log-fn display_trace
         DEPENDS ${injector_files} ${CMAKE_CURRENT_SOURCE_DIR}/${BISON_SPEC_FILENAME}
         COMMENT "[PYTHON][LOG_INJECTOR] Generating log injected parser file"
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -55,6 +55,8 @@ add_library(alpha_parser STATIC
         alpha_semantic_actions.cpp
         alpha_symbol_table.cpp
 )
+
+add_dependencies(alpha_parser generate_parser_scanner)
 
 target_include_directories(alpha_parser PRIVATE
         "${AUTOGEN_INCLUDE_DIR_PATH}"

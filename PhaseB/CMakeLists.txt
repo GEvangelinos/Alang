@@ -9,8 +9,8 @@ set(DEBUG_MODE ON) # TODO unset when done, I did this so I dont forget it on tes
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
 ###############################################################################################################
-set(ALPHA_DRIVER_EXECUTABLE_NAME "alpha_driver.out" CACHE STRING "Name of the main executable (e.g., the syntax analyzer)")
-set(AUTOGEN_ROOT_DIR_NAME "autogen" CACHE STRING "Name of the directory where auto-generated files are stored")
+set(ALPHA_DRIVER_EXECUTABLE alpha_driver.out CACHE STRING "Name of the main executable (e.g., the syntax analyzer)")
+set(AUTOGEN_ROOT_DIR "autogen" CACHE STRING "Name of the directory where auto-generated files are stored")
 set(FLEX_OUTPUT_FILENAME "alpha_scanner.cpp" CACHE STRING "Filename of the Flex-generated C++ source file")
 set(FLEX_HEADER_FILENAME "alpha_scanner.hpp" CACHE STRING "Filename of the Flex-generated header file")
 set(BISON_OUTPUT_FILENAME "alpha_parser.cpp" CACHE STRING "Filename of the Bison-generated C++ source file")
@@ -20,6 +20,19 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/executables" CACHE PATH 
 
 set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l") # <-- Modifying .l filename requires manual change.
 set(BISON_SPEC_FILENAME "alpha_parser_spec.y") # <-- Modifying .y filename requires manual change.
+
+
+##########################################--==>> TESTS <<==--###########################################
+set(ALPHA_DRIVER_WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/working")
+set(ALPHA_DRIVER_ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/error")
+set(ALPHA_DRIVER_EXPORT_DIR "${CMAKE_BINARY_DIR}/symtable_exports")
+set(ALPHA_DRIVER_GOLDEN_DIR "${CMAKE_SOURCE_DIR}/tests/symtable_golden_exports")
+set(WORKING_TESTS
+        Anonymous.asc
+)
+
+set(ERROR_TEST
+)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

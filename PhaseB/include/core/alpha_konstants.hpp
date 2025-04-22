@@ -5,17 +5,6 @@
 
 namespace Alpha
 {
-        // Driver's contants (TODO: If you get more flags, move in separate file)
-        static constexpr char k_alpha_driver_description[] = "A tool for syntactical analysis on programming language Alpha";
-        static constexpr char k_symtable_csv_export_prefix[] = "ST_";
-        static constexpr char k_symtable_csv_exports_dir[] = "symtable_exports";
-
-        static constexpr char k_flag_input_file[] = "input-file";
-        static constexpr char k_flag_input_file_help[] = "Use flag to provide the alpha file you want to parse.";
-
-        static constexpr char k_flag_export_csv[] = "export-csv";
-        static constexpr char k_flag_export_csv_help[] = "Enable CSV export of the symbol table after parsing.";
-
         // ParseCtx's contants
         static constexpr u32 k_max_function_nesting = 256; // Function nesting sanity limit.
         static constexpr u32 k_max_loop_nesting = 256;     // Loop nesting sannity limit.

@@ -22,9 +22,9 @@ def _validate_input_file(file_path: str) -> None:
 
 def _parse_startup_arguments() -> StartupArguments:
         parser = argparse.ArgumentParser(description="Inject logging hooks into grammar files.")
-        parser.add_argument("--input", "-i", required=True, help="Path to the input grammar file")
-        parser.add_argument("--output", "-o", required=True, help="Path to the output grammar file")
-        parser.add_argument("--log-fn", "-l", required=True, help="Name of the logging function to inject")
+        parser.add_argument("--input", required=True, help="Path to the input grammar file")
+        parser.add_argument("--output", required=True, help="Path to the output grammar file")
+        parser.add_argument("--log-fn", required=True, help="Name of the logging function to inject")
 
         args = parser.parse_args()
 

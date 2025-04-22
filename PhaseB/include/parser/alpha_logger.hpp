@@ -6,8 +6,13 @@
 #include <iomanip>
 #include "utils/cli_color.h"
 
-static void display_log(const std::string &lhs, const std::string &rhs)
+extern bool g_show_parser_trace;
+
+#ifndef OPTIMIZED_MODE
+static void display_trace(const std::string &lhs, const std::string &rhs)
 {
+        if (!g_show_parser_trace)
+                return;
         std::cout << COLOR_ASCII_FG_GREEN
                   << std::setw(20)
                   << lhs
@@ -15,5 +20,6 @@ static void display_log(const std::string &lhs, const std::string &rhs)
                   << ":\t" << rhs
                   << std::endl;
 }
+#endif // OPTIMIZED_MODE
 
 #endif /* LOGGER_HPP */

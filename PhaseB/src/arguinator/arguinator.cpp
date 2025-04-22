@@ -98,6 +98,7 @@ namespace /* (Anonymous) */
                                 ss << fmt_ns::format("\t{}\n", wrapped_label);
                                 ss << fmt_ns::format("\t{:{}} {}\n", "", ParserConsts::default_flag_field_size, flag.get_help_text());
                         }
+                        ss << '\n';
                 }
         }
 

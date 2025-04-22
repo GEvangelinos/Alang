@@ -6,7 +6,7 @@
     #include <format>
     namespace fmt_ns = std;
 #else
-    #define FMT_HEADER_ONLY
+    #define FMT_HEADER_ONLY // TODO REMOVE this you supplied .cc
     #include "third_party/fmt/format.h"
     namespace fmt_ns = fmt;
 #endif // COMPILER_SUPPORTS_STD_FORMAT
