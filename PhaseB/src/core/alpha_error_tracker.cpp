@@ -2,6 +2,12 @@
 #include "core/alpha_error_tracker.hpp"
 
 #include <sstream>
+#include "utils/cli_color.h"
+#include "utils/format_adapter.hpp"
+#include "core/alpha_location.hpp"
+#include <iostream>
+#include <iomanip>
+
 namespace Alpha
 {
         CodeMessage::CodeMessage(const std::string &message, std::optional<Location> location)
@@ -19,11 +25,56 @@ namespace Alpha
                                            std::list<CodeMessage> &&note_list)
             : error_(error_message, error_location),
               note_list(std::move(note_list)) {}
-        std::string CompileTimeError::to_string() const
+
+        std::string CompileTimeError::assemble_code_message(
+            const std::string &source_filename,
+            const LocationTracker &lt,
+            const char *input_buffer) const
+        {
+        }
+
+        std::string CompileTimeError::to_string(
+            const std::string &source_filename,
+            const LocationTracker &lt,
+            const char *buffer_input) const
         {
                 std::stringstream ss;
-                ss << this->get_error_type() << ":"
-                   << this->error_.message;
+                ss << source_filename;
+
+                if (error_.location.has_value())
+                {
+                        auto loc = error_.location.value();
+                        int line = lt.find_first_line(loc);
+                        int column = lt.find_first_column(loc);
+                        ss << ":" << line << ":" << column;
+                }
+
+                ss << ": "
+                   << COLOR_ASCII_FG_RED
+                   << this->get_error_type() << " error"
+                   << SGR_RESET
+                   << ": "
+                   << error_.message;
+
+                if (error_.location.has_value())
+                {
+                        auto loc = error_.location.value();
+                        int line = lt.find_first_line(loc);
+                        int column = lt.find_first_column(loc);
+                        std::size_t line_start_index = lt.find_index_at_line(line);
+                        const char *line_start = &buffer[line_start_index];
+                        const char *line_end_ptr = std::strchr(line_start, '\n');
+                        std::string_view line_view(line_start, line_end_ptr ? line_end_ptr - line_start : std::strlen(line_start));
+
+                        int line_digits = std::to_string(line).size();
+                        int pad_width = line_digits > 8 ? line_digits : 8;
+
+                        ss << '\n'
+                           << std::setw(pad_width) << line << " | " << line_view << "\n"
+                           << std::setw(pad_width) << ' ' << " | " << std::string(column - 1, ' ') << "^";
+                }
+
+                return ss.str();
         }
 
         LexerError::LexerError(const std::string &error_message, Location error_location)

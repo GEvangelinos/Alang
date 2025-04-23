@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "core/alpha_konstants.hpp"
 
+#include <iostream>
 namespace Alpha
 {
         LocationTracker::LocationTracker(u32 max_valid_index)
@@ -39,6 +40,28 @@ namespace Alpha
         LineRange LocationTracker::find_lines(Location location) const
         {
                 return find_lines(location.first_index_, location.last_index_);
+        }
+
+        u32 LocationTracker::find_first_line(Location location) const
+        {
+                return find_line(location.first_index_);
+        }
+
+        u32 LocationTracker::find_first_column(Location location) const
+        {
+                u32 starting_line = find_first_line(location);
+                DEBUG_SMART_ASSERT(starting_line < line_start_indices_.size());
+                u32 index_at_starting_line = line_start_indices_[starting_line - 1]; // -1 as line starts at pos 0.
+                DEBUG_SMART_ASSERT(location.first_index_ >= index_at_starting_line);
+
+                // +1 to convert index offset to columns.
+                u32 starting_column = location.first_index_ - index_at_starting_line + 1;
+                return starting_column;
+        }
+
+        u32 LocationTracker::find_index_at_line(u32 line) const
+        {
+                return line_start_indices_[line - 1]; // -1 as line starts at pos 0.
         }
 
         u32 LocationTracker::find_symbol_line(Location location) const

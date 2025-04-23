@@ -27,7 +27,10 @@ namespace Alpha
                  * triggered it, maybe add extra flag to show who triggered it, (custom argparse)!
                  * */
                 virtual std::string get_error_type() const noexcept = 0;
-                virtual std::string to_string() const;
+                virtual std::string to_string(
+                    const std::string &source_filename,
+                    const LocationTracker &lt,
+                    const char *input_buffer) const;
 
         protected:
                 CodeMessage error_;
@@ -39,7 +42,13 @@ namespace Alpha
                                  const std::string &note, Location note_location);
 
                 CompileTimeError(const std::string &error, Location error_location,
-                                std::list<CodeMessage> &&note_list);
+                                 std::list<CodeMessage> &&note_list);
+
+        private:
+                std::string assemble_code_message(
+                    const std::string &source_filename,
+                    const LocationTracker &lt,
+                    const char *input_buffer) const;
         };
 
         class LexerError : public CompileTimeError
@@ -49,7 +58,7 @@ namespace Alpha
 
                 LexerError() = delete;
 
-                std::string get_error_type() const noexcept override { return "Lexer Error"; }
+                std::string get_error_type() const noexcept override { return "lexer"; }
         };
 
         class SyntaxError : public CompileTimeError
@@ -65,7 +74,7 @@ namespace Alpha
 
                 SyntaxError() = delete;
 
-                std::string get_error_type() const noexcept override { return "Syntax Error"; }
+                std::string get_error_type() const noexcept override { return "syntax"; }
         };
 
         class ErrorTracker
@@ -78,10 +87,10 @@ namespace Alpha
                 void report_syntax_error(const std::string &error, Location error_location);
 
                 void report_syntax_error(const std::string &error, Location error_location,
-                                           const std::string &note, Location note_location);
+                                         const std::string &note, Location note_location);
 
                 void report_syntax_error(const std::string &error, Location error_location,
-                                           std::list<CodeMessage> &&note_list);
+                                         std::list<CodeMessage> &&note_list);
 
                 const std::vector<const CompileTimeError *> &ger_error_vector() const;
 

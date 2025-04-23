@@ -42,6 +42,9 @@ namespace Alpha
                 LineRange find_lines(u32 first_index, u32 last_index) const;
                 LineRange find_lines(Location location) const;
                 u32 find_symbol_line(Location location) const; // Symbol is always defined in 1 line.
+                u32 find_first_line(Location location) const;
+                u32 find_first_column(Location location) const;
+                u32 find_index_at_line(u32 line) const;
 
         private:
                 std::vector<u32> line_start_indices_;

@@ -78,5 +78,7 @@ int main(int argc, char **argv)
     if (cli_parser[flag_show_symbol_table].is_provided())
         driver.display_symbol_table();
 
+    driver.display_compilation_errors();
+
     return driver.ok() ? 0 : 1;
 }

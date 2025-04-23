@@ -33,6 +33,7 @@ namespace Alpha
 
                 void run_syntax_analyzer();
                 void display_symbol_table();
+                void display_compilation_errors() const;
                 void export_symbol_table(std::optional<std::string> exports_dirname);
                 bool ok();
 
@@ -48,6 +49,7 @@ namespace Alpha
                         FlexBuffer &operator=(FlexBuffer &&) = delete;
 
                         char *buffer() { return buffer_.get(); }
+                        const char *const_buffer() const { return buffer_.get(); }
                         std::size_t size() { return size_; }
 
                 private:
