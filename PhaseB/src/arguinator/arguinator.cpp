@@ -129,7 +129,10 @@ namespace /* (Anonymous) */
                 std::size_t matched_inputs = 0;
                 while (flag_index < argc && matched_inputs < expected_inputs)
                 {
-                        flag.add_input(argv[flag_index]);
+                        const std::string input_value = argv[flag_index];
+                        if (input_value.starts_with(ParserConsts::default_flag_prefix))
+                                break;
+                        flag.add_input(input_value);
                         matched_inputs++;
                         flag_index++;
                 }

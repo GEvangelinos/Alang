@@ -3,7 +3,8 @@ project(Alpha VERSION 0.5 LANGUAGES CXX)
 
 # === Configurable build options ===
 option(ENABLE_IWYU "Enable include-what-you-use integration" OFF)
-option(DEBUG_MODE "DEBUG_MDOE: enables extra sanity checking inside the code" OFF)
+option(DEBUG_MODE "DEBUG_MODE: enables extra sanity checking inside the code" OFF)
+option(DEBUG_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable parser trace" OFF)
 
 set(DEBUG_MODE ON) # TODO unset when done, I did this so I dont forget it on testing.
 
@@ -23,16 +24,11 @@ set(BISON_SPEC_FILENAME "alpha_parser_spec.y") # <-- Modifying .y filename requi
 
 
 ##########################################--==>> TESTS <<==--###########################################
-set(ALPHA_DRIVER_WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/working")
-set(ALPHA_DRIVER_ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/error")
-set(ALPHA_DRIVER_EXPORT_DIR "${CMAKE_BINARY_DIR}/symtable_exports")
-set(ALPHA_DRIVER_GOLDEN_DIR "${CMAKE_SOURCE_DIR}/tests/symtable_golden_exports")
-set(WORKING_TESTS
-        Anonymous.asc
-)
+set(SYMBOL_TABLE_WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/working")
+set(SYMBOL_TABLE_ERROR_TEST_DIR "${CMAKE_SOURCE_DIR}/tests/error")
+set(SYMBOL_TABLE_EXPORT_DIR "${CMAKE_BINARY_DIR}/SYMBOL_TABLE_EXPORTS")
+set(SYMBOL_TABLE_GOLDEN_DIR "${CMAKE_SOURCE_DIR}/tests/symtable_golden_exports")
 
-set(ERROR_TEST
-)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -75,6 +71,12 @@ if(DEBUG_MODE)
         add_compile_options(-g)
         add_compile_definitions(DEBUG_MODE)
         message(WARNING "CMAKE: Running with DEBUG_MODE ON")
+endif()
+
+
+if(OPTIMIZED_MODE)
+        add_compile_definitions(OPTIMIZED_MODE)
+        message(WARNING "CMAKE: Running with OPTIMIZED_MODE ON")
 endif()
 
 # Create directory that hosts code from flex and bison

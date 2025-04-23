@@ -20,6 +20,8 @@ static void display_trace(const std::string &lhs, const std::string &rhs)
                   << ":\t" << rhs
                   << std::endl;
 }
+#else
+#define display_trace(lhs, rhs) ((void)0)
 #endif // OPTIMIZED_MODE
 
 #endif /* LOGGER_HPP */

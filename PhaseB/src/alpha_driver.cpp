@@ -1,4 +1,4 @@
-#include "driver.hpp"
+#include "alpha_driver.hpp"
 
 static constexpr unsigned k_flex_eof_padding = 2;
 
@@ -65,10 +65,12 @@ namespace Alpha
         }
 
         Driver::Driver(const std::string source_filepath)
-            : source_filepath_(source_filepath), // Convert std::string to std::filesystem::path implicitly 
+            : source_filepath_(source_filepath), // Convert std::string to std::filesystem::path implicitly
               flex_buffer_(source_filepath),
               lexer_ctx_(source_filepath),
-              lt_(flex_buffer_.size() - k_flex_eof_padding) {}
+              lt_(flex_buffer_.size() - k_flex_eof_padding)
+        {
+        }
 
         bool Driver::ok()
         {
@@ -101,6 +103,12 @@ namespace Alpha
                         std::cout << std::endl;
                 }
                 std::cout << SGR_RESET << std::endl;
+        }
+
+        void Driver::display_compilation_errors()
+        {
+                for (const CompileTimeError *error : et_.ger_error_vector())
+                        std::cerr << error->to_string() << std::endl;
         }
 
         void Driver::export_symbol_table(std::optional<std::string> exports_dirname)

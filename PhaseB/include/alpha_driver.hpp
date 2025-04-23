@@ -18,7 +18,7 @@
 namespace Alpha
 {
 
-        static constexpr char k_default_exports_dirname[] = "SYMTABLE_EXPORTS";
+        static constexpr char k_default_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
         static constexpr char k_symtable_csv_export_header[] = "symbol,type,line,scope\n";
 
         class Driver

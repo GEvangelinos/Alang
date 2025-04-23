@@ -4,10 +4,6 @@ from typing import NoReturn
 import csv
 import sys
 
-RETURN_VALUE_TEST_PASSED = 0
-RETURN_VALUE_TEST_FAILED = 1
-RETURN_VALUE_TEST_ERROR = 2
-
 COLOR_BLACK = "\033[90m"
 COLOR_RED = "\033[91m"
 COLOR_GREEN = "\033[92m"
@@ -50,13 +46,6 @@ def _load_csv_file(filename: str) -> list[list[str]]:
                 return list(reader)
 
 
-def _compare_symbol_table(golden: list[list[str]], export: list[list[str]]) -> NoReturn:
-
-        if golden == export:
-                sys.exit(RETURN_VALUE_TEST_PASSED)
-
-
-
 def main():
         try:
                 args = _parser_startup_arguments()
@@ -70,17 +59,15 @@ def main():
                 print(f"Running test '{basename}': ", end="")
                 if (golden == export):
                         print(f"{COLOR_GREEN}TEST_PASSED{SGR_RESET}", flush=True)
-                        sys.exit(RETURN_VALUE_TEST_PASSED)
-                print(f"{COLOR_RED}TEST_FAILED{SGR_RESET}", flush=True)
-                sys.exit(RETURN_VALUE_TEST_FAILED)
-        except ValueError as e:
-                print(f"{COLOR_RED}Exception: {SGR_RESET}{e}", file=sys.stderr)
-        except FileExistsError as e:
-                print(f"{COLOR_RED}Exception: {SGR_RESET}{e}", file=sys.stderr)
-        except PermissionError as e:
+                else:
+                        print(f"{COLOR_RED}TEST_FAILED{SGR_RESET}", flush=True)
+        except FileNotFoundError as e:
+                print(f"{COLOR_RED}FileNotFoundError: {SGR_RESET}{e}", file=sys.stderr)
+        except Exception as e:
                 print(f"{COLOR_RED}Exception: {SGR_RESET}{e}", file=sys.stderr)
 
-        sys.exit(RETURN_VALUE_TEST_ERROR)
+        return 0
+
 
 
 if __name__ == "__main__":

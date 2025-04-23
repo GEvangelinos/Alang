@@ -12,8 +12,8 @@ namespace Alpha
 
         struct CodeMessage
         {
-                const std::string message_;
-                const std::optional<Location> location_;
+                const std::string message;
+                const std::optional<Location> location;
                 CodeMessage(const std::string &message, std::optional<Location> location);
         };
 
@@ -27,7 +27,7 @@ namespace Alpha
                  * triggered it, maybe add extra flag to show who triggered it, (custom argparse)!
                  * */
                 virtual std::string get_error_type() const noexcept = 0;
-                virtual const std::string &to_string() const;
+                virtual std::string to_string() const;
 
         protected:
                 CodeMessage error_;
