@@ -64,7 +64,7 @@ extern "C"
 #define _PRINT_SMART_ASSERT(_format, ...)                                                         \
         do                                                                                        \
         {                                                                                         \
-                fprintf(stderr, "%s:%d: %s: SMART_ASSERT(): ", __FILENAME__, __LINE__, __func__); \
+                fprintf(stderr, "%s:%d: %s(): SMART_ASSERT(): ", __FILENAME__, __LINE__, __func__); \
                 _PRINT_SMART_ASSERT_FORMAT(_format, __VA_ARGS__); /* Compiler specific. */        \
                 fprintf(stderr, "\n");                                                            \
         } while (0);

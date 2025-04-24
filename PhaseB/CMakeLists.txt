@@ -25,7 +25,7 @@ set(BISON_SPEC_FILENAME "alpha_parser_spec.y") # <-- Modifying .y filename requi
 
 ##########################################--==>> TESTS <<==--###########################################
 set(SYMBOL_TABLE_WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/working")
-set(SYMBOL_TABLE_ERROR_TEST_DIR "${CMAKE_SOURCE_DIR}/tests/error")
+set(SYMBOL_TABLE_ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/error")
 set(SYMBOL_TABLE_EXPORT_DIR "${CMAKE_BINARY_DIR}/SYMBOL_TABLE_EXPORTS")
 set(SYMBOL_TABLE_GOLDEN_DIR "${CMAKE_SOURCE_DIR}/tests/symtable_golden_exports")
 

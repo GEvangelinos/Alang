@@ -7,6 +7,7 @@
 #include "core/alpha_location.hpp"
 #include <iostream>
 #include <iomanip>
+#include "utils/smart_assert.h"
 #include "core/alpha_macros.hpp"
 
 namespace // (Anonymous)
@@ -33,6 +34,40 @@ namespace // (Anonymous)
                 }
                 return lines;
         }
+
+        std::string expand_tabs(std::string_view line, int tab_width = 8)
+        {
+                std::string result;
+                result.reserve(line.size() + std::count(line.begin(), line.end(), '\t') * (tab_width - 1));
+
+                int col = 0;
+                for (char ch : line)
+                {
+                        if (ch == '\t')
+                        {
+                                int spaces = tab_width - (col % tab_width);
+                                result.append(spaces, ' ');
+                                col += spaces;
+                        }
+                        else
+                        {
+                                result += ch;
+                                ++col;
+                        }
+                }
+                return result;
+        }
+
+        int compute_visual_caret_offset(std::string_view line, int raw_offset, int tab_width = 8)
+        {
+                int col = 0;
+                for (int i = 0; i < raw_offset; ++i)
+                {
+                        col += (line[i] == '\t') ? (tab_width - (col % tab_width)) : 1;
+                }
+                return col;
+        }
+
 }
 
 namespace Alpha
@@ -99,32 +134,38 @@ namespace Alpha
                 /* Error header: */
                 const u32 diagnostic_line = diagnostic.line(lt);
                 const u32 diagnostic_column = diagnostic.column(lt);
-                ss << fmt_ns::format(
-                    "{}{}:{}:{}: {}{}{}: {}\n",
-                    COLOR_ASCII_BOLD_DEFAULT, source_filename, diagnostic_line, diagnostic_column,
-                    diagnostic.pretty_color(), diagnostic.type_to_string(), COLOR_ASCII_BOLD_DEFAULT,
-                    diagnostic.message);
-
-                ss << SGR_RESET;
+                ss << COLOR_ASCII_BOLD_DEFAULT
+                   << fmt_ns::format(
+                          "{}:{}:{}: {}{}{}: {}\n",
+                          source_filename, diagnostic_line, diagnostic_column,
+                          diagnostic.pretty_color(), diagnostic.type_to_string(), COLOR_ASCII_BOLD_DEFAULT,
+                          diagnostic.message)
+                   << SGR_RESET;
 
                 auto line_views = extract_line_views(
                     input_buffer, lt.find_index_of_line(diagnostic_line), diagnostic.location.last_index_);
-
                 for (std::size_t i = 0; i < line_views.size(); i++)
                 {
+                        std::string visual_line = expand_tabs(line_views[i]);
                         ss << fmt_ns::format("{:>{}} | {}\n",
                                              i != 0 ? "" : std::to_string(diagnostic_line),
                                              line_box_width,
-                                             line_views[i]);
+                                             visual_line);
                         if (i != 0) // Caret marking is only for first line.
                                 continue;
-                        ss << fmt_ns::format("{:>{}} | {:{}}{}^{}\n",
-                                             "", // Empty just a placeholder for spaces
-                                             line_box_width,
-                                             "", // Placeholder for spaces too.
-                                             diagnostic.location.first_index_ - lt.find_index_of_line(lt.find_first_line(diagnostic.location)),
+
+                        DEBUG_SMART_ASSERT(diagnostic.location.last_index_ > diagnostic.location.first_index_);
+
+                        auto raw_caret_offset =
+                            diagnostic.location.first_index_ - lt.find_index_of_line(lt.find_first_line(diagnostic.location));
+                        auto visual_caret_offset = compute_visual_caret_offset(line_views[i], raw_caret_offset);
+                        auto highlight_length = diagnostic.location.last_index_ - diagnostic.location.first_index_ - 1;
+
+                        ss << fmt_ns::format("{} | {}{}^{}\n",
+                                             std::string(line_box_width, ' '),      // Spaces pre  |
+                                             std::string(visual_caret_offset, ' '), // spaces post | to move caret
                                              diagnostic.pretty_color(),
-                                             std::string(diagnostic.location.last_index_ - diagnostic.location.first_index_-1, '~'));
+                                             std::string(highlight_length, '~'));
                         ss << SGR_RESET;
                 }
 

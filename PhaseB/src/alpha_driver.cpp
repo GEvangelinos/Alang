@@ -111,10 +111,9 @@ namespace Alpha
 
                 for (const CompileTimeError *error : et_.ger_error_vector())
                         std::cerr << error->make_pretty_diagnostic(
-                                         source_filename,
-                                         lt_,
-                                         flex_buffer_.const_buffer())
-                                  << std::endl;
+                            source_filename,
+                            lt_,
+                            flex_buffer_.const_buffer());
         }
 
         void Driver::export_symbol_table(std::optional<std::string> exports_dirname)

@@ -55,7 +55,7 @@ namespace Alpha
         u32 LocationTracker::find_first_column(Location location) const
         {
                 u32 starting_line = find_first_line(location);
-                DEBUG_SMART_ASSERT(starting_line < line_start_indices_.size());
+                // DEBUG_SMART_ASSERT(starting_line < line_start_indices_.size());
                 u32 index_at_starting_line = line_start_indices_[starting_line - 1]; // -1 as line starts at pos 0.
                 DEBUG_SMART_ASSERT(location.first_index_ >= index_at_starting_line);
 

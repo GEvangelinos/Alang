@@ -97,5 +97,31 @@ Semantic	Type errors, undeclared names	Analyzer	After parsing
 Both are compile-time errors, but they come from different stages.
 
 
+32) Extend arguinator (optionally)
+
+        enum class Constraint
+        {
+                READABLE_FILE,
+                WRITEABLE_FILE,
+                EXISTING_FILE,
+                EXISTING_DIR,
+                NUMBER,
+                STRING,
+        };
+                Flag &set_constraint() noexcept;
+                std::vector<Constraint> constraints_;
+
 because map already stores
 SEPERATION OF CONCERNS
+
+
+33) Thest empty indexex rule 
+
+indexed:
+  // (empty)
+| indexedElemList
+;
+
+
+
+

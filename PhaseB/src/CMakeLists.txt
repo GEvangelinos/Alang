@@ -55,10 +55,12 @@ foreach(test_file ${WORKING_TEST_FILES})
                 --export-symbol-table
                 "--symbol-table-export-path" "${SYMBOL_TABLE_EXPORT_DIR}"
                 DEPENDS ${ALPHA_DRIVER_EXECUTABLE}
+                VERBATIM
         )
         add_custom_target(
                 "run_csv_${test_file_name}"
                 DEPENDS "${EXPORT_CSV_FILE}"
+                VERBATIM
         )
 
         add_dependencies("run_csv_${test_file_name}" "${ALPHA_DRIVER_EXECUTABLE}")
@@ -69,6 +71,7 @@ foreach(test_file ${WORKING_TEST_FILES})
                 --golden-file "${SYMBOL_TABLE_GOLDEN_DIR}/${GOLDEN_CSV_FILE}"
                 --export-file "${SYMBOL_TABLE_EXPORT_DIR}/${EXPORT_CSV_FILE}"
                 DEPENDS "run_csv_${test_file_name}"
+                VERBATIM
         )
 
         add_dependencies(run_all_validators run_validator_${test_file_name})

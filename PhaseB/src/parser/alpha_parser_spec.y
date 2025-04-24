@@ -10,38 +10,34 @@
         #include "scanner/alpha_scanner_context.hpp"
         #include "parser/alpha_parser_context.hpp"
         extern ALPHA_YYLEX_SIGNATURE;
+        // TODO: say in your report for  the progect that ';' is not just a plain syntax requirement.
+        // but also the parser's sync point, anything goes wrong, (syntax error) parser can continue parsing gracefully after ';'
 
-        #define YYLLOC_DEFAULT(Current, Rhs, N)                                         \
-                do                                                                      \
-                {                                                                       \
-                        if (N)                                                          \
-                        {                                                               \
-                                (Current).first_index_ = YYRHSLOC(Rhs, 1).first_index_; \
-                                (Current).last_index_ = YYRHSLOC(Rhs, N).last_index_;   \
-                        }                                                               \
-                        else                                                            \
-                        {                                                               \
-                                (Current).first_index_ = YYRHSLOC(Rhs, 0).last_index_;  \
-                                (Current).last_index_ = YYRHSLOC(Rhs, 0).last_index_;   \
-                        }                                                               \
-                } while (0)
+#define YYLLOC_DEFAULT(Current, Rhs, N)                                         \
+        do                                                                      \
+        {                                                                       \
+                if (N)                                                          \
+                {                                                               \
+                        (Current).first_index_ = YYRHSLOC(Rhs, 1).first_index_; \
+                        (Current).last_index_ = YYRHSLOC(Rhs, N).last_index_;   \
+                }                                                               \
+                else                                                            \
+                {                                                               \
+                        (Current).first_index_ = YYRHSLOC(Rhs, 0).last_index_;  \
+                        (Current).last_index_ = YYRHSLOC(Rhs, 0).last_index_;   \
+                }                                                               \
+        } while (0)
 
         static void alpha_yyerror(Alpha::LexerCtx &lexer_ctx,
                                 Alpha::ParseCtx &parse_ctx,
                                 Alpha::SymbolTable &symbol_table,
                                 Alpha::ErrorTracker &error_tracker,
-                                Alpha::LocationTracker & lt,
+                                Alpha::LocationTracker &lt,
                                 const std::string &error_message)
         {
-        #ifdef DEBUG_MODE
-        /* TODO, fill to be able to print errors: */
-                (void)lexer_ctx;
-                (void)parse_ctx;
-                (void)symbol_table;
-                (void)error_tracker;
-                (void)error_message;
-        #endif // DEBUG_MODE
-                std::cerr << "HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEELP" << error_message << std::endl;
+                extern Location alpha_yylloc;
+                error_tracker.report_syntax_error(
+                        error_message, Location(alpha_yylloc.first_index_, alpha_yylloc.last_index_));
         }
 %}
 
@@ -151,11 +147,15 @@ stmt:
 | ifStmt
 | whileStmt
 | forStmt
-| returnStmt
+| returnStmt ';'
 | loopCtrlStmt ';'
 | block
 | funcDef
 | ';'
+| error ';'     { yyerrok; } // Syntax error recovery hook.
+| error ')'     { yyerrok; } // Syntax error recovery hook.
+| error ']'     { yyerrok; } // Syntax error recovery hook.
+| error '}'     { yyerrok; } // Syntax error recovery hook.
 ;
 
 loopCtrlStmt:
@@ -193,7 +193,7 @@ term:
 ;
 
 assignExpr:
-  lvalue '=' expr { assignExpr__lvalue_assign_expr($1, @$, error_tracker); }
+  lvalue '=' expr { assignExpr__lvalue_assign_expr($1, @2, error_tracker); }
 ;
 
 primary:
@@ -329,8 +329,8 @@ funcCtrlStmt: //OK
 ;
 
 returnStmt: //OK
-  funcCtrlStmt ';'
-| funcCtrlStmt expr ';'
+  funcCtrlStmt
+| funcCtrlStmt expr
 ;
 
 indexedElemList:

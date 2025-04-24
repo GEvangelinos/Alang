@@ -18,7 +18,7 @@ namespace Alpha
         // SymbolTable's constants
         // static constexpr char k_private_anonymous_prefix[] = "SavvidisLemeKaiKleme#";
         static constexpr char k_private_anonymous_prefix[] = "#f_";
-        static constexpr char k_public_anonymous_prefix[] = "anonymous#";
+        static constexpr char k_public_anonymous_prefix[] = "@nonymous";
         static constexpr u32 k_global_scope = 0;
 
         static constexpr u32 k_no_line = 0;

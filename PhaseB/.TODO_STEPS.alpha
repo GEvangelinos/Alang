@@ -1,8 +1,3 @@
 foo()++;
 
 what does it trigger?
-
-
-TODO: convert `sanity_assert` to use c++ functions so it allows floats.. 
-
-use std::format instead of fprintf...

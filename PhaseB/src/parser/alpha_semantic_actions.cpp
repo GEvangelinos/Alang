@@ -118,7 +118,7 @@ namespace // Anonymous
                 }
                 else if (resolved_symbol->is_variable())
                 {
-                        const std::string error = fmt_ns::format("`{}` defined as a function", function_name);
+                        const std::string error = fmt_ns::format("`{}` redefined as a function", function_name);
                         const std::string note = fmt_ns::format("`{}` previously defined as a variable here", function_name);
                         et.report_syntax_error(error, id_location, note, resolved_symbol->location());
                 }
@@ -136,7 +136,7 @@ namespace // Anonymous
                 using DT = Diagnostic::Type;
                 DEBUG_SMART_ASSERT(resolved_symbol != nullptr);
                 const std::string error = fmt_ns::format(
-                    "variable `{}` is not accessible from function `{}`.",
+                    "variable `{}` is not accessible in function `{}`.",
                     id_name, current_function_name);
                 const std::string note1 = fmt_ns::format(
                     "function `{}` declared here", current_function_name);
@@ -221,7 +221,8 @@ void lvalue__id(
         }
         if (resolved_symbol->is_variable())
         {
-                if (resolved_symbol->scope() <= parse_ctx.current_function_scope())
+                if (resolved_symbol->scope() > k_global_scope &&
+                    resolved_symbol->scope() <= parse_ctx.current_function_scope())
                         report_out_of_scope(id_name, id_location, parse_ctx.current_function_name(),
                                             parse_ctx.current_function_location(), resolved_symbol, et);
         }
@@ -256,13 +257,27 @@ void lvalue__local_id(
 
 void assignExpr__lvalue_assign_expr(
     const Symbol *const lvalue,
-    Location assignExpr_location,
+    Location assign_location,
     ErrorTracker &et)
 {
         if (is_modifiable_lvalue(lvalue))
                 return;
-        std::string error = fmt_ns::format("assignment of function `{}`", lvalue->name());
-        et.report_syntax_error(error, assignExpr_location);
+
+        DEBUG_SMART_ASSERT(lvalue != nullptr);
+        DEBUG_SMART_ASSERT(lvalue->type() == SymbolType::LIBFUNC ||
+                           lvalue->type() == SymbolType::USERFUNC);
+
+        if (lvalue->type() == SymbolType::LIBFUNC)
+        {
+                std::string error = fmt_ns::format("assignment of library function `{}`", lvalue->name());
+                et.report_syntax_error(error, assign_location);
+        }
+        else
+        {
+                std::string error = fmt_ns::format("assignment of function `{}`", lvalue->name());
+                std::string note = fmt_ns::format("function {} declared here", lvalue->name());
+                et.report_syntax_error(error, assign_location, note, lvalue->location());
+        }
 }
 
 void term__inc_lvalue(

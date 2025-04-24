@@ -79,7 +79,7 @@ void funcDef__function_lparen_funcArgList_rparen(
 
 void assignExpr__lvalue_assign_expr(
     const Symbol *lvalue,
-    Location assignExpr_location,
+    Location assign_location,
     ErrorTracker &et);
 
 void assignExpr__lvalue_assign_expr(
