@@ -133,18 +133,19 @@ namespace // Anonymous
             const Symbol *resolved_symbol,
             ErrorTracker &et)
         {
+                using DT = Diagnostic::Type;
                 DEBUG_SMART_ASSERT(resolved_symbol != nullptr);
                 const std::string error = fmt_ns::format(
-                    "variable `{}` is declared outside current function `{}`.",
+                    "variable `{}` is not accessible from function `{}`.",
                     id_name, current_function_name);
                 const std::string note1 = fmt_ns::format(
-                    "current function `{}` declared here", current_function_name);
+                    "function `{}` declared here", current_function_name);
                 const std::string note2 = fmt_ns::format(
                     "variable `{}` declared here", id_name);
                 et.report_syntax_error(
                     error, id_location,
-                    std::list<CodeMessage>{{note1, current_function_location},
-                                           {note2, resolved_symbol->location()}});
+                    std::list<Diagnostic>{{note1, current_function_location, DT::NOTE},
+                                          {note2, resolved_symbol->location(), DT::NOTE}});
         }
 
         DEBUG_ALWAYS_INLINE bool is_modifiable_lvalue(const Symbol *const lvalue)

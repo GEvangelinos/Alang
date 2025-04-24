@@ -7,14 +7,28 @@
 #include <optional>
 #include <list>
 #include "core/alpha_location.hpp"
+#include <string_view>
 namespace Alpha
 {
 
-        struct CodeMessage
+        class Diagnostic
         {
+        public:
+                enum class Type
+                {
+                        ERROR,
+                        NOTE,
+                };
+
                 const std::string message;
-                const std::optional<Location> location;
-                CodeMessage(const std::string &message, std::optional<Location> location);
+                const Location location;
+                const Type type;
+
+                Diagnostic(const std::string &message, Location location, Type type);
+                u32 line(const LocationTracker &lt) const;
+                u32 column(const LocationTracker &lt) const;
+                std::string type_to_string() const;
+                std::string pretty_color() const;
         };
 
         class CompileTimeError
@@ -27,14 +41,15 @@ namespace Alpha
                  * triggered it, maybe add extra flag to show who triggered it, (custom argparse)!
                  * */
                 virtual std::string get_error_type() const noexcept = 0;
-                virtual std::string to_string(
+
+                std::string make_pretty_diagnostic(
                     const std::string &source_filename,
                     const LocationTracker &lt,
                     const char *input_buffer) const;
 
         protected:
-                CodeMessage error_;
-                std::list<CodeMessage> note_list;
+                Diagnostic error_;
+                std::list<Diagnostic> note_list_;
 
                 CompileTimeError(const std::string &error, Location error_location);
 
@@ -42,13 +57,14 @@ namespace Alpha
                                  const std::string &note, Location note_location);
 
                 CompileTimeError(const std::string &error, Location error_location,
-                                 std::list<CodeMessage> &&note_list);
+                                 std::list<Diagnostic> &&note_list_);
 
         private:
-                std::string assemble_code_message(
+                std::string make_pretty_diagnostic_impl(
                     const std::string &source_filename,
                     const LocationTracker &lt,
-                    const char *input_buffer) const;
+                    const char *input_buffer,
+                    const Diagnostic &diagnostic) const;
         };
 
         class LexerError : public CompileTimeError
@@ -70,7 +86,7 @@ namespace Alpha
                             const std::string &note, const Location note_location);
 
                 SyntaxError(const std::string &error, const Location error_location,
-                            std::list<CodeMessage> &&note_list);
+                            std::list<Diagnostic> &&note_list_);
 
                 SyntaxError() = delete;
 
@@ -90,7 +106,7 @@ namespace Alpha
                                          const std::string &note, Location note_location);
 
                 void report_syntax_error(const std::string &error, Location error_location,
-                                         std::list<CodeMessage> &&note_list);
+                                         std::list<Diagnostic> &&note_list_);
 
                 const std::vector<const CompileTimeError *> &ger_error_vector() const;
 

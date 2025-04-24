@@ -110,7 +110,11 @@ namespace Alpha
                 const std::string source_filename = source_filepath_.filename().string();
 
                 for (const CompileTimeError *error : et_.ger_error_vector())
-                        std::cerr << error->to_string(source_filename, lt_, flex_buffer_.const_buffer()) << std::endl;
+                        std::cerr << error->make_pretty_diagnostic(
+                                         source_filename,
+                                         lt_,
+                                         flex_buffer_.const_buffer())
+                                  << std::endl;
         }
 
         void Driver::export_symbol_table(std::optional<std::string> exports_dirname)

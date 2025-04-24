@@ -53,14 +53,12 @@ foreach(test_file ${WORKING_TEST_FILES})
                 COMMAND "$<TARGET_FILE:${ALPHA_DRIVER_EXECUTABLE}>"
                 --input-file "${test_file}"
                 --export-symbol-table
-                --symbol-table-export-path "${SYMBOL_TABLE_EXPORT_DIR}"
+                "--symbol-table-export-path" "${SYMBOL_TABLE_EXPORT_DIR}"
                 DEPENDS ${ALPHA_DRIVER_EXECUTABLE}
-                VERBATIM
         )
         add_custom_target(
                 "run_csv_${test_file_name}"
                 DEPENDS "${EXPORT_CSV_FILE}"
-                VERBATIM
         )
 
         add_dependencies("run_csv_${test_file_name}" "${ALPHA_DRIVER_EXECUTABLE}")
@@ -70,8 +68,7 @@ foreach(test_file ${WORKING_TEST_FILES})
                 "${CMAKE_SOURCE_DIR}/scripts/export_validator.py"
                 --golden-file "${SYMBOL_TABLE_GOLDEN_DIR}/${GOLDEN_CSV_FILE}"
                 --export-file "${SYMBOL_TABLE_EXPORT_DIR}/${EXPORT_CSV_FILE}"
-                DEPENDS run_csv_${test_file_name}
-                VERBATIM
+                DEPENDS "run_csv_${test_file_name}"
         )
 
         add_dependencies(run_all_validators run_validator_${test_file_name})

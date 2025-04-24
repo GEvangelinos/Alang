@@ -47,6 +47,11 @@ namespace Alpha
                 return find_line(location.first_index_);
         }
 
+        u32 LocationTracker::find_last_line(Location location) const
+        {
+                return find_line(location.last_index_);
+        }
+
         u32 LocationTracker::find_first_column(Location location) const
         {
                 u32 starting_line = find_first_line(location);
@@ -59,7 +64,7 @@ namespace Alpha
                 return starting_column;
         }
 
-        u32 LocationTracker::find_index_at_line(u32 line) const
+        u32 LocationTracker::find_index_of_line(u32 line) const
         {
                 return line_start_indices_[line - 1]; // -1 as line starts at pos 0.
         }

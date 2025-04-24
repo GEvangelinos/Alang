@@ -50,7 +50,7 @@ namespace Alpha
 
                         char *buffer() { return buffer_.get(); }
                         const char *const_buffer() const { return buffer_.get(); }
-                        std::size_t size() { return size_; }
+                        std::size_t size() const { return size_; }
 
                 private:
                         std::unique_ptr<char[]> buffer_;

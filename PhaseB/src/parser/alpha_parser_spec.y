@@ -41,6 +41,7 @@
                 (void)error_tracker;
                 (void)error_message;
         #endif // DEBUG_MODE
+                std::cerr << "HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEELP" << error_message << std::endl;
         }
 %}
 
