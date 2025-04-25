@@ -19,7 +19,7 @@ NOTE(000000000000000): Change directory structure and therefore CMAKE... to MODU
     by just typing #include "modulename/headername"
     CMAKE dictates dependencies.. so it should be able to separate modules from doing that...
 
-NOTE(000000000000000): Add -sh script to give auto-complete option, cmake should put it in auto-complete paths.
+NOTE(000000000000000): Add -sh script to give auto-complete option, cmake should Put it in auto-complete paths.
 
 NOTE(000000000000000): In error reporting... some sub-strings are in BACKSTICKS (This symbol --> ` )
     like so: `SUBSTRING`. One example: "`return` statement not in a function statement".

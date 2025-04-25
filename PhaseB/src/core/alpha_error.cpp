@@ -103,7 +103,7 @@ namespace Alpha
                 case Type::ERROR:
                         return COLOR_ASCII_BOLD_RED;
                 case Type::NOTE:
-                        return COLOR_ASCII_BOLD_GREEN;
+                        return COLOR_ASCII_BOLD_CYAN;
                 }
         }
 
