@@ -41,19 +41,24 @@ else()
 endif()
 
 file(GLOB WORKING_TEST_FILES "${SYMBOL_TABLE_WORKING_TESTS_DIR}/*")
+file(GLOB ERROR_TEST_FILES "${SYMBOL_TABLE_ERROR_TESTS_DIR}/*")
+
+set(ALL_TEST_FILES ${WORKING_TEST_FILES})
+list(APPEND ALL_TEST_FILES ${ERROR_TEST_FILES})
 
 add_custom_target(run_all_validators)
-foreach(test_file ${WORKING_TEST_FILES})
+foreach(test_file ${ALL_TEST_FILES})
         get_filename_component(test_file_name ${test_file} NAME)
-        set(GOLDEN_CSV_FILE "GOLD_${test_file_name}.csv")
-        set(EXPORT_CSV_FILE "${test_file_name}.csv")
+        set(GOLDEN_CSV_FILE "GOLD_${test_file_name}.st.csv")
+        set(EXPORT_CSV_FILE "${test_file_name}.st.csv")
 
         add_custom_command(
                 OUTPUT ${EXPORT_CSV_FILE}
                 COMMAND "$<TARGET_FILE:${ALPHA_DRIVER_EXECUTABLE}>"
                 --input-file "${test_file}"
                 --export-symbol-table
-                "--symbol-table-export-path" "${SYMBOL_TABLE_EXPORT_DIR}"
+                --symbol-table-export-path "${SYMBOL_TABLE_EXPORT_DIR}"
+                --no-show-errors
                 DEPENDS ${ALPHA_DRIVER_EXECUTABLE}
                 VERBATIM
         )

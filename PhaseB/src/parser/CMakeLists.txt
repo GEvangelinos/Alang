@@ -54,7 +54,6 @@ add_library(alpha_parser STATIC
         ${ALPHA_PARSER_OUTPUT_FILEPATH}
         alpha_semantic_actions.cpp
         alpha_symbol_table.cpp
-        bison_prelude_code.hpp
 )
 
 add_dependencies(alpha_parser generate_parser_scanner)

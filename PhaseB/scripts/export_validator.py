@@ -43,7 +43,7 @@ def _parser_startup_arguments() -> argparse.Namespace:
 def _load_csv_file(filename: str) -> list[list[str]]:
         with open(filename, newline='', encoding='utf-8') as csv_file:
                 reader = csv.reader(csv_file, delimiter=',', skipinitialspace=True)
-                return list(reader)
+                return [row for row in reader if any(cell.strip() for cell in row)]
 
 
 def main():

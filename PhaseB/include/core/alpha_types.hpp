@@ -35,6 +35,5 @@ namespace Alpha
 
         static_assert(sizeof(f32) == 4, "Type `f32` is not 4 bytes on current system");
         static_assert(sizeof(f64) == 8, "Type `f64` is not 8 bytes on current system");
-}
-
+} // namespace Alpha
 #endif // ALPHA_TYPES_HPP

@@ -8,4 +8,4 @@
     Alpha::ErrorTracker &et,                   \
     Alpha::LocationTracker &lt)
 
-#endif /* ALPHA_SHARED_INTERFACE_HPP*/
+#endif // ALPHA_SHARED_INTERFACE_HPP

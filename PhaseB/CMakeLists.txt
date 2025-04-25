@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.18)
-project(Alpha VERSION 0.5 LANGUAGES CXX)
+project(Alpha VERSION 1.0 LANGUAGES CXX)
 
 # === Configurable build options ===
 option(ENABLE_IWYU "Enable include-what-you-use integration" OFF)
 option(DEBUG_MODE "DEBUG_MODE: enables extra sanity checking inside the code" OFF)
 option(DEBUG_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable parser trace" OFF)
-
+option(COMPILER_SUPPORTS_STD_FORMAT "Used by the format adapter to switch from std:: to fmt::" OFF)
 set(DEBUG_MODE ON) # TODO unset when done, I did this so I dont forget it on testing.
+set(COMPILER_SUPPORTS_STD_FORMAT "Used by the format adapter to switch from std:: to fmt::" OFF)
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
 ###############################################################################################################
@@ -71,6 +72,10 @@ if(DEBUG_MODE)
         add_compile_options(-g)
         add_compile_definitions(DEBUG_MODE)
         message(WARNING "CMAKE: Running with DEBUG_MODE ON")
+endif()
+
+if(COMPILER_SUPPORTS_STD_FORMAT)
+        message(WARNING "CMAKE: IMPLEMNT COMPILER_SUPPORT_STD_FORMAT")
 endif()
 
 

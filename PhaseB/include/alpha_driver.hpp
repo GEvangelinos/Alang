@@ -11,20 +11,25 @@
 #include "alpha_scanner.hpp"
 #include "core/alpha_konstants.hpp"
 #include "alpha_parser.hpp"
-#include "core/alpha_error_tracker.hpp"
+#include "core/alpha_error.hpp"
 #include "core/alpha_types.hpp"
 #include "utils/cli_color.h"
 #include <optional>
 namespace Alpha
 {
+        // Classes defined here:
+        class Driver;
+        // class Driver::FlexBuffer;
 
-        static constexpr char k_default_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
-        static constexpr char k_symtable_csv_export_header[] = "symbol,type,line,scope\n";
+        static constexpr char k_default_symtable_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
+        static constexpr char k_default_error_exports_dirname[] = "ERROR_EXPORTS";
+        static constexpr char k_symbol_table_csv_export_header[] = "symbol,type,line,scope\n";
+        static constexpr char k_error_csv_export_header[] = "line,column,diagnostic_type,message\n";
 
         class Driver
         {
         public:
-                explicit Driver(const std::string source_filepath);
+                explicit Driver(const std::string &source_filepath);
                 ~Driver() = default;
                 Driver(const Driver &) = delete;
                 Driver(const Driver &&) = delete;
@@ -34,8 +39,9 @@ namespace Alpha
                 void run_syntax_analyzer();
                 void display_symbol_table();
                 void display_compilation_errors() const;
-                void export_symbol_table(std::optional<std::string> exports_dirname);
-                bool ok();
+                void export_symbol_table(std::optional<std::string> dirname);
+                void export_compilation_errors(std::optional<std::string> dirname);
+                bool ok() { return ok_flag_; }
 
         private:
                 class FlexBuffer
@@ -69,5 +75,6 @@ namespace Alpha
                 bool ok_flag_ = true;
 
                 void export_symbol_table_impl();
+                void export_compilation_errors_impl();
         };
 }

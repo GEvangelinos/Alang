@@ -36,8 +36,8 @@
                                 const std::string &error_message)
         {
                 extern Location alpha_yylloc;
-                error_tracker.report_syntax_error(
-                        error_message, Location(alpha_yylloc.first_index_, alpha_yylloc.last_index_));
+                error_tracker.report_error(Alpha::CTError::Type::SYNTAX,
+                        error_message, Location( alpha_yylloc.first_index_, alpha_yylloc.last_index_));
         }
 %}
 
@@ -47,7 +47,7 @@
         #include "parser/alpha_parser_context.hpp"
         #include "parser/alpha_symbol_table.hpp"
         #include "core/alpha_location.hpp"
-        #include "core/alpha_error_tracker.hpp"
+        #include "core/alpha_error.hpp"
 }
 
 %define api.prefix {alpha_yy}

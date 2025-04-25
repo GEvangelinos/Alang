@@ -8,7 +8,7 @@
         #include <string>            // for allocator, operator+, basic_string, char...
         #include "scanner/alpha_scanner_context.hpp"
         #include "alpha_parser.hpp"   // for alpha_yytokentype, alpha_yylval
-        #include "core/alpha_error_tracker.hpp"  // for LexerError, CompileTimeErrorTracker
+        #include "core/alpha_error.hpp"  // for LexerError, CompileTimeErrorTracker
         #include "scanner/alpha_token.hpp"    // for TokenString, TokenComment, TokenID
         #include "core/alpha_shared_interface.hpp"
         #include "core/alpha_location.hpp"
@@ -131,7 +131,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacterButNewLine} {/* Just eat up any character use see. */}
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        et.report_lexer_error("EOF reached before closing comment.", alpha_yylloc);
+        et.report_error(Alpha::CTError::Type::LEXER, "EOF reached before closing comment.", alpha_yylloc);
         return EOF;
 }
 
@@ -148,12 +148,12 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_STRING>{stringInvalidEscapeCode} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
-        et.report_lexer_error(
+        et.report_error(Alpha::CTError::Type::LEXER,
                 fmt_ns::format("Lexer error: Invalid escape code {} in string.", yytext), alpha_yylloc);
         /* Do not stop scanning, but register lexer error. */
 }
 <INSIDE_STRING><<EOF>> {
-        et.report_lexer_error(
+        et.report_error(Alpha::CTError::Type::LEXER,
                 "Lexer error: EOF reached before closing string.", alpha_yylloc);
         return EOF;
 }
@@ -164,7 +164,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
-        et.report_lexer_error(
+        et.report_error(Alpha::CTError::Type::LEXER,
                 fmt_ns::format("Lexer error: Character {} is invalid.", yytext), alpha_yylloc);
 }
 

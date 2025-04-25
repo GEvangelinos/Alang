@@ -33,6 +33,68 @@ namespace // (Anonymous)
 
 namespace Alpha
 {
+        Driver::Driver(const std::string &source_filepath)
+            : source_filepath_(source_filepath), // Convert std::string to std::filesystem::path implicitly
+              flex_buffer_(source_filepath),
+              lexer_ctx_(source_filepath),
+              lt_(flex_buffer_.size() - k_flex_eof_padding)
+        {
+        }
+
+        void Driver::run_syntax_analyzer()
+        {
+                parser_retval_ = alpha_yyparse(lexer_ctx_, parse_ctx_, st_, et_, lt_);
+        }
+
+        void Driver::display_symbol_table()
+        {
+                std::cout << COLOR_ASCII_FG_BLUE;
+                const auto &symbol_per_scope_vector = st_.symbols_per_scope();
+                for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
+                {
+                        if (symbol_per_scope_vector[scope].empty())
+                                continue;
+                        std::cout << fmt_ns::format("----------------------------     Scope #{:<4}     ----------------------------\n", scope);
+                        for (auto symbol_ptr : symbol_per_scope_vector[scope])
+                                std::cout << fmt_ns::format(
+                                    "{:<30} {:<20} (line {:>5}) (scope {:>4})\n",
+                                    fmt_ns::format("\"{}\"", symbol_ptr->name),
+                                    fmt_ns::format("[{}]", symbol_ptr->type_to_string()),
+                                    lt_.find_symbol_line(symbol_ptr->location),
+                                    symbol_ptr->scope);
+                        std::cout << std::endl;
+                }
+                std::cout << SGR_RESET << std::endl;
+        }
+
+        void Driver::display_compilation_errors() const
+        {
+                const std::string source_filename = source_filepath_.filename().string();
+
+                for (const CTError *error : et_.get_compile_time_errors())
+                        std::cerr << error->make_pretty_diagnostic(
+                            source_filename,
+                            lt_,
+                            flex_buffer_.const_buffer());
+        }
+
+        void Driver::export_symbol_table(std::optional<std::string> dirname)
+        {
+                const auto original_path = std::filesystem::current_path();
+                create_export_directory(dirname.value_or(k_default_symtable_exports_dirname));
+                enter_export_directory(dirname.value_or(k_default_symtable_exports_dirname));
+                export_symbol_table_impl();
+                exit_export_directory(original_path);
+        }
+
+        void Driver::export_compilation_errors(std::optional<std::string> dirname)
+        {
+                const auto original_path = std::filesystem::current_path();
+                create_export_directory(dirname.value_or(k_default_error_exports_dirname));
+                enter_export_directory(dirname.value_or(k_default_error_exports_dirname));
+                export_symbol_table_impl();
+                exit_export_directory(original_path);
+        }
 
         Driver::FlexBuffer::FlexBuffer(const std::string &input_filepath)
         {
@@ -64,91 +126,56 @@ namespace Alpha
                 alpha_yy_delete_buffer(state_);
         }
 
-        Driver::Driver(const std::string source_filepath)
-            : source_filepath_(source_filepath), // Convert std::string to std::filesystem::path implicitly
-              flex_buffer_(source_filepath),
-              lexer_ctx_(source_filepath),
-              lt_(flex_buffer_.size() - k_flex_eof_padding)
-        {
-        }
-
-        bool Driver::ok()
-        {
-                return ok_flag_;
-        }
-
-        void Driver::run_syntax_analyzer()
-        {
-                parser_retval_ = alpha_yyparse(lexer_ctx_, parse_ctx_, st_, et_, lt_);
-        }
-
-        void Driver::display_symbol_table()
-        {
-                std::cout << COLOR_ASCII_FG_BLUE;
-                const auto &symbol_per_scope_vector = st_.symbols_per_scope();
-                for (Alpha::u32 scope = Alpha::k_global_scope;
-                     scope < symbol_per_scope_vector.size();
-                     scope++)
-                {
-                        if (symbol_per_scope_vector[scope].empty())
-                                continue;
-                        std::cout << fmt_ns::format("----------------------------     Scope #{:<4}     ----------------------------\n", scope);
-                        for (auto symbol_ptr : symbol_per_scope_vector[scope])
-                                std::cout << fmt_ns::format(
-                                    "{:<30} {:<20} (line {:>5}) (scope {:>4})\n",
-                                    fmt_ns::format("\"{}\"", symbol_ptr->name()),
-                                    fmt_ns::format("[{}]", Alpha::to_string(symbol_ptr->type())),
-                                    lt_.find_symbol_line(symbol_ptr->location()),
-                                    symbol_ptr->scope());
-                        std::cout << std::endl;
-                }
-                std::cout << SGR_RESET << std::endl;
-        }
-
-        void Driver::display_compilation_errors() const
-        {
-                const std::string source_filename = source_filepath_.filename().string();
-
-                for (const CompileTimeError *error : et_.ger_error_vector())
-                        std::cerr << error->make_pretty_diagnostic(
-                            source_filename,
-                            lt_,
-                            flex_buffer_.const_buffer());
-        }
-
-        void Driver::export_symbol_table(std::optional<std::string> exports_dirname)
-        {
-                const auto original_path = std::filesystem::current_path();
-                create_export_directory(exports_dirname.value_or(k_default_exports_dirname));
-                enter_export_directory(exports_dirname.value_or(k_default_exports_dirname));
-                export_symbol_table_impl();
-                exit_export_directory(original_path);
-        }
-
         void Driver::export_symbol_table_impl()
         {
-
-                const std::string outfile_name = source_filepath_.filename().string() + ".csv";
+                const std::string outfile_name = source_filepath_.filename().string() + ".st.csv";
                 std::ofstream outfile(outfile_name);
                 if (!outfile)
                         throw std::runtime_error(fmt_ns::format(
-                            "Failed opening {} for writing symtable_export", outfile_name));
+                            "Failed opening file {} to export symbol table", outfile_name));
 
-                outfile << k_symtable_csv_export_header; // Write CSV header.
+                outfile << k_symbol_table_csv_export_header; // Write CSV header.
+
+                auto write_symbol = [&](const Symbol *symbol_ptr)
+                {
+                        outfile << fmt_ns::format(
+                            "{},{},{},{}\n",
+                            symbol_ptr->name,
+                            symbol_ptr->type_to_string(),
+                            lt_.find_symbol_line(symbol_ptr->location),
+                            symbol_ptr->scope);
+                };
 
                 const auto &symbol_per_scope_vector = st_.symbols_per_scope();
-                for (Alpha::u32 scope = Alpha::k_global_scope;
-                     scope < symbol_per_scope_vector.size();
-                     scope++)
-                {
-                        for (auto symbol_ptr : symbol_per_scope_vector[scope])
-                                outfile << fmt_ns::format(
-                                    "{},{},{},{}\n",
-                                    symbol_ptr->name(),
-                                    Alpha::to_string(symbol_ptr->type()),
-                                    lt_.find_symbol_line(symbol_ptr->location()),
-                                    symbol_ptr->scope());
-                }
+                for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
+                        for (const Symbol *symbol_ptr : symbol_per_scope_vector[scope])
+                                write_symbol(symbol_ptr);
         }
 
+        void Driver::export_compilation_errors_impl()
+        {
+                const std::string outfile_name = source_filepath_.filename().string() + ".diag.csv";
+                std::ofstream outfile(outfile_name);
+                if (!outfile)
+                        throw std::runtime_error(fmt_ns::format(
+                            "Failed opening file {} to export compilation errors", outfile_name));
+
+                outfile << k_error_csv_export_header; // Write CSV header.
+                auto write_diagnostic = [&](const Diagnostic &diag)
+                {
+                        outfile << fmt_ns::format(
+                            "{},{},{},{}\n",
+                            diag.line(lt_),
+                            diag.column(lt_),
+                            diag.type_to_string(),
+                            diag.message);
+                };
+
+                for (const CTError *cte : et_.get_compile_time_errors())
+                {
+                        write_diagnostic(cte->error);
+                        for (const Diagnostic &note : cte->note_list)
+                                write_diagnostic(note);
+                }
+        }
 }

@@ -1,5 +1,5 @@
-#ifndef LOGGER_HPP
-#define LOGGER_HPP
+#ifndef ALPHA_LOGGER_HPP
+#define ALPHA_LOGGER_HPP
 
 #include "utils/format_adapter.hpp"
 #include <iostream>
@@ -25,4 +25,4 @@ static void display_trace(const std::string &lhs, const std::string &rhs)
 #define display_trace(lhs, rhs) ((void)0)
 #endif // OPTIMIZED_MODE
 
-#endif /* LOGGER_HPP */
+#endif // ALPHA_LOGGER_HPP 

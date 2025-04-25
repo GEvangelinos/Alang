@@ -10,7 +10,14 @@
 
 namespace Alpha
 {
-        namespace
+        // Explicit instantiations for insert_symbol()
+        template const Symbol *SymbolTable::insert_symbol<SymbolTable::Variable>(
+            const std::string &, Symbol::Type, u32, Location);
+
+        template const Symbol *SymbolTable::insert_symbol<SymbolTable::Function>(
+            const std::string &, Symbol::Type, u32, Location, std::list<Parameter> &&);
+
+        namespace // (Anonymous)
         {
                 template <typename Key, typename Value>
                 const Key &get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
@@ -30,8 +37,8 @@ namespace Alpha
                         {
                                 // Same scope and active symbol before insert is error
                                 // User of `insert_FUNCTION` should do lookup_first.
-                                DEBUG_SMART_ASSERT(symbol_it->scope() != scope || !symbol_it->is_active());
-                                if (symbol_it->scope() >= scope) // A bug with a bugged, bug patch lived here :D.
+                                DEBUG_SMART_ASSERT(symbol_it->scope != scope || !symbol_it->is_active());
+                                if (symbol_it->scope >= scope) // A bug with a bugged, bug patch lived here :D.
                                         break;                   // This comments pays its respects to Savvidis for teaching defensive programming.
                         }
                         return symbol_it;
@@ -43,60 +50,58 @@ namespace Alpha
                                 symbols_per_scope.resize(scope + 1);
                 }
 
-        }
+        } // namespace (Anonymous)
 
-        template <typename SymbolKind, typename... ParameterList>
-                requires(std::is_same_v<SymbolKind, SymbolTable::Variable> ||
-                         std::is_same_v<SymbolKind, SymbolTable::Function>)
-        const Symbol *SymbolTable::insert_symbol(const std::string &symbol_name, SymbolType type,
-                                                 u32 scope, Location location, ParameterList &&...arg_list)
+        std::string_view Symbol::type_to_string() const noexcept
         {
-                DEBUG_SMART_ASSERT(symbol_name.size() > 0);
-                auto [symbol_map_it, _] = symbol_map_.try_emplace(symbol_name);
-                auto &symbol_name_ref = symbol_map_it->first;
-                auto &synonym_symbols = symbol_map_it->second;
-                auto symbol_it = find_insert_position(synonym_symbols, scope);
-                SymbolKind new_symbol(symbol_name_ref, scope, type, location, std::forward<ParameterList>(arg_list)...);
-                Symbol *symbol_ptr = &*synonym_symbols.emplace(symbol_it, std::move(new_symbol));
-                DEBUG_SMART_ASSERT(symbol_ptr != nullptr);
-
-                ensure_scope_slot(actives_per_scope_, scope);
-                ensure_scope_slot(symbols_per_scope_, scope);
-                symbols_per_scope_[scope].push_back(symbol_ptr);
-                actives_per_scope_[scope].push_back(symbol_ptr);
-                return symbol_ptr;
+                switch (type)
+                {
+                case Symbol::Type::LIBFUNC:
+                        return "LIBRARY_FUNCTION";
+                case Symbol::Type::GLOBAL:
+                        return "GLOBAL_VARIABLE";
+                case Symbol::Type::USERFUNC:
+                        return "USER_FUNCTION";
+                case Symbol::Type::FORMAL:
+                        return "FORMAL_ARGUMENT";
+                case Symbol::Type::LOCAL:
+                        return "LOCAL_VARIABLE";
+                }
         }
 
-        // Explicit instantiations for insert_symbol()
-        template const Symbol *SymbolTable::insert_symbol<SymbolTable::Variable>(
-            const std::string &, SymbolType, u32, Location);
-
-        template const Symbol *SymbolTable::insert_symbol<SymbolTable::Function>(
-            const std::string &, SymbolType, u32, Location, std::list<Parameter> &&);
+        SymbolTable::SymbolTable()
+            : anonymous_counter_(0)
+        {
+                // Load library functions
+                for (SymbolName name : k_library_function_names)
+                {
+                        insert_function(name, Symbol::Type::LIBFUNC, k_global_scope, Location(0, 0), {});
+                        library_function_set_.insert(name);
+                }
+        }
 
         const Symbol *SymbolTable::insert_global(const std::string &symbol_name, Location location)
         {
-                return insert_symbol<Variable>(symbol_name, SymbolType::GLOBAL, k_global_scope, location);
+                return insert_symbol<Variable>(symbol_name, Symbol::Type::GLOBAL, k_global_scope, location);
         }
 
         const Symbol *SymbolTable::insert_formal(const std::string &symbol_name, u32 scope,
                                                  Location location)
         {
-                return insert_symbol<Variable>(symbol_name, SymbolType::FORMAL, scope, location);
+                return insert_symbol<Variable>(symbol_name, Symbol::Type::FORMAL, scope, location);
         }
 
         const Symbol *SymbolTable::insert_local(const std::string &symbol_name, u32 scope,
                                                 Location location)
         {
-                return insert_symbol<Variable>(symbol_name, SymbolType::LOCAL, scope, location);
+                return insert_symbol<Variable>(symbol_name, Symbol::Type::LOCAL, scope, location);
         }
 
-        const Symbol *SymbolTable::insert_function(const std::string &symbol_name, SymbolType type,
+        const Symbol *SymbolTable::insert_function(const std::string &symbol_name, Symbol::Type type,
                                                    u32 scope, Location location,
                                                    const std::list<Parameter> &argument_list)
         {
-                DEBUG_SMART_ASSERT(is_type_function(type));
-
+                DEBUG_SMART_ASSERT(type == Symbol::Type::LIBFUNC || type == Symbol::Type::USERFUNC);
                 return insert_symbol<Function>(symbol_name, type, scope, location, argument_list);
         }
 
@@ -106,8 +111,57 @@ namespace Alpha
                 std::string anonymous_name = fmt_ns::format(
                     "{}{}", k_private_anonymous_prefix, anonymous_counter_++);
 
-                return insert_function(anonymous_name, SymbolType::USERFUNC,
+                return insert_function(anonymous_name, Symbol::Type::USERFUNC,
                                        scope, location, std::move(argument_list));
+        }
+
+        const Symbol *SymbolTable::lookup_global(const std::string &symbol_name) const
+        {
+                // Does `symbol_name` exist ?
+                const auto it = symbol_map_.find(symbol_name);
+                if (it == symbol_map_.end())
+                        return nullptr;
+
+                // Scope lists are sorted; global scope is always at the front if present.
+                const auto &scope_list = it->second;
+                if (!scope_list.empty() && scope_list.front().scope == k_global_scope)
+                        return &scope_list.front();
+                return nullptr;
+        }
+
+        const Symbol *SymbolTable::lookup_chain(const std::string &symbol_name, u32 scope) const
+        {
+                // Does `symbol_name` exist ?
+                const auto it = symbol_map_.find(symbol_name);
+                if (it == symbol_map_.end())
+                        return nullptr;
+
+                // We search from inner to outer scope (end to begin)
+                const auto &scope_list = it->second;
+                for (auto symbol_it = scope_list.crbegin(); symbol_it != scope_list.crend(); ++symbol_it)
+                        if (symbol_it->scope <= scope && symbol_it->is_active())
+                                return &(*symbol_it);
+                return nullptr;
+        }
+
+        const Symbol *SymbolTable::lookup_local(const std::string &symbol_name, u32 scope) const
+        {
+                // Does `symbol_name` exist ?
+                const auto it = symbol_map_.find(symbol_name);
+                if (it == symbol_map_.end())
+                        return nullptr;
+
+                const auto &scope_list = it->second;
+                for (const auto &symbol : scope_list)
+                {
+                        if (symbol.scope < scope)
+                                continue;
+                        if (symbol.scope > scope)
+                                break;
+                        if (symbol.is_active())
+                                return &symbol;
+                }
+                return nullptr;
         }
 
         void SymbolTable::hide_scope_symbols(u32 scope) noexcept
@@ -136,63 +190,25 @@ namespace Alpha
                 return library_function_set_.contains(symbol_name);
         }
 
-        SymbolTable::SymbolTable()
-            : anonymous_counter_(0)
+        template <typename SymbolKind, typename... ParameterList>
+                requires(std::is_same_v<SymbolKind, SymbolTable::Variable> ||
+                         std::is_same_v<SymbolKind, SymbolTable::Function>)
+        const Symbol *SymbolTable::insert_symbol(const std::string &symbol_name, Symbol::Type type,
+                                                 u32 scope, Location location, ParameterList &&...arg_list)
         {
-                // Load library functions
-                for (SymbolName name : k_library_function_names)
-                {
-                        insert_function(name, SymbolType::LIBFUNC, k_global_scope, Location(0, 0), {});
-                        library_function_set_.insert(name);
-                }
-        }
+                DEBUG_SMART_ASSERT(symbol_name.size() > 0);
+                auto [symbol_map_it, _] = symbol_map_.try_emplace(symbol_name);
+                auto &symbol_name_ref = symbol_map_it->first;
+                auto &synonym_symbols = symbol_map_it->second;
+                auto symbol_it = find_insert_position(synonym_symbols, scope);
+                SymbolKind new_symbol(symbol_name_ref, scope, type, location, std::forward<ParameterList>(arg_list)...);
+                Symbol *symbol_ptr = &*synonym_symbols.emplace(symbol_it, std::move(new_symbol));
+                DEBUG_SMART_ASSERT(symbol_ptr != nullptr);
 
-        const Symbol *SymbolTable::lookup_local(const std::string &symbol_name, u32 scope) const
-        {
-                // Does `symbol_name` exist ?
-                const auto it = symbol_map_.find(symbol_name);
-                if (it == symbol_map_.end())
-                        return nullptr;
-
-                const auto &scope_list = it->second;
-                for (const auto &symbol : scope_list)
-                {
-                        if (symbol.scope() < scope)
-                                continue;
-                        if (symbol.scope() > scope)
-                                break;
-                        if (symbol.is_active())
-                                return &symbol;
-                }
-                return nullptr;
-        }
-
-        const Symbol *SymbolTable::lookup_global(const std::string &symbol_name) const
-        {
-                // Does `symbol_name` exist ?
-                const auto it = symbol_map_.find(symbol_name);
-                if (it == symbol_map_.end())
-                        return nullptr;
-
-                // Scope lists are sorted; global scope is always at the front if present.
-                const auto &scope_list = it->second;
-                if (!scope_list.empty() && scope_list.front().scope() == k_global_scope)
-                        return &scope_list.front();
-                return nullptr;
-        }
-
-        const Symbol *SymbolTable::lookup_chain(const std::string &symbol_name, u32 scope) const
-        {
-                // Does `symbol_name` exist ?
-                const auto it = symbol_map_.find(symbol_name);
-                if (it == symbol_map_.end())
-                        return nullptr;
-
-                // We search from inner to outer scope (end to begin)
-                const auto &scope_list = it->second;
-                for (auto symbol_it = scope_list.crbegin(); symbol_it != scope_list.crend(); ++symbol_it)
-                        if (symbol_it->scope() <= scope && symbol_it->is_active())
-                                return &(*symbol_it);
-                return nullptr;
+                ensure_scope_slot(actives_per_scope_, scope);
+                ensure_scope_slot(symbols_per_scope_, scope);
+                symbols_per_scope_[scope].push_back(symbol_ptr);
+                actives_per_scope_[scope].push_back(symbol_ptr);
+                return symbol_ptr;
         }
 }

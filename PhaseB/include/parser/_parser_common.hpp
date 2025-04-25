@@ -5,18 +5,17 @@
 
 namespace Alpha
 {
+        // Classes defined here:
+        class Parameter;
+
         class Parameter
         {
-        private:
-                const std::string name_;
-                const Location location_;
-
         public:
-                Parameter(const std::string &name, Location location)
-                    : name_(name), location_(location) {}
+                const std::string name;
+                const Location location;
 
-                DEBUG_ALWAYS_INLINE const std::string &name() const noexcept { return name_; }
-                DEBUG_ALWAYS_INLINE Location location() const noexcept { return location_; }
+                Parameter(const std::string &name, Location location)
+                    : name(name), location(location) {}
         };
 } // namespace Alpha
 #endif //_PARSER_COMMON_HPP

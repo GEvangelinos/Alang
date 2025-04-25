@@ -1,7 +1,7 @@
 #ifndef SEMANTIC_ACTIONS_HPP
 #define SEMANTIC_ACTIONS_HPP
 
-#include "core/alpha_error_tracker.hpp"
+#include "core/alpha_error.hpp"
 #include "core/alpha_location.hpp"
 #include "parser/alpha_parser_context.hpp"
 #include "parser/alpha_symbol_table.hpp"
@@ -38,6 +38,11 @@ void term__lvalue_dec(
     Location term_location,
     ErrorTracker &et);
 
+void assignExpr__lvalue_assign_expr(
+    const Symbol *lvalue,
+    Location assign_location,
+    ErrorTracker &et);
+
 void lvalue__id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
@@ -61,6 +66,14 @@ void lvalue__global_id(
     const Symbol **lvalue,
     ErrorTracker &et);
 
+void lvalue__member(const Symbol **lvalue) noexcept;
+
+void block__lbrace(ParseCtx &parse_ctx) noexcept;
+
+void block__lbrace_multiStmt_rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept;
+
+void block__lbrace_rbrace(SymbolTable &st, ParseCtx &parse_ctx);
+
 void funcdef__function_id(
     ParseCtx &parse_ctx,
     const std::string &id_name,
@@ -71,23 +84,13 @@ void funcDef__function_id_lparen_funcArgList_rparen(
     ParseCtx &parse_ctx,
     ErrorTracker &et);
 
+void funcDef__function_id_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept;
+
 void funcDef__function_lparen_funcArgList_rparen(
     SymbolTable &st,
     ParseCtx &parse_ctx,
     Location function_location,
     ErrorTracker &et);
-
-void assignExpr__lvalue_assign_expr(
-    const Symbol *lvalue,
-    Location assign_location,
-    ErrorTracker &et);
-
-void assignExpr__lvalue_assign_expr(
-    const Symbol lvalue,
-    Location assignExpr_location,
-    ErrorTracker &et);
-
-void funcDef__function_id_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept;
 
 void funcDef__function_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept;
 
@@ -95,17 +98,6 @@ void funcArgs__id(
     ParseCtx &parse_ctx,
     const std::string &id_name,
     Location id_location);
-
-void funcCtrlStmt__return(
-    const ParseCtx &parse_ctx,
-    Location return_location,
-    ErrorTracker &et);
-
-void block__lbrace(ParseCtx &parse_ctx) noexcept;
-
-void block__lbrace_multiStmt_rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept;
-
-void block__lbrace_rbrace(SymbolTable &st, ParseCtx &parse_ctx);
 
 void whileStmt__whileHeader(ParseCtx &parse_ctx) noexcept;
 
@@ -115,5 +107,9 @@ void forStmt__forHeader(ParseCtx &parse_ctx) noexcept;
 
 void forStmt__forHeader_stmt(ParseCtx &parse_ctx) noexcept;
 
-void lvalue__member(const Symbol **lvalue) noexcept;
+void funcCtrlStmt__return(
+    const ParseCtx &parse_ctx,
+    Location return_location,
+    ErrorTracker &et);
+
 #endif /* SEMANTIC_ACTIONS_HPP */

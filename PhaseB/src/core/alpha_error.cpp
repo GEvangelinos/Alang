@@ -1,5 +1,5 @@
 #include "utils/format_adapter.hpp"
-#include "core/alpha_error_tracker.hpp"
+#include "core/alpha_error.hpp"
 
 #include <sstream>
 #include "utils/cli_color.h"
@@ -68,25 +68,12 @@ namespace // (Anonymous)
                 return col;
         }
 
-}
+} // namespace (Anonymous)
 
 namespace Alpha
 {
-        Diagnostic::Diagnostic(const std::string &message, Location location, Diagnostic::Type type)
-            : message(message), location(location), type(type) {}
-
-        CompileTimeError::CompileTimeError(const std::string &error_message, Location error_location)
-            : error_(error_message, error_location, Diagnostic::Type::ERROR) {}
-
-        CompileTimeError::CompileTimeError(const std::string &error_message, Location error_location,
-                                           const std::string &note_message, Location note_location)
-            : error_(error_message, error_location, Diagnostic::Type::ERROR),
-              note_list_{{note_message, note_location, Diagnostic::Type::NOTE}} {}
-
-        CompileTimeError::CompileTimeError(const std::string &error_message, Location error_location,
-                                           std::list<Diagnostic> &&note_list_)
-            : error_(error_message, error_location, Diagnostic::Type::ERROR),
-              note_list_(std::move(note_list_)) {}
+        Diagnostic::Diagnostic(Diagnostic::Type type, const std::string &message, Location location)
+            : type(type), message(message), location(location) {}
 
         u32 Diagnostic::line(const LocationTracker &lt) const
         {
@@ -98,7 +85,7 @@ namespace Alpha
                 return lt.find_first_column(location);
         }
 
-        std::string Diagnostic::type_to_string() const
+        std::string_view Diagnostic::type_to_string() const noexcept
         {
                 switch (type)
                 {
@@ -107,10 +94,9 @@ namespace Alpha
                 case Type::NOTE:
                         return "note";
                 }
-                UNREACHABLE("Diagnostic type was not registered, please register it");
         }
 
-        std::string Diagnostic::pretty_color() const
+        std::string_view Diagnostic::pretty_color() const noexcept
         {
                 switch (type)
                 {
@@ -119,10 +105,51 @@ namespace Alpha
                 case Type::NOTE:
                         return COLOR_ASCII_BOLD_GREEN;
                 }
-                UNREACHABLE("Diagnostic type was not registered, please register it");
         }
 
-        std::string CompileTimeError::make_pretty_diagnostic_impl(
+        std::string_view CTError::type_to_string() const noexcept
+        {
+                switch (type)
+                {
+                case Type::LEXER:
+                        return "lexer";
+                case Type::SEMANTIC:
+                        return "semantic";
+                case Type::SYNTAX:
+                        return "syntax";
+                }
+        }
+
+        std::string CTError::make_pretty_diagnostic(
+            const std::string &source_filename,
+            const LocationTracker &lt,
+            const char *input_buffer) const
+        {
+                std::stringstream ss;
+                ss << make_pretty_diagnostic_impl(source_filename, lt, input_buffer, error);
+
+                for (auto note : note_list)
+                        ss << make_pretty_diagnostic_impl(source_filename, lt, input_buffer, note);
+
+                return ss.str();
+        }
+
+        CTError::CTError(CTError::Type error_type, const std::string &error_message, Location error_location)
+            : type(error_type), error(Diagnostic::Type::ERROR, error_message, error_location) {}
+
+        CTError::CTError(CTError::Type error_type, const std::string &error_message, Location error_location,
+                         const std::string &note_message, Location note_location)
+            : type(error_type),
+              error(Diagnostic::Type::ERROR, error_message, error_location),
+              note_list{{Diagnostic::Type::NOTE, note_message, note_location}} {}
+
+        CTError::CTError(CTError::Type error_type, const std::string &error_message, Location error_location,
+                         std::list<Diagnostic> &&note_list_)
+            : type(error_type),
+              error(Diagnostic::Type::ERROR, error_message, error_location),
+              note_list(std::move(note_list_)) {}
+
+        std::string CTError::make_pretty_diagnostic_impl(
             const std::string &source_filename,
             const LocationTracker &lt,
             const char *input_buffer,
@@ -172,58 +199,23 @@ namespace Alpha
                 return ss.str();
         }
 
-        std::string CompileTimeError::make_pretty_diagnostic(
-            const std::string &source_filename,
-            const LocationTracker &lt,
-            const char *input_buffer) const
+        void ErrorTracker::report_error(CTError::Type error_type, const std::string &error_message,
+                                        Location error_location)
         {
-                std::stringstream ss;
-                ss << make_pretty_diagnostic_impl(source_filename, lt, input_buffer, error_);
-
-                for (auto note : note_list_)
-                        ss << make_pretty_diagnostic_impl(source_filename, lt, input_buffer, note);
-
-                return ss.str();
+                cterrors_.push_back(new CTError(error_type, error_message, error_location));
         }
 
-        LexerError::LexerError(const std::string &error_message, Location error_location)
-            : CompileTimeError(error_message, error_location) {}
-
-        SyntaxError::SyntaxError(const std::string &error_message, Location error_location)
-            : CompileTimeError(error_message, error_location) {}
-
-        SyntaxError::SyntaxError(const std::string &error, const Location error_location,
-                                 const std::string &note, const Location note_location)
-            : CompileTimeError(error, error_location, note, note_location) {}
-
-        SyntaxError::SyntaxError(const std::string &error, const Location error_location,
-                                 std::list<Diagnostic> &&note_list_)
-            : CompileTimeError(error, error_location, std::move(note_list_)) {}
-
-        void ErrorTracker::report_lexer_error(const std::string &error_message, Location error_location)
+        void ErrorTracker::report_error(CTError::Type error_type, const std::string &error_message,
+                                        Location error_location, const std::string &note, Location note_location)
         {
-                error_vector_.push_back(new LexerError(error_message, error_location));
+                cterrors_.push_back(
+                    new CTError(error_type, error_message, error_location, note, note_location));
         }
 
-        void ErrorTracker::report_syntax_error(const std::string &error_message, Location error_location)
+        void ErrorTracker::report_error(CTError::Type error_type, const std::string &error_message,
+                                        Location error_location, std::list<Diagnostic> &&note_list_)
         {
-                error_vector_.push_back(new SyntaxError(error_message, error_location));
+                cterrors_.push_back(
+                    new CTError(error_type, error_message, error_location, std::move(note_list_)));
         }
-
-        void ErrorTracker::report_syntax_error(const std::string &error_message, Location error_location,
-                                               const std::string &note, Location note_location)
-        {
-                error_vector_.push_back(new SyntaxError(error_message, error_location, note, note_location));
-        }
-
-        void ErrorTracker::report_syntax_error(const std::string &error_message, Location error_location,
-                                               std::list<Diagnostic> &&note_list_)
-        {
-                error_vector_.push_back(new SyntaxError(error_message, error_location, std::move(note_list_)));
-        }
-
-        const std::vector<const CompileTimeError *> &ErrorTracker::ger_error_vector() const
-        {
-                return error_vector_;
-        }
-}
+} // namespace Alpha

@@ -14,6 +14,11 @@
 
 namespace Alpha
 {
+        // Classes define here:
+        class ToggleSwitch;
+        class FunctionDataFrame;
+        class ParseCtx;
+
         class ToggleSwitch
         {
         public:
@@ -37,24 +42,21 @@ namespace Alpha
         class FunctionDataFrame
         {
         public:
+                const std::string name;
+                const u32 scope;
+                const Location location;
                 FunctionDataFrame(const std::string &name, u32 scope, Location location)
-                    : name_(name),
-                      scope_(scope),
-                      location_(location),
+                    : name(name),
+                      scope(scope),
+                      location(location),
                       loop_counter_(0) {}
 
-                DEBUG_ALWAYS_INLINE const std::string &name() const noexcept { return name_; }
-                DEBUG_ALWAYS_INLINE u32 scope() const noexcept { return scope_; }
-                DEBUG_ALWAYS_INLINE Location location() const noexcept { return location_; }
 
                 DEBUG_ALWAYS_INLINE u32 loop_counter() const noexcept { return loop_counter_; }
                 DEBUG_ALWAYS_INLINE void loop_counter_inc() noexcept { ++loop_counter_; }
                 DEBUG_ALWAYS_INLINE void loop_counter_dec() noexcept { --loop_counter_; }
 
         private:
-                const std::string name_;
-                const u32 scope_;
-                const Location location_;
                 u32 loop_counter_;
         };
 
@@ -66,7 +68,6 @@ namespace Alpha
 
                 inline ParseCtx();
                 inline ~ParseCtx();
-
                 ParseCtx(const ParseCtx &) = delete;
                 ParseCtx(ParseCtx &&) = delete;
                 ParseCtx &operator=(const ParseCtx &) = delete;
@@ -136,6 +137,11 @@ namespace Alpha
                 --current_scope_;
         }
 
+        u32 ParseCtx::current_scope() const noexcept
+        {
+                return current_scope_;
+        }
+
         inline void ParseCtx::enter_function(const std::string &function_name, Location function_location)
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
@@ -150,6 +156,26 @@ namespace Alpha
                 // All loops must be closed before exiting function.
                 DEBUG_SMART_ASSERT(frame_stack_.top().loop_counter() == 0);
                 frame_stack_.pop();
+        }
+
+        u32 ParseCtx::current_function_nesting_depth() const noexcept
+        {
+                return frame_stack_.size() - k_data_frames_outside_functions;
+        }
+
+        u32 ParseCtx::current_function_scope() const noexcept
+        {
+                return frame_stack_.top().scope;
+        }
+
+        const std::string &ParseCtx::current_function_name() const noexcept
+        {
+                return frame_stack_.top().name;
+        }
+
+        Location ParseCtx::current_function_location() const noexcept
+        {
+                return frame_stack_.top().location;
         }
 
         void ParseCtx::enter_loop() noexcept
@@ -170,31 +196,6 @@ namespace Alpha
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
                 return frame_stack_.top().loop_counter();
-        }
-
-        u32 ParseCtx::current_function_scope() const noexcept
-        {
-                return frame_stack_.top().scope();
-        }
-
-        Location ParseCtx::current_function_location() const noexcept
-        {
-                return frame_stack_.top().location();
-        }
-
-        const std::string &ParseCtx::current_function_name() const noexcept
-        {
-                return frame_stack_.top().name();
-        }
-
-        u32 ParseCtx::current_function_nesting_depth() const noexcept
-        {
-                return frame_stack_.size() - k_data_frames_outside_functions;
-        }
-
-        u32 ParseCtx::current_scope() const noexcept
-        {
-                return current_scope_;
         }
 
         void ParseCtx::append_function_parameter(const std::string &name, Location location)
