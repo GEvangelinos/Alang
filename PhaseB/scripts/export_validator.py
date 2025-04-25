@@ -48,6 +48,7 @@ def _load_csv_file(filename: str) -> list[list[str]]:
 
 def main():
         try:
+                print(os.getcwd())
                 args = _parser_startup_arguments()
                 _validate_input_file(args.golden_file)
                 _validate_input_file(args.export_file)

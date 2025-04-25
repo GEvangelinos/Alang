@@ -21,15 +21,15 @@ namespace Alpha
         class Driver;
         // class Driver::FlexBuffer;
 
-        static constexpr char k_default_symtable_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
-        static constexpr char k_default_error_exports_dirname[] = "ERROR_EXPORTS";
+        static constexpr char k_symtable_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
+        static constexpr char k_error_exports_dirname[] = "ERROR_EXPORTS";
         static constexpr char k_symbol_table_csv_export_header[] = "symbol,type,line,scope\n";
         static constexpr char k_error_csv_export_header[] = "line,column,diagnostic_type,message\n";
 
         class Driver
         {
         public:
-                explicit Driver(const std::string &source_filepath);
+                explicit Driver(const std::string &source_filepath, bool show_parser_trace);
                 ~Driver() = default;
                 Driver(const Driver &) = delete;
                 Driver(const Driver &&) = delete;
@@ -38,9 +38,9 @@ namespace Alpha
 
                 void run_syntax_analyzer();
                 void display_symbol_table();
-                void display_compilation_errors() const;
-                void export_symbol_table(std::optional<std::string> dirname);
-                void export_compilation_errors(std::optional<std::string> dirname);
+                void display_compile_errors() const;
+                void export_symbol_table();
+                void export_compile_errors();
                 bool ok() { return ok_flag_; }
 
         private:
@@ -74,7 +74,8 @@ namespace Alpha
                 int parser_retval_ = 0;
                 bool ok_flag_ = true;
 
+                void export_within_dir(std::string_view dirname, void (Driver::*export_func)());
                 void export_symbol_table_impl();
-                void export_compilation_errors_impl();
+                void export_compile_errors_impl();
         };
 }

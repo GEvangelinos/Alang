@@ -1,5 +1,7 @@
 #include "alpha_driver.hpp"
 
+bool g_show_parser_trace = false;
+
 static constexpr unsigned k_flex_eof_padding = 2;
 
 namespace // (Anonymous)
@@ -14,12 +16,12 @@ namespace // (Anonymous)
                 return inputFile; // NVRO
         }
 
-        void create_export_directory(const std::string &dirname)
+        void create_export_directory(std::string_view dirname)
         {
                 std::filesystem::create_directories(dirname);
         }
 
-        void enter_export_directory(const std::string &dirname)
+        void enter_export_directory(std::string_view dirname)
         {
                 std::filesystem::current_path(dirname);
         }
@@ -33,12 +35,13 @@ namespace // (Anonymous)
 
 namespace Alpha
 {
-        Driver::Driver(const std::string &source_filepath)
+        Driver::Driver(const std::string &source_filepath, bool show_parser_trace)
             : source_filepath_(source_filepath), // Convert std::string to std::filesystem::path implicitly
               flex_buffer_(source_filepath),
               lexer_ctx_(source_filepath),
               lt_(flex_buffer_.size() - k_flex_eof_padding)
         {
+                g_show_parser_trace = show_parser_trace;
         }
 
         void Driver::run_syntax_analyzer()
@@ -67,7 +70,7 @@ namespace Alpha
                 std::cout << SGR_RESET << std::endl;
         }
 
-        void Driver::display_compilation_errors() const
+        void Driver::display_compile_errors() const
         {
                 const std::string source_filename = source_filepath_.filename().string();
 
@@ -78,22 +81,14 @@ namespace Alpha
                             flex_buffer_.const_buffer());
         }
 
-        void Driver::export_symbol_table(std::optional<std::string> dirname)
+        void Driver::export_symbol_table()
         {
-                const auto original_path = std::filesystem::current_path();
-                create_export_directory(dirname.value_or(k_default_symtable_exports_dirname));
-                enter_export_directory(dirname.value_or(k_default_symtable_exports_dirname));
-                export_symbol_table_impl();
-                exit_export_directory(original_path);
+                export_within_dir(k_symtable_exports_dirname, &Driver::export_symbol_table_impl);
         }
 
-        void Driver::export_compilation_errors(std::optional<std::string> dirname)
+        void Driver::export_compile_errors()
         {
-                const auto original_path = std::filesystem::current_path();
-                create_export_directory(dirname.value_or(k_default_error_exports_dirname));
-                enter_export_directory(dirname.value_or(k_default_error_exports_dirname));
-                export_symbol_table_impl();
-                exit_export_directory(original_path);
+                export_within_dir(k_error_exports_dirname, &Driver::export_compile_errors_impl);
         }
 
         Driver::FlexBuffer::FlexBuffer(const std::string &input_filepath)
@@ -152,13 +147,22 @@ namespace Alpha
                                 write_symbol(symbol_ptr);
         }
 
-        void Driver::export_compilation_errors_impl()
+        void Driver::export_within_dir(std::string_view dirname, void (Driver::*export_func)())
         {
-                const std::string outfile_name = source_filepath_.filename().string() + ".diag.csv";
+                const auto original_path = std::filesystem::current_path();
+                create_export_directory(dirname);
+                enter_export_directory(dirname);
+                (this->*export_func)();
+                exit_export_directory(original_path);
+        }
+
+        void Driver::export_compile_errors_impl()
+        {
+                const std::string outfile_name = source_filepath_.filename().string() + ".error.csv";
                 std::ofstream outfile(outfile_name);
                 if (!outfile)
                         throw std::runtime_error(fmt_ns::format(
-                            "Failed opening file {} to export compilation errors", outfile_name));
+                            "Failed opening file {} to export compile errors", outfile_name));
 
                 outfile << k_error_csv_export_header; // Write CSV header.
                 auto write_diagnostic = [&](const Diagnostic &diag)

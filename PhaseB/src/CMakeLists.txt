@@ -43,8 +43,9 @@ endif()
 file(GLOB WORKING_TEST_FILES "${SYMBOL_TABLE_WORKING_TESTS_DIR}/*")
 file(GLOB ERROR_TEST_FILES "${SYMBOL_TABLE_ERROR_TESTS_DIR}/*")
 
-set(ALL_TEST_FILES ${WORKING_TEST_FILES})
+set(ALL_TEST_FILES ${WORKINGrTEST_FILES})
 list(APPEND ALL_TEST_FILES ${ERROR_TEST_FILES})
+set(SYMBOL_TABLE_EXPORT_DIR "${CMAKE_CURRENT_BINARY_DIR}/SYMBOL_TABLE_EXPORTS")
 
 add_custom_target(run_all_validators)
 foreach(test_file ${ALL_TEST_FILES})
@@ -57,7 +58,7 @@ foreach(test_file ${ALL_TEST_FILES})
                 COMMAND "$<TARGET_FILE:${ALPHA_DRIVER_EXECUTABLE}>"
                 --input-file "${test_file}"
                 --export-symbol-table
-                --symbol-table-export-path "${SYMBOL_TABLE_EXPORT_DIR}"
+                --export-compile-errors
                 --no-show-errors
                 DEPENDS ${ALPHA_DRIVER_EXECUTABLE}
                 VERBATIM

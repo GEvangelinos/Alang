@@ -31,7 +31,6 @@ namespace // (Anonymous)
                         case Keyword::CONTINUE:
                                 return "continue";
                         }
-                        UNREACHABLE("Control flow should never reach here");
                 }
         };
 
