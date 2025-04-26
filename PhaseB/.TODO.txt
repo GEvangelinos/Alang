@@ -1,70 +1,26 @@
-1) Add column tracking,
-
-2) Add Handlers for byson and flex, currently code in .l and .y is a mess
-
-3) Test
-
-4) USE sanitizers
 5) USE IWYU
-6) COMPLETED ---> /* The idea is that {} is replace by macro LOG_ACTION(rule, case), where rule and case are string filled by python script. */
-
 7)Want help auto-documenting your grammar into markdown or LaTeX for a badass appendix in your final report?
 
 8) Make an include guard to check the include guards and put guards manually if not there.
 
-9) Think if you want to use:
-
-/* %define api.symbol.prefix {ALPHA_SYM_} */
-/* %define api.token.prefix {ALPHA_TOK_} */
-/* %define api.value.type variant  <<-- ALLOWS C++ types for unions like STD::STRING. */ 
-
 
 10) Add location tracking for tokens that span multiple lines (like comments or strings or anything else you think of that fits the " tokens spanning multiple lines")
 
-11) Put privates in the end of the class
-
-12) parse multiple input files at once.
-
 13) Convert scanner stuff to snake_case
-
-14) Add noexcept in semantic_actions.cpp
-
-15) Add `Location` field in SymbolTableEntry so you can report where symbol have already been defined in syntax errors. 
-
-16) Convert simply types (where you currently use `auto` keyword to the actual type)
-
-17) convert all error_message variable names to error (in most case context is smalll and you can easily see it a std::string) 
-KEYWORDS of my exercise
-
-18) Color notes in blue like in picture 3 in `ErrorReports` folder
 
 19) Throw warning or error if a function is called with the wrong number of arguments
 
 20) Functionize the code block in scanner (.l file).
 
-21) Check all contructors use {} instead of () to initialize (safer, and modern C++)
-
 22)    Make sure that only private fields in classes end with _ 
 
 23) Use clang-tidy (Static analysis, finds bad patterns and so on....)
 
-24) Remove name from class `Symbol`, you dont need to name each symbol..
-
 25) Check you use _ in all private attributes of classes/structs/types.
-
-26) check you use this-> in all methods you call in classes.
-
-
-27) Sort implementation funtions in .cpp so that they appear in same order as in .hpp
-
-28) A meh idea: Strip .y from function calls completely. and make your python script ad the functions (based on what's available in semantic_rule.hpp)
-
 
 29) Pass through valgrind
 
 28) Pass through clang sanitizers
-
-29) Switch to k_, s_, m_  system. instead of suffix k_
 
 30) use this->  members (try it.. you can do global search and replace between m_ and this->)
 
@@ -125,3 +81,22 @@ indexed:
 
 
 
+
+34) TODO: Learn lambdas.. very good for help functions and shit
+
+
+35)
+
+Handle bad input:
+
+no-regular-file 
+Weird_binary_files,
+directories,
+permission issues,
+no-file at all
+
+36) Assert GCC doesnt produces errors/warning (cause you mainly use clang)
+
+37) Assert your python scripts work with versions lowers 3.9 (currently you run only in thanatos)
+
+38) Assert cmake can continue build process even without python scripts, it (wont halt, just report warning)
