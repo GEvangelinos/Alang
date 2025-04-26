@@ -4,6 +4,7 @@
 #include <string>
 #include "core/alpha_location.hpp"
 #include "core/alpha_types.hpp"
+#include "scanner/alpha_token.hpp"
 
 namespace Alpha
 {
@@ -21,7 +22,7 @@ namespace Alpha
                 LexerCtx(const LexerCtx &&) = delete;
                 LexerCtx operator=(const LexerCtx &) = delete;
                 LexerCtx operator=(LexerCtx &&) = delete;
-                ~LexerCtx() = default;
+                ~LexerCtx() { TokenID::clearLastId(); }
         };
 }
 #endif // SCANNER_CONTEXT_HPP

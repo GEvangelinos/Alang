@@ -1,10 +1,11 @@
 #ifndef SEMANTIC_ACTIONS_HPP
 #define SEMANTIC_ACTIONS_HPP
 
-#include "core/alpha_error.hpp"
-#include "core/alpha_location.hpp"
-#include "parser/alpha_parser_context.hpp"
-#include "parser/alpha_symbol_table.hpp"
+#include <string>                           // for string
+#include "core/alpha_error.hpp"             // for ErrorTracker
+#include "core/alpha_location.hpp"          // for Location
+#include "parser/alpha_parser_context.hpp"  // for ParseCtx
+#include "parser/alpha_symbol_table.hpp"    // for Symbol, SymbolTable
 
 using namespace Alpha;
 

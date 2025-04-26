@@ -1,25 +1,20 @@
-#include <iostream>
-#include <filesystem>
-#include <fstream>
-#include <list>
-#include <memory>
-#include "utils/format_adapter.hpp"
-#include "arguinator/arguinator.hpp"
-#include "parser/alpha_symbol_table.hpp"
-#include "core/alpha_location.hpp"
-#include "scanner/alpha_scanner_context.hpp"
-#include "alpha_scanner.hpp"
-#include "core/alpha_konstants.hpp"
-#include "alpha_parser.hpp"
-#include "core/alpha_error.hpp"
-#include "core/alpha_types.hpp"
-#include "utils/cli_color.h"
-#include <optional>
+#include <cstddef>                           // for size_t
+#include <filesystem>                        // for path
+#include <memory>                            // for unique_ptr
+#include <string>                            // for string
+#include <string_view>                       // for string_view
+#include "alpha_scanner.hpp"                 // for YY_BUFFER_STATE
+#include "core/alpha_error.hpp"              // for ErrorTracker
+#include "core/alpha_location.hpp"           // for LocationTracker
+#include "parser/alpha_parser_context.hpp"   // for ParseCtx
+#include "parser/alpha_symbol_table.hpp"     // for SymbolTable
+#include "scanner/alpha_scanner_context.hpp" // for LexerCtx
+
 namespace Alpha
 {
         // Classes defined here:
-        class Driver;
-        // class Driver::FlexBuffer;
+        class Driver; // IWYU pragma: keep
+        // class Driver::FlexBuffer; // IWYU pragma: keep
 
         static constexpr char k_symtable_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
         static constexpr char k_error_exports_dirname[] = "ERROR_EXPORTS";
@@ -30,7 +25,10 @@ namespace Alpha
         {
         public:
                 explicit Driver(const std::string &source_filepath, bool show_parser_trace);
-                ~Driver() = default;
+                ~Driver()
+                {
+                        alpha_yylex_destroy();
+                }
                 Driver(const Driver &) = delete;
                 Driver(const Driver &&) = delete;
                 Driver &operator=(const Driver &) = delete;

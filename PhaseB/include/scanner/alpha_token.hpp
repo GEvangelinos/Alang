@@ -1,9 +1,9 @@
 #ifndef ALPHA_LANG_HPP
 #define ALPHA_LANG_HPP
 
-#include <iosfwd>  // for stringstream
-#include <string>  // for string, basic_string
-
+#include <iosfwd> // for stringstream
+#include <string> // for string, basic_string
+#include "core/alpha_location.hpp"
 namespace Alpha
 {
         struct alpha_token_t
@@ -97,6 +97,7 @@ namespace Alpha
         public:
                 TokenID(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &idContent, const std::string __idName);
                 static char *refreshLastId(const char *alpha_yytext);
+                static void clearLastId();
                 std::string toString() const override;
         };
 
@@ -104,13 +105,13 @@ namespace Alpha
         {
         private:
                 static std::stringstream stringAssemblingBuffer;
-                static int stringStartingLineNumber;
+                static Location stringStartingLocation;
                 static void flushAssemblingBuffer();
                 static std::string convertContentEscapesToASCII();
 
         public:
-                static void setStringStartingLineNumber(int lineNumber);
-                static int getStringStartingLineNumber();
+                static void setStartingLocation(Location location);
+                static Location getStartingLocation();
                 static void appendToAssemblingBuffer(std::string stringChunk);
                 static void exportStringToken(char **unionStringLiteral);
                 TokenString(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string stringContent);
@@ -121,11 +122,11 @@ namespace Alpha
         {
         private:
                 std::string commentType;
-                static int commentStartingLineNumber;
+                static Location commentStartingLocation;
 
         public:
-                static void setCommentStartingLineNumber(int lineNumber);
-                static int getCommentStartingLineNumber();
+                static void setStartingLocation(Location location);
+                static Location getStartingLocation();
                 TokenComment(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &commentLines, const std::string commentType);
                 std::string toString() const override;
         };

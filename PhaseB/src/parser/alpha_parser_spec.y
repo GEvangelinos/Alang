@@ -1,56 +1,24 @@
-%{
-        #include <string>
-        #include <list>
-        #include <iostream>
-        #include <stdexcept>
-        #include "alpha_scanner.hpp"
-        #include "parser/alpha_logger.hpp"
-        #include "parser/alpha_semantic_actions.hpp"
-        #include "core/alpha_shared_interface.hpp"
-        #include "scanner/alpha_scanner_context.hpp"
-        #include "parser/alpha_parser_context.hpp"
-        extern ALPHA_YYLEX_SIGNATURE;
-        // TODO: say in your report for  the progect that ';' is not just a plain syntax requirement.
-        // but also the parser's sync point, anything goes wrong, (syntax error) parser can continue parsing gracefully after ';'
-
-#define YYLLOC_DEFAULT(Current, Rhs, N)                                         \
-        do                                                                      \
-        {                                                                       \
-                if (N)                                                          \
-                {                                                               \
-                        (Current).first_index_ = YYRHSLOC(Rhs, 1).first_index_; \
-                        (Current).last_index_ = YYRHSLOC(Rhs, N).last_index_;   \
-                }                                                               \
-                else                                                            \
-                {                                                               \
-                        (Current).first_index_ = YYRHSLOC(Rhs, 0).last_index_;  \
-                        (Current).last_index_ = YYRHSLOC(Rhs, 0).last_index_;   \
-                }                                                               \
-        } while (0)
-
-        static void alpha_yyerror(Alpha::LexerCtx &lexer_ctx,
-                                Alpha::ParseCtx &parse_ctx,
-                                Alpha::SymbolTable &symbol_table,
-                                Alpha::ErrorTracker &error_tracker,
-                                Alpha::LocationTracker &lt,
-                                std::string error_message)
-        {
-              static constexpr char k_prefix[] = "syntax error, ";
-              if (error_message.rfind(k_prefix, 0) == 0)        // does it start with that?
-                        error_message.erase(0, strlen(k_prefix)); // remove it
-                extern Location alpha_yylloc;
-                error_tracker.report_error(Alpha::CTError::Type::SYNTAX,
-                        error_message, Location( alpha_yylloc.first_index_, alpha_yylloc.last_index_));
-        }
-%}
+%code top
+{
+         // IWYU pragma: no_include <features.h>
+         // IWYU pragma: no_include <stdio.h>
+         // IWYU pragma: no_include <stdlib.h>
+         // IWYU pragma: no_include <string.h>
+        #include <string>                             // for basic_string, string
+        #include "parser/alpha_logger.hpp"            // for display_trace
+        #include "parser/alpha_parser_context.hpp"    // for ParseCtx
+        #include "parser/alpha_semantic_actions.hpp"  // for block__lbrace, funcArgs...
+        #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
+        #include "alpha_parser_prologue_code.hpp"
+}
 
 %code requires
 {
-        #include "scanner/alpha_scanner_context.hpp"
-        #include "parser/alpha_parser_context.hpp"
-        #include "parser/alpha_symbol_table.hpp"
-        #include "core/alpha_location.hpp"
-        #include "core/alpha_error.hpp"
+        #include "core/alpha_error.hpp"               // for ErrorTracker
+        #include "core/alpha_location.hpp"            // for Location, LocationTracker
+        #include "parser/alpha_parser_context.hpp"    // for ParseCtx
+        #include "parser/alpha_symbol_table.hpp"      // for Symbol, SymbolTable
+        #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
 }
 
 %define api.prefix {alpha_yy}
@@ -326,7 +294,7 @@ funcDef:
 const:
   INT_CONST
 | REAL_CONST
-| STRING_LITERAL
+| STRING_LITERAL { delete [] $STRING_LITERAL; }
 | NIL
 | TRUE
 | FALSE

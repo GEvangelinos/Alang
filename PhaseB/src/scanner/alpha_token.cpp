@@ -1,11 +1,10 @@
 #include "scanner/alpha_token.hpp"
-#include <stdlib.h>  // for free
 #include <algorithm> // for transform
 #include <cctype>    // for toupper
-#include <cstring>   // for strcpy, strdup, size_t
+#include <cstring>   // for strcpy, strlen, size_t
 #include <limits>    // for numeric_limits
 #include <sstream>   // for basic_ostream, basic_stringstream, operator<<
-#include <stdexcept> // for overflow_error, underflow_error
+#include <stdexcept> // for overflow_error, runtime_error, underflow_error
 
 namespace Alpha
 {
@@ -184,10 +183,7 @@ namespace Alpha
         char *TokenID::lastId = nullptr;
 
         TokenID::TokenID(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &idContent, const std::string __idName)
-            : Token(lineNumber, tokenNumber, idContent), idName(__idName)
-        {
-                /* Empty Constructor Body */
-        }
+            : Token(lineNumber, tokenNumber, idContent), idName(__idName) {}
 
         char *TokenID::refreshLastId(const char *id)
         {
@@ -199,6 +195,8 @@ namespace Alpha
                 std::strcpy(TokenID::lastId, id);
                 return TokenID::lastId;
         }
+
+        void TokenID::clearLastId() { delete[] TokenID::lastId; }
 
         std::string TokenID::toString() const
         {
@@ -215,16 +213,16 @@ namespace Alpha
         /*** ENDOF: class TokenID definitions. ***/
 
         /*** STARTOF: class TokenComment definitions. ***/
-        int TokenComment::commentStartingLineNumber;
+        Location TokenComment::commentStartingLocation;
 
-        void TokenComment::setCommentStartingLineNumber(int lineNumber)
+        void TokenComment::setStartingLocation(Location location)
         {
-                TokenComment::commentStartingLineNumber = lineNumber;
+                TokenComment::commentStartingLocation = location;
         }
 
-        int TokenComment::getCommentStartingLineNumber()
+        Location TokenComment::getStartingLocation()
         {
-                return TokenComment::commentStartingLineNumber;
+                return TokenComment::commentStartingLocation;
         }
 
         TokenComment::TokenComment(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &commentDescription, const std::string __commentType)
@@ -247,16 +245,16 @@ namespace Alpha
 
         /*** STARTOF: class TokenString definitions. ***/
         std::stringstream TokenString::stringAssemblingBuffer;
-        int TokenString::stringStartingLineNumber = -1;
+        Location TokenString::stringStartingLocation;
 
-        void TokenString::setStringStartingLineNumber(int lineNumber)
+        void TokenString::setStartingLocation(Location location)
         {
-                TokenString::stringStartingLineNumber = lineNumber;
+                TokenString::stringStartingLocation = location;
         }
 
-        int TokenString::getStringStartingLineNumber()
+        Location TokenString::getStartingLocation()
         {
-                return TokenString::stringStartingLineNumber;
+                return TokenString::stringStartingLocation;
         }
 
         /* FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */
@@ -310,7 +308,6 @@ namespace Alpha
         {
                 stringAssemblingBuffer.str("");
                 stringAssemblingBuffer.clear();
-                stringStartingLineNumber = -1;
         }
 
         void TokenString::exportStringToken(char **unionStringLiteral)

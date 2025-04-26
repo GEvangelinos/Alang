@@ -2,7 +2,6 @@ add_subdirectory(arguinator)
 add_subdirectory(core)
 add_subdirectory(parser)
 add_subdirectory(scanner)
-add_subdirectory(third_party)
 
 # Create a custom target 'generate_parser_scanner' that is built by default (ALL).
 # It depends on both 'generate_parser' and 'generate_scanner', ensuring that the
@@ -21,7 +20,7 @@ add_dependencies(${ALPHA_DRIVER_EXECUTABLE}
         generate_parser)
 
 target_link_libraries(${ALPHA_DRIVER_EXECUTABLE}
-        PRIVATE
+        PUBLIC
         arguinator
         alpha_core
         alpha_parser

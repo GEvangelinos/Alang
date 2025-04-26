@@ -1,20 +1,20 @@
 #ifndef ALPHA_ERROR_HPP
 #define ALPHA_ERROR_HPP
 
-#include <string>
-#include <vector>
-#include <cstdint>
-#include <optional>
-#include <list>
-#include "core/alpha_location.hpp"
-#include <string_view>
+#include <list>                    // for list
+#include <memory>                  // for unique_ptr
+#include <string>                  // for string, basic_string
+#include <string_view>             // for string_view
+#include <vector>                  // for vector
+#include "core/alpha_location.hpp" // for Location, LocationTracker
+#include "core/alpha_types.hpp"    // for u32
 
 namespace Alpha
 {
         // Classes defined here:
-        class Diagnostic;
-        class CTError;
-        class ErrorTracker;
+        class Diagnostic;   // IWYU pragma: keep
+        class CTError;      // IWYU pragma: keep
+        class ErrorTracker; // IWYU pragma: keep
 
         class Diagnostic
         {
@@ -89,10 +89,11 @@ namespace Alpha
                 void report_error(CTError::Type errro_type, const std::string &error, Location error_location,
                                   std::list<Diagnostic> &&note_list_);
 
-                const std::vector<const CTError *> &get_compile_time_errors() const noexcept { return cterrors_; }
+                const std::vector<std::unique_ptr<const CTError>> &
+                get_compile_time_errors() const noexcept { return cterrors_; }
 
         private:
-                std::vector<const CTError *> cterrors_;
+                std::vector<std::unique_ptr<const CTError>> cterrors_;
         };
 } // namespace Alpha
 #endif // ALPHA_ERROR_HPP

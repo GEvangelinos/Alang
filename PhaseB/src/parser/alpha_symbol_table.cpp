@@ -1,12 +1,10 @@
 #include "parser/alpha_symbol_table.hpp"
-#include "utils/smart_assert.h"
-#include "core/alpha_konstants.hpp"
-#include "utils/format_adapter.hpp"
-#include <sstream>
-#include <initializer_list>
-#include <iomanip>
-
-#define STRINGIFY(_x) #_x
+#include <initializer_list>           // for initializer_list
+#include <utility>                    // for move, pair, forward
+#include "core/alpha_konstants.hpp"   // for k_global_scope, k_private_anony...
+#include "parser/_parser_common.hpp"  // for Parameter
+#include "utils/format_adapter.hpp"   // for format, fmt_ns
+#include "utils/smart_assert.h"       // for DEBUG_SMART_ASSERT
 
 namespace Alpha
 {
@@ -67,6 +65,7 @@ namespace Alpha
                 case Symbol::Type::LOCAL:
                         return "LOCAL_VARIABLE";
                 }
+                UNREACHABLE("Some field of Symbol::Type is not registred");
         }
 
         SymbolTable::SymbolTable()

@@ -1,14 +1,14 @@
-#include "utils/format_adapter.hpp"
 #include "core/alpha_error.hpp"
-
-#include <sstream>
-#include "utils/cli_color.h"
-#include "utils/format_adapter.hpp"
-#include "core/alpha_location.hpp"
-#include <iostream>
-#include <iomanip>
-#include "utils/smart_assert.h"
+#include <algorithm> // for count
+#include <cstring>   // for size_t, strchr, strlen
+#include <sstream>   // for basic_stringstream, basic_ostream
+#include <utility>   // for move
 #include "core/alpha_macros.hpp"
+#include "core/alpha_macros.hpp"
+#include "core/alpha_location.hpp"  // for Location, LocationTracker
+#include "utils/cli_color.h"        // for COLOR_ASCII_BOLD_DEFAULT, SGR_RESET
+#include "utils/format_adapter.hpp" // for format, fmt_ns
+#include "utils/smart_assert.h"     // for DEBUG_SMART_ASSERT
 
 namespace // (Anonymous)
 {
@@ -94,6 +94,7 @@ namespace Alpha
                 case Type::NOTE:
                         return "note";
                 }
+                UNREACHABLE("Some field of Diagnostic::Type is not registred");
         }
 
         std::string_view Diagnostic::pretty_color() const noexcept
@@ -105,6 +106,7 @@ namespace Alpha
                 case Type::NOTE:
                         return COLOR_ASCII_BOLD_CYAN;
                 }
+                UNREACHABLE("Some field of Diagnostic::Type is not registred");
         }
 
         std::string_view CTError::type_to_string() const noexcept
@@ -118,6 +120,7 @@ namespace Alpha
                 case Type::SYNTAX:
                         return "syntax";
                 }
+                UNREACHABLE("Some field of CTError::Type is not registred");
         }
 
         std::string CTError::make_pretty_diagnostic(
@@ -202,20 +205,24 @@ namespace Alpha
         void ErrorTracker::report_error(CTError::Type error_type, const std::string &error_message,
                                         Location error_location)
         {
-                cterrors_.push_back(new CTError(error_type, error_message, error_location));
+                // new ptr is passed to unique_ptr for managing, do NOT manual delete.
+                cterrors_.push_back(std::unique_ptr<const CTError>(
+                    new CTError(error_type, error_message, error_location)));
         }
 
         void ErrorTracker::report_error(CTError::Type error_type, const std::string &error_message,
                                         Location error_location, const std::string &note, Location note_location)
         {
-                cterrors_.push_back(
-                    new CTError(error_type, error_message, error_location, note, note_location));
+                // new ptr is passed to unique_ptr for managing, do NOT manual delete.
+                cterrors_.push_back(std::unique_ptr<const CTError>(
+                    new CTError(error_type, error_message, error_location, note, note_location)));
         }
 
         void ErrorTracker::report_error(CTError::Type error_type, const std::string &error_message,
                                         Location error_location, std::list<Diagnostic> &&note_list_)
         {
-                cterrors_.push_back(
-                    new CTError(error_type, error_message, error_location, std::move(note_list_)));
+                // new ptr is passed to unique_ptr for managing, do NOT manual delete.
+                cterrors_.push_back(std::unique_ptr<const CTError>(
+                        new CTError(error_type, error_message, error_location, std::move(note_list_))));
         }
 } // namespace Alpha

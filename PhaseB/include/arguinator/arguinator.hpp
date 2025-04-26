@@ -1,20 +1,22 @@
 #ifndef ARGUINATOR_HPP
 #define ARGUINATOR_HPP
 
-#include <string>
-#include <map>
-#include <stdexcept>
-#include <vector>
-#include "default_constants.hpp"
+#include <cstddef>   // for size_t
+#include <map>       // for map
+#include <stdexcept> // for runtime_error
+#include <string>    // for basic_string, string
+#include <vector>    // for vector
 
 namespace Arguinator
 {
         /* Forward declarations: */
-        class Flag;
-        class Parser;
-        class FlagArityError;   /* Flag Exception */
-        class FlagUnknownError; /* Flag Exception */
-        class FlagMissingError; /* Flag Exception */
+        class Parser;           // IWYU pragma: keep
+        class Flag;             // IWYU pragma: keep
+        class FlagError;        // IWYU pragma: keep
+        class FlagArityError;   // IWYU pragma: keep
+        class FlagUnknownError; // IWYU pragma: keep
+        class FlagMissingError; // IWYU pragma: keep
+        class FlagFormatError;  // IWYU pragma: keep
 
         class Parser
         {

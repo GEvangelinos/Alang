@@ -61,9 +61,5 @@ add_dependencies(alpha_parser generate_parser_scanner)
 target_include_directories(alpha_parser PRIVATE
         "${AUTOGEN_INCLUDE_DIR_PATH}"
         "${CMAKE_SOURCE_DIR}/include"
-)
-
-# TODO do you need to?
-target_link_libraries(alpha_parser PRIVATE
-        alpha_core
+        "${CMAKE_CURRENT_SOURCE_DIR}"
 )

@@ -1,12 +1,14 @@
-#include <cctype>
-#include "utils/format_adapter.hpp"
-#include <iomanip>
-#include <stdexcept>
-#include <algorithm>
-#include <sstream>
-#include <iostream>
 #include "arguinator/arguinator.hpp"
-#include "utils/smart_assert.h"
+#include <algorithm>                         // for transform
+#include <cctype>                            // for tolower, toupper
+#include <cstdlib>                           // for exit
+#include <iostream>                          // for basic_ostream, operator<<
+#include <sstream>                           // for basic_stringstream
+#include <stdexcept>                         // for out_of_range, logic_error
+#include <utility>                           // for pair
+#include "arguinator/default_constants.hpp"  // for default_flag_prefix, def...
+#include "utils/format_adapter.hpp"          // for format, fmt_ns
+#include "utils/smart_assert.h"              // for SMART_ASSERT
 
 #define MESSAGE_WITH_CONTEXT(message) fmt_ns::format("[{}:{}:{}]\n{}", __FILE__, __LINE__, __func__, (message))
 

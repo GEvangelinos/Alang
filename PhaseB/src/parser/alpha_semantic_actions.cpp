@@ -1,14 +1,14 @@
 #include "parser/alpha_semantic_actions.hpp"
-#include "parser/alpha_parser_context.hpp"
-#include "core/alpha_location.hpp"
-#include "core/alpha_types.hpp"
-#include "core/alpha_error.hpp"
-#include "utils/smart_assert.h"
-#include "core/alpha_macros.hpp"
-#include "utils/format_adapter.hpp"
-#include <iostream>
-#include <utility>
-#include "core/alpha_macros.hpp"
+#include <list>                             // for list, _List_const_iterator
+#include "core/alpha_error.hpp"             // for ErrorTracker, Diagnostic
+#include "core/alpha_konstants.hpp"         // for k_global_scope, k_public_...
+#include "core/alpha_location.hpp"          // for Location
+#include "core/alpha_macros.hpp"            // for DEBUG_ALWAYS_INLINE
+#include "core/alpha_types.hpp"             // for u32
+#include "parser/_parser_common.hpp"        // for Parameter
+#include "parser/alpha_parser_context.hpp"  // for ParseCtx
+#include "utils/format_adapter.hpp"         // for format, fmt_ns
+#include "utils/smart_assert.h"             // for DEBUG_SMART_ASSERT
 
 using namespace Alpha;
 
@@ -31,6 +31,7 @@ namespace // (Anonymous)
                         case Keyword::CONTINUE:
                                 return "continue";
                         }
+                UNREACHABLE("Some field of Keyword is not registred");
                 }
         };
 

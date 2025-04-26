@@ -1,17 +1,12 @@
 %{
-        #include <errno.h>           // for errno, EINTR
-        #include <stdio.h>           // for NULL, FILE, EOF, ferror, size_t, clearerr
-        #include <stdlib.h>          // for exit, free, malloc, realloc
-        #include <string.h>          // for memset, strlen
-        #include "utils/format_adapter.hpp"
-        #include <unistd.h>          // for isatty
-        #include <string>            // for allocator, operator+, basic_string, char...
-        #include "scanner/alpha_scanner_context.hpp"
-        #include "alpha_parser.hpp"   // for alpha_yytokentype, alpha_yylval
-        #include "core/alpha_error.hpp"  // for LexerError, CompileTimeErrorTracker
-        #include "scanner/alpha_token.hpp"    // for TokenString, TokenComment, TokenID
-        #include "core/alpha_shared_interface.hpp"
-        #include "core/alpha_location.hpp"
+        #include <string>                             // for basic_string, stod, stol
+        #include "alpha_parser.hpp"                   // for alpha_yylloc, alpha_yyt...
+        #include "core/alpha_error.hpp"               // for CTError, ErrorTracker
+        #include "core/alpha_location.hpp"            // for LocationTracker
+        #include "core/alpha_shared_interface.hpp"    // for ALPHA_YYLEX_SIGNATURE
+        #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
+        #include "scanner/alpha_token.hpp"            // for TokenString, TokenComment
+        #include "utils/format_adapter.hpp"           // for format, fmt_ns
 
         #ifdef YY_DECL
         #undef YY_DECL
@@ -30,8 +25,6 @@
 %}
 
 %option noyywrap
-/* TODO: is the below line necessary? Bison already defines a prefix, does it count for scanenr too? (probably not) */
-/*       as they are different programs. */
 %option prefix="alpha_yy"
 
 /* FLex regex definitions */
@@ -57,8 +50,6 @@ stringEndRule           \"
 stringValidInnerPart    ([^\n\"\\]|\\[tn"\\])+
 
 stringInvalidEscapeCode "\\"([^tn"\\])
-
-
 
 /* Flex conditions */
 %x INSIDE_COMMENT_BLOCK
@@ -121,7 +112,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 
 {commentBeginRule} {
         BEGIN(INSIDE_COMMENT_BLOCK);
-        Alpha::TokenComment::setCommentStartingLineNumber(yylineno);
+        Alpha::TokenComment::setStartingLocation(alpha_yylloc);
 } /* No return until complete token or EOF. */
 <INSIDE_COMMENT_BLOCK>{commentEndRule} {
                 BEGIN(INITIAL);
@@ -131,14 +122,19 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacterButNewLine} {/* Just eat up any character use see. */}
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        et.report_error(Alpha::CTError::Type::LEXER, "EOF reached before closing comment.", alpha_yylloc);
+        et.report_error(
+                Alpha::CTError::Type::LEXER,
+                "unclosed comment: expected terminating `*/` character",
+                alpha_yylloc,
+                "comment started here",
+                Alpha::TokenComment::getStartingLocation()
+        );
         return EOF;
 }
 
-
 {stringBeginRule} {
         BEGIN(INSIDE_STRING);
-        Alpha::TokenString::setStringStartingLineNumber(yylineno);
+        Alpha::TokenString::setStartingLocation(alpha_yylloc);
 }
 <INSIDE_STRING>{newline} {
         lt.append_line(lexer_ctx.index_);
@@ -148,13 +144,21 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_STRING>{stringInvalidEscapeCode} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
-        et.report_error(Alpha::CTError::Type::LEXER,
-                fmt_ns::format("Invalid escape code {} in string.", yytext), alpha_yylloc);
+        et.report_error(
+                Alpha::CTError::Type::LEXER,
+                fmt_ns::format("invalid escape code {} in string.", yytext),
+                alpha_yylloc
+        );
         /* Do not stop scanning, but register lexer error. */
 }
 <INSIDE_STRING><<EOF>> {
-        et.report_error(Alpha::CTError::Type::LEXER,
-                "EOF reached before closing string.", alpha_yylloc);
+        et.report_error(
+                Alpha::CTError::Type::LEXER,
+                "unclosed string literal, expected terminating `\"` character",
+                alpha_yylloc,
+                "string literal started here",
+                Alpha::TokenString::getStartingLocation()
+        );
         return EOF;
 }
 <INSIDE_STRING>{stringEndRule} {
@@ -164,8 +168,11 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
-        et.report_error(Alpha::CTError::Type::LEXER,
-                fmt_ns::format("Character {} is invalid.", yytext), alpha_yylloc);
+        et.report_error(
+                Alpha::CTError::Type::LEXER,
+                fmt_ns::format("character {} is invalid.", yytext),
+                alpha_yylloc
+        );
 }
 
 <<EOF>>          {return ALPHA_YYEOF;}

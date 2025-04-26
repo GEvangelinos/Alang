@@ -1,8 +1,19 @@
 #include "alpha_driver.hpp"
-
-bool g_show_parser_trace = false;
+#include <fstream>                   // for basic_ostream, basic_ofstream
+#include <iostream>                  // for cout, cerr
+#include <list>                      // for _List_const_iterator, list
+#include <stdexcept>                 // for runtime_error, invalid_argument
+#include <vector>                    // for vector
+#include "alpha_parser.hpp"          // for alpha_yyparse
+#include "core/alpha_konstants.hpp"  // for k_global_scope
+#include "core/alpha_types.hpp"      // for u32
+#include "utils/cli_color.h"         // for COLOR_ASCII_FG_BLUE, SGR_RESET
+#include "utils/format_adapter.hpp"  // for format, fmt_ns
+#include "utils/smart_assert.h"      // for SMART_ASSERT
 
 static constexpr unsigned k_flex_eof_padding = 2;
+
+bool g_show_parser_trace = false;
 
 namespace // (Anonymous)
 {
@@ -74,7 +85,7 @@ namespace Alpha
         {
                 const std::string source_filename = source_filepath_.filename().string();
 
-                for (const CTError *error : et_.get_compile_time_errors())
+                for (const auto &error : et_.get_compile_time_errors())
                         std::cerr << error->make_pretty_diagnostic(
                             source_filename,
                             lt_,
@@ -118,7 +129,11 @@ namespace Alpha
                 // Class invariant: `state_` must be non-null after construction.
                 // Violations indicate a serious logic error (e.g., double-deletion or moved-from object).
                 SMART_ASSERT(state_ != nullptr);
-                alpha_yy_delete_buffer(state_);
+                state_ = nullptr; 
+                // We nullified our reference to YY_BUFFER_STATE
+                // Flex has it own, also we DID NOT use alpha_yy_delete_buffer()
+                // So we can call alpha_yylex_destroy() on driver, which call delete_buffer()
+                // and also deletes its own stack.
         }
 
         void Driver::export_symbol_table_impl()
@@ -175,7 +190,7 @@ namespace Alpha
                             diag.message);
                 };
 
-                for (const CTError *cte : et_.get_compile_time_errors())
+                for (const auto &cte : et_.get_compile_time_errors())
                 {
                         write_diagnostic(cte->error);
                         for (const Diagnostic &note : cte->note_list)

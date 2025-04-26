@@ -1,13 +1,88 @@
 cmake_minimum_required(VERSION 3.18)
+# Detect and set the preferred C++ compiler
+find_program(CMAKE_CXX_COMPILER_CLANG NAMES clang++)
+find_program(CMAKE_CXX_COMPILER_GCC NAMES g++)
+
+# Configure the preferred C++ compiler before invoking project().
+# CMake finalizes the compiler selection during the project() call.
+if(CMAKE_CXX_COMPILER_CLANG)
+        set(CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER_CLANG}" CACHE STRING "Path to Clang C++ compiler" FORCE)
+        message(STATUS "Using Clang: ${CMAKE_CXX_COMPILER_CLANG}")
+elseif(CMAKE_CXX_COMPILER_GCC)
+        set(CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER_GCC}" CACHE STRING "Path to GCC C++ compiler" FORCE)
+        message(WARNING "Clang not found. Falling back to GCC: ${CMAKE_CXX_COMPILER_GCC}")
+else()
+        message(FATAL_ERROR "No suitable C++ compiler found. Please install either Clang or GCC.")
+endif()
+
 project(Alpha VERSION 1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# General warnings
+add_compile_options(
+        -Wall
+        -Wextra
+        -Wpedantic
+)
+
+# Check if std::format is allowed
+include(CheckCXXSourceCompiles)
+check_cxx_source_compiles("
+        #include <format>
+        int main()
+        {
+                auto s = std::format(\"ZERO={}\", 0);
+                return 0;
+        }
+"        STD_FORMAT_SUPPORTED)
+
+if(STD_FORMAT_SUPPORTED)
+        add_compile_definitions(STD_FORMAT_SUPPORTED)
+endif()
+
+if(DEBUG_MODE)
+        add_compile_options(
+                -g
+        )
+        add_compile_definitions(DEBUG_MODE)
+        message(WARNING "CMAKE: Running with DEBUG_MODE ON")
+endif()
+
+if(OPTIMIZED_MODE)
+        add_compile_options(
+                -O3
+                -march=native
+                -flto
+        )
+        add_compile_definitions(OPTIMIZED_MODE)
+        message(WARNING "CMAKE: Running with OPTIMIZED_MODE ON")
+endif()
+
+if(ENABLE_IWYU)
+        find_program(IWYU_PATH NAMES include-what-you-use)
+        if(NOT IWYU_PATH)
+                message(SEND_ERROR "CMAKE: include-what-you-use not found on system.")
+        else()
+                set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE
+                        "${IWYU_PATH}"
+                        "-Xiwyu" # Any IWYU flag must be provided after -Xiwyu flag!
+                        "--no_fwd_decls"
+                        "--update_comments"
+                )
+                message(WARNING "CMAKE: include-what-you-use enabled at ${IWYU_PATH}")
+        endif()
+endif()
+
 
 # === Configurable build options ===
 option(ENABLE_IWYU "Enable include-what-you-use integration" OFF)
 option(DEBUG_MODE "DEBUG_MODE: enables extra sanity checking inside the code" OFF)
 option(DEBUG_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable parser trace" OFF)
 option(COMPILER_SUPPORTS_STD_FORMAT "Used by the format adapter to switch from std:: to fmt::" OFF)
-set(DEBUG_MODE ON) # TODO unset when done, I did this so I dont forget it on testing.
-set(COMPILER_SUPPORTS_STD_FORMAT "Used by the format adapter to switch from std:: to fmt::" OFF)
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
 ###############################################################################################################
@@ -29,61 +104,6 @@ set(WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/working")
 set(ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/error")
 set(GOLDEN_SYMBOL_TABLE_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_SYMBOL_TABLE_EXPORTS")
 set(GOLDEN_COMPILE_ERROR_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_SYMBOL_TABLE_EXPORTS")
-
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Detect and set the preferred C++ compiler
-find_program(CMAKE_CXX_COMPILER_CLANG NAMES clang++)
-find_program(CMAKE_CXX_COMPILER_GCC NAMES g++)
-
-if(CMAKE_CXX_COMPILER_CLANG)
-        set(CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER_CLANG}" CACHE STRING "Path to Clang C++ compiler" FORCE)
-        message(STATUS "Using Clang: ${CMAKE_CXX_COMPILER_CLANG}")
-elseif(CMAKE_CXX_COMPILER_GCC)
-        set(CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER_GCC}" CACHE STRING "Path to GCC C++ compiler" FORCE)
-        message(WARNING "Clang not found. Falling back to GCC: ${CMAKE_CXX_COMPILER_GCC}")
-else()
-        message(FATAL_ERROR "No suitable C++ compiler found. Please install either Clang or GCC.")
-endif()
-
-# General warnings
-add_compile_options(
-        -Wall
-        -Wextra
-        -Wpedantic
-)
-
-# Reuires to manually define ENABLE_IWYU at the configuration process (cmake -DENABLE_IWYU=ON)
-if(ENABLE_IWYU)
-        find_program(IWYU_PATH NAMES include-what-you-use)
-        if(IWYU_PATH)
-                set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE include-what-you-use --no-fwd-decls)
-                message(WARNING "CMAKE: include-what-you-use enabled.")
-        else()
-                message(SEND_ERROR "CMAKE: include-what-you-use not found on system.")
-        endif()
-endif()
-
-if(DEBUG_MODE)
-        add_compile_options(-g)
-        add_compile_definitions(DEBUG_MODE)
-        message(WARNING "CMAKE: Running with DEBUG_MODE ON")
-endif()
-
-if(COMPILER_SUPPORTS_STD_FORMAT)
-        message(WARNING "CMAKE: IMPLEMNT COMPILER_SUPPORT_STD_FORMAT")
-endif()
-
-
-if(OPTIMIZED_MODE)
-        add_compile_options(-O3)
-        add_compile_definitions(OPTIMIZED_MODE)
-        message(WARNING "CMAKE: Running with OPTIMIZED_MODE ON")
-endif()
 
 # Create directory that hosts code from flex and bison
 set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/autogen" CACHE PATH "Path to the root directory for auto-generated files")

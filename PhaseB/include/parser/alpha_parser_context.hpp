@@ -4,6 +4,7 @@
 #include <stack>
 #include <limits>
 #include <list>
+#include <vector>
 #include "core/alpha_types.hpp"
 #include "utils/smart_assert.h"
 #include "core/alpha_types.hpp"

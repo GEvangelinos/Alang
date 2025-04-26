@@ -1,15 +1,15 @@
 #ifndef ALPHA_LOCATION_HPP
 #define ALPHA_LOCATION_HPP
 
-#include "core/alpha_types.hpp"
-#include <vector>
+#include <vector>               // for vector
+#include "core/alpha_types.hpp" // for u32
 
 namespace Alpha
 {
         // Classes defined here:
-        class Location;
-        struct LineRange;
-        class LocationTracker;
+        class Location;        // IWYU pragma: keep
+        struct LineRange;      // IWYU pragma: keep
+        class LocationTracker; // IWYU pragma: keep
 
         class Location
         {

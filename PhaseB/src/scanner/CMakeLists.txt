@@ -18,7 +18,6 @@ set_source_files_properties(${ALPHA_SCANNER_HEADER_FILEPATH} PROPERTIES GENERATE
 # Ensure `make clean` removes it
 set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${ALPHA_SCANNER_HEADER_FILEPATH}")
 
-
 # We create a phony target so we force FLEX files to be generated before compilation.
 add_custom_target(generate_scanner ALL DEPENDS "${FLEX_ALPHA_SCANNER_OUTPUTS}")
 
@@ -34,11 +33,4 @@ target_include_directories(alpha_scanner PRIVATE
         "${CMAKE_SOURCE_DIR}/include"
 )
 
-# TODO do you need to?
-target_link_libraries(alpha_scanner PRIVATE
-        alpha_core
-)
-
 target_compile_options(alpha_scanner PRIVATE -Wno-unused-function)
-
-#TODO : remove o-unused-function flag and try to use [[unused]] instead.

@@ -2,6 +2,7 @@
 #define _PARSER_COMMON_HPP
 #include <string>
 #include "core/alpha_location.hpp"
+#include <vector>
 
 namespace Alpha
 {

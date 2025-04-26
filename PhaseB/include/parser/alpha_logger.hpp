@@ -4,6 +4,7 @@
 #include "utils/format_adapter.hpp"
 #include <iostream>
 #include <iomanip>
+#include <vector>
 #include "utils/cli_color.h"
 
 extern bool g_show_parser_trace;

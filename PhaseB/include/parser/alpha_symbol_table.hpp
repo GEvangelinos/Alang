@@ -1,30 +1,26 @@
-// NOTE: Formatting may appear off due to auto-formatter differences between environments.
 #ifndef SYMBOL_TABLE_HPP
 #define SYMBOL_TABLE_HPP
 
-#include <cstdint>
-#include <list>
-#include <string>
-#include <set>
-#include <unordered_map>
-#include <vector>
-#include <stack>
-#include <optional>
-#include "core/alpha_location.hpp"
-#include "core/alpha_types.hpp"
-#include "core/alpha_error.hpp"
-#include "parser/alpha_parser_context.hpp"
-#include "_parser_common.hpp"
-#include <unordered_set>
-#include <initializer_list>
+#include <initializer_list>        // for initializer_list
+#include <list>                    // for list
+#include <string>                  // for basic_string, string, hash, opera...
+#include <string_view>             // for string_view
+#include <type_traits>             // for is_same_v
+#include <unordered_map>           // for unordered_map
+#include <unordered_set>           // for unordered_set
+#include <vector>                  // for vector
+#include "_parser_common.hpp"      // for Parameter
+#include "core/alpha_location.hpp" // for Location
+#include "core/alpha_macros.hpp"   // for DEBUG_ALWAYS_INLINE
+#include "core/alpha_types.hpp"    // for u32
 
 namespace Alpha
 {
         // Classes defined here:
-        class Symbol;
-        class SymbolTable;
-        // class SymbolTable::Variable;
-        // class SymbolTable::Function;
+        class Symbol;      // IWYU pragma: keep
+        class SymbolTable; // IWYU pragma: keep
+        // class SymbolTable::Variable; // IYU pragma: keep
+        // class SymbolTable::Function; // IWYU pragma: keep
 
         const std::initializer_list<std::string> k_library_function_names = {
             "print",
