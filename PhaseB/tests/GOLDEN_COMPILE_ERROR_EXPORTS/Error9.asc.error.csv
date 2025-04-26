@@ -1,0 +1,4 @@
+line,column,diagnostic_type,message
+4,7,error,variable `x` is not accessible in function `@nonymous`.
+3,4,note,function `@nonymous` declared here
+1,14,note,variable `x` declared here

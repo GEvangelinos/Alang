@@ -1,0 +1,4 @@
+line,column,diagnostic_type,message
+10,16,error,variable `x` is not accessible in function `b`.
+8,17,note,function `b` declared here
+4,1,note,variable `x` declared here

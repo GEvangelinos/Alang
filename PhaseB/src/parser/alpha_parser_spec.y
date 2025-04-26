@@ -33,8 +33,11 @@
                                 Alpha::SymbolTable &symbol_table,
                                 Alpha::ErrorTracker &error_tracker,
                                 Alpha::LocationTracker &lt,
-                                const std::string &error_message)
+                                std::string error_message)
         {
+              static constexpr char k_prefix[] = "syntax error, ";
+              if (error_message.rfind(k_prefix, 0) == 0)        // does it start with that?
+                        error_message.erase(0, strlen(k_prefix)); // remove it
                 extern Location alpha_yylloc;
                 error_tracker.report_error(Alpha::CTError::Type::SYNTAX,
                         error_message, Location( alpha_yylloc.first_index_, alpha_yylloc.last_index_));
@@ -51,7 +54,8 @@
 }
 
 %define api.prefix {alpha_yy}
-%define parse.error detailed    /* Enable detailed error messages */
+%define parse.error verbose    /* Enable verbose error messages */
+%define parse.lac full
 
 %define api.location.type {Alpha::Location}
 %locations
@@ -74,37 +78,78 @@
         const Alpha::Symbol *union_lvalue;
 }
 
-%token <union_string_literal> STRING_LITERAL
-%token <union_id>ID
-%token <union_int_const> INT_CONST
-%token <union_real_const> REAL_CONST
+/*
+ * You can combine a typed %token with a printable name:
+ *   %token <field> NAME "display name"
+ * Bison will use the quoted string in error messages instead of NAME.
+ */
+%token <union_string_literal> STRING_LITERAL "`string-literal`"
+%token <union_id>             ID             "`identifier`"
+%token <union_int_const>      INT_CONST      "`integer-constant`"
+%token <union_real_const>     REAL_CONST     "`real-constant`"
 %type <union_lvalue> lvalue
 
+/*
+ * By default Bison uses the bare token names (e.g. IF, GLOBAL)
+ * in its syntax‐error messages.  If you follow a %token with
+ * a quoted string, Bison will use that string instead as the
+ * token’s “display name.”  That way you get messages like:
+ *
+ *     syntax error, unexpected "keyword `if`"
+ *     syntax error, unexpected "global operator `::`"
+ *
+ * instead of
+ *
+ *     syntax error, unexpected IF
+ *     syntax error, unexpected GLOBAL
+ */
+
 /* Keyword tokens */
-%token IF               ELSE
-%token WHILE            FOR
-%token CONTINUE         BREAK
-%token FUNCTION         RETURN
-%token NOT              AND             OR      
-%token TRUE             FALSE
-%token LOCAL            NIL
+%token IF       "keyword `if`"
+%token ELSE     "keyword `else`"
+%token WHILE    "keyword `while`"        
+%token FOR      "keyword `for`"
+%token CONTINUE "keyword `continue`"        
+%token BREAK    "keyword `break`"
+%token FUNCTION "keyword `function`"     
+%token RETURN   "keyword `return`"
+%token NOT      "keyword `not`"
+%token AND      "keyword `and`"
+%token OR       "keyword `or`"
+%token TRUE     "keyword `true`"
+%token FALSE    "keyword `false`"
+%token LOCAL    "keyword `local`"
+%token NIL      "keyword `nil`"
 
 /* Operator tokens */
-%token '='
-%token '+'      '-'
-%token '*'      '/'     '%'
-%token '>'      '<'      
-%token GTE      LTE
-%token EQ       NEQ      
-%token DEC      INC        
+%token '='      "assignment operator `=`"
+%token '+'      "addition operator `+`" 
+%token '-'      "subtraction operator `-`"
+%token '*'      "multiplication operator `*`"
+%token '/'      "division operator `/`"
+%token '%'      "modulo operator `%`"
+%token '>'      "greater-than operator `>`"
+%token '<'      "less-than operator `<`"
+%token GTE      "greater-than-or-equal operator `>=`"
+%token LTE      "less-than-or-equal operator `<=`"
+%token EQ       "equal operator `==`"
+%token NEQ      "not-equal operator `!=`"     
+%token DEC      "decrement operator `--`"
+%token INC      "increment operator `++`"
 
 /* Punctuation tokens */
-%token  '{'             '}'
-%token  '['             ']'
-%token  '('             ')'
-%token  ';'             ','
-%token  '.'             METHOD_CALL
-%token  ':'             GLOBAL
+%token '{'          "`{`"
+%token '}'          "`}`"
+%token '['          "`[`"
+%token ']'          "`]`"
+%token '('          "`(`" 
+%token ')'          "`)`"
+%token ';'          "`;`"   
+%token ','          "`,`"
+%token '.'          "`.`"   
+%token METHOD_CALL  "method-call operator `..`"
+%token ':'          "`:`"   
+%token GLOBAL       "global operator `::`"
 
 /* Priorities */
 %right '='
@@ -159,8 +204,8 @@ stmt:
 ;
 
 loopCtrlStmt:
-  BREAK    { loopCtrlStmt__break(parse_ctx, @1, error_tracker); }
-| CONTINUE { loopCtrlStmt__continue(parse_ctx, @1, error_tracker); }
+  BREAK    { loopCtrlStmt__break(parse_ctx, @BREAK, error_tracker); }
+| CONTINUE { loopCtrlStmt__continue(parse_ctx, @CONTINUE, error_tracker); }
 ;
 
 expr:
@@ -185,15 +230,15 @@ term:
   '(' expr ')'
 | '-' expr %prec UMINUS
 | NOT expr
-| INC lvalue { term__inc_lvalue($2, @$, error_tracker); }
-| lvalue INC { term__lvalue_inc($1, @$, error_tracker); }
-| DEC lvalue { term__dec_lvalue($2, @$, error_tracker); }
-| lvalue DEC { term__lvalue_dec($1, @$, error_tracker); }
+| INC lvalue { term__inc_lvalue($lvalue, @term, error_tracker); }
+| lvalue INC { term__lvalue_inc($lvalue, @term, error_tracker); }
+| DEC lvalue { term__dec_lvalue($lvalue, @term, error_tracker); }
+| lvalue DEC { term__lvalue_dec($lvalue, @term, error_tracker); }
 | primary
 ;
 
 assignExpr:
-  lvalue '=' expr { assignExpr__lvalue_assign_expr($1, @2, error_tracker); }
+  lvalue '='[assign_op] expr { assignExpr__lvalue_assign_expr($lvalue, @assign_op, error_tracker); }
 ;
 
 primary:
@@ -205,10 +250,10 @@ primary:
 ;
 
 lvalue:
-  ID { lvalue__id(symbol_table, parse_ctx, $1, @1, &$$, error_tracker); }
-| LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $2, @2, &$$, error_tracker); } 
-| GLOBAL ID { lvalue__global_id(symbol_table, $2, @2, &$$, error_tracker); }
-| member { lvalue__member(&$$); }
+  ID { lvalue__id(symbol_table, parse_ctx, $ID, @ID, &$lvalue, error_tracker); }
+| LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $ID, @ID, &$lvalue, error_tracker); } 
+| GLOBAL ID { lvalue__global_id(symbol_table, $ID, @ID, &$lvalue, error_tracker); }
+| member { lvalue__member(&$lvalue); }
 ;
 
 member:
@@ -267,13 +312,13 @@ block:
 
 funcDef:
   FUNCTION ID 
-  { funcdef__function_id(parse_ctx, $2, @2); }
+  { funcdef__function_id(parse_ctx, $ID, @ID); }
   '(' funcArgList ')'
   { funcDef__function_id_lparen_funcArgList_rparen(symbol_table, parse_ctx, error_tracker); }
   block
   { funcDef__function_id_lparen_funcArgList_rparen_block(parse_ctx); }
 | FUNCTION '(' funcArgList ')'
-  { funcDef__function_lparen_funcArgList_rparen(symbol_table, parse_ctx, @1, error_tracker); }
+  { funcDef__function_lparen_funcArgList_rparen(symbol_table, parse_ctx, @FUNCTION, error_tracker); }
   block
   { funcDef__function_lparen_funcArgList_rparen_block(parse_ctx); }
 ;
@@ -288,8 +333,8 @@ const:
 ;
 
 funcArgs:
-  ID { funcArgs__id(parse_ctx, $1, @1); }
-| ID { funcArgs__id(parse_ctx, $1, @1); } ',' funcArgs
+  ID { funcArgs__id(parse_ctx, $ID, @ID); }
+| ID { funcArgs__id(parse_ctx, $ID, @ID); } ',' funcArgs
 ;
 
 funcArgList:
@@ -325,7 +370,7 @@ forStmt:
 ;
 
 funcCtrlStmt: //OK
-  RETURN { funcCtrlStmt__return(parse_ctx, @1, error_tracker); }
+  RETURN { funcCtrlStmt__return(parse_ctx, @RETURN, error_tracker); }
 ;
 
 returnStmt: //OK

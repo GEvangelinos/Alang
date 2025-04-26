@@ -149,12 +149,12 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 <INSIDE_STRING>{stringInvalidEscapeCode} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
         et.report_error(Alpha::CTError::Type::LEXER,
-                fmt_ns::format("Lexer error: Invalid escape code {} in string.", yytext), alpha_yylloc);
+                fmt_ns::format("Invalid escape code {} in string.", yytext), alpha_yylloc);
         /* Do not stop scanning, but register lexer error. */
 }
 <INSIDE_STRING><<EOF>> {
         et.report_error(Alpha::CTError::Type::LEXER,
-                "Lexer error: EOF reached before closing string.", alpha_yylloc);
+                "EOF reached before closing string.", alpha_yylloc);
         return EOF;
 }
 <INSIDE_STRING>{stringEndRule} {
@@ -165,7 +165,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
         et.report_error(Alpha::CTError::Type::LEXER,
-                fmt_ns::format("Lexer error: Character {} is invalid.", yytext), alpha_yylloc);
+                fmt_ns::format("Character {} is invalid.", yytext), alpha_yylloc);
 }
 
 <<EOF>>          {return ALPHA_YYEOF;}

@@ -40,21 +40,24 @@ else()
         message(WARNING "Could not find Python3. Please install `Python3`.")
 endif()
 
-file(GLOB WORKING_TEST_FILES "${SYMBOL_TABLE_WORKING_TESTS_DIR}/*")
-file(GLOB ERROR_TEST_FILES "${SYMBOL_TABLE_ERROR_TESTS_DIR}/*")
+file(GLOB WORKING_TEST_FILES "${WORKING_TESTS_DIR}/*")
+file(GLOB ERROR_TEST_FILES "${ERROR_TESTS_DIR}/*")
 
-set(ALL_TEST_FILES ${WORKINGrTEST_FILES})
+set(ALL_TEST_FILES ${WORKING_TEST_FILES})
 list(APPEND ALL_TEST_FILES ${ERROR_TEST_FILES})
 set(SYMBOL_TABLE_EXPORT_DIR "${CMAKE_CURRENT_BINARY_DIR}/SYMBOL_TABLE_EXPORTS")
 
 add_custom_target(run_all_validators)
+
 foreach(test_file ${ALL_TEST_FILES})
         get_filename_component(test_file_name ${test_file} NAME)
-        set(GOLDEN_CSV_FILE "GOLD_${test_file_name}.st.csv")
-        set(EXPORT_CSV_FILE "${test_file_name}.st.csv")
+        set(GOLDEN_SYMBOL_TABLE_CSV "GOLD_${test_file_name}.st.csv")
+        set(SYMBOL_TABLE_CSV "${test_file_name}.st.csv")
+        set(GOLDEN_COMPILE_ERRORS_CSV "GOLD_${test_file_name}.error.csv")
+        set(COMPILE_ERRORS_CSV "${test_file_name}.error.csv")
 
         add_custom_command(
-                OUTPUT ${EXPORT_CSV_FILE}
+                OUTPUT ${SYMBOL_TABLE_CSV} ${COMPILE_ERRORS_CSV}
                 COMMAND "$<TARGET_FILE:${ALPHA_DRIVER_EXECUTABLE}>"
                 --input-file "${test_file}"
                 --export-symbol-table
@@ -63,9 +66,10 @@ foreach(test_file ${ALL_TEST_FILES})
                 DEPENDS ${ALPHA_DRIVER_EXECUTABLE}
                 VERBATIM
         )
+
         add_custom_target(
                 "run_csv_${test_file_name}"
-                DEPENDS "${EXPORT_CSV_FILE}"
+                DEPENDS "${SYMBOL_TABLE_CSV}"
                 VERBATIM
         )
 
@@ -74,13 +78,11 @@ foreach(test_file ${ALL_TEST_FILES})
         add_custom_target("run_validator_${test_file_name}"
                 COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/scripts/export_validator.py"
-                --golden-file "${SYMBOL_TABLE_GOLDEN_DIR}/${GOLDEN_CSV_FILE}"
-                --export-file "${SYMBOL_TABLE_EXPORT_DIR}/${EXPORT_CSV_FILE}"
+                --golden-file "${GOLDEN_SYMBOL_TABLE_DIR}/${GOLDEN_SYMBOL_TABLE_CSV}"
+                --export-file "${SYMBOL_TABLE_EXPORT_DIR}/${SYMBOL_TABLE_CSV}"
                 DEPENDS "run_csv_${test_file_name}"
                 VERBATIM
         )
 
         add_dependencies(run_all_validators run_validator_${test_file_name})
 endforeach()
-
-

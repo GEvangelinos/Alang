@@ -25,9 +25,10 @@ set(BISON_SPEC_FILENAME "alpha_parser_spec.y") # <-- Modifying .y filename requi
 
 
 ##########################################--==>> TESTS <<==--###########################################
-set(SYMBOL_TABLE_WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/working")
-set(SYMBOL_TABLE_ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/error")
-set(SYMBOL_TABLE_GOLDEN_DIR "${CMAKE_SOURCE_DIR}/tests/symtable_golden_exports")
+set(WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/working")
+set(ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/error")
+set(GOLDEN_SYMBOL_TABLE_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_SYMBOL_TABLE_EXPORTS")
+set(GOLDEN_COMPILE_ERROR_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_SYMBOL_TABLE_EXPORTS")
 
 
 set(CMAKE_CXX_STANDARD 20)
@@ -79,6 +80,7 @@ endif()
 
 
 if(OPTIMIZED_MODE)
+        add_compile_options(-O3)
         add_compile_definitions(OPTIMIZED_MODE)
         message(WARNING "CMAKE: Running with OPTIMIZED_MODE ON")
 endif()

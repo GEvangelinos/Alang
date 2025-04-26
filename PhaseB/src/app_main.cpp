@@ -54,6 +54,14 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
 
     parser.parse_flags();
 
+#ifdef OPTIMIZED_MODE
+    if (parser[flag_show_parser_trace].is_provided())
+        std::cerr << COLOR_ASCII_BOLD_YELLOW
+                  << fmt_ns::format("OPTIMIZED_MODE overrides --{} flag.", flag_show_parser_trace)
+                  << SGR_RESET
+                  << std::endl;
+#endif // OPTIMIZED_MODE
+
     return parser; // NRVO
 }
 
@@ -73,5 +81,6 @@ int main(int argc, char **argv)
         driver.display_symbol_table();
     if (cli_parser[flag_no_show_errors].is_provided() == false)
         driver.display_compile_errors();
+
     return driver.ok() ? 0 : 1;
 }
