@@ -82,6 +82,36 @@ Autocompletion is supported via a custom bash script. Press `TAB` to autocomplet
 
 - Includes a custom command-line argument parser ("Arguinator"), inspired by Python’s `argparse`, providing structured CLI argument handling.
 
+## Rich Diagnostics
+
+The compiler features **rich diagnostic messages**, loosely inspired by GCC's error output style. Errors are annotated with file name, line, and column numbers, along with contextual notes when relevant.
+
+**Example output:**
+
+```bash
+[stygian@sepermeru build]$ ./executables/alpha_driver.out --input-file ../tests/error/Error1.asc
+Error1.asc:6:16: error: variable `f` is not accessible in function `g`.
+       6 |                f=5;
+         |                ^
+Error1.asc:5:17: note: function `g` declared here
+       5 |        function g(){
+         |                 ^
+Error1.asc:4:14: note: variable `f` declared here
+       4 |        local f=10;
+         |              ^
+Error1.asc:7:23: error: variable `f` is not accessible in function `g`.
+       7 |                return f();
+         |                       ^
+Error1.asc:5:17: note: function `g` declared here
+       5 |        function g(){
+         |                 ^
+Error1.asc:4:14: note: variable `f` declared here
+       4 |        local f=10;
+         |              ^
+[stygian@sepermeru build]$
+```
+This style aims to help users immediately locate, understand, and resolve errors in their code.
+
 ## Python Availability
 
 If Python is unavailable or if the examiner demands immediate removal of Python scripts, the compiler project remains fully functional:
