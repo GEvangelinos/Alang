@@ -1,14 +1,14 @@
 #include "parser/alpha_semantic_actions.hpp"
-#include <list>                             // for list, _List_const_iterator
-#include "core/alpha_error.hpp"             // for ErrorTracker, Diagnostic
-#include "core/alpha_konstants.hpp"         // for k_global_scope, k_public_...
-#include "core/alpha_location.hpp"          // for Location
-#include "core/alpha_macros.hpp"            // for DEBUG_ALWAYS_INLINE
-#include "core/alpha_types.hpp"             // for u32
-#include "parser/_parser_common.hpp"        // for Parameter
-#include "parser/alpha_parser_context.hpp"  // for ParseCtx
-#include "utils/format_adapter.hpp"         // for format, fmt_ns
-#include "utils/smart_assert.h"             // for DEBUG_SMART_ASSERT
+#include <list>                            // for list, _List_const_iterator
+#include "core/alpha_error.hpp"            // for ErrorTracker, Diagnostic
+#include "core/alpha_konstants.hpp"        // for k_global_scope, k_public_...
+#include "core/alpha_location.hpp"         // for Location
+#include "core/alpha_macros.hpp"           // for DEBUG_ALWAYS_INLINE
+#include "core/alpha_types.hpp"            // for u32
+#include "parser/_parser_common.hpp"       // for Parameter
+#include "parser/alpha_parser_context.hpp" // for ParseCtx
+#include "utils/format_adapter.hpp"        // for format, fmt_ns
+#include "utils/smart_assert.h"            // for DEBUG_SMART_ASSERT
 
 using namespace Alpha;
 
@@ -31,7 +31,7 @@ namespace // (Anonymous)
                         case Keyword::CONTINUE:
                                 return "continue";
                         }
-                UNREACHABLE("Some field of Keyword is not registred");
+                        UNREACHABLE("Some field of Keyword is not registred");
                 }
         };
 
@@ -136,7 +136,7 @@ namespace // (Anonymous)
                 using DT = Diagnostic::Type;
                 DEBUG_SMART_ASSERT(resolved_symbol != nullptr);
                 const std::string error = fmt_ns::format(
-                    "variable `{}` is not accessible in function `{}`.",
+                    "variable `{}` is not accessible in function `{}`",
                     id_name, current_function_name);
                 const std::string note1 = fmt_ns::format(
                     "function `{}` declared here", current_function_name);
@@ -251,17 +251,16 @@ void lvalue__id(
     ParseCtx &parse_ctx,
     const std::string &id_name,
     Location id_location,
-    const Symbol **const lvalue_addr,
+    const Symbol *&lvalue,
     ErrorTracker &et)
 {
-        DEBUG_SMART_ASSERT(lvalue_addr != nullptr);
         const Symbol *resolved_symbol = st.lookup_chain(id_name, parse_ctx.current_scope());
         if (!resolved_symbol)
         {
                 if (parse_ctx.current_scope() == k_global_scope)
-                        *lvalue_addr = st.insert_global(id_name, id_location);
+                        lvalue = st.insert_global(id_name, id_location);
                 else
-                        *lvalue_addr = st.insert_local(id_name, parse_ctx.current_scope(), id_location);
+                        lvalue = st.insert_local(id_name, parse_ctx.current_scope(), id_location);
                 return;
         }
         if (resolved_symbol->is_variable())
@@ -271,7 +270,7 @@ void lvalue__id(
                         report_out_of_scope(id_name, id_location, parse_ctx.current_function_name(),
                                             parse_ctx.current_function_location(), resolved_symbol, et);
         }
-        *lvalue_addr = resolved_symbol;
+        lvalue = resolved_symbol;
 }
 
 void lvalue__local_id(
@@ -279,46 +278,43 @@ void lvalue__local_id(
     ParseCtx &parse_ctx,
     const std::string &id_name,
     Location id_location,
-    const Symbol **const lvalue_addr,
+    const Symbol *&lvalue,
     ErrorTracker &et)
 {
-        DEBUG_SMART_ASSERT(lvalue_addr != nullptr);
         if (st.is_lib_function(id_name))
         {
                 std::string error = fmt_ns::format("shadowing library function `{}`", id_name);
                 et.report_error(CTError::Type::SEMANTIC, error, id_location);
-                *lvalue_addr = st.lookup_global(id_name);
-                DEBUG_SMART_ASSERT(*lvalue_addr != nullptr); // a library function is always resolved at global scope.
+                lvalue = st.lookup_global(id_name);
+                DEBUG_SMART_ASSERT(lvalue != nullptr); // a library function is always resolved at global scope.
                 return;
         }
         const Symbol *resolved_symbol = st.lookup_local(id_name, parse_ctx.current_scope());
         if (resolved_symbol)
-                *lvalue_addr = resolved_symbol;
+                lvalue = resolved_symbol;
         else if (parse_ctx.current_scope() == k_global_scope)
-                *lvalue_addr = st.insert_global(id_name, id_location);
+                lvalue = st.insert_global(id_name, id_location);
         else
-                *lvalue_addr = st.insert_local(id_name, parse_ctx.current_scope(), id_location);
+                lvalue = st.insert_local(id_name, parse_ctx.current_scope(), id_location);
 }
 
 void lvalue__global_id(
     SymbolTable &st,
     const std::string &id_name,
     Location id_location,
-    const Symbol **lvalue_addr,
+    const Symbol *&lvalue,
     ErrorTracker &et)
 {
-        DEBUG_SMART_ASSERT(lvalue_addr != nullptr);
-        *lvalue_addr = st.lookup_global(id_name);
-        if (*lvalue_addr)
+        lvalue = st.lookup_global(id_name);
+        if (lvalue)
                 return;
         std::string error = fmt_ns::format("variable `::{}` not found in global scope", id_name);
         et.report_error(CTError::Type::SEMANTIC, error, id_location);
 }
 
-void lvalue__member(const Symbol **const lvalue_addr) noexcept
+void lvalue__member(const Symbol *&lvalue) noexcept
 {
-        DEBUG_SMART_ASSERT(lvalue_addr != nullptr);
-        *lvalue_addr = nullptr; // We can not resolve members at compile time.
+        lvalue = nullptr; // We can not resolve members at compile time.
 }
 
 void block__lbrace(ParseCtx &parse_ctx) noexcept
@@ -380,6 +376,12 @@ void funcDef__function_lparen_funcArgList_rparen(
 void funcDef__function_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept
 {
         parse_ctx.exit_function();
+}
+
+void const__stringliteral(char *&string_literal)
+{
+        delete[] string_literal;
+        string_literal = nullptr;
 }
 
 void funcArgs__id(ParseCtx &parse_ctx, const std::string &id_name, Location id_location)

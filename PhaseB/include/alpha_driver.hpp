@@ -16,8 +16,8 @@ namespace Alpha
         class Driver; // IWYU pragma: keep
         // class Driver::FlexBuffer; // IWYU pragma: keep
 
-        static constexpr char k_symtable_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
-        static constexpr char k_error_exports_dirname[] = "ERROR_EXPORTS";
+        static constexpr char k_symbol_table_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
+        static constexpr char k_compile_error_exports_dirname[] = "COMPILE_ERROR_EXPORTS";
         static constexpr char k_symbol_table_csv_export_header[] = "symbol,type,line,scope\n";
         static constexpr char k_error_csv_export_header[] = "line,column,diagnostic_type,message\n";
 

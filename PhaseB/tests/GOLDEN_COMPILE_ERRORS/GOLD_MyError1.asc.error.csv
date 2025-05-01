@@ -1,0 +1,5 @@
+line,column,diagnostic_type,message
+2,9,error,unexpected assignment operator `=`
+4,8,error,unexpected assignment operator `=`
+5,12,error,unexpected `]`
+8,6,error,unexpected end of file

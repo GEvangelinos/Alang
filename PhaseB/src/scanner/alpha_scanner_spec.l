@@ -124,9 +124,9 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 <INSIDE_COMMENT_BLOCK><<EOF>> {
         et.report_error(
                 Alpha::CTError::Type::LEXER,
-                "unclosed comment: expected terminating `*/` character",
+                "unclosed comment, expected terminating `*/` character",
                 alpha_yylloc,
-                "comment started here",
+                "comment starts here",
                 Alpha::TokenComment::getStartingLocation()
         );
         return EOF;
@@ -146,7 +146,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
         et.report_error(
                 Alpha::CTError::Type::LEXER,
-                fmt_ns::format("invalid escape code {} in string.", yytext),
+                fmt_ns::format("invalid escape code {} in string", yytext),
                 alpha_yylloc
         );
         /* Do not stop scanning, but register lexer error. */
@@ -156,7 +156,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
                 Alpha::CTError::Type::LEXER,
                 "unclosed string literal, expected terminating `\"` character",
                 alpha_yylloc,
-                "string literal started here",
+                "string literal starts here",
                 Alpha::TokenString::getStartingLocation()
         );
         return EOF;
@@ -170,7 +170,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
         et.report_error(
                 Alpha::CTError::Type::LEXER,
-                fmt_ns::format("character {} is invalid.", yytext),
+                fmt_ns::format("character {} is invalid", yytext),
                 alpha_yylloc
         );
 }

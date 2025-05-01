@@ -1,11 +1,11 @@
 #ifndef SEMANTIC_ACTIONS_HPP
 #define SEMANTIC_ACTIONS_HPP
 
-#include <string>                           // for string
-#include "core/alpha_error.hpp"             // for ErrorTracker
-#include "core/alpha_location.hpp"          // for Location
-#include "parser/alpha_parser_context.hpp"  // for ParseCtx
-#include "parser/alpha_symbol_table.hpp"    // for Symbol, SymbolTable
+#include <string>                          // for string
+#include "core/alpha_error.hpp"            // for ErrorTracker
+#include "core/alpha_location.hpp"         // for Location
+#include "parser/alpha_parser_context.hpp" // for ParseCtx
+#include "parser/alpha_symbol_table.hpp"   // for Symbol, SymbolTable
 
 using namespace Alpha;
 
@@ -49,7 +49,7 @@ void lvalue__id(
     ParseCtx &parse_ctx,
     const std::string &id_name,
     Location id_location,
-    const Symbol **lvalue,
+    const Symbol *&lvalue,
     ErrorTracker &et);
 
 void lvalue__local_id(
@@ -57,17 +57,17 @@ void lvalue__local_id(
     ParseCtx &parse_ctx,
     const std::string &id_name,
     Location id_location,
-    const Symbol **lvalue,
+    const Symbol *&lvalue,
     ErrorTracker &et);
 
 void lvalue__global_id(
     SymbolTable &st,
     const std::string &id_name,
     Location id_location,
-    const Symbol **lvalue,
+    const Symbol *&lvalue,
     ErrorTracker &et);
 
-void lvalue__member(const Symbol **lvalue) noexcept;
+void lvalue__member(const Symbol *&lvalue) noexcept;
 
 void block__lbrace(ParseCtx &parse_ctx) noexcept;
 
@@ -94,6 +94,8 @@ void funcDef__function_lparen_funcArgList_rparen(
     ErrorTracker &et);
 
 void funcDef__function_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept;
+
+void const__stringliteral(char *&string_literal_addr);
 
 void funcArgs__id(
     ParseCtx &parse_ctx,

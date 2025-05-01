@@ -1,0 +1,7 @@
+line,column,diagnostic_type,message
+8,1,error,`return` statement not in a function statement
+9,1,error,`break` statement not in a loop statement
+10,1,error,`continue` statement not in a loop statement
+15,4,error,`return` statement not in a function statement
+16,4,error,`break` statement not in a loop statement
+17,4,error,`continue` statement not in a loop statement

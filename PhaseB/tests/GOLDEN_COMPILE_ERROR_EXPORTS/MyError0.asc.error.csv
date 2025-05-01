@@ -1,5 +1,0 @@
-line,column,diagnostic_type,message
-17,25,error,Lexer error: Character ` is invalid.
-18,17,error,`break` statement not in a loop statement
-26,1,error,Lexer error: EOF reached before closing string.
-26,1,error,syntax error, unexpected end of file, expecting '}'

@@ -94,12 +94,12 @@ namespace Alpha
 
         void Driver::export_symbol_table()
         {
-                export_within_dir(k_symtable_exports_dirname, &Driver::export_symbol_table_impl);
+                export_within_dir(k_symbol_table_exports_dirname, &Driver::export_symbol_table_impl);
         }
 
         void Driver::export_compile_errors()
         {
-                export_within_dir(k_error_exports_dirname, &Driver::export_compile_errors_impl);
+                export_within_dir(k_compile_error_exports_dirname, &Driver::export_compile_errors_impl);
         }
 
         Driver::FlexBuffer::FlexBuffer(const std::string &input_filepath)

@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="6dff68ee-f428-4d08-88d5-8ee4f198adb0" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/../tests/error/mine_207.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../.TODO.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ErrorReports/ErrorReport_1.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ErrorReports/ErrorReport_2.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ErrorReports/ErrorReport_3.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ErrorReports/ErrorReport_4.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../ErrorReports/ErrorReport_5.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Notes.for.future.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../Notes.for.future.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../alphaSyntaxAnalyzer.out" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../include/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/../include/alpha_driver.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../include/parser/alpha_semantic_actions.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/../include/parser/alpha_semantic_actions.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../python_helper.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/export_validator.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/../src/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/alpha_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../src/alpha_driver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/app_main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../src/app_main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/parser/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/../src/parser/alpha_parser_spec.y" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/parser/alpha_semantic_actions.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/../src/parser/alpha_semantic_actions.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../src/scanner/alpha_scanner_spec.l" beforeDir="false" afterPath="$PROJECT_DIR$/../src/scanner/alpha_scanner_spec.l" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Anonymous.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Block.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Circle.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error1.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error10.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error11.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error12.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error2.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error3.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error4.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error5.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error6.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error7.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error8.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Error9.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/GOLD_Error0.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/GlobalAndLocal.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Grammar.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/MyError0.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/MyError1.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Random.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/ShadowedNameOffunctions.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Simple.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/Tree.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_100.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_101.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_102.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_103.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_104.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_105.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_106.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_107.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_108.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_109.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_110.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_111.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_112.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_COMPILE_ERROR_EXPORTS/mine_113.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Anonymous.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Block.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Circle.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error0.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error1.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error10.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error11.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error12.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error2.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error3.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error4.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error5.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error6.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error7.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error8.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Error9.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_GlobalAndLocal.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Grammar.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_MyError0.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_MyError1.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Random.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_ShadowedNameOffunctions.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Simple.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_Tree.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_100.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_101.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_102.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_103.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_104.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_105.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_106.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_107.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_108.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_109.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_110.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_111.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_112.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/GOLDEN_SYMBOL_TABLE_EXPORTS/GOLD_mine_113.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../tests/error/mine_202.asc" beforeDir="false" afterPath="$PROJECT_DIR$/../tests/error/mine_202.asc" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 1
+}</component>
+  <component name="ProjectId" id="2wT2n7Hip7i5ADh83ZC5UZgO7RN" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.alpha_regression_runner.executor": "Run",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseB/scripts",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RunManager">
+    <configuration name="alpha_regression_runner" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="scripts" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/alpha_regression_runner.py" />
+      <option name="PARAMETERS" value="--alpha-compiler ../build/executables/alpha_driver.out --golden-symbol-tables-dir ../tests/GOLDEN_SYMBOL_TABLE_EXPORTS --golden-compile-errors-dir ../tests/GOLDEN_COMPILE_ERROR_EXPORTS  --working-dir ../tests/working/ --error-dir ../tests/error/" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-f27c65a3e318-JavaScript-PY-251.23774.444" />
+        <option value="bundled-python-sdk-890ed5b35930-d9c5bdb153f4-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-251.23774.444" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="6dff68ee-f428-4d08-88d5-8ee4f198adb0" name="Changes" comment="" />
+      <created>1746051407674</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1746051407674</updated>
+      <workItem from="1746051409446" duration="10869000" />
+      <workItem from="1746088251798" duration="63000" />
+      <workItem from="1746088443727" duration="3383000" />
+      <workItem from="1746091862335" duration="1636000" />
+      <workItem from="1746094396478" duration="14130000" />
+      <workItem from="1746113386400" duration="167000" />
+      <workItem from="1746119295705" duration="1469000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/alpha_regression_runner.py</url>
+          <line>161</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/scripts$alpha_regression_runner.coverage" NAME="alpha_regression_runner Coverage Results" MODIFIED="1746120419231" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+  </component>
+</project>

@@ -1,3 +1,0 @@
-line,column,diagnostic_type,message
-2,9,error,syntax error, unexpected '='
-4,8,error,syntax error, unexpected '='

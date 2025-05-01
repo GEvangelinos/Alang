@@ -31,7 +31,7 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
         parser.set_flag(flag_show_symbol_table)
             .set_arity(0)
             .set_help("Pretty-prints the symbol table on console");
-        parser.set_flag(flag_show_parser_trace) // NOT available in OPTIMIED_MODE.
+        parser.set_flag(flag_show_parser_trace) // NOT available in OPTIMIZED_MODE.
             .set_arity(0)
             .set_help("Pretty-prints a string message for each matched rule on parser's grammar");
         parser.set_flag(flag_no_show_errors)

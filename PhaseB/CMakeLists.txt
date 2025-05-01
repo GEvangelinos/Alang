@@ -15,7 +15,7 @@ else()
         message(FATAL_ERROR "No suitable C++ compiler found. Please install either Clang or GCC.")
 endif()
 
-project(Alpha VERSION 1.0 LANGUAGES CXX)
+project(Alpha VERSION 1.2 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -92,6 +92,7 @@ set(FLEX_OUTPUT_FILENAME "alpha_scanner.cpp" CACHE STRING "Filename of the Flex-
 set(FLEX_HEADER_FILENAME "alpha_scanner.hpp" CACHE STRING "Filename of the Flex-generated header file")
 set(BISON_OUTPUT_FILENAME "alpha_parser.cpp" CACHE STRING "Filename of the Bison-generated C++ source file")
 set(BISON_HEADER_FILENAME "alpha_parser.hpp" CACHE STRING "Filename of the Bison-generated header file")
+set(SCRIPTS_DIR "${CMAKE_SOURCE_DIR}/scripts")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/executables" CACHE PATH "Directory where compiled executables will be placed")
 ###############################################################################################################
 
@@ -102,8 +103,8 @@ set(BISON_SPEC_FILENAME "alpha_parser_spec.y") # <-- Modifying .y filename requi
 ##########################################--==>> TESTS <<==--###########################################
 set(WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/working")
 set(ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/error")
-set(GOLDEN_SYMBOL_TABLE_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_SYMBOL_TABLE_EXPORTS")
-set(GOLDEN_COMPILE_ERROR_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_SYMBOL_TABLE_EXPORTS")
+set(GOLDEN_SYMBOL_TABLES_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_SYMBOL_TABLES")
+set(GOLDEN_COMPILE_ERRORS_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_COMPILE_ERRORS")
 
 # Create directory that hosts code from flex and bison
 set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/autogen" CACHE PATH "Path to the root directory for auto-generated files")
@@ -114,6 +115,9 @@ set(AUTOGEN_DIR_LIST
         ${AUTOGEN_SRC_DIR_PATH}
         ${AUTOGEN_INCLUDE_DIR_PATH}
 )
+# TODO: ASSERT all directories you rely on exist. 
+# TODO: Assert all program you rely on or use exist.
+
 
 foreach(DIR ${AUTOGEN_DIR_LIST})
         file(MAKE_DIRECTORY ${DIR})
@@ -125,6 +129,38 @@ foreach(DIR ${AUTOGEN_DIR_LIST})
 endforeach()
 
 add_subdirectory(src)
+
+function(add_regression_check_target target_name enable_valgrind)
+        find_package(Python3 QUIET)
+        if(Python3_FOUND)
+                message(STATUS "Found Python3: ${Python3_EXECUTABLE} (found version ${Python3_VERSION})")
+        else()
+                message(WARNING "Could not find Python3. Please install `Python3`.")
+        endif()
+        set(runner_args
+                "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ALPHA_DRIVER_EXECUTABLE}"
+                "--golden-symbol-tables-dir" "${GOLDEN_SYMBOL_TABLES_DIR}"
+                "--golden-compile-errors-dir" "${GOLDEN_COMPILE_ERRORS_DIR}"
+                "--working-dir" "${WORKING_TESTS_DIR}"
+                "--error-dir" "${ERROR_TESTS_DIR}"
+        )
+        if(enable_valgrind)
+                list(APPEND runner_args "--valgrind")
+        endif()
+
+        add_custom_target(${target_name}
+                COMMAND "${Python3_EXECUTABLE}"
+                "-B"
+                "${CMAKE_SOURCE_DIR}/scripts/alpha_regression_runner.py"
+                ${runner_args}
+        )
+
+        add_dependencies(${target_name} ${ALPHA_DRIVER_EXECUTABLE})
+endfunction()
+
+add_regression_check_target(regression_check OFF)
+add_regression_check_target(regression_check_full ON)
+
 
 # This property tells CMake to delete ${AUTOGEN_ROOT_DIR_PATH} and its contents when a "make clean" is run.
 # set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES ${AUTOGEN_ROOT_DIR_PATH})

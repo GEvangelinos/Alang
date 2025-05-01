@@ -7,23 +7,7 @@ NOTE(2387091987120976) Do you really need both? Also Does the use need to know i
 lexer of syntax error, in GCC you just know its an error, not which component
 triggered it, maybe add extra flag to show who triggered it, (custom argparse)!
 
-NOTE(000000000000000): You can do tests each time you combile/build your program, so you know each change you,
-    make is somewhat solid, and doesnt break other components. (Tests for Scanner, and Parser)
-    You can EXPORT CSV lists, and compare them with know results !! (FIRE IDEA)
-
-NOTE(000000000000000): Add PGO training to your compiler, create a directory with tests cases run them and 
-    recompile for add PGO optimization (PGO = Profile Guided optimization)
-
-NOTE(000000000000000): Change directory structure and therefore CMAKE... to MODULE based 
-    and not src/ and include/ based... Cause currently all modules can use code from all other 
-    by just typing #include "modulename/headername"
-    CMAKE dictates dependencies.. so it should be able to separate modules from doing that...
-
 NOTE(000000000000000): Add -sh script to give auto-complete option, cmake should Put it in auto-complete paths.
-
-NOTE(000000000000000): In error reporting... some sub-strings are in BACKSTICKS (This symbol --> ` )
-    like so: `SUBSTRING`. One example: "`return` statement not in a function statement".
-    SO make the make the letters in backstick BOLD (with the backsticks... :D)
 
 QUESTION_1: Say you have a for-loop:
 
@@ -41,15 +25,15 @@ QUESTION_2: (Enter warnings.. like "string"-- or (unary) -"fuck me" there can be
     well there are many edge cases.. like expr might be const but it might be lvavlue.. (and that its ttrue for at least 20 rules of mine..)
 
     so I could in there store 20 different bools... and this work... But can I do it more elegantly?
-    ChatGPT said:
 
-    Ohhh yes — this is the real compiler engineering pain: juggling multiple properties like is_lvalue, is_const, is_callable, is_assignable, etc., across dozens of rules… and trying to avoid a forest of flags. 🌲💀
+
+    Ohhh yes — this is the real compiler engineering pain: juggling multiple properties like is_lvalue, is_const, is_callable, is_assignable, etc., across dozens of rules… and trying to avoid a forest of flags.
 
     You’re right: storing 20 bools works, but it gets messy fast. Good news is — there are way more elegant ways to handle this.
-    🧠 What You Want: Per-node attributes in a clean structure
+     What You Want: Per-node attributes in a clean structure
 
     Instead of tracking separate bool is_lvalue_, bool is_const_, etc., scattered around, you define a single struct or object that bundles all semantic properties of an expression.
-    ✅ Step 1: Define a unified "ExpressionInfo" struct
+    Step 1: Define a unified "ExpressionInfo" struct
 
     struct ExprInfo {
         bool is_const = false;
@@ -75,7 +59,7 @@ QUESTION_2: (Enter warnings.. like "string"-- or (unary) -"fuck me" there can be
     };
 
     Now, any rule that produces an expression or term can return an ExprInfo.
-    ✅ Step 2: Use this in your semantic functions
+     Step 2: Use this in your semantic functions
     Example in Bison:
 
     expr:
@@ -94,20 +78,20 @@ QUESTION_2: (Enter warnings.. like "string"-- or (unary) -"fuck me" there can be
             $$ = $1; // carries is_lvalue = true
         }
 
-    ✅ Benefits of this system
+     Benefits of this system
 
-        💡 Scalable — you can add more flags later (e.g. is_reference, is_loop_var) without changing every rule
+        Scalable — you can add more flags later (e.g. is_reference, is_loop_var) without changing every rule
 
-        🧼 Clean — you return one thing from each rule, not 3 booleans + value
+        Clean — you return one thing from each rule, not 3 booleans + value
 
-        🧩 Composable — when combining subexpressions (e.g. in expr '+' expr), you can merge or check flags easily
+        Composable — when combining subexpressions (e.g. in expr '+' expr), you can merge or check flags easily
 
-        🔒 Safer — prevents mismatches like setting is_const without setting a value
+        Safer — prevents mismatches like setting is_const without setting a value
 
-    💬 Bonus: Enums instead of bools?
+     Bonus: Enums instead of bools?
 
     You could also use enum class ExprKind { Const, LValue, Temp, Unknown }, but that’s best when expressions are mutually exclusive, which yours are not — so struct + booleans is better.
-    ✅ TL;DR
+     TL;DR
 
         Yes, avoid 20 loose booleans — that’s a trap.
 

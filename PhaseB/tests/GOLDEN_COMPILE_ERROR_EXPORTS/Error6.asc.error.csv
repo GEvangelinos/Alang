@@ -1,7 +1,0 @@
-line,column,diagnostic_type,message
-11,9,error,variable `x` is not accessible in function `g`.
-10,14,note,function `g` declared here
-6,14,note,variable `x` declared here
-12,9,error,variable `y` is not accessible in function `g`.
-10,14,note,function `g` declared here
-6,16,note,variable `y` declared here

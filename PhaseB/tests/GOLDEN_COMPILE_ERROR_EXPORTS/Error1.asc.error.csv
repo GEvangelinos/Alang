@@ -1,7 +1,0 @@
-line,column,diagnostic_type,message
-6,16,error,variable `f` is not accessible in function `g`.
-5,17,note,function `g` declared here
-4,14,note,variable `f` declared here
-7,23,error,variable `f` is not accessible in function `g`.
-5,17,note,function `g` declared here
-4,14,note,variable `f` declared here

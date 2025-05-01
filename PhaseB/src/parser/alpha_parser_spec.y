@@ -22,8 +22,8 @@
 }
 
 %define api.prefix {alpha_yy}
-%define parse.error verbose    /* Enable verbose error messages */
 %define parse.lac full
+%define parse.error verbose    /* Enable verbose error messages */
 
 %define api.location.type {Alpha::Location}
 %locations
@@ -141,8 +141,7 @@
 %precedence THEN
 %precedence ELSE
 
-%start program /* Initial rule. */
-/* Grammar rules: */
+%start program /* Entry rule. */
 
 %%
 program:
@@ -218,10 +217,10 @@ primary:
 ;
 
 lvalue:
-  ID { lvalue__id(symbol_table, parse_ctx, $ID, @ID, &$lvalue, error_tracker); }
-| LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $ID, @ID, &$lvalue, error_tracker); } 
-| GLOBAL ID { lvalue__global_id(symbol_table, $ID, @ID, &$lvalue, error_tracker); }
-| member { lvalue__member(&$lvalue); }
+  ID { lvalue__id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
+| LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); } 
+| GLOBAL ID { lvalue__global_id(symbol_table, $ID, @ID, $lvalue, error_tracker); }
+| member { lvalue__member($lvalue); }
 ;
 
 member:
@@ -294,7 +293,7 @@ funcDef:
 const:
   INT_CONST
 | REAL_CONST
-| STRING_LITERAL { delete [] $STRING_LITERAL; }
+| STRING_LITERAL { const__stringliteral($STRING_LITERAL);}
 | NIL
 | TRUE
 | FALSE
