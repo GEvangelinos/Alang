@@ -31,7 +31,7 @@ GOLD_FILES_PREFIX = "GOLD_"
 SYMTABLE_CSV = ".st.csv"
 ERRORS_CSV = ".error.csv"
 ASC_EXT = ".asc"
-VALGRIND_ERROR_EXITCODE = 3
+VALGRIND_ERROR_EXITCODE = 1
 BAR_WIDTH = 40
 print_lock = threading.Lock()
 
@@ -192,14 +192,10 @@ def run_test_file(args, asc_filepath) -> str:
     result_line.append(pretty_status(f"AC_Exec:", ac_retval))
     if ac_retval != 0:
         return "".join(result_line)
-    sym_retval, result_str = validate_symbol_table(
-        args.golden_symbol_tables_dir, asc_filepath)
-    result_line.append(pretty_status(
-        f"Symtable:"+result_str, sym_retval))
-    err_retval, result_str = validate_compile_errors(
-        args.golden_compile_errors_dir, asc_filepath)
-    result_line.append(pretty_status(
-        f"CTErrors:"+result_str, err_retval))
+    sym_retval, result_str = validate_symbol_table(args.golden_symbol_tables_dir, asc_filepath)
+    result_line.append(pretty_status(f"Symtable:"+result_str, sym_retval))
+    err_retval, result_str = validate_compile_errors(args.golden_compile_errors_dir, asc_filepath)
+    result_line.append(pretty_status(f"CTErrors:"+result_str, err_retval))
 
     if args.memcheck:
         val_retval = run_valgrind_tests(

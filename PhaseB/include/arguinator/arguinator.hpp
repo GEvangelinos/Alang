@@ -29,6 +29,7 @@ namespace Arguinator
                 Flag &set_flag(const std::string &identifier);
                 void parse_flags();
                 std::size_t count(const std::string &flag_name) const;
+                bool found(const std::string &flag_name) const;
 
                 const Flag &operator[](const std::string &flag_name) const;
 
@@ -37,8 +38,6 @@ namespace Arguinator
                 const char *const *const argv_;
                 const std::string description_;
                 std::map<std::string, Flag> flag_map_;
-
-                bool found(const std::string &flag_name) const;
 
                 void parse_flags_impl();
                 std::string generate_help_text() const;

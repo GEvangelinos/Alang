@@ -1,6 +1,7 @@
 #include <string>                    // for basic_string, string
 #include "alpha_driver.hpp"          // for Driver
 #include "arguinator/arguinator.hpp" // for Flag, Parser
+#include "utils/cli_color.h"
 
 static constexpr char alpha_driver_description[] =
     "A tool for syntactical analysis on programming language Alpha";
@@ -40,13 +41,18 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
 
         parser.parse_flags();
 
-#ifdef OPTIMIZED_MODE
+#if defined(OPTIMIZED_MODE) || defined(HATE_PYTHON_MODE)
         if (parser[flag_show_parser_trace].is_provided())
-                std::cerr << COLOR_ASCII_BOLD_YELLOW
-                          << fmt_ns::format("OPTIMIZED_MODE overrides --{} flag.", flag_show_parser_trace)
+        {
+                std::cout << COLOR_ASCII_BOLD_YELLOW
+                          << fmt_ns::format("Flag --{} is disabled, due to OPTIMIZED or HATE_PYTHON MODES.\n"
+                                            "Either disable OPTIMIZED_MODE and HATE_PYTHON_MODE or remove flag\n"
+                                            "Sleeping for 10 seconds to read",
+                                            flag_show_parser_trace)
                           << SGR_RESET
                           << std::endl;
-#endif // OPTIMIZED_MODE
+        }
+#endif // OPTIMIZED_MODE OR HATE_PYTHON_MODE
 
         return parser; // NRVO
 }

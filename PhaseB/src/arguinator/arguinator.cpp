@@ -1,14 +1,14 @@
 #include "arguinator/arguinator.hpp"
-#include <algorithm>                         // for transform
-#include <cctype>                            // for tolower, toupper
-#include <cstdlib>                           // for exit
-#include <iostream>                          // for basic_ostream, operator<<
-#include <sstream>                           // for basic_stringstream
-#include <stdexcept>                         // for out_of_range, logic_error
-#include <utility>                           // for pair
-#include "arguinator/default_constants.hpp"  // for default_flag_prefix, def...
-#include "utils/format_adapter.hpp"          // for format, fmt_ns
-#include "utils/smart_assert.h"              // for SMART_ASSERT
+#include <algorithm>                        // for transform
+#include <cctype>                           // for tolower, toupper
+#include <cstdlib>                          // for exit
+#include <iostream>                         // for basic_ostream, operator<<
+#include <sstream>                          // for basic_stringstream
+#include <stdexcept>                        // for out_of_range, logic_error
+#include <utility>                          // for pair
+#include "arguinator/default_constants.hpp" // for default_flag_prefix, def...
+#include "utils/format_adapter.hpp"         // for format, fmt_ns
+#include "utils/smart_assert.h"             // for SMART_ASSERT
 
 #define MESSAGE_WITH_CONTEXT(message) fmt_ns::format("[{}:{}:{}]\n{}", __FILE__, __LINE__, __func__, (message))
 
@@ -220,19 +220,19 @@ namespace Arguinator
 
         bool Parser::found(const std::string &flag_name) const
         {
-                const std::string flag_string = ParserConsts::default_flag_prefix + flag_name;
-                if (!flag_map_.contains(flag_name))
-                        throw std::out_of_range(fmt_ns::format("Flag {} not registered!", flag_string));
-
-                return flag_map_.at(flag_name).is_provided();
+                return flag_map_.contains(flag_name);
         }
 
         std::size_t Parser::count(const std::string &flag_name) const
         {
-                if (this->found(flag_name))
-                        return flag_map_.at(flag_name).get_inputs().size();
-
                 const std::string flag_string = ParserConsts::default_flag_prefix + flag_name;
+                if (this->found(flag_name))
+                {
+                        if (flag_map_.at(flag_name).is_provided())
+                                return flag_map_.at(flag_name).get_inputs().size();
+                        else
+                                throw std::out_of_range(fmt_ns::format("Flag {} not provided!", flag_string));
+                }
                 throw std::out_of_range(fmt_ns::format("Flag {} not registered!", flag_string));
         }
 

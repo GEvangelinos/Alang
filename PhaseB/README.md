@@ -1,5 +1,5 @@
 
-# Alpha Compiler
+# Alpha Compiler | Georgios Evangelinos 
 
 ## Configuration Instructions
 
@@ -16,10 +16,13 @@ cmake <OPTIONS> ..
   Enables debug symbols (`-g`) and additional sanity checks. Sanity checks and debugging code are conditionally compiled within `#ifdef DEBUG_MODE` guards and `DEBUG_SMART_ASSERT` macros.
 
 - **OPTIMIZED_MODE**  
-  Enables compiler optimizations (`-O3`) and disables parser tracing. (The option `--show-parser-trace` becomes unavailable.)
+  Enables compiler optimizations (`-O3`, `-march=native`, `(-flto)`) and disables parser tracing. (The option `--show-parser-trace` becomes inert.)
 
 - **ENABLE_IWYU**  
   Enables the Include-What-You-Use tool, ensuring minimal and correct inclusion of headers, thus reducing compilation time and improving code maintainability.
+
+- **HATE_PYTHON_MODE**  
+  Disables all utilities that require Python3, like generating parser-trace and create the regression_check targets for automated testing. (The option `--show-parser-trace` becomes inert.)
 
 ## Building the Project
 
@@ -35,14 +38,14 @@ make
 make clean
 ```
 
-- **Run specific validator test:**  
+- **Runs Alpha Compiler's testfiles to test for correct output:**  
 ```bash
-make run_validator_NAME
+make regression_check
 ```
 
-- **Run all validator tests:**  
+- **Runs Alpha Compiler's testfiles to test for correct output and memory leaks :**  
 ```bash
-make run_all_validators
+make regression_check_full
 ```
 
 Each test outputs `TEST_PASSED` or `TEST_FAILED`.
@@ -63,7 +66,7 @@ Executable options:
 - `--show-symbol-table`  
   Pretty-prints the symbol table on the console.
 
-- `--show-parser-trace` *(Unavailable in OPTIMIZED_MODE)*  
+- `--show-parser-trace` *(Unavailable in OPTIMIZED_MODE and HATE_PYTHON_MODE)*  
   Prints parser grammar rules as they are matched.
 
 - `--no-show-errors`  
@@ -76,7 +79,9 @@ Autocompletion is supported via a custom bash script. Press `TAB` to autocomplet
 
 - Uses Python scripts to inject tracing into semantic actions, reducing verbosity in Bison grammar files (`.y`).
 
-- Employs Python scripts to run comprehensive validation tests (stored in `tests/` directory) verifying symbol tables and error outputs. Tests currently run post-compilation via `make`. Future goal: migrate tests fully to Python scripts.
+- Employs Python scripts to run comprehensive validation tests (stored in `tests/` directory) verifying symbol tables and error outputs and memory leaks. Tests run post-compilation via `python` scripts. Through two explicit make targets.
+  - `regression_check` verifying the output of the Alpha Compiler.
+  - `regression_check_full` Does all that `regression_check` does, plus it employs `Valgrind` to check for memory leaks (any kind).
 
 - Semantic actions are decoupled from grammar rules, defined separately in `alpha_semantic_actions.hpp/.cpp`. This enhances grammar readability and simplifies error handling. Naming format: `LHS__RHS1_RHS2_..._RHSN`.
 
@@ -114,9 +119,12 @@ This style aims to help users immediately locate, understand, and resolve errors
 
 ## Python Availability
 
-If Python is unavailable or if the examiner demands immediate removal of Python scripts, the compiler project remains fully functional:
+If Python is unavailable or if the examiner demands immediate deactivation of Python scripts, the compiler project remains fully functional:
 
-- Removing Python (`.py`) files disables parser tracing and automatic validator execution, which are non-essential runtime features.
+- Deactivating Python (`.py`) by defining `HATE_PYTHON_MODE` in CMAKE files disables parser tracing and automatic validator execution, which are non-essential runtime features.
+```base
+cmake -DHATE_PYTHON_MODE=ON <PROJECT_ROOT_DIR>
+```
 - Core compiler features (compilation, symbol table generation, error reporting) remain fully operational.
 
 ## Format Adapter
@@ -139,4 +147,4 @@ namespace fmt_ns = fmt;
 #endif // FORMAT_ADAPTER_HPP
 ```
 
-Initially, the developer's machine supported `std::format`, but the university’s Debian machines (gcc 10.2–12.4, clang 13) did not. A minimal, cherry-picked subset of the `fmt` library (version 11) is therefore included in `third_party/`. No external installation is required.
+Initially, the developer's machine supported `std::format`, but the university’s Debian machines (gcc 10.2–12.4, clang 11) did not. A minimal, cherry-picked subset of the `fmt` library (version 11) is therefore included in `third_party/`. No external installation is required.

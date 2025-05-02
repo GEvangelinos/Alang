@@ -66,7 +66,7 @@ if(OPTIMIZED_MODE)
         add_compile_options(
                 -O3
                 -march=native
-                -flto
+                # -flto TODO: Find why it causes linking errors (it didnt before)
         )
         add_compile_definitions(OPTIMIZED_MODE)
         message(WARNING "CMAKE: Running with OPTIMIZED_MODE ON")
@@ -87,7 +87,7 @@ if(ENABLE_IWYU)
         endif()
 endif()
 
-if (HATE_PYTHON_MODE)
+if(HATE_PYTHON_MODE)
         add_compile_definitions(HATE_PYTHON_MODE)
         message(WARNING "HATE_PYTHON_MODE=ON, Python utilities are disabled")
 endif()
@@ -97,7 +97,6 @@ endif()
 option(ENABLE_IWYU "Enable include-what-you-use integration" OFF)
 option(DEBUG_MODE "DEBUG_MODE: enables extra sanity checking inside the code" OFF)
 option(DEBUG_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable parser trace" OFF)
-option(COMPILER_SUPPORTS_STD_FORMAT "Used by the format adapter to switch from std:: to fmt::" OFF)
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
 ###############################################################################################################
@@ -168,11 +167,15 @@ function(add_regression_check_target target_name do_memcheck)
         add_dependencies(${target_name} ${ALPHA_DRIVER_EXECUTABLE})
 endfunction()
 
-if(Python3_FOUND)
-        add_regression_check_target(regression_check OFF)
-        add_regression_check_target(regression_check_full ON)
+if(NOT HATE_PYTHON_MODE)
+        if(Python3_FOUND)
+                add_regression_check_target(regression_check OFF)
+                add_regression_check_target(regression_check_full ON)
+        else()
+                message(WARNING "Regression check targets not available, as `Python3` was not found.")
+        endif()
 else()
-        message(WARNING "Regression check targets not configured, as `Python3` was not found.")
+        message(WARNING "Regression check targets not available in HATE_PYTHON_MODE.")
 endif()
 
 

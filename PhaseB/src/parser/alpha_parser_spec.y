@@ -265,7 +265,7 @@ objectDef:
 ;
 
 indexed:
-  indexedElemList
+  |indexedElemList
 ;
 
 indexedElem:

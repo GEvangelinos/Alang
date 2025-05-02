@@ -9,7 +9,9 @@
 
 extern bool g_show_parser_trace;
 
-#ifndef OPTIMIZED_MODE
+#if defined(OPTIMIZED_MODE) || defined(HATE_PYTHON_MODE)
+#define display_trace(lhs, rhs) ((void)0)
+#else
 static void display_trace(const std::string &lhs, const std::string &rhs)
 {
         if (!g_show_parser_trace)
@@ -22,8 +24,6 @@ static void display_trace(const std::string &lhs, const std::string &rhs)
                   << rhs
                   << std::endl;
 }
-#else
-#define display_trace(lhs, rhs) ((void)0)
 #endif // OPTIMIZED_MODE
 
-#endif // ALPHA_LOGGER_HPP 
+#endif // ALPHA_LOGGER_HPP
