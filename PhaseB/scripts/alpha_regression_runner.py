@@ -254,6 +254,7 @@ def main():
     working_asc_files = load_asc_filepaths(args.working_dir)
     error_asc_files = load_asc_filepaths(args.error_dir)
     run_test_files(args, working_asc_files + error_asc_files)
+    cleanup()
 
 
 if __name__ == "__main__":
