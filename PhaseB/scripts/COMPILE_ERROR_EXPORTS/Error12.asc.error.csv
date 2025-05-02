@@ -1,3 +1,0 @@
-line,column,diagnostic_type,message
-2,9,error,unexpected assignment operator `=`
-4,8,error,unexpected assignment operator `=`

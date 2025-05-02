@@ -1,3 +1,0 @@
-line,column,diagnostic_type,message
-1,15,error,redefinition of parameter `x`
-1,12,note,previous definition of `x` here

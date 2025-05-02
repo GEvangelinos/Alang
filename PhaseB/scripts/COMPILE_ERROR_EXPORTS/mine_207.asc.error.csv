@@ -1,3 +1,0 @@
-line,column,diagnostic_type,message
-1,9,error,unexpected `;`
-1,10,error,unexpected `)`

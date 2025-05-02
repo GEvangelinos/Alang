@@ -17,6 +17,16 @@ endif()
 
 project(Alpha VERSION 1.2 LANGUAGES CXX)
 
+find_package(Python3 QUIET)
+if(Python3_FOUND)
+        message(STATUS "Found Python3: ${Python3_EXECUTABLE} (found version ${Python3_VERSION})")
+endif()
+
+find_program(VALGRIND_PATH NAMES valgrind)
+if(VALGRIND_PATH)
+        message(STATUS "Found Valgrind: ${VALGRIND_PATH}")
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -77,6 +87,11 @@ if(ENABLE_IWYU)
         endif()
 endif()
 
+if (HATE_PYTHON_MODE)
+        add_compile_definitions(HATE_PYTHON_MODE)
+        message(WARNING "HATE_PYTHON_MODE=ON, Python utilities are disabled")
+endif()
+
 
 # === Configurable build options ===
 option(ENABLE_IWYU "Enable include-what-you-use integration" OFF)
@@ -115,9 +130,6 @@ set(AUTOGEN_DIR_LIST
         ${AUTOGEN_SRC_DIR_PATH}
         ${AUTOGEN_INCLUDE_DIR_PATH}
 )
-# TODO: ASSERT all directories you rely on exist. 
-# TODO: Assert all program you rely on or use exist.
-
 
 foreach(DIR ${AUTOGEN_DIR_LIST})
         file(MAKE_DIRECTORY ${DIR})
@@ -130,36 +142,38 @@ endforeach()
 
 add_subdirectory(src)
 
-function(add_regression_check_target target_name enable_valgrind)
-        find_package(Python3 QUIET)
-        if(Python3_FOUND)
-                message(STATUS "Found Python3: ${Python3_EXECUTABLE} (found version ${Python3_VERSION})")
-        else()
-                message(WARNING "Could not find Python3. Please install `Python3`.")
-        endif()
-        set(runner_args
+function(add_regression_check_target target_name do_memcheck)
+        set(regression_args
                 "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ALPHA_DRIVER_EXECUTABLE}"
                 "--golden-symbol-tables-dir" "${GOLDEN_SYMBOL_TABLES_DIR}"
                 "--golden-compile-errors-dir" "${GOLDEN_COMPILE_ERRORS_DIR}"
                 "--working-dir" "${WORKING_TESTS_DIR}"
                 "--error-dir" "${ERROR_TESTS_DIR}"
         )
-        if(enable_valgrind)
-                list(APPEND runner_args "--valgrind")
+        if(do_memcheck)
+                if(VALGRIND_PATH)
+                        list(APPEND regression_args "--memcheck")
+                else()
+                        message(WARNING "Memory check can not be performed as Valgrind not found!")
+                endif()
         endif()
 
         add_custom_target(${target_name}
                 COMMAND "${Python3_EXECUTABLE}"
                 "-B"
                 "${CMAKE_SOURCE_DIR}/scripts/alpha_regression_runner.py"
-                ${runner_args}
+                ${regression_args}
         )
 
         add_dependencies(${target_name} ${ALPHA_DRIVER_EXECUTABLE})
 endfunction()
 
-add_regression_check_target(regression_check OFF)
-add_regression_check_target(regression_check_full ON)
+if(Python3_FOUND)
+        add_regression_check_target(regression_check OFF)
+        add_regression_check_target(regression_check_full ON)
+else()
+        message(WARNING "Regression check targets not configured, as `Python3` was not found.")
+endif()
 
 
 # This property tells CMake to delete ${AUTOGEN_ROOT_DIR_PATH} and its contents when a "make clean" is run.
