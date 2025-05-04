@@ -1,0 +1,4 @@
+line,column,diagnostic_type,message
+11,3,error,variable `x` is not accessible in function `jj`
+9,11,note,function `jj` declared here
+6,15,note,variable `x` declared here

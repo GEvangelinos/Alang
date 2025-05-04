@@ -1,0 +1,113 @@
+You can find the context of each note, by searching the random 16-digit numerical code.
+Notes with `0000000000000000` do not corespond to any comment in code.
+
+NOTE(624363648843862): Well if lvalue is in runtime we should check if that member is a variable or a member function. 
+
+NOTE(2387091987120976) Do you really need both? Also Does the use need to know if it
+lexer of syntax error, in GCC you just know its an error, not which component
+triggered it, maybe add extra flag to show who triggered it, (custom argparse)!
+
+NOTE(000000000000000): Add -sh script to give auto-complete option, cmake should Put it in auto-complete paths.
+
+QUESTION_1: Say you have a for-loop:
+
+    for_stmt:
+        FOR '(' elist ';' expr ';' elist ')' stmt
+    ;
+
+    How can you detect at which point failed and report custom error? (not just PLAIN SYNTAX ERROR)
+    Like maybe expr was missing or second ; in the parentheses... Think about it... !
+
+QUESTION_2: (Enter warnings.. like "string"-- or (unary) -"fuck me" there can be warnings. Enable warning by
+             passing --enable-warnings as startup arguments (argv)
+            )
+
+    well there are many edge cases.. like expr might be const but it might be lvavlue.. (and that its ttrue for at least 20 rules of mine..)
+
+    so I could in there store 20 different bools... and this work... But can I do it more elegantly?
+
+
+    Ohhh yes — this is the real compiler engineering pain: juggling multiple properties like is_lvalue, is_const, is_callable, is_assignable, etc., across dozens of rules… and trying to avoid a forest of flags.
+
+    You’re right: storing 20 bools works, but it gets messy fast. Good news is — there are way more elegant ways to handle this.
+     What You Want: Per-node attributes in a clean structure
+
+    Instead of tracking separate bool is_lvalue_, bool is_const_, etc., scattered around, you define a single struct or object that bundles all semantic properties of an expression.
+    Step 1: Define a unified "ExpressionInfo" struct
+
+    struct ExprInfo {
+        bool is_const = false;
+        bool is_lvalue = false;
+        bool is_callable = false;
+        bool is_temp = false;
+
+        ConstValue const_value;  // if known and is_const == true
+        // Add more flags or enums as your language grows
+
+        static ExprInfo make_const(ConstValue v) {
+            ExprInfo info;
+            info.is_const = true;
+            info.const_value = v;
+            return info;
+        }
+
+        static ExprInfo make_lvalue() {
+            ExprInfo info;
+            info.is_lvalue = true;
+            return info;
+        }
+    };
+
+    Now, any rule that produces an expression or term can return an ExprInfo.
+     Step 2: Use this in your semantic functions
+    Example in Bison:
+
+    expr:
+        INT_CONST {
+            $$ = ExprInfo::make_const(ConstValue::from_int($1));
+        }
+    | ID {
+            $$ = lookup_expr_info($1); // sets is_lvalue = true, etc.
+        }
+    | '-' expr {
+            if (!$2.is_const)
+                error("Unary '-' on non-const expr");
+            $$ = ExprInfo::make_const(ConstValue::negate($2.const_value));
+        }
+    | lvalue {
+            $$ = $1; // carries is_lvalue = true
+        }
+
+     Benefits of this system
+
+        Scalable — you can add more flags later (e.g. is_reference, is_loop_var) without changing every rule
+
+        Clean — you return one thing from each rule, not 3 booleans + value
+
+        Composable — when combining subexpressions (e.g. in expr '+' expr), you can merge or check flags easily
+
+        Safer — prevents mismatches like setting is_const without setting a value
+
+     Bonus: Enums instead of bools?
+
+    You could also use enum class ExprKind { Const, LValue, Temp, Unknown }, but that’s best when expressions are mutually exclusive, which yours are not — so struct + booleans is better.
+     TL;DR
+
+        Yes, avoid 20 loose booleans — that’s a trap.
+
+        Instead, return a clean ExprInfo struct with all relevant flags + payload.
+
+        It’s scalable, clean, and idiomatic for single-pass compilers.
+
+    Want help drafting a full ExprInfo or integrating it with your AST node structure? You're right at that sweet spot.
+
+    
+
+
+
+
+
+
+
+
+    Make sure that only private fields in classes end with _ 

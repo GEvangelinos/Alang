@@ -1,0 +1,4 @@
+line,column,diagnostic_type,message
+13,9,error,unexpected global operator `::`, expecting `identifier`
+32,1,error,unclosed comment, expected terminating `*/` character
+28,1,note,comment starts here

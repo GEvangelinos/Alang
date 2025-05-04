@@ -1,0 +1,2 @@
+line,column,diagnostic_type,message
+1,7,error,shadowing library function `print`
