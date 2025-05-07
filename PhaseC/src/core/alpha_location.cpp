@@ -21,12 +21,12 @@ namespace Alpha
 
         u32 LocationTracker::find_first_line(Location location) const
         {
-                return find_line(location.first_index_);
+                return find_line(location.first_index);
         }
 
         u32 LocationTracker::find_last_line(Location location) const
         {
-                return find_line(location.last_index_);
+                return find_line(location.last_index);
         }
 
         u32 LocationTracker::find_symbol_line(Location location) const
@@ -48,10 +48,10 @@ namespace Alpha
                 u32 starting_line = find_first_line(location);
                 // DEBUG_SMART_ASSERT(starting_line < line_start_indices_.size());
                 u32 index_at_starting_line = line_start_indices_[starting_line - 1]; // -1 as line starts at pos 0.
-                DEBUG_SMART_ASSERT(location.first_index_ >= index_at_starting_line);
+                DEBUG_SMART_ASSERT(location.first_index >= index_at_starting_line);
 
                 // +1 to convert index offset to columns.
-                u32 starting_column = location.first_index_ - index_at_starting_line + 1;
+                u32 starting_column = location.first_index - index_at_starting_line + 1;
                 return starting_column;
         }
 
@@ -66,7 +66,7 @@ namespace Alpha
 
         LineRange LocationTracker::find_lines(Location location) const
         {
-                return find_lines(location.first_index_, location.last_index_);
+                return find_lines(location.first_index, location.last_index);
         }
 
         u32 LocationTracker::find_line(u32 index) const

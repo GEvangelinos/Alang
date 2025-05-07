@@ -17,8 +17,8 @@
         #define YY_USER_ACTION                                                \
                 do                                                            \
                 {                                                             \
-                        alpha_yylloc.first_index_ = lexer_ctx.index_;         \
-                        alpha_yylloc.last_index_ = lexer_ctx.index_ + yyleng; \
+                        alpha_yylloc.first_index = lexer_ctx.index_;         \
+                        alpha_yylloc.last_index = lexer_ctx.index_ + yyleng; \
                                                                               \
                         lexer_ctx.index_ += yyleng;                           \
                 } while (0); /* Semi-Colon is not placed by flex, we place it manually. */

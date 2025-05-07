@@ -173,7 +173,7 @@ namespace Alpha
                    << SGR_RESET;
 
                 auto line_views = extract_line_views(
-                    input_buffer, lt.find_index_of_line(diagnostic_line), diagnostic.location.last_index_);
+                    input_buffer, lt.find_index_of_line(diagnostic_line), diagnostic.location.last_index);
                 for (std::size_t i = 0; i < line_views.size(); i++)
                 {
                         std::string visual_line = expand_tabs(line_views[i]);
@@ -184,12 +184,12 @@ namespace Alpha
                         if (i != 0) // Caret marking is only for first line.
                                 continue;
 
-                        DEBUG_SMART_ASSERT(diagnostic.location.last_index_ > diagnostic.location.first_index_);
+                        DEBUG_SMART_ASSERT(diagnostic.location.last_index > diagnostic.location.first_index);
 
                         auto raw_caret_offset =
-                            diagnostic.location.first_index_ - lt.find_index_of_line(lt.find_first_line(diagnostic.location));
+                            diagnostic.location.first_index - lt.find_index_of_line(lt.find_first_line(diagnostic.location));
                         auto visual_caret_offset = compute_visual_caret_offset(line_views[i], raw_caret_offset);
-                        auto highlight_length = diagnostic.location.last_index_ - diagnostic.location.first_index_ - 1;
+                        auto highlight_length = diagnostic.location.last_index - diagnostic.location.first_index - 1;
 
                         ss << fmt_ns::format("{} | {}{}^{}\n",
                                              std::string(line_box_width, ' '),      // Spaces pre  |
