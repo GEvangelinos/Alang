@@ -7,10 +7,10 @@
 #include <stdexcept>                        // for out_of_range, logic_error
 #include <utility>                          // for pair
 #include "arguinator/default_constants.hpp" // for default_flag_prefix, def...
-#include "utils/format_adapter.hpp"         // for format, fmt_ns
+#include "utils/format_adapter.hpp"         // for format, FMT
 #include "utils/smart_assert.h"             // for SMART_ASSERT
 
-#define MESSAGE_WITH_CONTEXT(message) fmt_ns::format("[{}:{}:{}]\n{}", __FILE__, __LINE__, __func__, (message))
+#define MESSAGE_WITH_CONTEXT(message) FMT::format("[{}:{}:{}]\n{}", __FILE__, __LINE__, __func__, (message))
 
 namespace /* (Anonymous) */
 {
@@ -36,13 +36,13 @@ namespace /* (Anonymous) */
                                const std::string &description,
                                std::stringstream &ss)
         {
-                ss << fmt_ns::format("Usage: {} [options]\n"
-                                     "\n"
-                                     "{}\n"
-                                     "\n"
-                                     "options:"
-                                     "\n",
-                                     executable_name, description);
+                ss << FMT::format("Usage: {} [options]\n"
+                                  "\n"
+                                  "{}\n"
+                                  "\n"
+                                  "options:"
+                                  "\n",
+                                  executable_name, description);
         }
 
         std::string generate_example_values(const std::string &flag_name, std::size_t arity)
@@ -87,18 +87,18 @@ namespace /* (Anonymous) */
                                 continue;
 
                         const std::string example = generate_example_values(flag_name, flag.get_arity());
-                        const std::string label = fmt_ns::format("{}{} {}", ParserConsts::default_flag_prefix, flag_name, example);
+                        const std::string label = FMT::format("{}{} {}", ParserConsts::default_flag_prefix, flag_name, example);
                         const std::string wrapped_label = write_required
-                                                              ? fmt_ns::format("{}", label)
-                                                              : fmt_ns::format("[{}]", label);
+                                                              ? FMT::format("{}", label)
+                                                              : FMT::format("[{}]", label);
 
                         if (wrapped_label.length() <= ParserConsts::default_flag_field_size)
-                                ss << fmt_ns::format("\t{:<{}} {}\n", wrapped_label, ParserConsts::default_flag_field_size, flag.get_help_text());
+                                ss << FMT::format("\t{:<{}} {}\n", wrapped_label, ParserConsts::default_flag_field_size, flag.get_help_text());
                         else
                         {
                                 /* Multi-line label and help text. */
-                                ss << fmt_ns::format("\t{}\n", wrapped_label);
-                                ss << fmt_ns::format("\t{:{}} {}\n", "", ParserConsts::default_flag_field_size, flag.get_help_text());
+                                ss << FMT::format("\t{}\n", wrapped_label);
+                                ss << FMT::format("\t{:{}} {}\n", "", ParserConsts::default_flag_field_size, flag.get_help_text());
                         }
                         ss << '\n';
                 }
@@ -179,7 +179,7 @@ namespace Arguinator
                 if (inserted)
                         return it->second; /* First field: key(flag_name), second field: value (Flag) */
 
-                throw std::logic_error(MESSAGE_WITH_CONTEXT(fmt_ns::format(
+                throw std::logic_error(MESSAGE_WITH_CONTEXT(FMT::format(
                     "Duplicate flag `{}`.\n"
                     "Each flag must be registered only once.\n"
                     "Check for accidental reuse or typos in your flag declarations.",
@@ -231,16 +231,16 @@ namespace Arguinator
                         if (flag_map_.at(flag_name).is_provided())
                                 return flag_map_.at(flag_name).get_inputs().size();
                         else
-                                throw std::out_of_range(fmt_ns::format("Flag {} not provided!", flag_string));
+                                throw std::out_of_range(FMT::format("Flag {} not provided!", flag_string));
                 }
-                throw std::out_of_range(fmt_ns::format("Flag {} not registered!", flag_string));
+                throw std::out_of_range(FMT::format("Flag {} not registered!", flag_string));
         }
 
         const Flag &Parser::operator[](const std::string &flag_name) const
         {
                 const std::string flag_string = ParserConsts::default_flag_prefix + flag_name;
                 if (!flag_map_.contains(flag_name))
-                        throw std::out_of_range(fmt_ns::format("Flag {} not registered!", flag_string));
+                        throw std::out_of_range(FMT::format("Flag {} not registered!", flag_string));
                 return flag_map_.at(flag_name);
         }
 
@@ -337,8 +337,8 @@ namespace Arguinator
 
                 const std::string flag_string = ParserConsts::default_flag_prefix + name_;
                 if (input_field > arity_)
-                        throw std::out_of_range(fmt_ns::format("Flag {} has arity {} but field #{} requested.",
-                                                               flag_string, arity_, input_field));
+                        throw std::out_of_range(FMT::format("Flag {} has arity {} but field #{} requested.",
+                                                            flag_string, arity_, input_field));
                 return inputs_.at(input_field - 1); /* -1 to convert input_field to vector index. */
         }
 
@@ -351,11 +351,11 @@ namespace Arguinator
                                                         std::size_t expected_arity,
                                                         std::size_t provided_arity)
         {
-                return fmt_ns::format("{}{} expected {} inputs, got {}. ",
-                                      ParserConsts::default_flag_prefix,
-                                      flag_name,
-                                      expected_arity,
-                                      provided_arity);
+                return FMT::format("{}{} expected {} inputs, got {}. ",
+                                   ParserConsts::default_flag_prefix,
+                                   flag_name,
+                                   expected_arity,
+                                   provided_arity);
         }
 
         FlagUnknownError::FlagUnknownError(const std::string &flag_name)
@@ -363,7 +363,7 @@ namespace Arguinator
 
         std::string FlagUnknownError::build_error_message(const std::string &flag_name)
         {
-                return fmt_ns::format("{}{} flag is unknown", ParserConsts::default_flag_prefix, flag_name);
+                return FMT::format("{}{} flag is unknown", ParserConsts::default_flag_prefix, flag_name);
         }
 
         FlagMissingError::FlagMissingError(const std::string &error_message)
@@ -388,7 +388,7 @@ namespace Arguinator
 
         std::string FlagFormatError::build_error_message(const std::string &flag_string)
         {
-                return fmt_ns::format("Flags must be prefixed with {}. Got: {}",
-                                      ParserConsts::default_flag_prefix, flag_string);
+                return FMT::format("Flags must be prefixed with {}. Got: {}",
+                                   ParserConsts::default_flag_prefix, flag_string);
         }
 } /* namespace Arguinator */

@@ -7,7 +7,7 @@
 #include "core/alpha_macros.hpp"
 #include "core/alpha_location.hpp"  // for Location, LocationTracker
 #include "utils/cli_color.h"        // for COLOR_ASCII_BOLD_DEFAULT, SGR_RESET
-#include "utils/format_adapter.hpp" // for format, fmt_ns
+#include "utils/format_adapter.hpp" // for format, FMT
 #include "utils/smart_assert.h"     // for DEBUG_SMART_ASSERT
 
 namespace // (Anonymous)
@@ -165,7 +165,7 @@ namespace Alpha
                 const u32 diagnostic_line = diagnostic.line(lt);
                 const u32 diagnostic_column = diagnostic.column(lt);
                 ss << COLOR_ASCII_BOLD_DEFAULT
-                   << fmt_ns::format(
+                   << FMT::format(
                           "{}:{}:{}: {}{}{}: {}\n",
                           source_filename, diagnostic_line, diagnostic_column,
                           diagnostic.pretty_color(), diagnostic.type_to_string(), COLOR_ASCII_BOLD_DEFAULT,
@@ -177,10 +177,10 @@ namespace Alpha
                 for (std::size_t i = 0; i < line_views.size(); i++)
                 {
                         std::string visual_line = expand_tabs(line_views[i]);
-                        ss << fmt_ns::format("{:>{}} | {}\n",
-                                             i != 0 ? "" : std::to_string(diagnostic_line),
-                                             line_box_width,
-                                             visual_line);
+                        ss << FMT::format("{:>{}} | {}\n",
+                                          i != 0 ? "" : std::to_string(diagnostic_line),
+                                          line_box_width,
+                                          visual_line);
                         if (i != 0) // Caret marking is only for first line.
                                 continue;
 
@@ -191,11 +191,11 @@ namespace Alpha
                         auto visual_caret_offset = compute_visual_caret_offset(line_views[i], raw_caret_offset);
                         auto highlight_length = diagnostic.location.last_index - diagnostic.location.first_index - 1;
 
-                        ss << fmt_ns::format("{} | {}{}^{}\n",
-                                             std::string(line_box_width, ' '),      // Spaces pre  |
-                                             std::string(visual_caret_offset, ' '), // spaces post | to move caret
-                                             diagnostic.pretty_color(),
-                                             std::string(highlight_length, '~'));
+                        ss << FMT::format("{} | {}{}^{}\n",
+                                          std::string(line_box_width, ' '),      // Spaces pre  |
+                                          std::string(visual_caret_offset, ' '), // spaces post | to move caret
+                                          diagnostic.pretty_color(),
+                                          std::string(highlight_length, '~'));
                         ss << SGR_RESET;
                 }
 
@@ -223,6 +223,6 @@ namespace Alpha
         {
                 // new ptr is passed to unique_ptr for managing, do NOT manual delete.
                 cterrors_.push_back(std::unique_ptr<const CTError>(
-                        new CTError(error_type, error_message, error_location, std::move(note_list_))));
+                    new CTError(error_type, error_message, error_location, std::move(note_list_))));
         }
 } // namespace Alpha

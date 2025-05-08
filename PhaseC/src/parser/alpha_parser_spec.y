@@ -216,6 +216,7 @@ primary:
 | const
 ;
 
+
 lvalue:
   ID { lvalue__id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
 | LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); } 

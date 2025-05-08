@@ -45,10 +45,10 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
         if (parser[flag_show_parser_trace].is_provided())
         {
                 std::cout << COLOR_ASCII_BOLD_YELLOW
-                          << fmt_ns::format("Flag --{} is disabled, due to OPTIMIZED or HATE_PYTHON MODES.\n"
-                                            "Either disable OPTIMIZED_MODE and HATE_PYTHON_MODE or remove flag\n"
-                                            "Sleeping for 10 seconds to read",
-                                            flag_show_parser_trace)
+                          << FMT::format("Flag --{} is disabled, due to OPTIMIZED or HATE_PYTHON MODES.\n"
+                                         "Either disable OPTIMIZED_MODE and HATE_PYTHON_MODE or remove flag\n"
+                                         "Sleeping for 10 seconds to read",
+                                         flag_show_parser_trace)
                           << SGR_RESET
                           << std::endl;
         }

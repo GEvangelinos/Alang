@@ -46,7 +46,7 @@ void assignExpr__lvalue_assign_expr(
 
 void lvalue__id(
     SymbolTable &st,
-    ParseCtx &parse_ctx,
+    const ParseCtx &parse_ctx,
     const std::string &id_name,
     Location id_location,
     const Symbol *&lvalue,

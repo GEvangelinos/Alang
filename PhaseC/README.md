@@ -137,11 +137,11 @@ To maintain compatibility across environments, the project uses the following fo
 
 #ifdef STD_FORMAT_SUPPORTED
 #include <format>
-namespace fmt_ns = std;
+namespace FMT = std;
 #else
 #define FMT_HEADER_ONLY
 #include "third_party/fmt/format.h"
-namespace fmt_ns = fmt;
+namespace FMT = fmt;
 #endif // STD_FORMAT_SUPPORTED
 
 #endif // FORMAT_ADAPTER_HPP

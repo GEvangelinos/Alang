@@ -1,6 +1,7 @@
 #ifndef ALPHA_KONSTANTS_HPP
 #define ALPHA_KONSTANTS_HPP
 
+#include <string>
 #include "core/alpha_types.hpp"
 #include "core/alpha_location.hpp"
 
@@ -17,8 +18,7 @@ namespace Alpha
         static_assert(k_global_data_frame_count == 1, "This constant must always be set to 1");
 
         // SymbolTable's constants
-        // static constexpr char k_private_anonymous_prefix[] = "SavvidisLemeKaiKleme#";
-        static constexpr char k_private_anonymous_prefix[] = "@f";
+        static constexpr std::string k_private_anonymous_prefix("@f");
         static constexpr char k_public_anonymous_prefix[] = "@nonymous";
         static constexpr char k_temp_variable_prefix[] = "$t";
 

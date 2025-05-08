@@ -1,4 +1,7 @@
 #include "parser/alpha_semantic_actions.hpp"
+
+#include <list> // for list, _List_const_iterator
+
 #include "core/alpha_error.hpp"            // for ErrorTracker, Diagnostic
 #include "core/alpha_konstants.hpp"        // for k_global_scope, k_public_...
 #include "core/alpha_location.hpp"         // for Location
@@ -6,157 +9,166 @@
 #include "core/alpha_types.hpp"            // for u32
 #include "parser/_parser_common.hpp"       // for Parameter
 #include "parser/alpha_parser_context.hpp" // for ParseCtx
-#include "utils/format_adapter.hpp"        // for format, fmt_ns
+#include "utils/format_adapter.hpp"        // for format, FMT
 #include "utils/smart_assert.h"            // for DEBUG_SMART_ASSERT
-#include <list>                            // for list, _List_const_iterator
 
 using namespace Alpha;
 
 namespace // (Anonymous)
 {
-namespace Loop
-{
-enum class Keyword
-{
-        BREAK,
-        CONTINUE,
-};
-
-std::string to_string(Keyword keyword) noexcept
-{
-        switch (keyword)
+        namespace Loop
         {
-        case Keyword::BREAK:
-                return "break";
-        case Keyword::CONTINUE:
-                return "continue";
-        }
-        UNREACHABLE("Some field of Keyword is not registred");
-}
-}; // namespace Loop
-
-void loopCtrlStmt__loopkeyword_impl(const ParseCtx &parse_ctx, Location keyword_location,
-                                    ErrorTracker &et, Loop::Keyword keyword)
-{
-        if (parse_ctx.function_ctx_handler.loop_depth() > 0)
-                return;
-
-        std::string keyword_name = Loop::to_string(keyword);
-        std::string error = fmt_ns::format("`{}` statement not in a loop statement", keyword_name);
-        et.report_error(CTError::Type::SEMANTIC, error, keyword_location);
-}
-
-DEBUG_ALWAYS_INLINE bool reported_parameter_name_conflict(const SymbolTable &st, u32 current_scope,
-                                                          const Parameter &parameter,
-                                                          ErrorTracker &et)
-{
-        // Library‐function conflict
-        if (st.is_lib_function(parameter.name))
-        {
-                const std::string error = fmt_ns::format(
-                    "`{}` is a library function, can't declare it as formal", parameter.name);
-                et.report_error(CTError::Type::SEMANTIC, error, parameter.location);
-                return true;
-        }
-        const Symbol *formal_symbol = st.lookup_local(parameter.name, current_scope);
-        // Parameter‐redeclared conflict
-        if (formal_symbol)
-        {
-                // Parameter should produce name conflicts only with themselves.
-                DEBUG_SMART_ASSERT(formal_symbol->type == Symbol::Type::FORMAL);
-                const std::string error =
-                    fmt_ns::format("redefinition of parameter `{}`", parameter.name);
-                const std::string note =
-                    fmt_ns::format("previous definition of `{}` here", parameter.name);
-                et.report_error(CTError::Type::SEMANTIC, error, parameter.location, note,
-                                formal_symbol->location);
-                return true;
-        }
-        return false;
-}
-
-void insert_function_parameters(SymbolTable &st, u32 current_scope, u32 variable_offset,
-                                const std::list<Parameter> &parameter_list, ErrorTracker &et)
-{
-        for (const Parameter &parameter : parameter_list)
-                if (!reported_parameter_name_conflict(st, current_scope, parameter, et))
+                enum class Keyword
                 {
-                        st.insert_variable(parameter.name, current_scope, )
+                        BREAK,
+                        CONTINUE,
+                };
+
+                std::string to_string(Keyword keyword) noexcept
+                {
+                        switch (keyword)
+                        {
+                        case Keyword::BREAK:
+                                return "break";
+                        case Keyword::CONTINUE:
+                                return "continue";
+                        }
+                        UNREACHABLE("Some field of Keyword is not registred");
                 }
-        // st.insert_variable(parameter.name, current_scope,variable_offset,parameter.location);
-        // st.insert_formal(parameter.name, current_scope, parameter.location);
-}
+        }; // namespace Loop
 
-DEBUG_ALWAYS_INLINE bool reported_function_name_conflict(SymbolTable &st, u32 current_scope,
-                                                         const std::string function_name,
-                                                         Location id_location, ErrorTracker &et)
-{
-        if (st.is_lib_function(function_name))
+        void loopCtrlStmt__loopkeyword_impl(
+            const ParseCtx &parse_ctx,
+            Location keyword_location,
+            ErrorTracker &et,
+            Loop::Keyword keyword)
         {
-                const std::string error =
-                    fmt_ns::format("redefinition of library function `{}`", function_name);
-                et.report_error(CTError::Type::SEMANTIC, error, id_location);
-                return true;
+                if (parse_ctx.function_ctx_handler.loop_depth() > 0)
+                        return;
+
+                std::string keyword_name = Loop::to_string(keyword);
+                std::string error = FMT::format("`{}` statement not in a loop statement", keyword_name);
+                et.report_error(CTError::Type::SEMANTIC, error, keyword_location);
         }
 
-        const Symbol *resolved_symbol = st.lookup_local(function_name, current_scope);
-        if (!resolved_symbol)
+        DEBUG_ALWAYS_INLINE bool reported_parameter_name_conflict(
+            const SymbolTable &st,
+            u32 current_scope,
+            const Parameter &parameter,
+            ErrorTracker &et)
+        {
+                // Library‐function conflict
+                if (st.is_lib_function(parameter.name))
+                {
+                        const std::string error = FMT::format(
+                            "`{}` is a library function, can't declare it as formal", parameter.name);
+                        et.report_error(CTError::Type::SEMANTIC, error, parameter.location);
+                        return true;
+                }
+                const Symbol *formal_symbol = st.lookup_local(parameter.name, current_scope);
+                // Parameter‐redeclared conflict
+                if (formal_symbol)
+                {
+                        // Parameter should produce name conflicts only with themselves.
+                        DEBUG_SMART_ASSERT(formal_symbol->type == Symbol::Type::FORMAL);
+                        const std::string error = FMT::format("redefinition of parameter `{}`", parameter.name);
+                        const std::string note = FMT::format("previous definition of `{}` here", parameter.name);
+                        et.report_error(
+                            CTError::Type::SEMANTIC, error, parameter.location, note, formal_symbol->location);
+                        return true;
+                }
                 return false;
-        if (resolved_symbol->is_function())
-        {
-                const std::string error =
-                    fmt_ns::format("redefinition of `function {}`", function_name);
-                const std::string note =
-                    fmt_ns::format("previous definition of `function {}` here", function_name);
-                et.report_error(CTError::Type::SEMANTIC, error, id_location, note,
-                                resolved_symbol->location);
         }
-        else if (resolved_symbol->is_variable())
+
+        void insert_function_parameters(SymbolTable &st, const ParseCtx &parse_ctx, ErrorTracker &et)
         {
-                const std::string error =
-                    fmt_ns::format("`{}` redefined as a function", function_name);
-                const std::string note =
-                    fmt_ns::format("`{}` previously defined as a variable here", function_name);
-                et.report_error(CTError::Type::SEMANTIC, error, id_location, note,
-                                resolved_symbol->location);
+                DEBUG_SMART_ASSERT(parse_ctx.space_handler.space() == Variable::Space::FORMAL_ARGUMENT);
+
+                auto scope = parse_ctx.scope_handler.scope();
+                auto offset = parse_ctx.space_handler.offset();
+                constexpr auto space = Variable::Space::FORMAL_ARGUMENT;
+
+                for (const Parameter &param : parse_ctx.function_ctx_handler.function_parameters())
+                        if (!reported_parameter_name_conflict(st, scope, param, et))
+                                st.insert_variable(param.name, scope, space, offset, param.location);
         }
-        return true;
-}
 
-void report_out_of_scope_variable(const std::string &id_name, Location id_location,
-                                  const std::string &current_function_name,
-                                  Location current_function_location, const Symbol *resolved_symbol,
-                                  ErrorTracker &et)
-{
-        using DT = Diagnostic::Type;
-        DEBUG_SMART_ASSERT(resolved_symbol != nullptr);
-        const std::string error = fmt_ns::format("variable `{}` is not accessible in function `{}`",
-                                                 id_name, current_function_name);
-        const std::string note1 =
-            fmt_ns::format("function `{}` declared here", current_function_name);
-        const std::string note2 = fmt_ns::format("variable `{}` declared here", id_name);
-        et.report_error(CTError::Type::SEMANTIC, error, id_location,
-                        std::list<Diagnostic>{{DT::NOTE, note1, current_function_location},
-                                              {DT::NOTE, note2, resolved_symbol->location}});
-}
+        bool reported_function_name_conflict(
+            SymbolTable &st,
+            u32 current_scope,
+            const std::string function_name,
+            Location id_location,
+            ErrorTracker &et)
+        {
+                if (st.is_lib_function(function_name))
+                {
+                        const std::string error =
+                            FMT::format("redefinition of library function `{}`", function_name);
+                        et.report_error(CTError::Type::SEMANTIC, error, id_location);
+                        return true;
+                }
 
-DEBUG_ALWAYS_INLINE bool is_modifiable_lvalue(const Symbol *const lvalue)
-{
-        if (lvalue == nullptr) // nullptr implies runtime-evaluated lvalue (e.g. member access)
+                const Symbol *found_symbol = st.lookup_local(function_name, current_scope);
+                if (!found_symbol)
+                        return false;
+                if (found_symbol->is_function())
+                {
+                        const std::string error = FMT::format("redefinition of `function {}`", function_name);
+                        const std::string note =
+                            FMT::format("previous definition of `function {}` here", function_name);
+                        et.report_error(
+                            CTError::Type::SEMANTIC, error, id_location, note, found_symbol->location);
+                }
+                else if (found_symbol->is_variable())
+                {
+                        const std::string error = FMT::format("`{}` redefined as a function", function_name);
+                        const std::string note =
+                            FMT::format("`{}` previously defined as a variable here", function_name);
+                        et.report_error(
+                            CTError::Type::SEMANTIC, error, id_location, note, found_symbol->location);
+                }
                 return true;
-        return lvalue->is_variable();
-}
+        }
 
-void term__lvalue_op(const std::string &op_name, const Symbol *lvalue, Location term_location,
-                     ErrorTracker &et)
-{
-        // lvalue is valid to be nullptr (runtime evaluation).
-        DEBUG_SMART_ASSERT(op_name == "increment" || op_name == "decrement");
-        if (is_modifiable_lvalue(lvalue))
-                return;
-        std::string error = fmt_ns::format("{} operator can not be used on function", op_name);
-        et.report_error(CTError::Type::SEMANTIC, error, term_location);
-}
+        void report_out_of_scope_variable(
+            const std::string &id_name,
+            Location id_location,
+            const std::string &current_function_name,
+            Location current_function_location,
+            const Symbol *resolved_symbol,
+            ErrorTracker &et)
+        {
+                using DT = Diagnostic::Type;
+                DEBUG_SMART_ASSERT(resolved_symbol != nullptr);
+                const std::string error = FMT::format("variable `{}` is not accessible in function `{}`",
+                                                      id_name, current_function_name);
+                const std::string note1 = FMT::format("function `{}` declared here", current_function_name);
+                const std::string note2 = FMT::format("variable `{}` declared here", id_name);
+                et.report_error(CTError::Type::SEMANTIC, error, id_location,
+                                std::list<Diagnostic>{{DT::NOTE, note1, current_function_location},
+                                                      {DT::NOTE, note2, resolved_symbol->location}});
+        }
+
+        DEBUG_ALWAYS_INLINE bool is_modifiable_lvalue(const Symbol *const lvalue)
+        {
+                if (lvalue == nullptr) // nullptr implies runtime-evaluated lvalue (e.g. member access)
+                        return true;
+                return lvalue->is_variable();
+        }
+
+        void term__lvalue_op(
+            const std::string &op_name,
+            const Symbol *lvalue,
+            Location term_location,
+            ErrorTracker &et)
+        {
+                // lvalue is valid to be nullptr (runtime evaluation).
+                DEBUG_SMART_ASSERT(op_name == "increment" || op_name == "decrement");
+                if (is_modifiable_lvalue(lvalue))
+                        return;
+                std::string error = FMT::format("{} operator can not be used on function", op_name);
+                et.report_error(CTError::Type::SEMANTIC, error, term_location);
+        }
 
 } // namespace
 
@@ -168,7 +180,8 @@ void loopCtrlStmt__break(const ParseCtx &parse_ctx, Location break_location, Err
         loopCtrlStmt__loopkeyword_impl(parse_ctx, break_location, et, Loop::Keyword::BREAK);
 }
 
-void loopCtrlStmt__continue(const ParseCtx &parse_ctx, Location continue_location, ErrorTracker &et)
+void loopCtrlStmt__continue(const ParseCtx &parse_ctx, Location continue_location,
+                            ErrorTracker &et)
 {
         loopCtrlStmt__loopkeyword_impl(parse_ctx, continue_location, et, Loop::Keyword::CONTINUE);
 }
@@ -193,8 +206,10 @@ void term__lvalue_dec(const Symbol *lvalue, Location term_location, ErrorTracker
         term__lvalue_op("decrement", lvalue, term_location, et);
 }
 
-void assignExpr__lvalue_assign_expr(const Symbol *const lvalue, Location assign_location,
-                                    ErrorTracker &et)
+void assignExpr__lvalue_assign_expr(
+    const Symbol *lvalue,
+    Location assign_location,
+    ErrorTracker &et)
 {
         if (is_modifiable_lvalue(lvalue))
                 return;
@@ -204,67 +219,87 @@ void assignExpr__lvalue_assign_expr(const Symbol *const lvalue, Location assign_
 
         if (lvalue->type == Symbol::Type::LIBRARY_FUNCTION)
         {
-                std::string error =
-                    fmt_ns::format("assignment of library function `{}`", lvalue->name);
+                std::string error = FMT::format("assignment of library function `{}`", lvalue->name);
                 et.report_error(CTError::Type::SEMANTIC, error, assign_location);
         }
         else
         {
-                std::string error = fmt_ns::format("assignment of function `{}`", lvalue->name);
-                std::string note = fmt_ns::format("function {} declared here", lvalue->name);
-                et.report_error(CTError::Type::SEMANTIC, error, assign_location, note,
-                                lvalue->location);
+                std::string error = FMT::format("assignment of function `{}`", lvalue->name);
+                std::string note = FMT::format("function {} declared here", lvalue->name);
+                et.report_error(CTError::Type::SEMANTIC, error, assign_location, note, lvalue->location);
         }
 }
 
-void lvalue__id(SymbolTable &st, ParseCtx &parse_ctx, const std::string &id_name,
-                Location id_location, const Symbol *&lvalue, ErrorTracker &et)
+void lvalue__id(
+    SymbolTable &st,
+    const ParseCtx &parse_ctx,
+    const std::string &id_name,
+    Location id_location,
+    const Symbol *&lvalue,
+    ErrorTracker &et)
 {
-        const Symbol *resolved_symbol = st.lookup_chain(id_name, parse_ctx.current_scope());
-        if (!resolved_symbol)
+        const Symbol *found_symbol = st.lookup_chain(id_name, parse_ctx.scope_handler.scope());
+        if (!found_symbol)
         {
-                if (parse_ctx.current_scope() == k_global_scope)
-                        lvalue = st.insert_global(id_name, id_location);
-                else
-                        lvalue = st.insert_local(id_name, parse_ctx.current_scope(), id_location);
+                lvalue = st.insert_variable(
+                    id_name,
+                    parse_ctx.scope_handler.scope(),
+                    parse_ctx.space_handler.space(),
+                    parse_ctx.space_handler.offset(),
+                    id_location);
                 return;
         }
-        if (resolved_symbol->is_variable() && resolved_symbol->scope > k_global_scope &&
-            resolved_symbol->scope <= parse_ctx.current_function_scope())
+        if (found_symbol->is_variable() &&
+            found_symbol->scope > k_global_scope &&
+            found_symbol->scope <= parse_ctx.function_ctx_handler.function_scope())
                 report_out_of_scope_variable(
-                    id_name, id_location, parse_ctx.current_function_name(),
-                    parse_ctx.current_function_location(), resolved_symbol, et);
-        lvalue = resolved_symbol;
+                    id_name,
+                    id_location, parse_ctx.function_ctx_handler.function_name(),
+                    parse_ctx.function_ctx_handler.function_location(),
+                    found_symbol,
+                    et);
+        lvalue = found_symbol;
 }
 
-void lvalue__local_id(SymbolTable &st, ParseCtx &parse_ctx, const std::string &id_name,
-                      Location id_location, const Symbol *&lvalue, ErrorTracker &et)
+void lvalue__local_id(
+    SymbolTable &st,
+    ParseCtx &parse_ctx,
+    const std::string &id_name,
+    Location id_location,
+    const Symbol *&lvalue,
+    ErrorTracker &et)
 {
         if (st.is_lib_function(id_name))
         {
-                std::string error = fmt_ns::format("shadowing library function `{}`", id_name);
+                std::string error = FMT::format("shadowing library function `{}`", id_name);
                 et.report_error(CTError::Type::SEMANTIC, error, id_location);
                 lvalue = st.lookup_global(id_name);
-                DEBUG_SMART_ASSERT(
-                    lvalue != nullptr); // a library function is always resolved at global scope.
+                DEBUG_SMART_ASSERT(lvalue != nullptr); // a library function is always resolved at global scope.
                 return;
         }
-        const Symbol *resolved_symbol = st.lookup_local(id_name, parse_ctx.current_scope());
-        if (resolved_symbol)
-                lvalue = resolved_symbol;
-        else if (parse_ctx.current_scope() == k_global_scope)
-                lvalue = st.insert_global(id_name, id_location);
+        const Symbol *found_symbol = st.lookup_local(id_name, parse_ctx.scope_handler.scope());
+        if (found_symbol)
+                lvalue = found_symbol;
         else
-                lvalue = st.insert_local(id_name, parse_ctx.current_scope(), id_location);
+                lvalue = st.insert_variable(
+                    id_name,
+                    parse_ctx.scope_handler.scope(),
+                    parse_ctx.space_handler.space(),
+                    parse_ctx.space_handler.offset(),
+                    id_location);
 }
 
-void lvalue__global_id(SymbolTable &st, const std::string &id_name, Location id_location,
-                       const Symbol *&lvalue, ErrorTracker &et)
+void lvalue__global_id(
+    SymbolTable &st,
+    const std::string &id_name,
+    Location id_location,
+    const Symbol *&lvalue,
+    ErrorTracker &et)
 {
         lvalue = st.lookup_global(id_name);
         if (lvalue)
                 return;
-        std::string error = fmt_ns::format("variable `::{}` not found in global scope", id_name);
+        std::string error = FMT::format("variable `::{}` not found in global scope", id_name);
         et.report_error(CTError::Type::SEMANTIC, error, id_location);
 }
 
@@ -275,65 +310,85 @@ void lvalue__member(const Symbol *&lvalue) noexcept
 
 void block__lbrace(ParseCtx &parse_ctx) noexcept
 {
-        parse_ctx.enter_block();
+        parse_ctx.scope_handler.enter_scope();
 }
 
 void block__lbrace_multiStmt_rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept
 {
-        st.hide_scope_symbols(parse_ctx.current_scope());
-        parse_ctx.exit_block();
+        st.hide_scope_symbols(parse_ctx.scope_handler.scope());
+        parse_ctx.scope_handler.exit_scope();
 }
 
 void block__lbrace_rbrace(SymbolTable &st, ParseCtx &parse_ctx)
 {
-        st.hide_scope_symbols(parse_ctx.current_scope());
-        parse_ctx.exit_block();
+        block__lbrace_multiStmt_rbrace(st, parse_ctx);
 }
 
 void funcdef__function_id(ParseCtx &parse_ctx, const std::string &id_name, Location id_location)
 {
-        parse_ctx.last_function_id = id_name;
-        parse_ctx.last_function_location = id_location;
+        parse_ctx.function_ctx_handler.last_function_id = id_name;
+        parse_ctx.function_ctx_handler.last_function_location = id_location;
 }
 
-void funcDef__function_id_lparen_funcArgList_rparen(SymbolTable &st, ParseCtx &parse_ctx,
-                                                    ErrorTracker &et)
+void funcDef__function_id_lparen_funcArgList_rparen(SymbolTable &st, ParseCtx &parse_ctx, ErrorTracker &et)
 {
+
         bool conflicting_name = reported_function_name_conflict(
-            st, parse_ctx.current_scope(), parse_ctx.last_function_id,
-            parse_ctx.last_function_location, et);
+            st,
+            parse_ctx.scope_handler.scope(),
+            parse_ctx.function_ctx_handler.last_function_id,
+            parse_ctx.function_ctx_handler.last_function_location,
+            et);
 
         if (!conflicting_name)
-                st.insert_function(parse_ctx.last_function_id, Symbol::Type::PROGRAM_FUNCTION,
-                                   parse_ctx.current_scope(), parse_ctx.last_function_location,
-                                   parse_ctx.retrieve_function_parameters());
+                st.insert_function(
+                    parse_ctx.function_ctx_handler.last_function_id,
+                    Symbol::Type::PROGRAM_FUNCTION,
+                    parse_ctx.scope_handler.scope(),
+                    parse_ctx.function_ctx_handler.function_parameters(),
+                    parse_ctx.function_ctx_handler.last_function_location);
 
-        parse_ctx.enter_function(parse_ctx.last_function_id, parse_ctx.last_function_location);
+        parse_ctx.function_ctx_handler.enter_function(
+            parse_ctx.function_ctx_handler.last_function_id,
+            parse_ctx.function_ctx_handler.last_function_location,
+            parse_ctx.scope_handler);
 
-        insert_function_parameters(st, parse_ctx.current_scope(),
-                                   parse_ctx.extract_function_parameters(), et);
+        insert_function_parameters(st, parse_ctx, et);
 }
 
 void funcDef__function_id_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept
 {
-        parse_ctx.exit_function();
+        parse_ctx.function_ctx_handler.exit_function();
 }
 
-void funcDef__function_lparen_funcArgList_rparen(SymbolTable &st, ParseCtx &parse_ctx,
-                                                 Location anonymous_location, ErrorTracker &et)
+void funcDef__function_lparen_funcArgList_rparen(
+    SymbolTable &st,
+    ParseCtx &parse_ctx,
+    Location anonymous_location,
+    ErrorTracker &et)
 {
-        st.insert_anonymous(parse_ctx.current_scope(), anonymous_location,
-                            parse_ctx.retrieve_function_parameters());
+        std::string anonymous_name(
+            k_private_anonymous_prefix +
+            std::to_string(parse_ctx.function_ctx_handler.anonymous_counter++));
 
-        parse_ctx.enter_function(k_public_anonymous_prefix, anonymous_location);
+        st.insert_function(
+            anonymous_name,
+            Symbol::Type::VARIABLE,
+            parse_ctx.scope_handler.scope(),
+            parse_ctx.function_ctx_handler.function_parameters(),
+            anonymous_location);
 
-        insert_function_parameters(st, parse_ctx.current_scope(),
-                                   parse_ctx.extract_function_parameters(), et);
+        parse_ctx.function_ctx_handler.enter_function(
+            anonymous_name,
+            anonymous_location,
+            parse_ctx.scope_handler);
+
+        insert_function_parameters(st, parse_ctx, et);
 }
 
 void funcDef__function_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept
 {
-        parse_ctx.exit_function();
+        parse_ctx.function_ctx_handler.exit_function();
 }
 
 void const__stringliteral(char *&string_literal)
@@ -344,32 +399,32 @@ void const__stringliteral(char *&string_literal)
 
 void funcArgs__id(ParseCtx &parse_ctx, const std::string &id_name, Location id_location)
 {
-        parse_ctx.append_function_parameter(id_name, id_location);
+        parse_ctx.function_ctx_handler.add_function_parameter(id_name, id_location);
 }
 
 void whileStmt__whileHeader(ParseCtx &parse_ctx) noexcept
 {
-        parse_ctx.enter_loop();
+        parse_ctx.function_ctx_handler.enter_loop();
 }
 
 void whileStmt__whileHeader_stmt(ParseCtx &parse_ctx) noexcept
 {
-        parse_ctx.exit_loop();
+        parse_ctx.function_ctx_handler.exit_loop();
 }
 
 void forStmt__forHeader(ParseCtx &parse_ctx) noexcept
 {
-        parse_ctx.enter_loop();
+        parse_ctx.function_ctx_handler.enter_loop();
 }
 
 void forStmt__forHeader_stmt(ParseCtx &parse_ctx) noexcept
 {
-        parse_ctx.exit_loop();
+        parse_ctx.function_ctx_handler.exit_loop();
 }
 
 void funcCtrlStmt__return(const ParseCtx &parse_ctx, Location return_location, ErrorTracker &et)
 {
-        if (parse_ctx.current_function_nesting_depth() > 0)
+        if (parse_ctx.function_ctx_handler.function_nesting_depth() > 0)
                 return;
         std::string error = "`return` statement not in a function statement";
         et.report_error(CTError::Type::SEMANTIC, error, return_location);

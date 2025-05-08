@@ -1,15 +1,15 @@
 #include "alpha_driver.hpp"
-#include <fstream>                   // for basic_ostream, basic_ofstream
-#include <iostream>                  // for cout, cerr
-#include <list>                      // for _List_const_iterator, list
-#include <stdexcept>                 // for runtime_error, invalid_argument
-#include <vector>                    // for vector
-#include "alpha_parser.hpp"          // for alpha_yyparse
-#include "core/alpha_konstants.hpp"  // for k_global_scope
-#include "core/alpha_types.hpp"      // for u32
-#include "utils/cli_color.h"         // for COLOR_ASCII_FG_BLUE, SGR_RESET
-#include "utils/format_adapter.hpp"  // for format, fmt_ns
-#include "utils/smart_assert.h"      // for SMART_ASSERT
+#include <fstream>                  // for basic_ostream, basic_ofstream
+#include <iostream>                 // for cout, cerr
+#include <list>                     // for _List_const_iterator, list
+#include <stdexcept>                // for runtime_error, invalid_argument
+#include <vector>                   // for vector
+#include "alpha_parser.hpp"         // for alpha_yyparse
+#include "core/alpha_konstants.hpp" // for k_global_scope
+#include "core/alpha_types.hpp"     // for u32
+#include "utils/cli_color.h"        // for COLOR_ASCII_FG_BLUE, SGR_RESET
+#include "utils/format_adapter.hpp" // for format, FMT
+#include "utils/smart_assert.h"     // for SMART_ASSERT
 
 static constexpr unsigned k_flex_eof_padding = 2;
 
@@ -20,10 +20,10 @@ namespace // (Anonymous)
         std::ifstream open_alpha_source_file(const std::string &filepath)
         {
                 if (!std::filesystem::is_regular_file(filepath))
-                        throw std::invalid_argument(fmt_ns::format("{} is not a regular file.", filepath));
+                        throw std::invalid_argument(FMT::format("{} is not a regular file.", filepath));
                 std::ifstream inputFile(filepath);
                 if (!inputFile)
-                        throw std::invalid_argument(fmt_ns::format("Failed opening {} for reading.", filepath));
+                        throw std::invalid_argument(FMT::format("Failed opening {} for reading.", filepath));
                 return inputFile; // NVRO
         }
 
@@ -68,12 +68,12 @@ namespace Alpha
                 {
                         if (symbol_per_scope_vector[scope].empty())
                                 continue;
-                        std::cout << fmt_ns::format("----------------------------     Scope #{:<4}     ----------------------------\n", scope);
+                        std::cout << FMT::format("----------------------------     Scope #{:<4}     ----------------------------\n", scope);
                         for (auto symbol_ptr : symbol_per_scope_vector[scope])
-                                std::cout << fmt_ns::format(
+                                std::cout << FMT::format(
                                     "{:<30} {:<20} (line {:>5}) (scope {:>4})\n",
-                                    fmt_ns::format("\"{}\"", symbol_ptr->name),
-                                    fmt_ns::format("[{}]", symbol_ptr->type_to_string()),
+                                    FMT::format("\"{}\"", symbol_ptr->name),
+                                    FMT::format("[{}]", symbol_ptr->type_to_string()),
                                     lt_.find_symbol_line(symbol_ptr->location),
                                     symbol_ptr->scope);
                         std::cout << std::endl;
@@ -129,7 +129,7 @@ namespace Alpha
                 // Class invariant: `state_` must be non-null after construction.
                 // Violations indicate a serious logic error (e.g., double-deletion or moved-from object).
                 SMART_ASSERT(state_ != nullptr);
-                state_ = nullptr; 
+                state_ = nullptr;
                 // We nullified our reference to YY_BUFFER_STATE
                 // Flex has it own, also we DID NOT use alpha_yy_delete_buffer()
                 // So we can call alpha_yylex_destroy() on driver, which call delete_buffer()
@@ -141,14 +141,14 @@ namespace Alpha
                 const std::string outfile_name = source_filepath_.filename().string() + ".st.csv";
                 std::ofstream outfile(outfile_name);
                 if (!outfile)
-                        throw std::runtime_error(fmt_ns::format(
+                        throw std::runtime_error(FMT::format(
                             "Failed opening file {} to export symbol table", outfile_name));
 
                 outfile << k_symbol_table_csv_export_header; // Write CSV header.
 
                 auto write_symbol = [&](const Symbol *symbol_ptr)
                 {
-                        outfile << fmt_ns::format(
+                        outfile << FMT::format(
                             "{},{},{},{}\n",
                             symbol_ptr->name,
                             symbol_ptr->type_to_string(),
@@ -176,13 +176,13 @@ namespace Alpha
                 const std::string outfile_name = source_filepath_.filename().string() + ".error.csv";
                 std::ofstream outfile(outfile_name);
                 if (!outfile)
-                        throw std::runtime_error(fmt_ns::format(
+                        throw std::runtime_error(FMT::format(
                             "Failed opening file {} to export compile errors", outfile_name));
 
                 outfile << k_error_csv_export_header; // Write CSV header.
                 auto write_diagnostic = [&](const Diagnostic &diag)
                 {
-                        outfile << fmt_ns::format(
+                        outfile << FMT::format(
                             "{},{},{},{}\n",
                             diag.line(lt_),
                             diag.column(lt_),

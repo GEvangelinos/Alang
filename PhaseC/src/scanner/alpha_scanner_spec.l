@@ -6,7 +6,7 @@
         #include "core/alpha_shared_interface.hpp"    // for ALPHA_YYLEX_SIGNATURE
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
         #include "scanner/alpha_token.hpp"            // for TokenString, TokenComment
-        #include "utils/format_adapter.hpp"           // for format, fmt_ns
+        #include "utils/format_adapter.hpp"           // for format, FMT
 
         #ifdef YY_DECL
         #undef YY_DECL
@@ -146,7 +146,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
         et.report_error(
                 Alpha::CTError::Type::LEXER,
-                fmt_ns::format("invalid escape code {} in string", yytext),
+                FMT::format("invalid escape code {} in string", yytext),
                 alpha_yylloc
         );
         /* Do not stop scanning, but register lexer error. */
@@ -170,7 +170,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
         et.report_error(
                 Alpha::CTError::Type::LEXER,
-                fmt_ns::format("character {} is invalid", yytext),
+                FMT::format("character {} is invalid", yytext),
                 alpha_yylloc
         );
 }

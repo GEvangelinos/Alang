@@ -7,7 +7,7 @@
 #define REPORT_UNREACHABLE_VIOLATION(_message_if_reached)                                   \
         do                                                                                  \
         {                                                                                   \
-                std::cerr << fmt_ns::format("{}:{} | {}() --> Unreachable Violation: {}",      \
+                std::cerr << FMT::format("{}:{} | {}() --> Unreachable Violation: {}",      \
                                          __FILE__, __LINE__, __func__, _message_if_reached) \
                           << std::endl;                                                     \
         } while (0)
