@@ -22,8 +22,8 @@ namespace Alpha
                 }
 
                 template <typename SynonymContainer>
-                DEBUG_ALWAYS_INLINE typename SynonymContainer::const_iterator find_insert_position(
-                    const SynonymContainer &synonym_symbols, u32 scope)
+                DEBUG_ALWAYS_INLINE typename SynonymContainer::const_iterator
+                find_insert_position(const SynonymContainer &synonym_symbols, u32 scope)
                 {
                         auto symbol_it = synonym_symbols.begin();
                         for (; symbol_it != synonym_symbols.end(); ++symbol_it)
@@ -92,6 +92,33 @@ namespace Alpha
         template const Symbol *SymbolTable::insert_symbol<Variable>(
             const std::string &, u32, Variable::Space &&, u32 &&, Location &&);
 
+        template <typename Self>
+        DEBUG_ALWAYS_INLINE auto SymbolTable::lookup_local_impl(Self &self, const std::string &name, u32 scope)
+            -> decltype(&self.symbol_map_.begin()->second.front())
+        {
+                auto it = self.symbol_map_.find(name);
+                if (it == self.symbol_map_.end())
+                        return nullptr;
+
+                auto &scope_list = it->second;
+                for (auto &symbol : scope_list)
+                {
+                        if (symbol.scope < scope)
+                                continue;
+                        if (symbol.scope > scope)
+                                break;
+                        if (symbol.is_active())
+                                return &symbol;
+                }
+                return nullptr;
+        }
+
+        template Symbol *
+        SymbolTable::lookup_local_impl(SymbolTable &self, const std::string &name, u32 scope);
+
+        template const Symbol *
+        SymbolTable::lookup_local_impl(const SymbolTable &self, const std::string &name, u32 scope);
+
         SymbolTable::SymbolTable()
         {
                 // Load library functions
@@ -159,22 +186,24 @@ namespace Alpha
 
         const Symbol *SymbolTable::lookup_local(const std::string &symbol_name, u32 scope) const
         {
-                // Does `symbol_name` exist ?
-                const auto it = symbol_map_.find(symbol_name);
-                if (it == symbol_map_.end())
-                        return nullptr;
+                return lookup_local_impl(*this, symbol_name, scope);
+        }
 
-                const auto &scope_list = it->second;
-                for (const auto &symbol : scope_list)
-                {
-                        if (symbol.scope < scope)
-                                continue;
-                        if (symbol.scope > scope)
-                                break;
-                        if (symbol.is_active())
-                                return &symbol;
-                }
-                return nullptr;
+        void SymbolTable::finalize_function_locals(
+            const std::string &name,
+            u32 scope,
+            u32 local_variables)
+        {
+                Symbol *found_symbol = lookup_local_impl(*this, name, scope);
+                if (found_symbol == nullptr)
+                        throw std::logic_error("Function tracked by ParseCtx is not found in SymbolTable");
+
+                DEBUG_SMART_ASSERT(                                      //
+                    (dynamic_cast<Function *>(found_symbol) != nullptr), //
+                    (found_symbol->is_function())                        //
+                );
+
+                static_cast<Function *>(found_symbol)->local_variables.set(local_variables);
         }
 
         void SymbolTable::hide_scope_symbols(u32 scope) noexcept

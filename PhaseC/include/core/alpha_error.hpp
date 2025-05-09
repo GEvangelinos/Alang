@@ -74,14 +74,10 @@ namespace Alpha
                 friend class ErrorTracker;
         };
 
-        class ErrorTracker
+        class ErrorTracker : private Immobile
         {
         public:
                 ErrorTracker() = default;
-                ErrorTracker(const ErrorTracker &) = delete;
-                ErrorTracker(const ErrorTracker &&) = delete;
-                ErrorTracker &operator=(const ErrorTracker &) = delete;
-                ErrorTracker &operator=(ErrorTracker &&) = delete;
 
                 void report_error(CTError::Type error_type, const std::string &error, Location error_location);
                 void report_error(CTError::Type error_type, const std::string &error, Location error_location,

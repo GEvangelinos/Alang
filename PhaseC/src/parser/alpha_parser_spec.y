@@ -5,7 +5,7 @@
          // IWYU pragma: no_include <stdlib.h>
          // IWYU pragma: no_include <string.h>
         #include <string>                             // for basic_string, string
-        #include "parser/alpha_logger.hpp"            // for display_trace
+        #include "parser/alpha_trace_logger.hpp"            // for display_trace
         #include "parser/alpha_parser_context.hpp"    // for ParseCtx
         #include "parser/alpha_semantic_actions.hpp"  // for block__lbrace, funcArgs...
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx

@@ -152,6 +152,7 @@ namespace Alpha
               error(Diagnostic::Type::ERROR, error_message, error_location),
               note_list(std::move(note_list_)) {}
 
+        // TODO: Fix.. its ugly AF
         std::string CTError::make_pretty_diagnostic_impl(
             const std::string &source_filename,
             const LocationTracker &lt,
@@ -191,11 +192,12 @@ namespace Alpha
                         auto visual_caret_offset = compute_visual_caret_offset(line_views[i], raw_caret_offset);
                         auto highlight_length = diagnostic.location.last_index - diagnostic.location.first_index - 1;
 
-                        ss << FMT::format("{} | {}{}^{}\n",
-                                          std::string(line_box_width, ' '),      // Spaces pre  |
-                                          std::string(visual_caret_offset, ' '), // spaces post | to move caret
-                                          diagnostic.pretty_color(),
-                                          std::string(highlight_length, '~'));
+                        ss << FMT::format(
+                            "{} | {}{}^{}\n",
+                            std::string(line_box_width, ' '),      // Spaces pre  |
+                            std::string(visual_caret_offset, ' '), // spaces post | to move caret
+                            diagnostic.pretty_color(),
+                            std::string(highlight_length, '~'));
                         ss << SGR_RESET;
                 }
 

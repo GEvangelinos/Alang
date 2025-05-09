@@ -1,10 +1,10 @@
 #include "core/alpha_location.hpp"
-#include <algorithm>                 // for is_sorted, upper_bound
-#include <cstddef>                   // for ptrdiff_t
-#include <iterator>                  // for distance
-#include <stdexcept>                 // for logic_error
-#include "core/alpha_konstants.hpp"  // for k_no_line
-#include "utils/smart_assert.h"      // for DEBUG_SMART_ASSERT
+#include <algorithm>                // for is_sorted, upper_bound
+#include <cstddef>                  // for ptrdiff_t
+#include <iterator>                 // for distance
+#include <stdexcept>                // for logic_error
+#include "core/alpha_konstants.hpp" // for k_no_line
+#include "utils/smart_assert.h"     // for DEBUG_SMART_ASSERT
 
 namespace Alpha
 {

@@ -40,15 +40,12 @@ namespace Alpha
                         DEBUG_SMART_ASSERT(is_disabled());
                         state_ = true;
                 }
-
                 DEBUG_ALWAYS_INLINE void disable() noexcept
                 {
                         DEBUG_SMART_ASSERT(is_enabled());
                         state_ = false;
                 }
-
                 DEBUG_ALWAYS_INLINE bool is_enabled() const noexcept { return state_; }
-
                 DEBUG_ALWAYS_INLINE bool is_disabled() const noexcept { return !state_; }
 
         private:
@@ -82,7 +79,7 @@ namespace Alpha
                 u32 locals_counter_ = 0;
         };
 
-        class SpaceHandler
+        class SpaceHandler : private Immobile
         {
         public:
                 static constexpr u32 k_initial_space = 0;
@@ -100,16 +97,11 @@ namespace Alpha
                 void offset_inc() noexcept;
                 u32 offset() const noexcept;
 
-                SpaceHandler(const SpaceHandler &) = delete;
-                SpaceHandler(SpaceHandler &&) = delete;
-                SpaceHandler &operator=(const SpaceHandler &) = delete;
-                SpaceHandler &operator=(SpaceHandler &&) = delete;
-
         private:
                 std::stack<u32> variable_offset_stack_;
         };
 
-        class ScopeHandler
+        class ScopeHandler : private Immobile
         {
         public:
                 ScopeHandler();
@@ -120,17 +112,12 @@ namespace Alpha
                 void exit_scope() noexcept;
                 u32 scope() const noexcept { return scope_; }
 
-                ScopeHandler(const ScopeHandler &) = delete;
-                ScopeHandler(ScopeHandler &&) = delete;
-                ScopeHandler &operator=(const ScopeHandler &) = delete;
-                ScopeHandler &operator=(ScopeHandler &&) = delete;
-
         private:
                 ToggleSwitch skip_next_scope_increment_;
                 u32 scope_;
         };
 
-        class FunctionCtxHandler
+        class FunctionCtxHandler : private Immobile
         {
         public:
                 std::string last_function_id;
@@ -140,11 +127,8 @@ namespace Alpha
                 FunctionCtxHandler();
                 ~FunctionCtxHandler();
 
-                void enter_function(
-                    const std::string &function_name,
-                    Location function_location,
-                    ScopeHandler &scope_handler);
-                void exit_function() noexcept;
+                void enter_function(ScopeHandler &scope_handler);
+                u32 exit_function() noexcept;
 
                 u32 function_nesting_depth() const noexcept;
                 u32 function_scope() const noexcept;
@@ -165,11 +149,6 @@ namespace Alpha
                 void add_local();
                 u32 locals_count();
 
-                FunctionCtxHandler(const FunctionCtxHandler &) = delete;
-                FunctionCtxHandler(FunctionCtxHandler &&) = delete;
-                FunctionCtxHandler &operator=(const FunctionCtxHandler &) = delete;
-                FunctionCtxHandler &operator=(FunctionCtxHandler &&) = delete;
-
         private:
                 std::stack<FunctionDataFrame> frame_stack_;
                 std::list<Parameter> function_parameters_;
@@ -177,7 +156,7 @@ namespace Alpha
                 u32 function_counter_ = 0;
         };
 
-        class TempGenerator
+        class TempGenerator : private Immobile
         {
         public:
                 std::string new_temp();
@@ -187,12 +166,30 @@ namespace Alpha
                 u32 temp_counter_ = 0;
         };
 
-        class ParseCtx
+        class QuadHandler : private Immobile
+        {
+        public:
+                void emit_quad(
+                    IOPCode iopcode,
+                    const Expr *arg1,
+                    const Expr *arg2,
+                    const Expr *result,
+                    Location location);
+
+                const std::vector<Quad> &emmited_quads() { return emitted_quads_; }
+
+        private:
+                std::vector<Quad> emitted_quads_;
+                u32 next_quad_label_ = 1; // First quad_label is always 1, (0 for backpatching)
+        };
+
+        class ParseCtx : private Immobile
         {
         public:
                 SpaceHandler space_handler;
                 ScopeHandler scope_handler;
                 FunctionCtxHandler function_ctx_handler;
+                QuadHandler quad_handler;
                 TempGenerator temp_generator;
 
                 ParseCtx() = default;
@@ -200,17 +197,7 @@ namespace Alpha
 
                 void register_temp(SymbolTable &st);
 
-                void emit_quad(IOPCode iopcode, const Expr *arg1, const Expr *arg2,
-                               const Expr *result, Location location);
-
-                ParseCtx(const ParseCtx &) = delete;
-                ParseCtx(ParseCtx &&) = delete;
-                ParseCtx &operator=(const ParseCtx &) = delete;
-                ParseCtx &operator=(ParseCtx &&) = delete;
-
         private:
-                std::vector<Quad> emitted_quads_;
-                u32 next_quad_label_ = 1; // First quad_label is always 1, (0 for backpatching)
         };
 
         inline SpaceHandler::SpaceHandler()
@@ -228,18 +215,21 @@ namespace Alpha
                 variable_offset_stack_.push(k_initial_variable_offset);
         }
 
-        // clang-format off
         inline void SpaceHandler::exit_space()
         {
                 constexpr auto spaces_for_closure = 2; // 1 formalArg + 1 functionLocal
-                DEBUG_SMART_ASSERT(variable_offset_stack_.size() > spaces_for_closure);
-                DEBUG_SMART_ASSERT(is_odd(variable_offset_stack_.size()));
 
+                DEBUG_SMART_ASSERT(                                     //
+                    variable_offset_stack_.size() > spaces_for_closure, //
+                    is_odd(variable_offset_stack_.size())               //
+                );
+
+                // clang-format off
                 #pragma unroll
                 for (auto i = 0; i < spaces_for_closure; ++i)
                         variable_offset_stack_.pop();
+                // clang-format on
         }
-        // clang-format on
 
         inline Variable::Space SpaceHandler::space() const noexcept
         {
@@ -294,8 +284,10 @@ namespace Alpha
                 // entered it. So if you exit a block and the
                 // `skip_next_scope_increment` switch is enabled, there is a logic
                 // error.
-                DEBUG_SMART_ASSERT(skip_next_scope_increment_.is_disabled());
-                DEBUG_SMART_ASSERT(scope_ > k_global_scope);
+                DEBUG_SMART_ASSERT(                          //
+                    scope_ > k_global_scope,                 //
+                    skip_next_scope_increment_.is_disabled() //
+                );
                 --scope_;
         }
 
@@ -312,21 +304,20 @@ namespace Alpha
 
         inline FunctionCtxHandler::~FunctionCtxHandler()
         {
-                DEBUG_SMART_ASSERT(frame_stack_.size() == k_global_data_frame_count);
-                DEBUG_SMART_ASSERT(function_parameters_.size() == 0); // All parameters must be used.
+                DEBUG_SMART_ASSERT(                                   //
+                    frame_stack_.size() == k_global_data_frame_count, //
+                    function_parameters_.size() == 0                  // All parameters must be used.
+                );
         }
 
-        inline void FunctionCtxHandler::enter_function(
-            const std::string &function_name,
-            Location function_location,
-            ScopeHandler &scope_handler)
+        inline void FunctionCtxHandler::enter_function(ScopeHandler &scope_handler)
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
 
                 frame_stack_.emplace(FunctionDataFrame(
-                    function_name,
+                    last_function_id,
                     scope_handler.scope(),
-                    function_location));
+                    last_function_location));
                 scope_handler.enter_scope();
                 scope_handler.skip_next_scope_increment();
 
@@ -334,13 +325,16 @@ namespace Alpha
                 function_counter_ += 1 - last_function_is_anonymous;
         }
 
-        inline void FunctionCtxHandler::exit_function() noexcept
+        // Returns the number of locals of the current function.
+        inline u32 FunctionCtxHandler::exit_function() noexcept
         {
                 // A frame always exist for loops outside functions.
                 DEBUG_SMART_ASSERT(frame_stack_.size() > k_global_data_frame_count);
                 // All loops must be closed before exiting function.
                 DEBUG_SMART_ASSERT(frame_stack_.top().loop_counter() == 0);
+                u32 locals = frame_stack_.top().locals_counter();
                 frame_stack_.pop();
+                return locals;
         }
 
         inline u32 FunctionCtxHandler::function_nesting_depth() const noexcept
@@ -440,12 +434,12 @@ namespace Alpha
                     k_no_location);
         }
 
-        inline void ParseCtx::emit_quad(
-            IOPCode iopcode,
+        inline void QuadHandler::emit_quad(
+            const IOPCode iopcode,
             const Expr *arg1,
             const Expr *arg2,
             const Expr *result,
-            Location location)
+            const Location location)
         {
                 DEBUG_SMART_ASSERT(emitted_quads_.size() + 1 == next_quad_label_);
 

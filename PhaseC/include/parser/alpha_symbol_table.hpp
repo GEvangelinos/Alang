@@ -36,7 +36,8 @@ namespace Alpha
             "strtonum",
             "sqrt",
             "cos",
-            "sin"};
+            "sin" //
+        };
 
         class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
         {
@@ -58,6 +59,12 @@ namespace Alpha
                 DEBUG_ALWAYS_INLINE bool is_variable() const noexcept { return type == Type::VARIABLE; }
                 DEBUG_ALWAYS_INLINE bool is_function() const noexcept { return !is_variable(); }
                 DEBUG_ALWAYS_INLINE bool is_active() const noexcept { return is_active_; }
+
+#ifdef DEBUG_MODE
+                virtual ~Symbol() = default; // Making it polymorphic in debug, for extra subclass checks.
+#else
+                ~Symbol() = default;
+#endif // DEBUG_MODE
 
         protected:
                 Symbol(const std::string &name, u32 scope, Type type, Location location) noexcept
@@ -102,18 +109,17 @@ namespace Alpha
         {
         public:
                 const std::list<Parameter> parameter_list;
+                Once<u32> local_variables;
+
                 Function(const std::string &name, const u32 scope, const Symbol::Type type,
                          const std::list<Parameter> &parameter_list, const Location location)
                     : Symbol(name, scope, type, location), parameter_list(parameter_list)
                 {
                         DEBUG_SMART_ASSERT(type != Symbol::Type::VARIABLE);
                 }
-
-        private:
-                Once<u32> local_variables;
         };
 
-        class SymbolTable
+        class SymbolTable : private Immobile
         {
         public:
                 using SymbolName = std::string;
@@ -121,10 +127,6 @@ namespace Alpha
 
                 SymbolTable();
                 ~SymbolTable() = default;
-                SymbolTable(const SymbolTable &) = delete;
-                SymbolTable(const SymbolTable &&) = delete;
-                SymbolTable &operator=(const SymbolTable &) = delete;
-                SymbolTable &operator=(const SymbolTable &&) = delete;
 
                 const Symbol *insert_function(
                     const std::string &name,
@@ -142,6 +144,9 @@ namespace Alpha
                 const Symbol *lookup_global(const std::string &name) const;
                 const Symbol *lookup_chain(const std::string &name, u32 scope) const;
                 const Symbol *lookup_local(const std::string &name, u32 scope) const;
+
+                void finalize_function_locals(const std::string &name, u32 scope, u32 local_variables);
+
                 void hide_scope_symbols(u32 scope) noexcept;
                 bool is_lib_function(const std::string &name) const;
                 const auto &symbols_per_scope() const { return symbols_per_scope_; }
@@ -158,6 +163,10 @@ namespace Alpha
                         requires std::is_same_v<SymbolKind, Variable> ||
                                  std::is_same_v<SymbolKind, Function>
                 const Symbol *insert_symbol(const std::string &name, u32 scope, Args &&...args);
+
+                template <typename Self>
+                static auto lookup_local_impl(Self &self, const std::string &name, u32 scope)
+                    -> decltype(&self.symbol_map_.begin()->second.front());
         };
 } // namespace Alpha
 #endif // SYMBOL_TABLE_HPP

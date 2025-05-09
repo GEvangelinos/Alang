@@ -3,11 +3,12 @@
 
 #include <vector>               // for vector
 #include "core/alpha_types.hpp" // for u32
+#include "utils/misc.hpp"
 
 namespace Alpha
 {
         // Classes defined here:
-        struct Location;        // IWYU pragma: keep
+        struct Location;       // IWYU pragma: keep
         struct LineRange;      // IWYU pragma: keep
         class LocationTracker; // IWYU pragma: keep
 
@@ -23,7 +24,7 @@ namespace Alpha
                 const u32 last_line;
         };
 
-        class LocationTracker
+        class LocationTracker : private Immobile
         {
         public:
                 LocationTracker(u32 max_valid_index);

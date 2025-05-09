@@ -37,7 +37,8 @@ namespace // (Anonymous)
                 }
         }; // namespace Loop
 
-        DEBUG_ALWAYS_INLINE void loopCtrlStmt__loopkeyword_impl(
+        DEBUG_ALWAYS_INLINE
+        void loopCtrlStmt__loopkeyword_impl(
             const ParseCtx &parse_ctx,
             const Location keyword_location,
             ErrorTracker &et,
@@ -51,7 +52,8 @@ namespace // (Anonymous)
                 et.report_error(CTError::Type::SEMANTIC, error, keyword_location);
         }
 
-        DEBUG_ALWAYS_INLINE bool reported_parameter_name_conflict(
+        DEBUG_ALWAYS_INLINE
+        bool reported_parameter_name_conflict(
             const SymbolTable &st,
             const u32 current_scope,
             const Parameter &parameter,
@@ -70,7 +72,11 @@ namespace // (Anonymous)
                 if (formal_symbol)
                 {
                         // Parameter should produce name conflicts only with themselves.
-                        DEBUG_SMART_ASSERT(formal_symbol->type == Symbol::Type::FORMAL);
+                        DEBUG_SMART_ASSERT(                                             //
+                            (dynamic_cast<const Variable *>(formal_symbol) != nullptr), //
+                            (formal_symbol->is_variable())                              //
+                        );
+
                         const std::string error = FMT::format("redefinition of parameter `{}`", parameter.name);
                         const std::string note = FMT::format("previous definition of `{}` here", parameter.name);
                         et.report_error(
@@ -135,28 +141,30 @@ namespace // (Anonymous)
             const Location id_location,
             const std::string &current_function_name,
             const Location current_function_location,
-            const Symbol *resolved_symbol,
+            const Symbol *found_symbol,
             ErrorTracker &et)
         {
                 using DT = Diagnostic::Type;
-                DEBUG_SMART_ASSERT(resolved_symbol != nullptr);
+                DEBUG_SMART_ASSERT(found_symbol != nullptr);
                 const std::string error = FMT::format("variable `{}` is not accessible in function `{}`",
                                                       id_name, current_function_name);
                 const std::string note1 = FMT::format("function `{}` declared here", current_function_name);
                 const std::string note2 = FMT::format("variable `{}` declared here", id_name);
                 et.report_error(CTError::Type::SEMANTIC, error, id_location,
                                 std::list<Diagnostic>{{DT::NOTE, note1, current_function_location},
-                                                      {DT::NOTE, note2, resolved_symbol->location}});
+                                                      {DT::NOTE, note2, found_symbol->location}});
         }
 
-        DEBUG_ALWAYS_INLINE bool is_modifiable_lvalue(const Symbol *const lvalue)
+        DEBUG_ALWAYS_INLINE
+        bool is_modifiable_lvalue(const Symbol *const lvalue)
         {
                 if (lvalue == nullptr) // nullptr implies runtime-evaluated lvalue (e.g. member access)
                         return true;
                 return lvalue->is_variable();
         }
 
-        DEBUG_ALWAYS_INLINE void term__lvalue_op(
+        DEBUG_ALWAYS_INLINE
+        void term__lvalue_op(
             const std::string &op_name,
             const Symbol *lvalue,
             const Location term_location,
@@ -351,10 +359,7 @@ void funcSignature__funcPrefix_funcArgList(SymbolTable &st, ParseCtx &parse_ctx,
                     parse_ctx.function_ctx_handler.function_parameters(),
                     parse_ctx.function_ctx_handler.last_function_location);
 
-        parse_ctx.function_ctx_handler.enter_function(
-            parse_ctx.function_ctx_handler.last_function_id,
-            parse_ctx.function_ctx_handler.last_function_location,
-            parse_ctx.scope_handler);
+        parse_ctx.function_ctx_handler.enter_function(parse_ctx.scope_handler);
 
         insert_function_parameters(st, parse_ctx, et);
 }
