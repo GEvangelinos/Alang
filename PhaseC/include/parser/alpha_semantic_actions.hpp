@@ -9,35 +9,17 @@
 
 using namespace Alpha;
 
-void loopCtrlStmt__break(
-    const ParseCtx &parse_ctx,
-    Location break_location,
-    ErrorTracker &et);
+void loopCtrlStmt__break(const ParseCtx &parse_ctx, Location break_location, ErrorTracker &et);
 
-void loopCtrlStmt__continue(
-    const ParseCtx &parse_ctx,
-    Location continue_location,
-    ErrorTracker &et);
+void loopCtrlStmt__continue(const ParseCtx &parse_ctx, Location continue_location, ErrorTracker &et);
 
-void term__inc_lvalue(
-    const Symbol *lvalue,
-    Location term_location,
-    ErrorTracker &et);
+void term__inc_lvalue(const Symbol *lvalue, Location term_location, ErrorTracker &et);
 
-void term__lvalue_inc(
-    const Symbol *lvalue,
-    Location term_location,
-    ErrorTracker &et);
+void term__lvalue_inc(const Symbol *lvalue, Location term_location, ErrorTracker &et);
 
-void term__dec_lvalue(
-    const Symbol *lvalue,
-    Location term_location,
-    ErrorTracker &et);
+void term__dec_lvalue(const Symbol *lvalue, Location term_location, ErrorTracker &et);
 
-void term__lvalue_dec(
-    const Symbol *lvalue,
-    Location term_location,
-    ErrorTracker &et);
+void term__lvalue_dec(const Symbol *lvalue, Location term_location, ErrorTracker &et);
 
 void assignExpr__lvalue_assign_expr(
     const Symbol *lvalue,
@@ -69,38 +51,21 @@ void lvalue__global_id(
 
 void lvalue__member(const Symbol *&lvalue) noexcept;
 
-void block__lbrace(ParseCtx &parse_ctx) noexcept;
+void blockOpen__lbrace(ParseCtx &parse_ctx) noexcept;
 
-void block__lbrace_multiStmt_rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept;
+void blockClose__rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept;
 
-void block__lbrace_rbrace(SymbolTable &st, ParseCtx &parse_ctx);
+void funcPrefix__function(ParseCtx &parse_ctx, Location anonymous_location);
 
-void funcdef__function_id(
-    ParseCtx &parse_ctx,
-    const std::string &id_name,
-    Location id_location);
+void funcPrefix__function_id(ParseCtx &parse_ctx, const std::string &id_name, Location id_location);
 
-void funcDef__function_id_lparen_funcArgList_rparen(
-    SymbolTable &st,
-    ParseCtx &parse_ctx,
-    ErrorTracker &et);
+void funcSignature__funcPrefix_funcArgList(SymbolTable &st, ParseCtx &parse_ctx, ErrorTracker &et);
 
-void funcDef__function_id_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept;
-
-void funcDef__function_lparen_funcArgList_rparen(
-    SymbolTable &st,
-    ParseCtx &parse_ctx,
-    Location function_location,
-    ErrorTracker &et);
-
-void funcDef__function_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept;
+void funcDef__funcSignature_block(ParseCtx &parse_ctx) noexcept;
 
 void const__stringliteral(char *&string_literal_addr);
 
-void funcArgs__id(
-    ParseCtx &parse_ctx,
-    const std::string &id_name,
-    Location id_location);
+void funcArgs__id(ParseCtx &parse_ctx, const std::string &id_name, Location id_location);
 
 void whileStmt__whileHeader(ParseCtx &parse_ctx) noexcept;
 
@@ -110,9 +75,6 @@ void forStmt__forHeader(ParseCtx &parse_ctx) noexcept;
 
 void forStmt__forHeader_stmt(ParseCtx &parse_ctx) noexcept;
 
-void funcCtrlStmt__return(
-    const ParseCtx &parse_ctx,
-    Location return_location,
-    ErrorTracker &et);
+void funcCtrlStmt__return(const ParseCtx &parse_ctx, Location return_location, ErrorTracker &et);
 
 #endif /* SEMANTIC_ACTIONS_HPP */

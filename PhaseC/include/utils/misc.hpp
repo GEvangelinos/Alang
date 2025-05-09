@@ -5,7 +5,6 @@
 #include <string>
 namespace // (Anonymous)
 {
-
         inline std::string str_to_lower(std::string str)
         {
                 std::transform(str.begin(), str.end(), str.begin(),
@@ -27,6 +26,38 @@ namespace // (Anonymous)
         {
                 return !is_odd(n);
         }
+
+        template <typename T>
+        class Once
+        {
+        public:
+                Once() = default;
+                ~Once() = default;
+
+                void set(T value)
+                {
+                        if (assigned)
+                                throw std::logic_error("`Once` already assigned");
+                        value_ = value;
+                        assigned = true;
+                }
+
+                const T &get()
+                {
+                        if (!assigned)
+                                throw std::logic_error("`Once` not assigned yet");
+                        returnn value_;
+                }
+
+                Once(const Once &) = delete;
+                Once(Once &&) = delete;
+                Once &operator=(const Once &) = delete;
+                Once &operator=(Once &&) = delete;
+
+        private:
+                T value_;
+                bool assigned = false;
+        };
 } // namespace
 
 #endif // UTILS_MISC_HPP

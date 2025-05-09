@@ -32,8 +32,8 @@ namespace Alpha
                                 // User of `insert_FUNCTION` should do lookup_first.
                                 DEBUG_SMART_ASSERT(symbol_it->scope != scope || !symbol_it->is_active());
                                 if (symbol_it->scope >= scope) // A bug with a bugged, bug patch lived here :D.
-                                        break;                 // This comments pays its respects to Savvidis for teaching defensive
-                                                               // programming.
+                                        break;                 // This comments pays its respects to
+                                                               // Savvidis for teaching defensive programming.
                         }
                         return symbol_it;
                 }
@@ -63,7 +63,10 @@ namespace Alpha
         template <typename SymbolKind, typename... Args>
                 requires std::is_same_v<SymbolKind, Variable> ||
                          std::is_same_v<SymbolKind, Function>
-        const Symbol *SymbolTable::insert_symbol(const std::string &name, u32 scope, Args &&...args)
+        DEBUG_ALWAYS_INLINE const Symbol *SymbolTable::insert_symbol(
+            const std::string &name,
+            u32 scope,
+            Args &&...args)
         {
                 DEBUG_SMART_ASSERT(name.size() > 0);
 
@@ -94,22 +97,25 @@ namespace Alpha
                 // Load library functions
                 for (SymbolName name : k_library_function_names)
                 {
-                        insert_function(name, Symbol::Type::LIBRARY_FUNCTION, k_global_scope,
-                                        k_empty_parameter_list, k_no_location);
+                        insert_symbol<Function>(
+                            name,
+                            k_global_scope,
+                            Symbol::Type::LIBRARY_FUNCTION,
+                            k_empty_parameter_list,
+                            k_no_location);
                         library_function_set_.insert(name);
                 }
         }
 
+        // Used for inserting PROGRAM_FUNCTIONS (USER FUNCNTIONS)
         const Symbol *SymbolTable::insert_function(
             const std::string &name,
-            Symbol::Type type,
             u32 scope,
             const std::list<Parameter> &parameter_list,
             Location location)
         {
-                DEBUG_SMART_ASSERT(type == Symbol::Type::LIBRARY_FUNCTION ||
-                                   type == Symbol::Type::PROGRAM_FUNCTION);
-                return insert_symbol<Function>(name, scope, type, parameter_list, location);
+                return insert_symbol<Function>(
+                    name, scope, Symbol::Type::PROGRAM_FUNCTION, parameter_list, location);
         }
 
         const Symbol *SymbolTable::insert_variable(

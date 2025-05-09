@@ -24,7 +24,7 @@ namespace // (Anonymous)
                         CONTINUE,
                 };
 
-                std::string to_string(Keyword keyword) noexcept
+                std::string to_string(const Keyword keyword) noexcept
                 {
                         switch (keyword)
                         {
@@ -37,11 +37,11 @@ namespace // (Anonymous)
                 }
         }; // namespace Loop
 
-        void loopCtrlStmt__loopkeyword_impl(
+        DEBUG_ALWAYS_INLINE void loopCtrlStmt__loopkeyword_impl(
             const ParseCtx &parse_ctx,
-            Location keyword_location,
+            const Location keyword_location,
             ErrorTracker &et,
-            Loop::Keyword keyword)
+            const Loop::Keyword keyword)
         {
                 if (parse_ctx.function_ctx_handler.loop_depth() > 0)
                         return;
@@ -53,7 +53,7 @@ namespace // (Anonymous)
 
         DEBUG_ALWAYS_INLINE bool reported_parameter_name_conflict(
             const SymbolTable &st,
-            u32 current_scope,
+            const u32 current_scope,
             const Parameter &parameter,
             ErrorTracker &et)
         {
@@ -95,9 +95,9 @@ namespace // (Anonymous)
 
         bool reported_function_name_conflict(
             SymbolTable &st,
-            u32 current_scope,
+            const u32 current_scope,
             const std::string function_name,
-            Location id_location,
+            const Location id_location,
             ErrorTracker &et)
         {
                 if (st.is_lib_function(function_name))
@@ -132,9 +132,9 @@ namespace // (Anonymous)
 
         void report_out_of_scope_variable(
             const std::string &id_name,
-            Location id_location,
+            const Location id_location,
             const std::string &current_function_name,
-            Location current_function_location,
+            const Location current_function_location,
             const Symbol *resolved_symbol,
             ErrorTracker &et)
         {
@@ -156,10 +156,10 @@ namespace // (Anonymous)
                 return lvalue->is_variable();
         }
 
-        void term__lvalue_op(
+        DEBUG_ALWAYS_INLINE void term__lvalue_op(
             const std::string &op_name,
             const Symbol *lvalue,
-            Location term_location,
+            const Location term_location,
             ErrorTracker &et)
         {
                 // lvalue is valid to be nullptr (runtime evaluation).
@@ -175,40 +175,39 @@ namespace // (Anonymous)
 // +-----------------------------------------------------------------+
 // |---------------- SEMANTIC_ACTION_FUNCTIONS_BELOW ----------------|
 // +-----------------------------------------------------------------+
-void loopCtrlStmt__break(const ParseCtx &parse_ctx, Location break_location, ErrorTracker &et)
+void loopCtrlStmt__break(const ParseCtx &parse_ctx, const Location break_location, ErrorTracker &et)
 {
         loopCtrlStmt__loopkeyword_impl(parse_ctx, break_location, et, Loop::Keyword::BREAK);
 }
 
-void loopCtrlStmt__continue(const ParseCtx &parse_ctx, Location continue_location,
-                            ErrorTracker &et)
+void loopCtrlStmt__continue(const ParseCtx &parse_ctx, const Location continue_location, ErrorTracker &et)
 {
         loopCtrlStmt__loopkeyword_impl(parse_ctx, continue_location, et, Loop::Keyword::CONTINUE);
 }
 
-void term__inc_lvalue(const Symbol *lvalue, Location term_location, ErrorTracker &et)
+void term__inc_lvalue(const Symbol *lvalue, const Location term_location, ErrorTracker &et)
 {
         term__lvalue_op("increment", lvalue, term_location, et);
 }
 
-void term__lvalue_inc(const Symbol *lvalue, Location term_location, ErrorTracker &et)
+void term__lvalue_inc(const Symbol *lvalue, const Location term_location, ErrorTracker &et)
 {
         term__lvalue_op("increment", lvalue, term_location, et);
 }
 
-void term__dec_lvalue(const Symbol *lvalue, Location term_location, ErrorTracker &et)
+void term__dec_lvalue(const Symbol *lvalue, const Location term_location, ErrorTracker &et)
 {
         term__lvalue_op("decrement", lvalue, term_location, et);
 }
 
-void term__lvalue_dec(const Symbol *lvalue, Location term_location, ErrorTracker &et)
+void term__lvalue_dec(const Symbol *lvalue, const Location term_location, ErrorTracker &et)
 {
         term__lvalue_op("decrement", lvalue, term_location, et);
 }
 
 void assignExpr__lvalue_assign_expr(
     const Symbol *lvalue,
-    Location assign_location,
+    const Location assign_location,
     ErrorTracker &et)
 {
         if (is_modifiable_lvalue(lvalue))
@@ -234,7 +233,7 @@ void lvalue__id(
     SymbolTable &st,
     const ParseCtx &parse_ctx,
     const std::string &id_name,
-    Location id_location,
+    const Location id_location,
     const Symbol *&lvalue,
     ErrorTracker &et)
 {
@@ -265,7 +264,7 @@ void lvalue__local_id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
     const std::string &id_name,
-    Location id_location,
+    const Location id_location,
     const Symbol *&lvalue,
     ErrorTracker &et)
 {
@@ -292,7 +291,7 @@ void lvalue__local_id(
 void lvalue__global_id(
     SymbolTable &st,
     const std::string &id_name,
-    Location id_location,
+    const Location id_location,
     const Symbol *&lvalue,
     ErrorTracker &et)
 {
@@ -308,29 +307,34 @@ void lvalue__member(const Symbol *&lvalue) noexcept
         lvalue = nullptr; // We can not resolve members at compile time.
 }
 
-void block__lbrace(ParseCtx &parse_ctx) noexcept
+void blockOpen__lbrace(ParseCtx &parse_ctx) noexcept
 {
         parse_ctx.scope_handler.enter_scope();
 }
 
-void block__lbrace_multiStmt_rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept
+void blockClose__rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept
 {
         st.hide_scope_symbols(parse_ctx.scope_handler.scope());
         parse_ctx.scope_handler.exit_scope();
 }
 
-void block__lbrace_rbrace(SymbolTable &st, ParseCtx &parse_ctx)
+void funcPrefix__function(ParseCtx &parse_ctx, const Location anonymous_location)
 {
-        block__lbrace_multiStmt_rbrace(st, parse_ctx);
+        parse_ctx.function_ctx_handler.last_function_id =
+            std::string(k_private_anonymous_prefix) +
+            std::to_string(parse_ctx.function_ctx_handler.anonymous_counter());
+        parse_ctx.function_ctx_handler.last_function_location = anonymous_location;
+        parse_ctx.function_ctx_handler.last_function_is_anonymous = true;
 }
 
-void funcdef__function_id(ParseCtx &parse_ctx, const std::string &id_name, Location id_location)
+void funcPrefix__function_id(ParseCtx &parse_ctx, const std::string &id_name, Location id_location)
 {
         parse_ctx.function_ctx_handler.last_function_id = id_name;
         parse_ctx.function_ctx_handler.last_function_location = id_location;
+        parse_ctx.function_ctx_handler.last_function_is_anonymous = false;
 }
 
-void funcDef__function_id_lparen_funcArgList_rparen(SymbolTable &st, ParseCtx &parse_ctx, ErrorTracker &et)
+void funcSignature__funcPrefix_funcArgList(SymbolTable &st, ParseCtx &parse_ctx, ErrorTracker &et)
 {
 
         bool conflicting_name = reported_function_name_conflict(
@@ -343,7 +347,6 @@ void funcDef__function_id_lparen_funcArgList_rparen(SymbolTable &st, ParseCtx &p
         if (!conflicting_name)
                 st.insert_function(
                     parse_ctx.function_ctx_handler.last_function_id,
-                    Symbol::Type::PROGRAM_FUNCTION,
                     parse_ctx.scope_handler.scope(),
                     parse_ctx.function_ctx_handler.function_parameters(),
                     parse_ctx.function_ctx_handler.last_function_location);
@@ -356,37 +359,7 @@ void funcDef__function_id_lparen_funcArgList_rparen(SymbolTable &st, ParseCtx &p
         insert_function_parameters(st, parse_ctx, et);
 }
 
-void funcDef__function_id_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept
-{
-        parse_ctx.function_ctx_handler.exit_function();
-}
-
-void funcDef__function_lparen_funcArgList_rparen(
-    SymbolTable &st,
-    ParseCtx &parse_ctx,
-    Location anonymous_location,
-    ErrorTracker &et)
-{
-        std::string anonymous_name(
-            k_private_anonymous_prefix +
-            std::to_string(parse_ctx.function_ctx_handler.anonymous_counter++));
-
-        st.insert_function(
-            anonymous_name,
-            Symbol::Type::VARIABLE,
-            parse_ctx.scope_handler.scope(),
-            parse_ctx.function_ctx_handler.function_parameters(),
-            anonymous_location);
-
-        parse_ctx.function_ctx_handler.enter_function(
-            anonymous_name,
-            anonymous_location,
-            parse_ctx.scope_handler);
-
-        insert_function_parameters(st, parse_ctx, et);
-}
-
-void funcDef__function_lparen_funcArgList_rparen_block(ParseCtx &parse_ctx) noexcept
+void funcDef__funcSignature_block(ParseCtx &parse_ctx) noexcept
 {
         parse_ctx.function_ctx_handler.exit_function();
 }
@@ -397,7 +370,7 @@ void const__stringliteral(char *&string_literal)
         string_literal = nullptr;
 }
 
-void funcArgs__id(ParseCtx &parse_ctx, const std::string &id_name, Location id_location)
+void funcArgs__id(ParseCtx &parse_ctx, const std::string &id_name, const Location id_location)
 {
         parse_ctx.function_ctx_handler.add_function_parameter(id_name, id_location);
 }
@@ -422,7 +395,10 @@ void forStmt__forHeader_stmt(ParseCtx &parse_ctx) noexcept
         parse_ctx.function_ctx_handler.exit_loop();
 }
 
-void funcCtrlStmt__return(const ParseCtx &parse_ctx, Location return_location, ErrorTracker &et)
+void funcCtrlStmt__return(
+    const ParseCtx &parse_ctx,
+    const Location return_location,
+    ErrorTracker &et)
 {
         if (parse_ctx.function_ctx_handler.function_nesting_depth() > 0)
                 return;

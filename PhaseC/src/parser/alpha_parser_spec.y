@@ -273,22 +273,42 @@ indexedElem:
   '{' expr ':' expr '}'
 ;
 
+blockOpen:
+  '{' { blockOpen__lbrace(parse_ctx); }
+;
+
+blockClose:
+  '}' { blockClose__rbrace(symbol_table, parse_ctx); }
+;
+
 block:
-  '{' { block__lbrace(parse_ctx); } multiStmt  '}' { block__lbrace_multiStmt_rbrace(symbol_table ,parse_ctx); }
-| '{' { block__lbrace(parse_ctx); }            '}' { block__lbrace_rbrace(symbol_table, parse_ctx); }
+  blockOpen multiStmt  blockClose
+| blockOpen blockClose
+;
+
+
+funcPrefix:
+  FUNCTION      { funcPrefix__function(parse_ctx, @FUNCTION); }
+| FUNCTION ID   { funcPrefix__function_id(parse_ctx, $ID, @ID); }
+;
+
+funcArgs:
+  ID { funcArgs__id(parse_ctx, $ID, @ID); }
+| ID { funcArgs__id(parse_ctx, $ID, @ID); } ',' funcArgs
+;
+
+funcArgList:
+  '(' /*Void*/ ')'
+| '(' funcArgs ')'
+;
+
+funcSignature:
+  funcPrefix  funcArgList
+  { funcSignature__funcPrefix_funcArgList(symbol_table, parse_ctx, error_tracker); }
 ;
 
 funcDef:
-  FUNCTION ID 
-  { funcdef__function_id(parse_ctx, $ID, @ID); }
-  '(' funcArgList ')'
-  { funcDef__function_id_lparen_funcArgList_rparen(symbol_table, parse_ctx, error_tracker); }
-  block
-  { funcDef__function_id_lparen_funcArgList_rparen_block(parse_ctx); }
-| FUNCTION '(' funcArgList ')'
-  { funcDef__function_lparen_funcArgList_rparen(symbol_table, parse_ctx, @FUNCTION, error_tracker); }
-  block
-  { funcDef__function_lparen_funcArgList_rparen_block(parse_ctx); }
+  funcSignature block { funcDef__funcSignature_block(parse_ctx); }
 ;
 
 const:
@@ -300,15 +320,6 @@ const:
 | FALSE
 ;
 
-funcArgs:
-  ID { funcArgs__id(parse_ctx, $ID, @ID); }
-| ID { funcArgs__id(parse_ctx, $ID, @ID); } ',' funcArgs
-;
-
-funcArgList:
-  // (empty)
-| funcArgs
-;
 
 ifStmt:
   IF '(' expr ')' stmt %prec THEN

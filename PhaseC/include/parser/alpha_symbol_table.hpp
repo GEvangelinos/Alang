@@ -6,14 +6,15 @@
 #include "core/alpha_macros.hpp"   // for DEBUG_ALWAYS_INLINE
 #include "core/alpha_types.hpp"    // for u32
 #include "utils/smart_assert.h"    //
-#include <initializer_list>        // for initializer_list
-#include <list>                    // for list
-#include <string>                  // for basic_string, string, hash, opera...
-#include <string_view>             // for string_view
-#include <type_traits>             // for is_same_v
-#include <unordered_map>           // for unordered_map
-#include <unordered_set>           // for unordered_set
-#include <vector>                  // for vector
+#include "utils/misc.hpp"
+#include <initializer_list> // for initializer_list
+#include <list>             // for list
+#include <string>           // for basic_string, string, hash, opera...
+#include <string_view>      // for string_view
+#include <type_traits>      // for is_same_v
+#include <unordered_map>    // for unordered_map
+#include <unordered_set>    // for unordered_set
+#include <vector>           // for vector
 
 namespace Alpha
 {
@@ -60,7 +61,10 @@ namespace Alpha
 
         protected:
                 Symbol(const std::string &name, u32 scope, Type type, Location location) noexcept
-                    : name(name), scope(scope), type(type), location(location)
+                    : name(name),
+                      scope(scope),
+                      type(type),
+                      location(location)
                 {
                 }
 
@@ -87,7 +91,9 @@ namespace Alpha
                 const u32 offset;
 
                 Variable(const std::string &name, u32 scope, Space space, u32 offset, Location location)
-                    : Symbol(name, scope, Symbol::Type::VARIABLE, location), space(space), offset(offset)
+                    : Symbol(name, scope, Symbol::Type::VARIABLE, location),
+                      space(space),
+                      offset(offset)
                 {
                 }
         };
@@ -102,6 +108,9 @@ namespace Alpha
                 {
                         DEBUG_SMART_ASSERT(type != Symbol::Type::VARIABLE);
                 }
+
+        private:
+                Once<u32> local_variables;
         };
 
         class SymbolTable
@@ -119,7 +128,6 @@ namespace Alpha
 
                 const Symbol *insert_function(
                     const std::string &name,
-                    Symbol::Type type,
                     u32 scope,
                     const std::list<Parameter> &parameter_list,
                     Location location);
