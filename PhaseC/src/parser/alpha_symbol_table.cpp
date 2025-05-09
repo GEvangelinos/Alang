@@ -131,6 +131,9 @@ namespace Alpha
                             k_empty_parameter_list,
                             k_no_location);
                         library_function_set_.insert(name);
+
+                        // Library functions require no back-patching, at least till now.
+                        backpatch_function_locals(name, k_global_scope, k_libfunc_local_vars);
                 }
         }
 
@@ -189,7 +192,7 @@ namespace Alpha
                 return lookup_local_impl(*this, symbol_name, scope);
         }
 
-        void SymbolTable::finalize_function_locals(
+        void SymbolTable::backpatch_function_locals(
             const std::string &name,
             u32 scope,
             u32 local_variables)

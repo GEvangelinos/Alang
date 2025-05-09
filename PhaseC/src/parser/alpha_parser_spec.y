@@ -308,7 +308,7 @@ funcSignature:
 ;
 
 funcDef:
-  funcSignature block { funcDef__funcSignature_block(parse_ctx); }
+  funcSignature block { funcDef__funcSignature_block(symbol_table, parse_ctx); }
 ;
 
 const:

@@ -3,7 +3,7 @@
 
 #include "_parser_common.hpp"      // for Parameter
 #include "core/alpha_location.hpp" // for Location
-#include "core/alpha_macros.hpp"   // for DEBUG_ALWAYS_INLINE
+#include "utils/misc.hpp"          // for DEBUG_ALWAYS_INLINE
 #include "core/alpha_types.hpp"    // for u32
 #include "utils/smart_assert.h"    //
 #include "utils/misc.hpp"
@@ -145,7 +145,7 @@ namespace Alpha
                 const Symbol *lookup_chain(const std::string &name, u32 scope) const;
                 const Symbol *lookup_local(const std::string &name, u32 scope) const;
 
-                void finalize_function_locals(const std::string &name, u32 scope, u32 local_variables);
+                void backpatch_function_locals(const std::string &name, u32 scope, u32 local_variables);
 
                 void hide_scope_symbols(u32 scope) noexcept;
                 bool is_lib_function(const std::string &name) const;

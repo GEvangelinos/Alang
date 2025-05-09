@@ -13,7 +13,7 @@
 #include "_parser_common.hpp"
 #include "core/alpha_ir.hpp"
 #include "core/alpha_konstants.hpp"
-#include "core/alpha_macros.hpp"
+#include "utils/misc.hpp"
 #include "core/alpha_types.hpp"
 #include "utils/smart_assert.h"
 #include <limits>
@@ -25,7 +25,7 @@ namespace Alpha
 {
         // Classes define here:
         class ToggleSwitch;
-        class FunctionDataFrame;
+        struct FunctionDataFrame;
         class SpaceHandler;
         class ScopeHandler;
         class FunctionCtxHandler;
@@ -50,33 +50,6 @@ namespace Alpha
 
         private:
                 bool state_ = false; // Initially the switch is off.
-        };
-
-        class FunctionDataFrame
-        {
-        public:
-                const std::string name;
-                const u32 scope;
-                const Location location;
-
-                FunctionDataFrame(const std::string &name, u32 scope, Location location)
-                    : name(name), scope(scope), location(location)
-                {
-                }
-
-                DEBUG_ALWAYS_INLINE u32 loop_counter() const noexcept { return loop_counter_; }
-                DEBUG_ALWAYS_INLINE void loop_counter_inc() noexcept { ++loop_counter_; }
-                DEBUG_ALWAYS_INLINE void loop_counter_dec() noexcept { --loop_counter_; }
-
-                DEBUG_ALWAYS_INLINE u32 locals_counter() const noexcept { return locals_counter_; }
-                DEBUG_ALWAYS_INLINE void locals_counter_inc() noexcept { ++locals_counter_; }
-
-                // There is no locals_counter_dec() because local variables are only added.
-                // When a function ends, entire Function's data-frame (and locals_counter) is discarded at once.
-
-        private:
-                u32 loop_counter_ = 0;
-                u32 locals_counter_ = 0;
         };
 
         class SpaceHandler : private Immobile
@@ -120,6 +93,14 @@ namespace Alpha
         class FunctionCtxHandler : private Immobile
         {
         public:
+                struct FunctionBackpatchInfo
+                {
+                        const std::string name;
+                        const u32 scope;
+                        const u32 locals;
+                        const bool backpatch_locals;
+                };
+
                 std::string last_function_id;
                 Location last_function_location = k_no_location;
                 bool last_function_is_anonymous = false;
@@ -127,8 +108,8 @@ namespace Alpha
                 FunctionCtxHandler();
                 ~FunctionCtxHandler();
 
-                void enter_function(ScopeHandler &scope_handler);
-                u32 exit_function() noexcept;
+                void enter_function(ScopeHandler &scope_handler, bool backpatch_locals);
+                FunctionBackpatchInfo exit_function() noexcept;
 
                 u32 function_nesting_depth() const noexcept;
                 u32 function_scope() const noexcept;
@@ -147,9 +128,18 @@ namespace Alpha
                 DEBUG_ALWAYS_INLINE u32 function_counter() { return function_counter_; }
 
                 void add_local();
-                u32 locals_count();
 
         private:
+                struct FunctionDataFrame
+                {
+                        const std::string name;
+                        const u32 scope;
+                        const Location location;
+                        const bool backpatch_locals; // If not valid back-patching local_var count is skipped.
+
+                        u32 loop_nesting_counter = 0;
+                        u32 local_variables_counter = 0;
+                };
                 std::stack<FunctionDataFrame> frame_stack_;
                 std::list<Parameter> function_parameters_;
                 u32 anonymous_counter_ = 0;
@@ -296,10 +286,12 @@ namespace Alpha
                 // We push a stackframe, for loops that might occur outside
                 // functions. So every frame corresponds to a function except the
                 // first.
-                frame_stack_.emplace(FunctionDataFrame(
-                    k_global_data_frame_name,
-                    k_global_scope,
-                    k_no_location));
+                frame_stack_.emplace(FunctionDataFrame{
+                    .name = k_global_data_frame_name,
+                    .scope = k_global_scope,
+                    .location = k_no_location,
+                    .backpatch_locals = false // There is no function to backpatch its local var counter.
+                });
         }
 
         inline FunctionCtxHandler::~FunctionCtxHandler()
@@ -310,14 +302,19 @@ namespace Alpha
                 );
         }
 
-        inline void FunctionCtxHandler::enter_function(ScopeHandler &scope_handler)
+        inline void FunctionCtxHandler::enter_function(
+            ScopeHandler &scope_handler,
+            bool backpatch_locals)
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
 
-                frame_stack_.emplace(FunctionDataFrame(
-                    last_function_id,
-                    scope_handler.scope(),
-                    last_function_location));
+                frame_stack_.emplace(FunctionDataFrame{
+                    .name = last_function_id,
+                    .scope = scope_handler.scope(),
+                    .location = last_function_location,
+                    .backpatch_locals = backpatch_locals //
+                });
+
                 scope_handler.enter_scope();
                 scope_handler.skip_next_scope_increment();
 
@@ -326,15 +323,22 @@ namespace Alpha
         }
 
         // Returns the number of locals of the current function.
-        inline u32 FunctionCtxHandler::exit_function() noexcept
+        inline FunctionCtxHandler::FunctionBackpatchInfo
+        FunctionCtxHandler::exit_function() noexcept
         {
                 // A frame always exist for loops outside functions.
                 DEBUG_SMART_ASSERT(frame_stack_.size() > k_global_data_frame_count);
                 // All loops must be closed before exiting function.
-                DEBUG_SMART_ASSERT(frame_stack_.top().loop_counter() == 0);
-                u32 locals = frame_stack_.top().locals_counter();
+                DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_counter == 0);
+
+                FunctionDataFrame top_frame = std::move(frame_stack_.top());
                 frame_stack_.pop();
-                return locals;
+                return {
+                    .name = top_frame.name,
+                    .scope = top_frame.scope,
+                    .locals = top_frame.local_variables_counter,
+                    .backpatch_locals = top_frame.backpatch_locals //
+                };
         }
 
         inline u32 FunctionCtxHandler::function_nesting_depth() const noexcept
@@ -363,25 +367,26 @@ namespace Alpha
         inline void FunctionCtxHandler::enter_loop() noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
-                DEBUG_SMART_ASSERT(frame_stack_.top().loop_counter() < k_max_loop_nesting);
-                frame_stack_.top().loop_counter_inc();
+                DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_counter < k_max_loop_nesting);
+                ++frame_stack_.top().loop_nesting_counter;
         }
 
         inline void FunctionCtxHandler::exit_loop() noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
-                DEBUG_SMART_ASSERT(frame_stack_.top().loop_counter() > 0);
-                frame_stack_.top().loop_counter_dec();
+                DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_counter > 0);
+                --frame_stack_.top().loop_nesting_counter;
         }
 
         inline u32 FunctionCtxHandler::loop_depth() const noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
-                return frame_stack_.top().loop_counter();
+                return frame_stack_.top().loop_nesting_counter;
         }
 
-        inline void FunctionCtxHandler::add_function_parameter(const std::string &name,
-                                                               Location location)
+        inline void FunctionCtxHandler::add_function_parameter(
+            const std::string &name,
+            Location location)
         {
                 function_parameters_.emplace_back(name, location);
         }
@@ -404,12 +409,7 @@ namespace Alpha
 
         inline void FunctionCtxHandler::add_local()
         {
-                frame_stack_.top().locals_counter_inc();
-        }
-
-        inline u32 FunctionCtxHandler::locals_count()
-        {
-                return frame_stack_.top().locals_counter();
+                ++frame_stack_.top().local_variables_counter;
         }
 
         inline std::string TempGenerator::new_temp()

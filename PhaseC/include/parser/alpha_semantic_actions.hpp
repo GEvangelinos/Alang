@@ -61,7 +61,7 @@ void funcPrefix__function_id(ParseCtx &parse_ctx, const std::string &id_name, Lo
 
 void funcSignature__funcPrefix_funcArgList(SymbolTable &st, ParseCtx &parse_ctx, ErrorTracker &et);
 
-void funcDef__funcSignature_block(ParseCtx &parse_ctx) noexcept;
+void funcDef__funcSignature_block(SymbolTable &st, ParseCtx &parse_ctx) noexcept;
 
 void const__stringliteral(char *&string_literal_addr);
 

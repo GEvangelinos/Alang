@@ -3,8 +3,8 @@
 #include <cstring>   // for size_t, strchr, strlen
 #include <sstream>   // for basic_stringstream, basic_ostream
 #include <utility>   // for move
-#include "core/alpha_macros.hpp"
-#include "core/alpha_macros.hpp"
+#include "utils/misc.hpp"
+#include "utils/misc.hpp"
 #include "core/alpha_location.hpp"  // for Location, LocationTracker
 #include "utils/cli_color.h"        // for COLOR_ASCII_BOLD_DEFAULT, SGR_RESET
 #include "utils/format_adapter.hpp" // for format, FMT

@@ -5,7 +5,7 @@
 #include "core/alpha_error.hpp"            // for ErrorTracker, Diagnostic
 #include "core/alpha_konstants.hpp"        // for k_global_scope, k_public_...
 #include "core/alpha_location.hpp"         // for Location
-#include "core/alpha_macros.hpp"           // for DEBUG_ALWAYS_INLINE
+#include "utils/misc.hpp"                  // for DEBUG_ALWAYS_INLINE
 #include "core/alpha_types.hpp"            // for u32
 #include "parser/_parser_common.hpp"       // for Parameter
 #include "parser/alpha_parser_context.hpp" // for ParseCtx
@@ -342,6 +342,13 @@ void funcPrefix__function_id(ParseCtx &parse_ctx, const std::string &id_name, Lo
         parse_ctx.function_ctx_handler.last_function_is_anonymous = false;
 }
 
+/// Handles a function signature’s prefix + argument list.
+///
+/// If a name conflict is detected, we still need to call
+/// enter_function() (to keep our frame‐stack balanced), but
+/// we must *not* back-patch the local-variable count or we
+/// ’ll end up polluting the original function’s frame with
+/// locals from the redefinition.
 void funcSignature__funcPrefix_funcArgList(SymbolTable &st, ParseCtx &parse_ctx, ErrorTracker &et)
 {
 
@@ -359,14 +366,20 @@ void funcSignature__funcPrefix_funcArgList(SymbolTable &st, ParseCtx &parse_ctx,
                     parse_ctx.function_ctx_handler.function_parameters(),
                     parse_ctx.function_ctx_handler.last_function_location);
 
-        parse_ctx.function_ctx_handler.enter_function(parse_ctx.scope_handler);
+        // If this function name already existed in this scope,
+        // we skip back-patching to avoid contaminating the
+        // original function’s local count.
+        const bool backpatch_locals = !conflicting_name;
+        parse_ctx.function_ctx_handler.enter_function(parse_ctx.scope_handler, backpatch_locals);
 
         insert_function_parameters(st, parse_ctx, et);
 }
 
-void funcDef__funcSignature_block(ParseCtx &parse_ctx) noexcept
+void funcDef__funcSignature_block(SymbolTable &st, ParseCtx &parse_ctx) noexcept
 {
-        parse_ctx.function_ctx_handler.exit_function();
+        auto fbi = parse_ctx.function_ctx_handler.exit_function();
+        if (fbi.backpatch_locals)
+                st.backpatch_function_locals(fbi.name, fbi.scope, fbi.locals);
 }
 
 void const__stringliteral(char *&string_literal)
