@@ -30,10 +30,10 @@ namespace Alpha
                         {
                                 // Same scope and active symbol before insert is error
                                 // User of `insert_FUNCTION` should do lookup_first.
-                                DEBUG_SMART_ASSERT(symbol_it->scope != scope || !symbol_it->is_active());
-                                if (symbol_it->scope >= scope) // A bug with a bugged, bug patch lived here :D.
-                                        break;                 // This comments pays its respects to
-                                                               // Savvidis for teaching defensive programming.
+                                DEBUG_SMART_ASSERT((*symbol_it)->scope != scope || !(*symbol_it)->is_active());
+                                if ((*symbol_it)->scope >= scope) // A bug with a bugged, bug patch lived here :D.
+                                        break;                    // This comments pays its respects to
+                                                                  // Savvidis for teaching defensive programming.
                         }
                         return symbol_it;
                 }
@@ -74,15 +74,14 @@ namespace Alpha
                 auto &symbol_name_ref = symbol_map_it->first;
                 auto &synonym_symbols = symbol_map_it->second;
                 auto symbol_it = find_insert_position(synonym_symbols, scope);
-                SymbolKind new_symbol(symbol_name_ref, scope, std::forward<Args>(args)...);
-                Symbol *symbol_ptr = &*synonym_symbols.emplace(symbol_it, std::move(new_symbol));
-                DEBUG_SMART_ASSERT(symbol_ptr != nullptr);
+                SymbolPtr symbol_ptr = std::make_unique<SymbolKind>(
+                    symbol_name_ref, scope, std::forward<Args>(args)...);
 
                 ensure_scope_slot(actives_per_scope_, scope);
                 ensure_scope_slot(symbols_per_scope_, scope);
-                symbols_per_scope_[scope].push_back(symbol_ptr);
-                actives_per_scope_[scope].push_back(symbol_ptr);
-                return symbol_ptr;
+                symbols_per_scope_[scope].push_back(symbol_ptr.get());
+                actives_per_scope_[scope].push_back(symbol_ptr.get());
+                return synonym_symbols.emplace(symbol_it, std::move(symbol_ptr))->get();
         }
 
         // Explicit instantiations for insert_symbol()
@@ -92,37 +91,10 @@ namespace Alpha
         template const Symbol *SymbolTable::insert_symbol<Variable>(
             const std::string &, u32, Variable::Space &&, u32 &&, Location &&);
 
-        template <typename Self>
-        DEBUG_ALWAYS_INLINE auto SymbolTable::lookup_local_impl(Self &self, const std::string &name, u32 scope)
-            -> decltype(&self.symbol_map_.begin()->second.front())
-        {
-                auto it = self.symbol_map_.find(name);
-                if (it == self.symbol_map_.end())
-                        return nullptr;
-
-                auto &scope_list = it->second;
-                for (auto &symbol : scope_list)
-                {
-                        if (symbol.scope < scope)
-                                continue;
-                        if (symbol.scope > scope)
-                                break;
-                        if (symbol.is_active())
-                                return &symbol;
-                }
-                return nullptr;
-        }
-
-        template Symbol *
-        SymbolTable::lookup_local_impl(SymbolTable &self, const std::string &name, u32 scope);
-
-        template const Symbol *
-        SymbolTable::lookup_local_impl(const SymbolTable &self, const std::string &name, u32 scope);
-
         SymbolTable::SymbolTable()
         {
                 // Load library functions
-                for (SymbolName name : k_library_function_names)
+                for (std::string name : k_library_function_names)
                 {
                         insert_symbol<Function>(
                             name,
@@ -132,7 +104,10 @@ namespace Alpha
                             k_no_location);
                         library_function_set_.insert(name);
 
-                        // Library functions require no back-patching, at least till now.
+                        // TODO:  remove backpatching .. or  add it only in debug mode..
+                        //  Backpatching should never occur in scope 0 and δε in lib functions...
+
+                        //  Library functions require no back-patching, at least till now.
                         backpatch_function_locals(name, k_global_scope, k_libfunc_local_vars);
                 }
         }
@@ -144,6 +119,7 @@ namespace Alpha
             const std::list<Parameter> &parameter_list,
             Location location)
         {
+
                 return insert_symbol<Function>(
                     name, scope, Symbol::Type::PROGRAM_FUNCTION, parameter_list, location);
         }
@@ -167,8 +143,8 @@ namespace Alpha
 
                 // Scope lists are sorted; global scope is always at the front if present.
                 const auto &scope_list = it->second;
-                if (!scope_list.empty() && scope_list.front().scope == k_global_scope)
-                        return &scope_list.front();
+                if (!scope_list.empty() && scope_list.front()->scope == k_global_scope)
+                        return scope_list.front().get();
                 return nullptr;
         }
 
@@ -182,14 +158,28 @@ namespace Alpha
                 // We search from inner to outer scope (end to begin)
                 const auto &scope_list = it->second;
                 for (auto symbol_it = scope_list.crbegin(); symbol_it != scope_list.crend(); ++symbol_it)
-                        if (symbol_it->scope <= scope && symbol_it->is_active())
-                                return &(*symbol_it);
+                        if (symbol_it->get()->scope <= scope && symbol_it->get()->is_active())
+                                return symbol_it->get();
                 return nullptr;
         }
 
         const Symbol *SymbolTable::lookup_local(const std::string &symbol_name, u32 scope) const
         {
-                return lookup_local_impl(*this, symbol_name, scope);
+                auto it = symbol_map_.find(symbol_name);
+                if (it == symbol_map_.end())
+                        return nullptr;
+
+                auto &scope_list = it->second;
+                for (auto &symbol_ptr : scope_list)
+                {
+                        if (symbol_ptr->scope < scope)
+                                continue;
+                        if (symbol_ptr->scope > scope)
+                                break;
+                        if (symbol_ptr->is_active())
+                                return symbol_ptr.get();
+                }
+                return nullptr;
         }
 
         void SymbolTable::backpatch_function_locals(
@@ -197,7 +187,7 @@ namespace Alpha
             u32 scope,
             u32 local_variables)
         {
-                Symbol *found_symbol = lookup_local_impl(*this, name, scope);
+                Symbol *found_symbol = const_cast<Symbol *>(lookup_local(name, scope));
                 if (found_symbol == nullptr)
                         throw std::logic_error("Function tracked by ParseCtx is not found in SymbolTable");
 

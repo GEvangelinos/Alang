@@ -86,17 +86,22 @@ namespace // (Anonymous)
                 return false;
         }
 
-        void insert_function_parameters(SymbolTable &st, const ParseCtx &parse_ctx, ErrorTracker &et)
+        void insert_function_parameters(SymbolTable &st, ParseCtx &parse_ctx, ErrorTracker &et)
         {
-                DEBUG_SMART_ASSERT(parse_ctx.space_handler.space() == Variable::Space::FORMAL_ARGUMENT);
 
                 auto scope = parse_ctx.scope_handler.scope();
-                auto offset = parse_ctx.space_handler.offset();
                 constexpr auto space = Variable::Space::FORMAL_ARGUMENT;
+                DEBUG_SMART_ASSERT(parse_ctx.space_handler.space() == Variable::Space::FORMAL_ARGUMENT);
 
                 for (const Parameter &param : parse_ctx.function_ctx_handler.function_parameters())
+                {
+                        auto offset = parse_ctx.space_handler.offset();
                         if (!reported_parameter_name_conflict(st, scope, param, et))
                                 st.insert_variable(param.name, scope, space, offset, param.location);
+                        parse_ctx.space_handler.offset_inc() //; LEAVE SEMI OUT SO YOU GET REMINDED TO COME BACK HERE
+                        // Use a COnsumer liek getter for offset (like offset_postinc() but better name for idiomatic)
+                        // TODO!! :: Where should offset be incremented? Here? or internally ?
+                }
         }
 
         bool reported_function_name_conflict(
@@ -328,18 +333,21 @@ void blockClose__rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept
 
 void funcPrefix__function(ParseCtx &parse_ctx, const Location anonymous_location)
 {
-        parse_ctx.function_ctx_handler.last_function_id =
-            std::string(k_private_anonymous_prefix) +
+        parse_ctx.function_ctx_handler.new_function_id =
+            k_private_anonymous_prefix +
             std::to_string(parse_ctx.function_ctx_handler.anonymous_counter());
-        parse_ctx.function_ctx_handler.last_function_location = anonymous_location;
-        parse_ctx.function_ctx_handler.last_function_is_anonymous = true;
+
+        parse_ctx.function_ctx_handler.new_function_location = anonymous_location;
+        parse_ctx.function_ctx_handler.new_function_is_anonymous = true;
+        parse_ctx.space_handler.enter_space();
 }
 
 void funcPrefix__function_id(ParseCtx &parse_ctx, const std::string &id_name, Location id_location)
 {
-        parse_ctx.function_ctx_handler.last_function_id = id_name;
-        parse_ctx.function_ctx_handler.last_function_location = id_location;
-        parse_ctx.function_ctx_handler.last_function_is_anonymous = false;
+        parse_ctx.function_ctx_handler.new_function_id = id_name;
+        parse_ctx.function_ctx_handler.new_function_location = id_location;
+        parse_ctx.function_ctx_handler.new_function_is_anonymous = false;
+        parse_ctx.space_handler.enter_space();
 }
 
 /// Handles a function signature’s prefix + argument list.
@@ -355,24 +363,26 @@ void funcSignature__funcPrefix_funcArgList(SymbolTable &st, ParseCtx &parse_ctx,
         bool conflicting_name = reported_function_name_conflict(
             st,
             parse_ctx.scope_handler.scope(),
-            parse_ctx.function_ctx_handler.last_function_id,
-            parse_ctx.function_ctx_handler.last_function_location,
+            parse_ctx.function_ctx_handler.new_function_id,
+            parse_ctx.function_ctx_handler.new_function_location,
             et);
 
         if (!conflicting_name)
                 st.insert_function(
-                    parse_ctx.function_ctx_handler.last_function_id,
+                    parse_ctx.function_ctx_handler.new_function_id,
                     parse_ctx.scope_handler.scope(),
                     parse_ctx.function_ctx_handler.function_parameters(),
-                    parse_ctx.function_ctx_handler.last_function_location);
+                    parse_ctx.function_ctx_handler.new_function_location);
 
         // If this function name already existed in this scope,
         // we skip back-patching to avoid contaminating the
         // original function’s local count.
         const bool backpatch_locals = !conflicting_name;
-        parse_ctx.function_ctx_handler.enter_function(parse_ctx.scope_handler, backpatch_locals);
+        parse_ctx.function_ctx_handler.enter_function(backpatch_locals);
 
         insert_function_parameters(st, parse_ctx, et);
+
+        parse_ctx.space_handler.enter_space(); // IMPORTANT: This line is after parameter insertion!
 }
 
 void funcDef__funcSignature_block(SymbolTable &st, ParseCtx &parse_ctx) noexcept
@@ -380,6 +390,8 @@ void funcDef__funcSignature_block(SymbolTable &st, ParseCtx &parse_ctx) noexcept
         auto fbi = parse_ctx.function_ctx_handler.exit_function();
         if (fbi.backpatch_locals)
                 st.backpatch_function_locals(fbi.name, fbi.scope, fbi.locals);
+
+        parse_ctx.space_handler.exit_space();
 }
 
 void const__stringliteral(char *&string_literal)

@@ -24,33 +24,12 @@
 namespace Alpha
 {
         // Classes define here:
-        class ToggleSwitch;
         struct FunctionDataFrame;
         class SpaceHandler;
         class ScopeHandler;
         class FunctionCtxHandler;
         class TempGenerator;
         class ParseCtx;
-
-        class ToggleSwitch
-        {
-        public:
-                DEBUG_ALWAYS_INLINE void enable() noexcept
-                {
-                        DEBUG_SMART_ASSERT(is_disabled());
-                        state_ = true;
-                }
-                DEBUG_ALWAYS_INLINE void disable() noexcept
-                {
-                        DEBUG_SMART_ASSERT(is_enabled());
-                        state_ = false;
-                }
-                DEBUG_ALWAYS_INLINE bool is_enabled() const noexcept { return state_; }
-                DEBUG_ALWAYS_INLINE bool is_disabled() const noexcept { return !state_; }
-
-        private:
-                bool state_ = false; // Initially the switch is off.
-        };
 
         class SpaceHandler : private Immobile
         {
@@ -101,14 +80,14 @@ namespace Alpha
                         const bool backpatch_locals;
                 };
 
-                std::string last_function_id;
-                Location last_function_location = k_no_location;
-                bool last_function_is_anonymous = false;
+                std::string new_function_id;
+                Location new_function_location = k_no_location;
+                bool new_function_is_anonymous = false;
 
-                FunctionCtxHandler();
+                FunctionCtxHandler(ParseCtx *parse_ctx);
                 ~FunctionCtxHandler();
 
-                void enter_function(ScopeHandler &scope_handler, bool backpatch_locals);
+                void enter_function(bool backpatch_locals);
                 FunctionBackpatchInfo exit_function() noexcept;
 
                 u32 function_nesting_depth() const noexcept;
@@ -144,12 +123,14 @@ namespace Alpha
                 std::list<Parameter> function_parameters_;
                 u32 anonymous_counter_ = 0;
                 u32 function_counter_ = 0;
+
+                ParseCtx *const parse_ctx_;
         };
 
         class TempGenerator : private Immobile
         {
         public:
-                std::string new_temp();
+                [[nodiscard]] std::string new_temp();
                 void reset() { temp_counter_ = 0; }
 
         private:
@@ -186,8 +167,6 @@ namespace Alpha
                 ~ParseCtx() = default;
 
                 void register_temp(SymbolTable &st);
-
-        private:
         };
 
         inline SpaceHandler::SpaceHandler()
@@ -281,8 +260,10 @@ namespace Alpha
                 --scope_;
         }
 
-        inline FunctionCtxHandler::FunctionCtxHandler()
+        inline FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const parse_ctx)
+            : parse_ctx_(parse_ctx)
         {
+                SMART_ASSERT(parse_ctx_ != nullptr);
                 // We push a stackframe, for loops that might occur outside
                 // functions. So every frame corresponds to a function except the
                 // first.
@@ -302,24 +283,21 @@ namespace Alpha
                 );
         }
 
-        inline void FunctionCtxHandler::enter_function(
-            ScopeHandler &scope_handler,
-            bool backpatch_locals)
+        inline void FunctionCtxHandler::enter_function(bool backpatch_locals)
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
 
                 frame_stack_.emplace(FunctionDataFrame{
-                    .name = last_function_id,
-                    .scope = scope_handler.scope(),
-                    .location = last_function_location,
+                    .name = new_function_id,
+                    .scope = parse_ctx_->scope_handler.scope(),
+                    .location = new_function_location,
                     .backpatch_locals = backpatch_locals //
                 });
 
-                scope_handler.enter_scope();
-                scope_handler.skip_next_scope_increment();
-
-                anonymous_counter_ += last_function_is_anonymous;
-                function_counter_ += 1 - last_function_is_anonymous;
+                parse_ctx_->scope_handler.enter_scope();
+                parse_ctx_->scope_handler.skip_next_scope_increment();
+                anonymous_counter_ += new_function_is_anonymous;
+                function_counter_ += 1 - new_function_is_anonymous;
         }
 
         // Returns the number of locals of the current function.

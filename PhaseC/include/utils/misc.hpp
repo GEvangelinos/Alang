@@ -5,6 +5,7 @@
 #include <string>
 #include <iostream>
 #include "utils/format_adapter.hpp"
+#include "utils/smart_assert.h"
 
 #define REPORT_UNREACHABLE_VIOLATION(_message_if_reached)                                   \
         do                                                                                  \
@@ -53,7 +54,7 @@
 
 namespace // (Anonymous)
 {
-        inline std::string str_to_lower(std::string str)
+        [[nodiscard]] inline std::string str_to_lower(std::string str)
         {
                 std::transform(str.begin(), str.end(), str.begin(),
                                [](unsigned char c)
@@ -63,14 +64,14 @@ namespace // (Anonymous)
 
         template <typename N>
                 requires std::is_integral_v<N>
-        DEBUG_ALWAYS_INLINE constexpr bool is_odd(N n) noexcept
+        [[nodiscard]] DEBUG_ALWAYS_INLINE constexpr bool is_odd(N n) noexcept
         {
                 return n % 2;
         }
 
         template <typename N>
                 requires std::is_integral_v<N>
-        DEBUG_ALWAYS_INLINE constexpr bool is_even(N n) noexcept
+        [[nodiscard]] DEBUG_ALWAYS_INLINE constexpr bool is_even(N n) noexcept
         {
                 return !is_odd(n);
         }
@@ -99,6 +100,26 @@ public:
         Immobile &operator=(Immobile &&) = delete;      ///< Disable move-assignment
 };
 
+class ToggleSwitch
+{
+public:
+        DEBUG_ALWAYS_INLINE void enable() noexcept
+        {
+                DEBUG_SMART_ASSERT(is_disabled());
+                state_ = true;
+        }
+        DEBUG_ALWAYS_INLINE void disable() noexcept
+        {
+                DEBUG_SMART_ASSERT(is_enabled());
+                state_ = false;
+        }
+        [[nodiscard]] DEBUG_ALWAYS_INLINE bool is_enabled() const noexcept { return state_; }
+        [[nodiscard]] DEBUG_ALWAYS_INLINE bool is_disabled() const noexcept { return !state_; }
+
+private:
+        bool state_ = false; // Initially the switch is off.
+};
+
 template <typename T>
 class Once : private Immobile
 {
@@ -114,14 +135,14 @@ public:
                 assigned_ = true;
         }
 
-        const T &get()
+        [[nodiscard]] const T &get()
         {
                 if (!assigned_)
                         throw std::logic_error("`Once` not assigned yet");
                 return value_;
         }
 
-        bool assigned() { return assigned_; }
+        [[nodiscard]] bool assigned() { return assigned_; }
 
 private:
         T value_;

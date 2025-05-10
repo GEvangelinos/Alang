@@ -15,6 +15,8 @@
 #include <unordered_map>    // for unordered_map
 #include <unordered_set>    // for unordered_set
 #include <vector>           // for vector
+#include <array>
+#include <memory>
 
 namespace Alpha
 {
@@ -24,7 +26,7 @@ namespace Alpha
         class Variable;    // IYU pragma: keep
         class Function;    // IWYU pragma: keep
 
-        const std::initializer_list<std::string> k_library_function_names = {
+        const std::array<std::string, 12> k_library_function_names = {
             "print",
             "input",
             "objectmemberkeys",
@@ -54,26 +56,17 @@ namespace Alpha
                 const Type type;
                 const Location location;
 
+                virtual ~Symbol() = default;
+
                 std::string_view type_to_string() const noexcept;
 
                 DEBUG_ALWAYS_INLINE bool is_variable() const noexcept { return type == Type::VARIABLE; }
                 DEBUG_ALWAYS_INLINE bool is_function() const noexcept { return !is_variable(); }
                 DEBUG_ALWAYS_INLINE bool is_active() const noexcept { return is_active_; }
 
-#ifdef DEBUG_MODE
-                virtual ~Symbol() = default; // Making it polymorphic in debug, for extra subclass checks.
-#else
-                ~Symbol() = default;
-#endif // DEBUG_MODE
-
         protected:
                 Symbol(const std::string &name, u32 scope, Type type, Location location) noexcept
-                    : name(name),
-                      scope(scope),
-                      type(type),
-                      location(location)
-                {
-                }
+                    : name(name), scope(scope), type(type), location(location) {}
 
         private:
                 bool is_active_ = true;
@@ -100,9 +93,8 @@ namespace Alpha
                 Variable(const std::string &name, u32 scope, Space space, u32 offset, Location location)
                     : Symbol(name, scope, Symbol::Type::VARIABLE, location),
                       space(space),
-                      offset(offset)
-                {
-                }
+                      offset(offset) {}
+                ~Variable() override = default;
         };
 
         class Function : public Symbol
@@ -115,15 +107,21 @@ namespace Alpha
                          const std::list<Parameter> &parameter_list, const Location location)
                     : Symbol(name, scope, type, location), parameter_list(parameter_list)
                 {
-                        DEBUG_SMART_ASSERT(type != Symbol::Type::VARIABLE);
+                        DEBUG_SMART_ASSERT(
+                            type == Symbol::Type::LIBRARY_FUNCTION ||
+                            type == Symbol::Type::PROGRAM_FUNCTION //
+                        );
                 }
+
+                ~Function() override = default;
         };
 
         class SymbolTable : private Immobile
         {
         public:
                 using SymbolName = std::string;
-                using SymbolMap = std::unordered_map<SymbolName, std::list<Symbol>>;
+                using SymbolPtr = std::unique_ptr<Symbol>;
+                using SymbolMap = std::unordered_map<SymbolName, std::list<SymbolPtr>>;
 
                 SymbolTable();
                 ~SymbolTable() = default;
@@ -163,10 +161,6 @@ namespace Alpha
                         requires std::is_same_v<SymbolKind, Variable> ||
                                  std::is_same_v<SymbolKind, Function>
                 const Symbol *insert_symbol(const std::string &name, u32 scope, Args &&...args);
-
-                template <typename Self>
-                static auto lookup_local_impl(Self &self, const std::string &name, u32 scope)
-                    -> decltype(&self.symbol_map_.begin()->second.front());
         };
 } // namespace Alpha
 #endif // SYMBOL_TABLE_HPP

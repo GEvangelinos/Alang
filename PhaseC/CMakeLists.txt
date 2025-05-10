@@ -57,6 +57,8 @@ endif()
 if(DEBUG_MODE)
         add_compile_options(
                 -g
+                -fsanitize=address -fno-omit-frame-pointer
+
         )
         add_compile_definitions(DEBUG_MODE)
         message(WARNING "CMAKE: Running with DEBUG_MODE ON")
