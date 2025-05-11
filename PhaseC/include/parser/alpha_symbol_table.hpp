@@ -58,11 +58,11 @@ namespace Alpha
 
                 virtual ~Symbol() = default;
 
-                std::string_view type_to_string() const noexcept;
+                [[nodiscard]] std::string_view type_to_string() const noexcept;
 
-                DEBUG_ALWAYS_INLINE bool is_variable() const noexcept { return type == Type::VARIABLE; }
-                DEBUG_ALWAYS_INLINE bool is_function() const noexcept { return !is_variable(); }
-                DEBUG_ALWAYS_INLINE bool is_active() const noexcept { return is_active_; }
+                [[nodiscard]] DEBUG_ALWAYS_INLINE bool is_variable() const noexcept { return type == Type::VARIABLE; }
+                [[nodiscard]] DEBUG_ALWAYS_INLINE bool is_function() const noexcept { return !is_variable(); }
+                [[nodiscard]] DEBUG_ALWAYS_INLINE bool is_active() const noexcept { return is_active_; }
 
         protected:
                 Symbol(const std::string &name, u32 scope, Type type, Location location) noexcept
@@ -103,9 +103,14 @@ namespace Alpha
                 const std::list<Parameter> parameter_list;
                 Once<u32> local_variables;
 
-                Function(const std::string &name, const u32 scope, const Symbol::Type type,
-                         const std::list<Parameter> &parameter_list, const Location location)
-                    : Symbol(name, scope, type, location), parameter_list(parameter_list)
+                Function(
+                    const std::string &name,
+                    const u32 scope,
+                    const Symbol::Type type,
+                    const std::list<Parameter> &parameter_list,
+                    const Location location)
+                    : Symbol(name, scope, type, location),
+                      parameter_list(parameter_list)
                 {
                         DEBUG_SMART_ASSERT(
                             type == Symbol::Type::LIBRARY_FUNCTION ||
@@ -139,15 +144,15 @@ namespace Alpha
                     u32 offset,
                     Location location);
 
-                const Symbol *lookup_global(const std::string &name) const;
-                const Symbol *lookup_chain(const std::string &name, u32 scope) const;
-                const Symbol *lookup_local(const std::string &name, u32 scope) const;
+                [[nodiscard]] const Symbol *lookup_global(const std::string &name) const;
+                [[nodiscard]] const Symbol *lookup_chain(const std::string &name, u32 scope) const;
+                [[nodiscard]] const Symbol *lookup_local(const std::string &name, u32 scope) const;
 
                 void backpatch_function_locals(const std::string &name, u32 scope, u32 local_variables);
 
                 void hide_scope_symbols(u32 scope) noexcept;
-                bool is_lib_function(const std::string &name) const;
-                const auto &symbols_per_scope() const { return symbols_per_scope_; }
+                [[nodiscard]] bool is_lib_function(const std::string &name) const;
+                [[nodiscard]] const auto &symbols_per_scope() const { return symbols_per_scope_; }
 
         private:
                 SymbolMap symbol_map_;

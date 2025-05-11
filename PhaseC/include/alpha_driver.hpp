@@ -36,7 +36,7 @@ namespace Alpha
                 void display_compile_errors() const;
                 void export_symbol_table();
                 void export_compile_errors();
-                bool ok() { return ok_flag_; }
+                [[nodiscard]] bool ok() { return ok_flag_; }
 
         private:
                 class FlexBuffer : private Immobile
@@ -45,9 +45,9 @@ namespace Alpha
                         FlexBuffer(const std::string &input_filepath);
                         ~FlexBuffer();
 
-                        char *buffer() { return buffer_.get(); }
-                        const char *const_buffer() const { return buffer_.get(); }
-                        std::size_t size() const { return size_; }
+                        [[nodiscard]] char *buffer() { return buffer_.get(); }
+                        [[nodiscard]] const char *const_buffer() const { return buffer_.get(); }
+                        [[nodiscard]] std::size_t size() const { return size_; }
 
                 private:
                         std::unique_ptr<char[]> buffer_;

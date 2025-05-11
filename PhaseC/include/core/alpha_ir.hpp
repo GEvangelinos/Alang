@@ -42,7 +42,7 @@ namespace Alpha
 #undef X
         };
 
-        inline std::string to_string(const IOPCode iopcode)
+        [[nodiscard]] inline std::string to_string(const IOPCode iopcode)
         {
                 switch (iopcode)
                 {

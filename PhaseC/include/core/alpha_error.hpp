@@ -31,10 +31,10 @@ namespace Alpha
 
                 Diagnostic(Type type, const std::string &message, Location location);
 
-                u32 line(const LocationTracker &lt) const;
-                u32 column(const LocationTracker &lt) const;
-                std::string_view type_to_string() const noexcept;
-                std::string_view pretty_color() const noexcept;
+                [[nodiscard]] u32 line(const LocationTracker &lt) const;
+                [[nodiscard]] u32 column(const LocationTracker &lt) const;
+                [[nodiscard]] std::string_view type_to_string() const noexcept;
+                [[nodiscard]] std::string_view pretty_color() const noexcept;
         };
 
         class CTError
@@ -53,10 +53,11 @@ namespace Alpha
 
                 CTError() = delete;
 
-                std::string_view type_to_string() const noexcept;
-                std::string make_pretty_diagnostic(const std::string &source_filename,
-                                                   const LocationTracker &lt,
-                                                   const char *input_buffer) const;
+                [[nodiscard]] std::string_view type_to_string() const noexcept;
+                [[nodiscard]] std::string make_pretty_diagnostic(
+                    const std::string &source_filename,
+                    const LocationTracker &lt,
+                    const char *input_buffer) const;
 
         private:
                 CTError(Type error_type, const std::string &error, Location error_location);
@@ -65,7 +66,7 @@ namespace Alpha
                 CTError(Type error_type, const std::string &error, Location error_location,
                         std::list<Diagnostic> &&note_list_);
 
-                std::string make_pretty_diagnostic_impl(
+                [[nodiscard]] std::string make_pretty_diagnostic_impl(
                     const std::string &source_filename,
                     const LocationTracker &lt,
                     const char *input_buffer,
@@ -85,7 +86,7 @@ namespace Alpha
                 void report_error(CTError::Type errro_type, const std::string &error, Location error_location,
                                   std::list<Diagnostic> &&note_list_);
 
-                const std::vector<std::unique_ptr<const CTError>> &
+                [[nodiscard]] const std::vector<std::unique_ptr<const CTError>> &
                 get_compile_time_errors() const noexcept { return cterrors_; }
 
         private:

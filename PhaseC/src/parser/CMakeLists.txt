@@ -65,7 +65,6 @@ endif()
 
 add_library(alpha_parser STATIC
         ${ALPHA_PARSER_OUTPUT_FILEPATH}
-        alpha_semantic_actions.cpp
         alpha_symbol_table.cpp
 )
 

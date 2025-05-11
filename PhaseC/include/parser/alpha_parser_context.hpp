@@ -44,10 +44,10 @@ namespace Alpha
 
                 void enter_space();
                 void exit_space();
-                Variable::Space space() const noexcept;
+                [[nodiscard]] Variable::Space space() const noexcept;
 
-                void offset_inc() noexcept;
-                u32 offset() const noexcept;
+                [[nodiscard("Discarding this return value breaks variable offset sequencing")]]
+                u32 next_offset() noexcept;
 
         private:
                 std::stack<u32> variable_offset_stack_;
@@ -62,7 +62,7 @@ namespace Alpha
                 void skip_next_scope_increment() noexcept;
                 void enter_scope() noexcept;
                 void exit_scope() noexcept;
-                u32 scope() const noexcept { return scope_; }
+                [[nodiscard]] u32 scope() const noexcept { return scope_; }
 
         private:
                 ToggleSwitch skip_next_scope_increment_;
@@ -88,25 +88,25 @@ namespace Alpha
                 ~FunctionCtxHandler();
 
                 void enter_function(bool backpatch_locals);
-                FunctionBackpatchInfo exit_function() noexcept;
+                [[nodiscard]] FunctionBackpatchInfo exit_function() noexcept;
 
-                u32 function_nesting_depth() const noexcept;
-                u32 function_scope() const noexcept;
-                const std::string &function_name() const noexcept;
-                Location function_location() const noexcept;
+                [[nodiscard]] u32 function_nesting_depth() const noexcept;
+                [[nodiscard]] u32 function_scope() const noexcept;
+                [[nodiscard]] const std::string &function_name() const noexcept;
+                [[nodiscard]] Location function_location() const noexcept;
 
                 void enter_loop() noexcept;
                 void exit_loop() noexcept;
-                u32 loop_depth() const noexcept;
+                [[nodiscard]] u32 loop_depth() const noexcept;
 
                 void add_function_parameter(const std::string &name, Location location);
-                const std::list<Parameter> &function_parameters() const noexcept;
-                std::list<Parameter> extract_function_parameters();
+                [[nodiscard]] const std::list<Parameter> &function_parameters() const noexcept;
+                [[nodiscard]] std::list<Parameter> extract_function_parameters();
 
-                DEBUG_ALWAYS_INLINE u32 anonymous_counter() { return anonymous_counter_; }
-                DEBUG_ALWAYS_INLINE u32 function_counter() { return function_counter_; }
+                [[nodiscard]] DEBUG_ALWAYS_INLINE u32 anonymous_counter() const noexcept { return anonymous_counter_; }
+                [[nodiscard]] DEBUG_ALWAYS_INLINE u32 function_counter() const noexcept { return function_counter_; }
 
-                void add_local();
+                void add_local() noexcept;
 
         private:
                 struct FunctionDataFrame
@@ -147,7 +147,7 @@ namespace Alpha
                     const Expr *result,
                     Location location);
 
-                const std::vector<Quad> &emmited_quads() { return emitted_quads_; }
+                [[nodiscard]] const std::vector<Quad> &emmited_quads() { return emitted_quads_; }
 
         private:
                 std::vector<Quad> emitted_quads_;
@@ -163,7 +163,7 @@ namespace Alpha
                 QuadHandler quad_handler;
                 TempGenerator temp_generator;
 
-                ParseCtx() = default;
+                ParseCtx();
                 ~ParseCtx() = default;
 
                 void register_temp(SymbolTable &st);
@@ -212,16 +212,10 @@ namespace Alpha
                 return Variable::Space::FUNCTION_LOCAL;
         }
 
-        inline void SpaceHandler::offset_inc() noexcept
+        inline u32 SpaceHandler::next_offset() noexcept
         {
                 DEBUG_SMART_ASSERT(variable_offset_stack_.size() > 0);
-                ++variable_offset_stack_.top();
-        }
-
-        inline u32 SpaceHandler::offset() const noexcept
-        {
-                DEBUG_SMART_ASSERT(variable_offset_stack_.size() > 0);
-                return variable_offset_stack_.top();
+                return variable_offset_stack_.top()++;
         }
 
         inline ScopeHandler::ScopeHandler() : scope_(k_global_scope)
@@ -385,7 +379,7 @@ namespace Alpha
 #endif
         }
 
-        inline void FunctionCtxHandler::add_local()
+        inline void FunctionCtxHandler::add_local() noexcept
         {
                 ++frame_stack_.top().local_variables_counter;
         }
@@ -394,6 +388,9 @@ namespace Alpha
         {
                 return std::string(k_temp_variable_prefix) + std::to_string(temp_counter_++);
         }
+
+        inline ParseCtx::ParseCtx()
+            : function_ctx_handler(this) {}
 
         inline void ParseCtx::register_temp(SymbolTable &st)
         {
@@ -408,7 +405,7 @@ namespace Alpha
                     temp_name,
                     scope_handler.scope(),
                     space_handler.space(),
-                    space_handler.offset(),
+                    space_handler.next_offset(),
                     k_no_location);
         }
 
