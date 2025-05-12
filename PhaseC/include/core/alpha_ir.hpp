@@ -67,9 +67,8 @@ namespace Alpha
                 LIBRARY_FUNCTION,
         };
 
-        class Expr
+        struct Expr
         {
-        public:
                 enum class Type
                 {
                         VARIABLE,
@@ -85,6 +84,14 @@ namespace Alpha
                         CONST_STRING,
                         NIL,
                 };
+
+                Type type_;
+                Symbol *symbol_;
+                Expr *index;
+                double numConst;
+                char *strConst;
+                bool boolConst;
+                Expr *next;
         };
 
         // TODO: Which of the following fields can you make const?
@@ -95,12 +102,13 @@ namespace Alpha
 
         struct Quad
         {
-                IOPCode iopcode;
+                const IOPCode iopcode;
                 const Expr *arg1;
                 const Expr *arg2;
                 const Expr *result;
                 u32 label; // TODO: do we need this? Maybe we can figure this out based on index on vector.
-                Location location;
+                           // First quad_label is always 1, (0 for backpatching)
+                const Location location;
                 // We pass location instead of plain line, so we can extract line and column.
                 // It will make diagnostic messages in runtime, much more accurate.
         };

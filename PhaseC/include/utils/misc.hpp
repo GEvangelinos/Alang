@@ -64,14 +64,14 @@ namespace // (Anonymous)
 
         template <typename N>
                 requires std::is_integral_v<N>
-        [[nodiscard]] DEBUG_ALWAYS_INLINE constexpr bool is_odd(N n) noexcept
+        [[nodiscard]] constexpr bool is_odd(N n) noexcept
         {
                 return n % 2;
         }
 
         template <typename N>
                 requires std::is_integral_v<N>
-        [[nodiscard]] DEBUG_ALWAYS_INLINE constexpr bool is_even(N n) noexcept
+        [[nodiscard]] constexpr bool is_even(N n) noexcept
         {
                 return !is_odd(n);
         }
@@ -103,18 +103,18 @@ public:
 class ToggleSwitch
 {
 public:
-        DEBUG_ALWAYS_INLINE void enable() noexcept
+        void enable() noexcept
         {
                 DEBUG_SMART_ASSERT(is_disabled());
                 state_ = true;
         }
-        DEBUG_ALWAYS_INLINE void disable() noexcept
+        void disable() noexcept
         {
                 DEBUG_SMART_ASSERT(is_enabled());
                 state_ = false;
         }
-        [[nodiscard]] DEBUG_ALWAYS_INLINE bool is_enabled() const noexcept { return state_; }
-        [[nodiscard]] DEBUG_ALWAYS_INLINE bool is_disabled() const noexcept { return !state_; }
+        [[nodiscard]] bool is_enabled() const noexcept { return state_; }
+        [[nodiscard]] bool is_disabled() const noexcept { return !state_; }
 
 private:
         bool state_ = false; // Initially the switch is off.

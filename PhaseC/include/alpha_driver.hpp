@@ -18,6 +18,7 @@ namespace Alpha
 
         static constexpr char k_symbol_table_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
         static constexpr char k_compile_error_exports_dirname[] = "COMPILE_ERROR_EXPORTS";
+        static constexpr char k_quad_exports_dirname[] = "QUAD_EXPORTS";
         static constexpr char k_symbol_table_csv_export_header[] = "symbol,type,line,scope\n";
         static constexpr char k_error_csv_export_header[] = "line,column,diagnostic_type,message\n";
 
@@ -36,6 +37,7 @@ namespace Alpha
                 void display_compile_errors() const;
                 void export_symbol_table();
                 void export_compile_errors();
+                void export_quads();
                 [[nodiscard]] bool ok() { return ok_flag_; }
 
         private:
@@ -68,5 +70,6 @@ namespace Alpha
                 void export_within_dir(std::string_view dirname, void (Driver::*export_func)());
                 void export_symbol_table_impl();
                 void export_compile_errors_impl();
+                void export_quads_impl();
         };
 } // namespace Alpha

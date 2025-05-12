@@ -15,7 +15,9 @@ add_executable(${ALPHA_DRIVER_EXECUTABLE}
         alpha_driver.cpp
         app_main.cpp
 )
-        target_link_options(${ALPHA_DRIVER_EXECUTABLE} PRIVATE -fsanitize=address)
+
+# target_link_options(${ALPHA_DRIVER_EXECUTABLE} PRIVATE -fsanitize=address)
+
 add_dependencies(${ALPHA_DRIVER_EXECUTABLE}
         generate_scanner
         generate_parser)

@@ -16,7 +16,7 @@ namespace /* (Anonymous) */
 {
         using namespace Arguinator;
 
-        std::string str_to_upper(std::string str)
+        [[nodiscard]] std::string str_to_upper(std::string str)
         {
                 std::transform(str.begin(), str.end(), str.begin(),
                                [](unsigned char c)
@@ -24,7 +24,7 @@ namespace /* (Anonymous) */
                 return str;
         }
 
-        [[maybe_unused]] std::string str_to_lower(std::string str)
+        [[maybe_unused]] [[nodiscard]] std::string str_to_lower(std::string str)
         {
                 std::transform(str.begin(), str.end(), str.begin(),
                                [](unsigned char c)
@@ -45,7 +45,7 @@ namespace /* (Anonymous) */
                                   executable_name, description);
         }
 
-        std::string generate_example_values(const std::string &flag_name, std::size_t arity)
+        [[nodiscard]] std::string generate_example_values(const std::string &flag_name, std::size_t arity)
         {
                 const std::string base = str_to_upper(flag_name);
                 if (arity == 0)

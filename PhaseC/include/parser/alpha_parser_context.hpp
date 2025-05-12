@@ -103,8 +103,7 @@ namespace Alpha
                 [[nodiscard]] const std::list<Parameter> &function_parameters() const noexcept;
                 [[nodiscard]] std::list<Parameter> extract_function_parameters();
 
-                [[nodiscard]] DEBUG_ALWAYS_INLINE u32 anonymous_counter() const noexcept { return anonymous_counter_; }
-                [[nodiscard]] DEBUG_ALWAYS_INLINE u32 function_counter() const noexcept { return function_counter_; }
+                [[nodiscard]] u32 next_function_address() noexcept { return next_function_address_++; }
 
                 void add_local() noexcept;
 
@@ -121,20 +120,22 @@ namespace Alpha
                 };
                 std::stack<FunctionDataFrame> frame_stack_;
                 std::list<Parameter> function_parameters_;
-                u32 anonymous_counter_ = 0;
-                u32 function_counter_ = 0;
+                u32 next_function_address_ = 0;
 
                 ParseCtx *const parse_ctx_;
         };
 
-        class TempGenerator : private Immobile
+        class NameGenerator : private Immobile
         {
         public:
                 [[nodiscard]] std::string new_temp();
-                void reset() { temp_counter_ = 0; }
+                void reset_temps() { temp_counter_ = 0; }
+
+                [[nodiscard]] std::string new_anonymous();
 
         private:
                 u32 temp_counter_ = 0;
+                u32 anonymous_counter_ = 0;
         };
 
         class QuadHandler : private Immobile
@@ -147,10 +148,10 @@ namespace Alpha
                     const Expr *result,
                     Location location);
 
-                [[nodiscard]] const std::vector<Quad> &emmited_quads() { return emitted_quads_; }
+                [[nodiscard]] const std::vector<Quad> &quads() { return quads_; }
 
         private:
-                std::vector<Quad> emitted_quads_;
+                std::vector<Quad> quads_;
                 u32 next_quad_label_ = 1; // First quad_label is always 1, (0 for backpatching)
         };
 
@@ -161,7 +162,7 @@ namespace Alpha
                 ScopeHandler scope_handler;
                 FunctionCtxHandler function_ctx_handler;
                 QuadHandler quad_handler;
-                TempGenerator temp_generator;
+                NameGenerator name_generator;
 
                 ParseCtx();
                 ~ParseCtx() = default;
@@ -290,8 +291,6 @@ namespace Alpha
 
                 parse_ctx_->scope_handler.enter_scope();
                 parse_ctx_->scope_handler.skip_next_scope_increment();
-                anonymous_counter_ += new_function_is_anonymous;
-                function_counter_ += 1 - new_function_is_anonymous;
         }
 
         // Returns the number of locals of the current function.
@@ -384,9 +383,13 @@ namespace Alpha
                 ++frame_stack_.top().local_variables_counter;
         }
 
-        inline std::string TempGenerator::new_temp()
+        inline std::string NameGenerator::new_temp()
         {
-                return std::string(k_temp_variable_prefix) + std::to_string(temp_counter_++);
+                return k_temp_variable_prefix + std::to_string(temp_counter_++);
+        }
+        inline std::string NameGenerator::new_anonymous()
+        {
+                return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
         }
 
         inline ParseCtx::ParseCtx()
@@ -394,7 +397,7 @@ namespace Alpha
 
         inline void ParseCtx::register_temp(SymbolTable &st)
         {
-                const std::string temp_name = temp_generator.new_temp();
+                const std::string temp_name = name_generator.new_temp();
                 const Symbol *found_symbol = st.lookup_local(temp_name, scope_handler.scope());
 
                 // We register new temp, only if current scope doesnt have that temp.
@@ -416,14 +419,16 @@ namespace Alpha
             const Expr *result,
             const Location location)
         {
-                DEBUG_SMART_ASSERT(emitted_quads_.size() + 1 == next_quad_label_);
+                DEBUG_SMART_ASSERT(quads_.size() + 1 == next_quad_label_);
 
-                emitted_quads_.emplace_back(Quad{.iopcode = iopcode,
-                                                 .arg1 = arg1,
-                                                 .arg2 = arg2,
-                                                 .result = result,
-                                                 .label = next_quad_label_++,
-                                                 .location = location});
+                quads_.emplace_back(Quad{
+                    .iopcode = iopcode,
+                    .arg1 = arg1,
+                    .arg2 = arg2,
+                    .result = result,
+                    .label = next_quad_label_++,
+                    .location = location //
+                });
         }
 } // namespace Alpha
 #endif // ALPHA_PARSER_CONTEXT_HPP

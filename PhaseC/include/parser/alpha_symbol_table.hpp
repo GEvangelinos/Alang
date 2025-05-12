@@ -60,9 +60,9 @@ namespace Alpha
 
                 [[nodiscard]] std::string_view type_to_string() const noexcept;
 
-                [[nodiscard]] DEBUG_ALWAYS_INLINE bool is_variable() const noexcept { return type == Type::VARIABLE; }
-                [[nodiscard]] DEBUG_ALWAYS_INLINE bool is_function() const noexcept { return !is_variable(); }
-                [[nodiscard]] DEBUG_ALWAYS_INLINE bool is_active() const noexcept { return is_active_; }
+                [[nodiscard]] bool is_variable() const noexcept { return type == Type::VARIABLE; }
+                [[nodiscard]] bool is_function() const noexcept { return !is_variable(); }
+                [[nodiscard]] bool is_active() const noexcept { return is_active_; }
 
         protected:
                 Symbol(const std::string &name, u32 scope, Type type, Location location) noexcept
@@ -131,13 +131,14 @@ namespace Alpha
                 SymbolTable();
                 ~SymbolTable() = default;
 
-                const Symbol *insert_function(
+                const Function *insert_function(
                     const std::string &name,
                     u32 scope,
+                    u32 address,
                     const std::list<Parameter> &parameter_list,
                     Location location);
 
-                const Symbol *insert_variable(
+                const Variable *insert_variable(
                     const std::string &name,
                     u32 scope,
                     Variable::Space space,
@@ -163,9 +164,9 @@ namespace Alpha
                 std::unordered_set<SymbolName> library_function_set_;
 
                 template <typename SymbolKind, typename... Args>
-                        requires std::is_same_v<SymbolKind, Variable> ||
-                                 std::is_same_v<SymbolKind, Function>
-                const Symbol *insert_symbol(const std::string &name, u32 scope, Args &&...args);
+                        requires std::is_same_v<SymbolKind, Variable> || std::is_same_v<SymbolKind, Function>
+                [[nodiscard]] const SymbolKind *
+                insert_symbol(const std::string &name, u32 scope, Args &&...args);
         };
 } // namespace Alpha
 #endif // SYMBOL_TABLE_HPP

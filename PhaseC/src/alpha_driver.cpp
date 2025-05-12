@@ -102,6 +102,11 @@ namespace Alpha
                 export_within_dir(k_compile_error_exports_dirname, &Driver::export_compile_errors_impl);
         }
 
+        void Driver::export_quads()
+        {
+                export_within_dir(k_quad_exports_dirname, &Driver::export_quads_impl);
+        }
+
         Driver::FlexBuffer::FlexBuffer(const std::string &input_filepath)
         {
                 std::ifstream input_file(open_alpha_source_file(input_filepath));
@@ -196,5 +201,38 @@ namespace Alpha
                         for (const Diagnostic &note : cte->note_list)
                                 write_diagnostic(note);
                 }
+        }
+
+        // TODO: implement, (once you started you had little information as to how to print/write)
+        void Driver::export_quads_impl()
+        {
+                const std::string outfile_name = source_filepath_.filename().string() + ".quads";
+                std::ofstream outfile(outfile_name);
+                if (!outfile)
+                        throw std::runtime_error(FMT::format(
+                            "Failed opening file {} to export quads", outfile_name));
+
+                auto write_quad = [&](u32 quad_index, const Quad &quad)
+                {
+                        // outfile << FMT::format(
+                        //     "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10}",
+                        //     quad_index,
+                        //     to_string(quad.iopcode),
+                        //     quad.result->symbol_->name, );
+                };
+
+                // Write export header.
+                outfile << FMT::format(
+                    "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10}",
+                    "quad#", "opcode", "result", "arg1", "arg2", "label");
+
+                // Write separating dash line.
+                outfile << std::string(11 + 16 + 21 + 21 + 21 + 10, '-');
+
+                // Write quads.
+                const auto &quads = parse_ctx_.quad_handler.quads();
+                auto quads_size = quads.size();
+                for (u32 i = 0; i < quads_size; i++)
+                        write_quad(i + 1, quads[i]);
         }
 }

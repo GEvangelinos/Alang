@@ -57,8 +57,6 @@ endif()
 if(DEBUG_MODE)
         add_compile_options(
                 -g
-                -fsanitize=address -fno-omit-frame-pointer
-
         )
         add_compile_definitions(DEBUG_MODE)
         message(WARNING "CMAKE: Running with DEBUG_MODE ON")
@@ -68,7 +66,7 @@ if(OPTIMIZED_MODE)
         add_compile_options(
                 -O3
                 -march=native
-                # -flto TODO: Find why it causes linking errors (it didnt before)
+                # -flto # TODO: Find why it causes linking errors (it didnt before)
         )
         add_compile_definitions(OPTIMIZED_MODE)
         message(WARNING "CMAKE: Running with OPTIMIZED_MODE ON")

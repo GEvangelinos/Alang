@@ -9,6 +9,7 @@ static constexpr char alpha_driver_description[] =
 static constexpr char flag_input_file[] = "input-file";
 static constexpr char flag_export_symbol_table[] = "export-symbol-table";
 static constexpr char flag_export_compile_errors[] = "export-compile-errors";
+static constexpr char flag_export_quads[] = "export-quads";
 static constexpr char flag_show_symbol_table[] = "show-symbol-table";
 static constexpr char flag_show_parser_trace[] = "show-parser-trace";
 static constexpr char flag_no_show_errors[] = "no-show-errors";
@@ -29,6 +30,10 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
             .set_arity(0)
             .set_help("If set, write the compiler's errors to a CSV file named "
                       "<source_filename>.error.csv for external inspection.");
+        parser.set_flag(flag_export_quads)
+            .set_arity(0)
+            .set_help("If set, write the compiler's generated QUADS to a file named"
+                      "<source_filename>.quads for external inspection");
         parser.set_flag(flag_show_symbol_table)
             .set_arity(0)
             .set_help("Pretty-prints the symbol table on console");
@@ -69,6 +74,8 @@ int main(int argc, char **argv)
                 driver.export_symbol_table();
         if (cli_parser[flag_export_compile_errors].is_provided())
                 driver.export_compile_errors();
+        if (cli_parser[flag_export_quads].is_provided())
+                driver.export_quads();
         if (cli_parser[flag_show_symbol_table].is_provided())
                 driver.display_symbol_table();
         if (cli_parser[flag_no_show_errors].is_provided() == false)

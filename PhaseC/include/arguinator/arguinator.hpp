@@ -28,10 +28,10 @@ namespace Arguinator
 
                 Flag &set_flag(const std::string &identifier);
                 void parse_flags();
-                std::size_t count(const std::string &flag_name) const;
-                bool found(const std::string &flag_name) const;
+                [[nodiscard]] std::size_t count(const std::string &flag_name) const;
+                [[nodiscard]] bool found(const std::string &flag_name) const;
 
-                const Flag &operator[](const std::string &flag_name) const;
+                [[nodiscard]] const Flag &operator[](const std::string &flag_name) const;
 
         private:
                 std::size_t argc_;
@@ -40,7 +40,7 @@ namespace Arguinator
                 std::map<std::string, Flag> flag_map_;
 
                 void parse_flags_impl();
-                std::string generate_help_text() const;
+                [[nodiscard]] std::string generate_help_text() const;
                 [[noreturn]] void display_help_page();
         }; /* class Parser */
 
@@ -64,15 +64,15 @@ namespace Arguinator
                 void add_input(const std::string &input);
 
                 /* Accessors */
-                std::size_t get_arity() const noexcept;
-                const std::string &get_help_text() const noexcept;
-                bool is_required() const noexcept;
-                bool is_provided() const noexcept;
-                const std::string &get_name() const noexcept;
-                const std::vector<std::string> &get_inputs() const noexcept;
+                [[nodiscard]] std::size_t get_arity() const noexcept;
+                [[nodiscard]] const std::string &get_help_text() const noexcept;
+                [[nodiscard]] bool is_required() const noexcept;
+                [[nodiscard]] bool is_provided() const noexcept;
+                [[nodiscard]] const std::string &get_name() const noexcept;
+                [[nodiscard]] const std::vector<std::string> &get_inputs() const noexcept;
 
                 /* By default it returns first input, helpful in argument with arity 1*/
-                const std::string &get_input(std::size_t input_field = 1) const;
+                [[nodiscard]] const std::string &get_input(std::size_t input_field = 1) const;
 
         private:
                 /* Private constructor */
@@ -105,9 +105,9 @@ namespace Arguinator
                                         std::size_t provided_arity);
 
         private:
-                static std::string build_error_message(const std::string &flag_name,
-                                                       std::size_t expected_arity,
-                                                       std::size_t provided_arity);
+                [[nodiscard]] static std::string build_error_message(const std::string &flag_name,
+                                                                     std::size_t expected_arity,
+                                                                     std::size_t provided_arity);
         }; /* class FlagArityError */
 
         class FlagUnknownError : public FlagError
@@ -116,7 +116,7 @@ namespace Arguinator
                 explicit FlagUnknownError(const std::string &flag_name);
 
         private:
-                static std::string build_error_message(const std::string &flag_name);
+                [[nodiscard]] static std::string build_error_message(const std::string &flag_name);
         }; /* class FlagUnknownError */
 
         class FlagMissingError : public FlagError
@@ -126,7 +126,7 @@ namespace Arguinator
                 FlagMissingError(const std::vector<std::string> &missing_flags_vector);
 
         private:
-                static std::string build_error_message(const std::vector<std::string> &missing_flags_vector);
+                [[nodiscard]] static std::string build_error_message(const std::vector<std::string> &missing_flags_vector);
         }; /* class FlagMissingError */
 
         class FlagFormatError : public FlagError
@@ -135,7 +135,7 @@ namespace Arguinator
                 FlagFormatError(const std::string &flag_string);
 
         private:
-                static std::string build_error_message(const std::string &flag_string);
+                [[nodiscard]] static std::string build_error_message(const std::string &flag_string);
         }; /* class FlagFormatError */
 } /* namespace Arguinator */
 

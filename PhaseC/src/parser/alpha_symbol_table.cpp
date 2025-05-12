@@ -63,7 +63,7 @@ namespace Alpha
         template <typename SymbolKind, typename... Args>
                 requires std::is_same_v<SymbolKind, Variable> ||
                          std::is_same_v<SymbolKind, Function>
-        DEBUG_ALWAYS_INLINE const Symbol *SymbolTable::insert_symbol(
+        DEBUG_ALWAYS_INLINE const SymbolKind *SymbolTable::insert_symbol(
             const std::string &name,
             u32 scope,
             Args &&...args)
@@ -81,14 +81,16 @@ namespace Alpha
                 ensure_scope_slot(symbols_per_scope_, scope);
                 symbols_per_scope_[scope].push_back(symbol_ptr.get());
                 actives_per_scope_[scope].push_back(symbol_ptr.get());
-                return synonym_symbols.emplace(symbol_it, std::move(symbol_ptr))->get();
+
+                return static_cast<SymbolKind *>(
+                    synonym_symbols.emplace(symbol_it, std::move(symbol_ptr))->get());
         }
 
         // Explicit instantiations for insert_symbol()
-        template const Symbol *SymbolTable::insert_symbol<Function>(
+        template const Function *SymbolTable::insert_symbol<Function>(
             const std::string &, u32, Symbol::Type &&, const std::list<Parameter> &, Location &&);
 
-        template const Symbol *SymbolTable::insert_symbol<Variable>(
+        template const Variable *SymbolTable::insert_symbol<Variable>(
             const std::string &, u32, Variable::Space &&, u32 &&, Location &&);
 
         SymbolTable::SymbolTable()
@@ -96,7 +98,8 @@ namespace Alpha
                 // Load library functions
                 for (std::string name : k_library_function_names)
                 {
-                        insert_symbol<Function>(
+                        // return value intentionally discarded (useless here)
+                        (void)insert_symbol<Function>(
                             name,
                             k_global_scope,
                             Symbol::Type::LIBRARY_FUNCTION,
@@ -113,9 +116,10 @@ namespace Alpha
         }
 
         // Used for inserting PROGRAM_FUNCTIONS (USER FUNCNTIONS)
-        const Symbol *SymbolTable::insert_function(
+        const Function *SymbolTable::insert_function(
             const std::string &name,
             u32 scope,
+            u32 address,
             const std::list<Parameter> &parameter_list,
             Location location)
         {
@@ -124,7 +128,7 @@ namespace Alpha
                     name, scope, Symbol::Type::PROGRAM_FUNCTION, parameter_list, location);
         }
 
-        const Symbol *SymbolTable::insert_variable(
+        const Variable *SymbolTable::insert_variable(
             const std::string &name,
             u32 scope,
             Variable::Space space,
@@ -191,9 +195,9 @@ namespace Alpha
                 if (found_symbol == nullptr)
                         throw std::logic_error("Function tracked by ParseCtx is not found in SymbolTable");
 
-                DEBUG_SMART_ASSERT(                                      //
-                    (dynamic_cast<Function *>(found_symbol) != nullptr), //
-                    (found_symbol->is_function())                        //
+                DEBUG_SMART_ASSERT(                                    //
+                    dynamic_cast<Function *>(found_symbol) != nullptr, //
+                    found_symbol->is_function()                        //
                 );
 
                 static_cast<Function *>(found_symbol)->local_variables.set(local_variables);
