@@ -101,7 +101,7 @@ namespace Alpha
         {
         public:
                 const std::list<Parameter> parameter_list;
-                Once<u32> local_variables;
+                Once<u32> local_variable_count;
 
                 Function(
                     const std::string &name,
@@ -148,8 +148,6 @@ namespace Alpha
                 [[nodiscard]] const Symbol *lookup_global(const std::string &name) const;
                 [[nodiscard]] const Symbol *lookup_chain(const std::string &name, u32 scope) const;
                 [[nodiscard]] const Symbol *lookup_local(const std::string &name, u32 scope) const;
-
-                void backpatch_function_locals(const std::string &name, u32 scope, u32 local_variables);
 
                 void hide_scope_symbols(u32 scope) noexcept;
                 [[nodiscard]] bool is_lib_function(const std::string &name) const;

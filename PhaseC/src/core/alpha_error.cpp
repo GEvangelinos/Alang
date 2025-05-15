@@ -93,8 +93,9 @@ namespace Alpha
                         return "error";
                 case Type::NOTE:
                         return "note";
+                default:
+                        [[unlikely]] SMART_ASSERT(false);
                 }
-                UNREACHABLE("Some field of Diagnostic::Type is not registred");
         }
 
         std::string_view Diagnostic::pretty_color() const noexcept
@@ -105,8 +106,9 @@ namespace Alpha
                         return COLOR_ASCII_BOLD_RED;
                 case Type::NOTE:
                         return COLOR_ASCII_BOLD_CYAN;
+                default:
+                        [[unlikely]] SMART_ASSERT(false);
                 }
-                UNREACHABLE("Some field of Diagnostic::Type is not registred");
         }
 
         std::string_view CTError::type_to_string() const noexcept
@@ -119,8 +121,9 @@ namespace Alpha
                         return "semantic";
                 case Type::SYNTAX:
                         return "syntax";
+                default:
+                        [[unlikely]] SMART_ASSERT(false);
                 }
-                UNREACHABLE("Some field of CTError::Type is not registred");
         }
 
         std::string CTError::make_pretty_diagnostic(

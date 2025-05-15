@@ -5,6 +5,7 @@
 #include "utils/smart_assert.h"      // for DEBUG_SMART_ASSERT
 #include <initializer_list>          // for initializer_list
 #include <utility>                   // for move, pair, forward
+#include "parser/alpha_backpatcher.hpp"
 
 namespace Alpha
 {
@@ -56,8 +57,9 @@ namespace Alpha
                         return "PROGRAM_FUNCTION";
                 case Symbol::Type::VARIABLE:
                         return "VARIABLE";
+                default:
+                        [[unlikely]] SMART_ASSERT(false);
                 }
-                UNREACHABLE("Some field of Symbol::Type is not registred");
         }
 
         template <typename SymbolKind, typename... Args>
@@ -99,7 +101,7 @@ namespace Alpha
                 for (std::string name : k_library_function_names)
                 {
                         // return value intentionally discarded (useless here)
-                        (void)insert_symbol<Function>(
+                        const Function *const function_symbol = insert_symbol<Function>(
                             name,
                             k_global_scope,
                             Symbol::Type::LIBRARY_FUNCTION,
@@ -107,11 +109,9 @@ namespace Alpha
                             k_no_location);
                         library_function_set_.insert(name);
 
-                        // TODO:  remove backpatching .. or  add it only in debug mode..
-                        //  Backpatching should never occur in scope 0 and δε in lib functions...
-
-                        //  Library functions require no back-patching, at least till now.
-                        backpatch_function_locals(name, k_global_scope, k_libfunc_local_vars);
+                        Backpatcher::set_function_local_variable_count(
+                            function_symbol,
+                            k_libfunc_local_variable_count);
                 }
         }
 
@@ -184,23 +184,6 @@ namespace Alpha
                                 return symbol_ptr.get();
                 }
                 return nullptr;
-        }
-
-        void SymbolTable::backpatch_function_locals(
-            const std::string &name,
-            u32 scope,
-            u32 local_variables)
-        {
-                Symbol *found_symbol = const_cast<Symbol *>(lookup_local(name, scope));
-                if (found_symbol == nullptr)
-                        throw std::logic_error("Function tracked by ParseCtx is not found in SymbolTable");
-
-                DEBUG_SMART_ASSERT(                                    //
-                    dynamic_cast<Function *>(found_symbol) != nullptr, //
-                    found_symbol->is_function()                        //
-                );
-
-                static_cast<Function *>(found_symbol)->local_variables.set(local_variables);
         }
 
         void SymbolTable::hide_scope_symbols(u32 scope) noexcept

@@ -16,6 +16,9 @@ namespace Alpha
         {
                 u32 first_index;
                 u32 last_index;
+
+                bool operator==(const Location &) const noexcept = default;
+                bool operator!=(const Location &) const noexcept = default;
         };
 
         struct LineRange

@@ -214,20 +214,23 @@ namespace Alpha
 
                 auto write_quad = [&](u32 quad_index, const Quad &quad)
                 {
-                        // outfile << FMT::format(
-                        //     "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10}",
-                        //     quad_index,
-                        //     to_string(quad.iopcode),
-                        //     quad.result->symbol_->name, );
+                        outfile << FMT::format(
+                            "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10}\n",
+                            quad_index,
+                            to_string(quad.iopcode),
+                            quad.result ? quad.result->symbol_->name : "",
+                            quad.arg1 ? quad.arg1->symbol_->name : "",
+                            quad.arg2 ? quad.arg2->symbol_->name : "",
+                            quad.label);
                 };
 
                 // Write export header.
                 outfile << FMT::format(
-                    "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10}",
+                    "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10}\n",
                     "quad#", "opcode", "result", "arg1", "arg2", "label");
 
                 // Write separating dash line.
-                outfile << std::string(11 + 16 + 21 + 21 + 21 + 10, '-');
+                outfile << std::string(11 + 16 + 21 + 21 + 21 + 10, '-') << '\n';
 
                 // Write quads.
                 const auto &quads = parse_ctx_.quad_handler.quads();

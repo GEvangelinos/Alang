@@ -66,6 +66,7 @@ endif()
 add_library(alpha_parser STATIC
         ${ALPHA_PARSER_OUTPUT_FILEPATH}
         alpha_symbol_table.cpp
+        alpha_backpatcher.cpp
 )
 
 add_dependencies(alpha_parser generate_parser_scanner)

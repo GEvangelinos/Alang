@@ -18,6 +18,7 @@
 #include "parser/alpha_parser_context.hpp" // for ParseCtx
 #include "utils/format_adapter.hpp"	   // for format, FMT
 #include "utils/smart_assert.h"		   // for DEBUG_SMART_ASSERT
+#include "parser/alpha_backpatcher.hpp"
 
 using namespace Alpha;
 
@@ -39,8 +40,9 @@ namespace // (Anonymous)
 				return "break";
 			case Keyword::CONTINUE:
 				return "continue";
+			default:
+				[[unlikely]] SMART_ASSERT(false);
 			}
-			UNREACHABLE("Some field of Keyword is not registred");
 		}
 	}; // namespace Loop
 
@@ -271,11 +273,11 @@ inline void lvalue__id(
 	}
 	if (found_symbol->is_variable() &&
 	    found_symbol->scope > k_global_scope &&
-	    found_symbol->scope <= parse_ctx.function_ctx_handler.function_scope())
+	    found_symbol->scope <= parse_ctx.function_ctx_handler.current_function_scope())
 		report_out_of_scope_variable(
 		    id_name,
-		    id_location, parse_ctx.function_ctx_handler.function_name(),
-		    parse_ctx.function_ctx_handler.function_location(),
+		    id_location, parse_ctx.function_ctx_handler.current_function_name(),
+		    parse_ctx.function_ctx_handler.current_function_location(),
 		    found_symbol,
 		    et);
 	lvalue = found_symbol;
@@ -365,7 +367,7 @@ inline void funcPrefix__function_id(
 /// enter_function() (to keep our frame‐stack balanced), but
 /// we must *not* back-patch the local-variable count or we
 /// ’ll end up polluting the original function’s frame with
-/// locals from the redefinition.
+/// local_variable_count from the redefinition.
 inline void funcSignature__funcPrefix_funcArgList(
     SymbolTable &st,
     ParseCtx &parse_ctx,
@@ -379,10 +381,10 @@ inline void funcSignature__funcPrefix_funcArgList(
 	    parse_ctx.function_ctx_handler.new_function_location,
 	    et);
 
+	const Function *function_symbol = nullptr;
 	if (!conflicting_name)
 	{
-
-		st.insert_function(
+		function_symbol = st.insert_function(
 		    parse_ctx.function_ctx_handler.new_function_id,
 		    parse_ctx.scope_handler.scope(),
 		    parse_ctx.function_ctx_handler.next_function_address(),
@@ -394,26 +396,31 @@ inline void funcSignature__funcPrefix_funcArgList(
 		    IOPCode::FUNCSTART,
 		    nullptr,
 		    nullptr,
-		    Expr{.type_ = Expr::Type::PROGRAM_FUNCTION},
+		    parse_ctx.expr_handler.add_lvalue_expr(function_symbol),
 		    parse_ctx.function_ctx_handler.new_function_location);
 	}
-
-	// If this function name already existed in this scope,
-	// we skip back-patching to avoid contaminating the
-	// original function’s local count.
-	const bool backpatch_locals = !conflicting_name;
-	parse_ctx.function_ctx_handler.enter_function(backpatch_locals);
-
+	parse_ctx.function_ctx_handler.enter_function(function_symbol);
 	insert_function_parameters(st, parse_ctx, et);
-
+	parse_ctx.function_ctx_handler.clear_function_parameters();
 	parse_ctx.space_handler.enter_space(); // IMPORTANT: This line is after parameter insertion!
 }
 
-inline void funcDef__funcSignature_block(SymbolTable &st, ParseCtx &parse_ctx) noexcept
+inline void funcDef__funcSignature_block(ParseCtx &parse_ctx) noexcept
 {
 	auto fbi = parse_ctx.function_ctx_handler.exit_function();
-	if (fbi.backpatch_locals)
-		st.backpatch_function_locals(fbi.name, fbi.scope, fbi.locals);
+	if (fbi.function_symbol != nullptr)
+	{
+		Backpatcher::set_function_local_variable_count(
+		    fbi.function_symbol,
+		    fbi.local_variable_count);
+
+		parse_ctx.quad_handler.emit_quad(
+		    IOPCode::FUNCEND,
+		    nullptr,
+		    nullptr,
+		    parse_ctx.expr_handler.add_lvalue_expr(fbi.function_symbol),
+		    fbi.function_symbol->location);
+	}
 
 	parse_ctx.space_handler.exit_space();
 }

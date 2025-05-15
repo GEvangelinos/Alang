@@ -20,6 +20,7 @@
 #include <list>
 #include <stack>
 #include <vector>
+#include <memory>
 
 namespace Alpha
 {
@@ -76,8 +77,9 @@ namespace Alpha
                 {
                         const std::string name;
                         const u32 scope;
-                        const u32 locals;
-                        const bool backpatch_locals;
+                        const Location location;
+                        const u32 local_variable_count;
+                        const Function *function_symbol;
                 };
 
                 std::string new_function_id;
@@ -87,13 +89,13 @@ namespace Alpha
                 FunctionCtxHandler(ParseCtx *parse_ctx);
                 ~FunctionCtxHandler();
 
-                void enter_function(bool backpatch_locals);
+                void enter_function(const Function *function_symbol);
                 [[nodiscard]] FunctionBackpatchInfo exit_function() noexcept;
 
                 [[nodiscard]] u32 function_nesting_depth() const noexcept;
-                [[nodiscard]] u32 function_scope() const noexcept;
-                [[nodiscard]] const std::string &function_name() const noexcept;
-                [[nodiscard]] Location function_location() const noexcept;
+                [[nodiscard]] u32 current_function_scope() const noexcept;
+                [[nodiscard]] const std::string &current_function_name() const noexcept;
+                [[nodiscard]] Location current_function_location() const noexcept;
 
                 void enter_loop() noexcept;
                 void exit_loop() noexcept;
@@ -101,7 +103,7 @@ namespace Alpha
 
                 void add_function_parameter(const std::string &name, Location location);
                 [[nodiscard]] const std::list<Parameter> &function_parameters() const noexcept;
-                [[nodiscard]] std::list<Parameter> extract_function_parameters();
+                void clear_function_parameters() noexcept;
 
                 [[nodiscard]] u32 next_function_address() noexcept { return next_function_address_++; }
 
@@ -113,10 +115,10 @@ namespace Alpha
                         const std::string name;
                         const u32 scope;
                         const Location location;
-                        const bool backpatch_locals; // If not valid back-patching local_var count is skipped.
+                        const Function *function_symbol; // Valid function ONLY IF NOT nullptr;
 
-                        u32 loop_nesting_counter = 0;
-                        u32 local_variables_counter = 0;
+                        u32 loop_nesting_count = 0;
+                        u32 local_variable_count = 0;
                 };
                 std::stack<FunctionDataFrame> frame_stack_;
                 std::list<Parameter> function_parameters_;
@@ -155,6 +157,24 @@ namespace Alpha
                 u32 next_quad_label_ = 1; // First quad_label is always 1, (0 for backpatching)
         };
 
+        class ExprHandler : private Immobile
+        {
+        public:
+                ExprHandler() = default;
+                ~ExprHandler()
+                {
+                        for (const Expr *e : expressions_)
+                                delete e;
+                }
+
+                const ExprLvalue *add_lvalue_expr(const Symbol *symbol);
+
+                const std::vector<const Expr *> &expressions() const noexcept { return expressions_; }
+
+        private:
+                std::vector<const Expr *> expressions_;
+        };
+
         class ParseCtx : private Immobile
         {
         public:
@@ -162,6 +182,7 @@ namespace Alpha
                 ScopeHandler scope_handler;
                 FunctionCtxHandler function_ctx_handler;
                 QuadHandler quad_handler;
+                ExprHandler expr_handler;
                 NameGenerator name_generator;
 
                 ParseCtx();
@@ -266,7 +287,7 @@ namespace Alpha
                     .name = k_global_data_frame_name,
                     .scope = k_global_scope,
                     .location = k_no_location,
-                    .backpatch_locals = false // There is no function to backpatch its local var counter.
+                    .function_symbol = nullptr // There is no function, so no function symbol.
                 });
         }
 
@@ -278,38 +299,51 @@ namespace Alpha
                 );
         }
 
-        inline void FunctionCtxHandler::enter_function(bool backpatch_locals)
+        inline void FunctionCtxHandler::enter_function(const Function *function_symbol)
         {
+#ifdef DEBUG_MODE
                 DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
+                if (function_symbol != nullptr)
+                        DEBUG_SMART_ASSERT(
+                            function_symbol->name == new_function_id,
+                            function_symbol->scope == parse_ctx_->scope_handler.scope(),
+                            function_symbol->location == new_function_location,
+                            function_symbol->is_function(),
+                            function_symbol->type == Symbol::Type::PROGRAM_FUNCTION
+                            // Only library functions are defined in source code.
+                        );
+#endif // DEBUG_MODE
 
                 frame_stack_.emplace(FunctionDataFrame{
                     .name = new_function_id,
                     .scope = parse_ctx_->scope_handler.scope(),
                     .location = new_function_location,
-                    .backpatch_locals = backpatch_locals //
+                    .function_symbol = function_symbol //
                 });
 
+                // Function scope is entered here.
+                // We skip the next `{` block’s scope to avoid double scoping.
                 parse_ctx_->scope_handler.enter_scope();
                 parse_ctx_->scope_handler.skip_next_scope_increment();
         }
 
-        // Returns the number of locals of the current function.
         inline FunctionCtxHandler::FunctionBackpatchInfo
         FunctionCtxHandler::exit_function() noexcept
         {
                 // A frame always exist for loops outside functions.
                 DEBUG_SMART_ASSERT(frame_stack_.size() > k_global_data_frame_count);
                 // All loops must be closed before exiting function.
-                DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_counter == 0);
+                DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count == 0);
 
                 FunctionDataFrame top_frame = std::move(frame_stack_.top());
                 frame_stack_.pop();
+
                 return {
                     .name = top_frame.name,
                     .scope = top_frame.scope,
-                    .locals = top_frame.local_variables_counter,
-                    .backpatch_locals = top_frame.backpatch_locals //
-                };
+                    .location = top_frame.location,
+                    .local_variable_count = top_frame.local_variable_count,
+                    .function_symbol = top_frame.function_symbol};
         }
 
         inline u32 FunctionCtxHandler::function_nesting_depth() const noexcept
@@ -317,19 +351,19 @@ namespace Alpha
                 return frame_stack_.size() - k_global_data_frame_count;
         }
 
-        inline u32 FunctionCtxHandler::function_scope() const noexcept
+        inline u32 FunctionCtxHandler::current_function_scope() const noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
                 return frame_stack_.top().scope;
         }
 
-        inline const std::string &FunctionCtxHandler::function_name() const noexcept
+        inline const std::string &FunctionCtxHandler::current_function_name() const noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
                 return frame_stack_.top().name;
         }
 
-        inline Location FunctionCtxHandler::function_location() const noexcept
+        inline Location FunctionCtxHandler::current_function_location() const noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
                 return frame_stack_.top().location;
@@ -338,21 +372,21 @@ namespace Alpha
         inline void FunctionCtxHandler::enter_loop() noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
-                DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_counter < k_max_loop_nesting);
-                ++frame_stack_.top().loop_nesting_counter;
+                DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count < k_max_loop_nesting);
+                ++frame_stack_.top().loop_nesting_count;
         }
 
         inline void FunctionCtxHandler::exit_loop() noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
-                DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_counter > 0);
-                --frame_stack_.top().loop_nesting_counter;
+                DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count > 0);
+                --frame_stack_.top().loop_nesting_count;
         }
 
         inline u32 FunctionCtxHandler::loop_depth() const noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
-                return frame_stack_.top().loop_nesting_counter;
+                return frame_stack_.top().loop_nesting_count;
         }
 
         inline void FunctionCtxHandler::add_function_parameter(
@@ -367,20 +401,14 @@ namespace Alpha
                 return function_parameters_;
         }
 
-        inline std::list<Parameter> FunctionCtxHandler::extract_function_parameters()
+        inline void FunctionCtxHandler::clear_function_parameters() noexcept
         {
-#ifdef OPTIMIZED_MODE
-                return std::move(function_parameters_);
-#else
-                std::list<Parameter> out(std::move(function_parameters_));
                 function_parameters_.clear();
-                return out; // NVRO
-#endif
         }
 
         inline void FunctionCtxHandler::add_local() noexcept
         {
-                ++frame_stack_.top().local_variables_counter;
+                ++frame_stack_.top().local_variable_count;
         }
 
         inline std::string NameGenerator::new_temp()
@@ -390,6 +418,33 @@ namespace Alpha
         inline std::string NameGenerator::new_anonymous()
         {
                 return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
+        }
+
+        inline void QuadHandler::emit_quad(
+            const IOPCode iopcode,
+            const Expr *arg1,
+            const Expr *arg2,
+            const Expr *result,
+            const Location location)
+        {
+                DEBUG_SMART_ASSERT(quads_.size() + 1 == next_quad_label_);
+
+                quads_.emplace_back(Quad{
+                    .iopcode = iopcode,
+                    .arg1 = arg1,
+                    .arg2 = arg2,
+                    .result = result,
+                    .label = next_quad_label_++,
+                    .location = location //
+                });
+        }
+
+        inline const ExprLvalue *ExprHandler::add_lvalue_expr(const Symbol *symbol)
+        {
+                DEBUG_SMART_ASSERT(symbol != nullptr);
+                const ExprLvalue *new_expr_lvalue = new ExprLvalue(symbol);
+                expressions_.push_back(new_expr_lvalue);
+                return new_expr_lvalue;
         }
 
         inline ParseCtx::ParseCtx()
@@ -410,25 +465,6 @@ namespace Alpha
                     space_handler.space(),
                     space_handler.next_offset(),
                     k_no_location);
-        }
-
-        inline void QuadHandler::emit_quad(
-            const IOPCode iopcode,
-            const Expr *arg1,
-            const Expr *arg2,
-            const Expr *result,
-            const Location location)
-        {
-                DEBUG_SMART_ASSERT(quads_.size() + 1 == next_quad_label_);
-
-                quads_.emplace_back(Quad{
-                    .iopcode = iopcode,
-                    .arg1 = arg1,
-                    .arg2 = arg2,
-                    .result = result,
-                    .label = next_quad_label_++,
-                    .location = location //
-                });
         }
 } // namespace Alpha
 #endif // ALPHA_PARSER_CONTEXT_HPP

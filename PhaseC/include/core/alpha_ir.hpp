@@ -52,7 +52,7 @@ namespace Alpha
                         IOPCODES
 #undef X
                 default:
-                        return "UNKNOWN_IOPCODE";
+                        [[unlikely]] SMART_ASSERT(false);
                 }
         }
 #undef IOPCODES
@@ -85,13 +85,49 @@ namespace Alpha
                         NIL,
                 };
 
-                Type type_;
-                Symbol *symbol_;
-                Expr *index;
-                double numConst;
-                char *strConst;
-                bool boolConst;
-                Expr *next;
+                const Type type_;
+                const Symbol *symbol_;
+
+                Expr(Type type, const Symbol *symbol)
+                    : type_(type), symbol_(symbol) {}
+        };
+        // Expr *index;
+        // union
+        // {
+        //         double const_num;
+        //         char *const_str;
+        //         bool const_bool;
+        // };
+
+        constexpr Expr::Type to_expr_type(Symbol::Type symbol_type)
+        {
+                switch (symbol_type)
+                {
+                case Symbol::Type::VARIABLE:
+                        return Expr::Type::VARIABLE;
+                case Symbol::Type::LIBRARY_FUNCTION:
+                        return Expr::Type::LIBRARY_FUNCTION;
+                case Symbol::Type::PROGRAM_FUNCTION:
+                        return Expr::Type::PROGRAM_FUNCTION;
+                default:
+                        [[unlikely]] SMART_ASSERT(false);
+                }
+        }
+
+        struct ExprLvalue : public Expr
+        {
+                ExprLvalue(const Symbol *symbol)
+                    : Expr(to_expr_type(symbol->type), symbol) {}
+        };
+
+        struct ExprConst : protected Expr
+        {
+                union
+                {
+                        double const_num;
+                        char *const_str;
+                        bool const_bool;
+                };
         };
 
         // TODO: Which of the following fields can you make const?
@@ -99,7 +135,6 @@ namespace Alpha
         //       but after the construction, create an object,
         //       that can be initialized only once (like const),
         //       but at arbitrary time.
-
         struct Quad
         {
                 const IOPCode iopcode;
