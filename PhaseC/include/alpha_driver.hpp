@@ -33,8 +33,9 @@ namespace Alpha
                 Driver &operator=(Driver &&) = delete;
 
                 void run_syntax_analyzer();
-                void display_symbol_table();
-                void display_compile_errors() const;
+                void show_symbol_table();
+                void show_compile_errors() const;
+                void show_quads() const;
                 void export_symbol_table();
                 void export_compile_errors();
                 void export_quads();

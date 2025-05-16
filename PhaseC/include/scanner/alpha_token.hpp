@@ -113,7 +113,7 @@ namespace Alpha
                 static void setStartingLocation(Location location);
                 static Location getStartingLocation();
                 static void appendToAssemblingBuffer(std::string stringChunk);
-                static void exportStringToken(char **unionStringLiteral);
+                static void exportStringToken(char **cstring_addr);
                 TokenString(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string stringContent);
                 std::string toString() const;
         };

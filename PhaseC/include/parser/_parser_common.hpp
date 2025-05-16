@@ -18,5 +18,12 @@ namespace Alpha
                 Parameter(const std::string &name, Location location)
                     : name(name), location(location) {}
         };
+
+        struct BlockLocation
+        {
+                Location begin;
+                Location end;
+        };
+
 } // namespace Alpha
 #endif //_PARSER_COMMON_HPP

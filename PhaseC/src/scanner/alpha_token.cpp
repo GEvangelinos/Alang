@@ -257,7 +257,7 @@ namespace Alpha
                 return TokenString::stringStartingLocation;
         }
 
-        /* FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */
+        /* TODO: FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */
         std::string TokenString::convertContentEscapesToASCII()
         {
                 std::string str = stringAssemblingBuffer.str();
@@ -310,11 +310,11 @@ namespace Alpha
                 stringAssemblingBuffer.clear();
         }
 
-        void TokenString::exportStringToken(char **unionStringLiteral)
+        void TokenString::exportStringToken(char **cstring_addr)
         {
                 std::string cpp_string = convertContentEscapesToASCII();
-                *unionStringLiteral = new char[cpp_string.size() + 1]; // +1 for null terminator
-                std::strcpy(*unionStringLiteral, cpp_string.c_str());
+                *cstring_addr = new char[cpp_string.size() + 1]; // +1 for null terminator
+                std::strcpy(*cstring_addr, cpp_string.c_str());
                 TokenString::flushAssemblingBuffer();
         }
 

@@ -7,7 +7,7 @@
 #include "alpha_parser.hpp"         // for alpha_yyparse
 #include "core/alpha_konstants.hpp" // for k_global_scope
 #include "core/alpha_types.hpp"     // for u32
-#include "utils/cli_color.h"        // for COLOR_ASCII_FG_BLUE, SGR_RESET
+#include "utils/cli_color.h"        // for COLOR_ASCII_BLUE, SGR_RESET
 #include "utils/format_adapter.hpp" // for format, FMT
 #include "utils/smart_assert.h"     // for SMART_ASSERT
 
@@ -60,9 +60,9 @@ namespace Alpha
                 parser_retval_ = alpha_yyparse(lexer_ctx_, parse_ctx_, st_, et_, lt_);
         }
 
-        void Driver::display_symbol_table()
+        void Driver::show_symbol_table()
         {
-                std::cout << COLOR_ASCII_FG_BLUE;
+                std::cout << COLOR_ASCII_BLUE;
                 const auto &symbol_per_scope_vector = st_.symbols_per_scope();
                 for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
                 {
@@ -81,7 +81,7 @@ namespace Alpha
                 std::cout << SGR_RESET << std::endl;
         }
 
-        void Driver::display_compile_errors() const
+        void Driver::show_compile_errors() const
         {
                 const std::string source_filename = source_filepath_.filename().string();
 
@@ -90,6 +90,33 @@ namespace Alpha
                             source_filename,
                             lt_,
                             flex_buffer_.const_buffer());
+        }
+
+        void Driver::show_quads() const
+        {
+#define QUAD_EXPORT_FORMAT "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10} {:<10}\n"
+#define QUAD_HEADER_WIDTH (10 + 1 + 15 + 1 + 20 + 1 + 20 + 1 + 20 + 1 + 10 + 1 + 10)
+                // Write export header.
+                std::cout << FMT::format(
+                    QUAD_EXPORT_FORMAT, "quad#", "opcode", "result", "arg1", "arg2", "label", "line");
+                // Write separating dash line.
+                std::cout << std::string(QUAD_HEADER_WIDTH, '-') << '\n';
+                // Write quads.
+                const auto &quads = parse_ctx_.quad_handler.quads();
+                const auto quads_size = quads.size();
+                for (u32 i = 0; i < quads_size; i++)
+                {
+                        const Quad &q = quads[i];
+                        std::cout << FMT::format(
+                            QUAD_EXPORT_FORMAT,
+                            i + 1,
+                            to_string(q.iopcode),
+                            q.result ? q.result->symbol_->name : "",
+                            q.arg1 ? q.arg1->symbol_->name : "",
+                            q.arg2 ? q.arg2->symbol_->name : "",
+                            q.label,
+                            lt_.find_first_line(q.location));
+                }
         }
 
         void Driver::export_symbol_table()
@@ -212,30 +239,27 @@ namespace Alpha
                         throw std::runtime_error(FMT::format(
                             "Failed opening file {} to export quads", outfile_name));
 
-                auto write_quad = [&](u32 quad_index, const Quad &quad)
-                {
-                        outfile << FMT::format(
-                            "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10}\n",
-                            quad_index,
-                            to_string(quad.iopcode),
-                            quad.result ? quad.result->symbol_->name : "",
-                            quad.arg1 ? quad.arg1->symbol_->name : "",
-                            quad.arg2 ? quad.arg2->symbol_->name : "",
-                            quad.label);
-                };
-
+#define QUAD_EXPORT_FORMAT "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10} {:<10}\n"
+#define QUAD_HEADER_WIDTH (10 + 1 + 15 + 1 + 20 + 1 + 20 + 1 + 20 + 1 + 10 + 1 + 10)
                 // Write export header.
-                outfile << FMT::format(
-                    "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10}\n",
-                    "quad#", "opcode", "result", "arg1", "arg2", "label");
-
+                outfile << FMT::format(QUAD_EXPORT_FORMAT, "quad#", "opcode", "result", "arg1", "arg2", "label", "line");
                 // Write separating dash line.
-                outfile << std::string(11 + 16 + 21 + 21 + 21 + 10, '-') << '\n';
-
+                outfile << std::string(QUAD_HEADER_WIDTH, '-') << '\n';
                 // Write quads.
                 const auto &quads = parse_ctx_.quad_handler.quads();
-                auto quads_size = quads.size();
+                const auto quads_size = quads.size();
                 for (u32 i = 0; i < quads_size; i++)
-                        write_quad(i + 1, quads[i]);
+                {
+                        const Quad &q = quads[i];
+                        outfile << FMT::format(
+                            QUAD_EXPORT_FORMAT,
+                            i + 1,
+                            to_string(q.iopcode),
+                            q.result ? q.result->symbol_->name : "",
+                            q.arg1 ? q.arg1->symbol_->name : "",
+                            q.arg2 ? q.arg2->symbol_->name : "",
+                            q.label,
+                            lt_.find_first_line(q.location));
+                }
         }
 }

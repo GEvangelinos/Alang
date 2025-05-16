@@ -75,12 +75,12 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 "nil"           {return NIL;} 
 
 
-"="             {return '=';} 
-"+"             {return '+';} 
-"-"             {return '-';} 
-"*"             {return '*';} 
-"/"             {return '/';} 
-"%"             {return '%';} 
+"="             {return ASSIGN;} 
+"+"             {return PLUS;} 
+"-"             {return MINUS;} 
+"*"             {return MULT;} 
+"/"             {return DIV;} 
+"%"             {return MOD;} 
 "=="            {return EQ;} 
 "!="            {return NEQ;} 
 "++"            {return INC;} 
@@ -90,22 +90,22 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 ">="            {return GTE;} 
 "<="            {return LTE;} 
 
-"{"             {return '{';}
-"}"             {return '}';}
-"["             {return '[';}
-"]"             {return ']';}
-"("             {return '(';}
-")"             {return ')';}
-";"             {return ';';}
-","             {return ',';}
-":"             {return ':';}
-"::"            {return GLOBAL;}
-"."             {return '.';}
-".."            {return METHOD_CALL;}
+"{"             {return LEFT_BRACE;}
+"}"             {return RIGHT_BRACE;}
+"["             {return LEFT_BRACKET;}
+"]"             {return RIGHT_BRACKET;}
+"("             {return LEFT_PAREN;}
+")"             {return RIGHT_PAREN;}
+";"             {return SEMICOLON;}
+","             {return COMMA;}
+":"             {return COLON;}
+"::"            {return DOUBLE_COLON;}
+"."             {return DOT;}
+".."            {return DOUBLE_DOT;}
 
-{id}            {alpha_yylval.union_id = Alpha::TokenID::refreshLastId(yytext); return ID;}
-{real}          {alpha_yylval.union_real_const = std::stod(yytext); return REAL_CONST;}
-{integer}       {alpha_yylval.union_int_const = std::stol(yytext); return INT_CONST;}
+{id}            {alpha_yylval.cstring = Alpha::TokenID::refreshLastId(yytext); return ID;}
+{real}          {alpha_yylval.const_real = std::stod(yytext); return REAL_CONST;}
+{integer}       {alpha_yylval.const_int = std::stol(yytext); return INT_CONST;}
 {lineComment}   {/* Syntax Anal-yzer doesn't give a fuck about you... */}
 {newline}       {lt.append_line(lexer_ctx.index_);}
 {space}+        {/* Just eat up the spaces. */}
@@ -163,7 +163,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_STRING>{stringEndRule} {
         BEGIN(INITIAL);
-        Alpha::TokenString::exportStringToken(&(alpha_yylval.union_string_literal));
+        Alpha::TokenString::exportStringToken(&alpha_yylval.cstring);
         return STRING_LITERAL;
 }
 

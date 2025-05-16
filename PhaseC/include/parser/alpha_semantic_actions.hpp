@@ -134,7 +134,7 @@ namespace // (Anonymous)
 	}
 
 	void report_out_of_scope_variable(
-	    const std::string &id_name,
+	    const char *id_name,
 	    const Location id_location,
 	    const std::string &current_function_name,
 	    const Location current_function_location,
@@ -255,7 +255,7 @@ inline void assignExpr__lvalue_assign_expr(
 inline void lvalue__id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    const std::string &id_name,
+    const char *id_name,
     const Location id_location,
     const Symbol *&lvalue,
     ErrorTracker &et)
@@ -286,7 +286,7 @@ inline void lvalue__id(
 inline void lvalue__local_id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    const std::string &id_name,
+    const char *id_name,
     const Location id_location,
     const Symbol *&lvalue,
     ErrorTracker &et)
@@ -313,7 +313,7 @@ inline void lvalue__local_id(
 
 inline void lvalue__global_id(
     SymbolTable &st,
-    const std::string &id_name,
+    const char *id_name,
     const Location id_location,
     const Symbol *&lvalue,
     ErrorTracker &et)
@@ -344,20 +344,22 @@ inline void blockClose__rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept
 
 inline void funcPrefix__function(ParseCtx &parse_ctx, const Location anonymous_location)
 {
-	parse_ctx.function_ctx_handler.new_function_id = parse_ctx.name_generator.new_anonymous();
-	parse_ctx.function_ctx_handler.new_function_location = anonymous_location;
-	parse_ctx.function_ctx_handler.new_function_is_anonymous = true;
+	// Update ParseCache:
+	parse_ctx.cache.func_prefix.id = parse_ctx.name_generator.new_anonymous();
+	parse_ctx.cache.func_prefix.location = anonymous_location;
+
 	parse_ctx.space_handler.enter_space();
 }
 
 inline void funcPrefix__function_id(
     ParseCtx &parse_ctx,
-    const std::string &id_name,
+    const char *id_name,
     Location id_location)
 {
-	parse_ctx.function_ctx_handler.new_function_id = id_name;
-	parse_ctx.function_ctx_handler.new_function_location = id_location;
-	parse_ctx.function_ctx_handler.new_function_is_anonymous = false;
+	// Update ParseCache
+	parse_ctx.cache.func_prefix.id = id_name;
+	parse_ctx.cache.func_prefix.location = id_location;
+
 	parse_ctx.space_handler.enter_space();
 }
 
@@ -377,27 +379,26 @@ inline void funcSignature__funcPrefix_funcArgList(
 	bool conflicting_name = reported_function_name_conflict(
 	    st,
 	    parse_ctx.scope_handler.scope(),
-	    parse_ctx.function_ctx_handler.new_function_id,
-	    parse_ctx.function_ctx_handler.new_function_location,
+	    parse_ctx.cache.func_prefix.id,
+	    parse_ctx.cache.func_prefix.location,
 	    et);
 
 	const Function *function_symbol = nullptr;
 	if (!conflicting_name)
 	{
 		function_symbol = st.insert_function(
-		    parse_ctx.function_ctx_handler.new_function_id,
+		    parse_ctx.cache.func_prefix.id,
 		    parse_ctx.scope_handler.scope(),
 		    parse_ctx.function_ctx_handler.next_function_address(),
 		    parse_ctx.function_ctx_handler.function_parameters(),
-		    parse_ctx.function_ctx_handler.new_function_location);
+		    parse_ctx.cache.func_prefix.location);
 
-		// TODO:THIS is WRONG!
 		parse_ctx.quad_handler.emit_quad(
 		    IOPCode::FUNCSTART,
 		    nullptr,
 		    nullptr,
 		    parse_ctx.expr_handler.add_lvalue_expr(function_symbol),
-		    parse_ctx.function_ctx_handler.new_function_location);
+		    parse_ctx.cache.func_prefix.location);
 	}
 	parse_ctx.function_ctx_handler.enter_function(function_symbol);
 	insert_function_parameters(st, parse_ctx, et);
@@ -405,7 +406,9 @@ inline void funcSignature__funcPrefix_funcArgList(
 	parse_ctx.space_handler.enter_space(); // IMPORTANT: This line is after parameter insertion!
 }
 
-inline void funcDef__funcSignature_block(ParseCtx &parse_ctx) noexcept
+inline void funcDef__funcSignature_block(
+    ParseCtx &parse_ctx,
+    const BlockLocation &block_location) noexcept
 {
 	auto fbi = parse_ctx.function_ctx_handler.exit_function();
 	if (fbi.function_symbol != nullptr)
@@ -419,7 +422,7 @@ inline void funcDef__funcSignature_block(ParseCtx &parse_ctx) noexcept
 		    nullptr,
 		    nullptr,
 		    parse_ctx.expr_handler.add_lvalue_expr(fbi.function_symbol),
-		    fbi.function_symbol->location);
+		    block_location.end);
 	}
 
 	parse_ctx.space_handler.exit_space();
@@ -431,7 +434,7 @@ inline void const__stringliteral(char *&string_literal)
 	string_literal = nullptr;
 }
 
-inline void funcArgs__id(ParseCtx &parse_ctx, const std::string &id_name, const Location id_location)
+inline void funcArgs__id(ParseCtx &parse_ctx, const char *id_name, const Location id_location)
 {
 	parse_ctx.function_ctx_handler.add_function_parameter(id_name, id_location);
 }

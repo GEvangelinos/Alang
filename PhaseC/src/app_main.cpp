@@ -13,7 +13,7 @@ static constexpr char flag_export_quads[] = "export-quads";
 static constexpr char flag_show_symbol_table[] = "show-symbol-table";
 static constexpr char flag_show_parser_trace[] = "show-parser-trace";
 static constexpr char flag_no_show_errors[] = "no-show-errors";
-
+static constexpr char flag_show_quads[] = "show-quads";
 static Arguinator::Parser launch_cli_parser(int argc, const char *const *const argv)
 {
         Arguinator::Parser parser(argc, argv, alpha_driver_description);
@@ -43,6 +43,9 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
         parser.set_flag(flag_no_show_errors)
             .set_arity(0)
             .set_help("Disables displaying of errors. (Mainly used for compiler' post validation, in automatic tests)");
+        parser.set_flag(flag_show_quads)
+            .set_arity(0)
+            .set_help("Pretty prints the quads on console");
 
         parser.parse_flags();
 
@@ -77,9 +80,11 @@ int main(int argc, char **argv)
         if (cli_parser[flag_export_quads].is_provided())
                 driver.export_quads();
         if (cli_parser[flag_show_symbol_table].is_provided())
-                driver.display_symbol_table();
+                driver.show_symbol_table();
         if (cli_parser[flag_no_show_errors].is_provided() == false)
-                driver.display_compile_errors();
+                driver.show_compile_errors();
+        if (cli_parser[flag_show_quads].is_provided())
+                driver.show_quads();
 
         return driver.ok() ? 0 : 1;
 }

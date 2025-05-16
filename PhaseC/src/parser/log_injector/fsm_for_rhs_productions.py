@@ -125,7 +125,7 @@ def _handled_braces(ch: str, current_token: list[str], ctx: ParserContext) -> bo
         if ch == "}":
                 if ctx.brace_depth <= 0:
                         raise ValueError(f"In line {ctx.line_counter}: unmatched '}}'")
-                if not ctx.injected and not is_in_midrule(ctx.charStream):
+                if ctx.brace_depth == 1 and not ctx.injected and not is_in_midrule(ctx.charStream):
                         _inject_log_in_codeblock(ctx)
 
                 ctx.decrement_brace_depth()

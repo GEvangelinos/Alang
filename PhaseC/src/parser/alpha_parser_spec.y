@@ -24,7 +24,6 @@
 %define api.prefix {alpha_yy}
 %define parse.lac full
 %define parse.error verbose    /* Enable verbose error messages */
-
 %define api.location.type {Alpha::Location}
 %locations
 
@@ -38,12 +37,18 @@
 %lex-param{Alpha::ErrorTracker &error_tracker}
 %lex-param{Alpha::LocationTracker &location_tracker}
 
+// Here I declare the trivial types that can be used in union.
+// More complex types are stores in ParseCache of ParseCtx.
+// The split is done, because we use Bison C's backend, but mine
+// semantic driver is written in C++. Bison's C++ driver is more
+// complex and appears to be problematic (erroneous).
 %union{
-        char *union_string_literal;
-        char *union_id;
-        long union_int_const;
-        double union_real_const;
-        const Alpha::Symbol *union_lvalue;
+        char *cstring;
+        long const_int;
+        double const_real;
+        const Alpha::Symbol *symbol_ptr;
+        Alpha::Location location;
+        Alpha::BlockLocation block_location;
 }
 
 /*
@@ -51,25 +56,27 @@
  *   %token <field> NAME "display name"
  * Bison will use the quoted string in error messages instead of NAME.
  */
-%token <union_string_literal> STRING_LITERAL "`string-literal`"
-%token <union_id>             ID             "`identifier`"
-%token <union_int_const>      INT_CONST      "`integer-constant`"
-%token <union_real_const>     REAL_CONST     "`real-constant`"
-%type <union_lvalue> lvalue
+%token <cstring>        STRING_LITERAL "`string-literal`"
+%token <cstring>        ID             "`identifier`"
+%token <const_int>      INT_CONST      "`integer-constant`"
+%token <const_real>     REAL_CONST     "`real-constant`"
+%type  <symbol_ptr>     lvalue
+%type  <location>       blockOpen 
+%type  <location>       blockClose
+%type  <block_location> block
 
-/*
- * By default Bison uses the bare token names (e.g. IF, GLOBAL)
+/* By default Bison uses the bare token names (e.g. IF, GLOBAL)
  * in its syntax‐error messages.  If you follow a %token with
  * a quoted string, Bison will use that string instead as the
  * token’s “display name.”  That way you get messages like:
  *
- *     syntax error, unexpected "keyword `if`"
- *     syntax error, unexpected "global operator `::`"
+ *     syntax error, unexpected "keyword if"
+ *     syntax error, unexpected "global operator ::"
  *
  * instead of
  *
  *     syntax error, unexpected IF
- *     syntax error, unexpected GLOBAL
+ *     syntax error, unexpected DOUBLE_COLON
  */
 
 /* Keyword tokens */
@@ -90,37 +97,37 @@
 %token NIL      "keyword `nil`"
 
 /* Operator tokens */
-%token '='      "assignment operator `=`"
-%token '+'      "addition operator `+`" 
-%token '-'      "subtraction operator `-`"
-%token '*'      "multiplication operator `*`"
-%token '/'      "division operator `/`"
-%token '%'      "modulo operator `%`"
-%token '>'      "greater-than operator `>`"
-%token '<'      "less-than operator `<`"
-%token GTE      "greater-than-or-equal operator `>=`"
-%token LTE      "less-than-or-equal operator `<=`"
-%token EQ       "equal operator `==`"
-%token NEQ      "not-equal operator `!=`"     
-%token DEC      "decrement operator `--`"
-%token INC      "increment operator `++`"
+%token ASSIGN    "assignment operator ="
+%token PLUS      "+" 
+%token MINUS     "-"
+%token MULT      "*"
+%token DIV       "/"
+%token MOD       "%"
+%token LT        ">"
+%token GT        "<"
+%token GTE       ">="
+%token LTE       "<="
+%token EQ        "=="
+%token NEQ       "!="     
+%token DEC       "decrement operator `--`"
+%token INC       "increment operator `++`"
 
 /* Punctuation tokens */
-%token '{'          "`{`"
-%token '}'          "`}`"
-%token '['          "`[`"
-%token ']'          "`]`"
-%token '('          "`(`" 
-%token ')'          "`)`"
-%token ';'          "`;`"   
-%token ','          "`,`"
-%token '.'          "`.`"   
-%token METHOD_CALL  "method-call operator `..`"
-%token ':'          "`:`"   
-%token GLOBAL       "global operator `::`"
+%token LEFT_BRACE    "{"
+%token RIGHT_BRACE   "}"
+%token LEFT_BRACKET  "["
+%token RIGHT_BRACKET "]"
+%token LEFT_PAREN    "(" 
+%token RIGHT_PAREN   ")"
+%token SEMICOLON     ";"   
+%token COMMA         ","
+%token DOT           "."   
+%token DOUBLE_DOT    "method-call operator .."
+%token COLON         ":"   
+%token DOUBLE_COLON  "global operator ::"
 
 /* Priorities */
-%right '='
+%right ASSIGN
 
 %left OR
 %left AND
@@ -128,15 +135,15 @@
 %nonassoc EQ NEQ
 %nonassoc GT GTE LT LTE
 
-%left '+' '-'
-%left '*' '/' '%'
+%left PLUS MINUS
+%left MULT DIV MOD
 
 %right NOT INC DEC UMINUS
 
-%left '.' METHOD_CALL
+%left DOT DOUBLE_DOT
 
-%left '[' ']'
-%left '(' ')'
+%left LEFT_BRACKET RIGHT_BRACKET
+%left LEFT_PAREN RIGHT_PAREN
 
 %precedence THEN
 %precedence ELSE
@@ -155,19 +162,19 @@ multiStmt:
 ;
 
 stmt:   
-  expr ';'
+  expr SEMICOLON
 | ifStmt
 | whileStmt
 | forStmt
-| returnStmt ';'
-| loopCtrlStmt ';'
+| returnStmt SEMICOLON
+| loopCtrlStmt SEMICOLON
 | block
 | funcDef
-| ';'
-| error ';'     { yyerrok; } // Syntax error recovery hook.
-| error ')'     { yyerrok; } // Syntax error recovery hook.
-| error ']'     { yyerrok; } // Syntax error recovery hook.
-| error '}'     { yyerrok; } // Syntax error recovery hook.
+|SEMICOLON
+| error SEMICOLON     { yyerrok; } // Syntax error recovery hook.
+| error RIGHT_PAREN   { yyerrok; } // Syntax error recovery hook.
+| error RIGHT_BRACKET { yyerrok; } // Syntax error recovery hook.
+| error RIGHT_BRACE   { yyerrok; } // Syntax error recovery hook.
 ;
 
 loopCtrlStmt:
@@ -177,25 +184,25 @@ loopCtrlStmt:
 
 expr:
   assignExpr
-| expr '+' expr
-| expr '-' expr
-| expr '*' expr
-| expr '/' expr
-| expr '%' expr
-| expr GT  expr
-| expr GTE expr
-| expr LT  expr
-| expr LTE expr
-| expr EQ  expr
-| expr NEQ expr
-| expr AND expr
-| expr OR  expr
+| expr PLUS  expr
+| expr MINUS expr
+| expr MULT  expr
+| expr DIV   expr
+| expr MOD   expr
+| expr GT    expr
+| expr GTE   expr
+| expr LT    expr
+| expr LTE   expr
+| expr EQ    expr
+| expr NEQ   expr
+| expr AND   expr
+| expr OR    expr
 | term
 ;
 
 term:
-  '(' expr ')'
-| '-' expr %prec UMINUS
+  LEFT_PAREN expr RIGHT_PAREN
+| MINUS expr %prec UMINUS
 | NOT expr
 | INC lvalue { term__inc_lvalue($lvalue, @term, error_tracker); }
 | lvalue INC { term__lvalue_inc($lvalue, @term, error_tracker); }
@@ -205,14 +212,14 @@ term:
 ;
 
 assignExpr:
-  lvalue '='[assign_op] expr { assignExpr__lvalue_assign_expr($lvalue, @assign_op, error_tracker); }
+  lvalue ASSIGN expr { assignExpr__lvalue_assign_expr($lvalue, @ASSIGN, error_tracker); }
 ;
 
 primary:
   lvalue
 | call
 | objectDef
-| '(' funcDef ')'
+| LEFT_PAREN funcDef RIGHT_PAREN
 | const
 ;
 
@@ -220,21 +227,21 @@ primary:
 lvalue:
   ID { lvalue__id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
 | LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); } 
-| GLOBAL ID { lvalue__global_id(symbol_table, $ID, @ID, $lvalue, error_tracker); }
+| DOUBLE_COLON ID { lvalue__global_id(symbol_table, $ID, @ID, $lvalue, error_tracker); }
 | member { lvalue__member($lvalue); }
 ;
 
 member:
-  lvalue '.' ID
-| lvalue '[' expr ']'
-| call '.' ID
-| call '[' expr ']'
+  lvalue DOT ID
+| lvalue LEFT_BRACKET expr RIGHT_BRACKET
+| call DOT ID
+| call LEFT_BRACKET expr RIGHT_BRACKET
 ;
 
 call:
-  call '(' elist ')'
+  call LEFT_PAREN elist RIGHT_PAREN
 | lvalue callSuffix
-| '(' funcDef ')' '(' elist ')'
+| LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN
 ;
 
 callSuffix:
@@ -243,16 +250,16 @@ callSuffix:
 ;
 
 normalCall:
-  '(' elist ')'
+  LEFT_PAREN elist RIGHT_PAREN
 ;
 
 methodCall:
-  METHOD_CALL ID '(' elist ')'
+  DOUBLE_DOT ID LEFT_PAREN elist RIGHT_PAREN
 ;
 
 exprList:
   expr
-| expr ',' exprList
+| expr COMMA exprList
 ;
 
 elist:
@@ -261,8 +268,8 @@ elist:
 ;
 
 objectDef:
-  '[' elist ']'
-| '[' indexed ']'
+  LEFT_BRACKET elist RIGHT_BRACKET
+| LEFT_BRACKET indexed RIGHT_BRACKET
 ;
 
 indexed:
@@ -270,20 +277,30 @@ indexed:
 ;
 
 indexedElem:
-  '{' expr ':' expr '}'
+  LEFT_BRACE expr COLON expr RIGHT_BRACE
 ;
 
 blockOpen:
-  '{' { blockOpen__lbrace(parse_ctx); }
+  LEFT_BRACE
+  { 
+    blockOpen__lbrace(parse_ctx);
+    $blockOpen = @LEFT_BRACE;
+  }
 ;
 
 blockClose:
-  '}' { blockClose__rbrace(symbol_table, parse_ctx); }
+  RIGHT_BRACE
+  { 
+    blockClose__rbrace(symbol_table, parse_ctx);
+    $blockClose = @RIGHT_BRACE;
+  }
 ;
 
 block:
-  blockOpen multiStmt  blockClose
+  blockOpen multiStmt  blockClose 
+  { $block = BlockLocation{.begin = $blockOpen, .end = $blockClose}; }
 | blockOpen blockClose
+  { $block = BlockLocation{.begin = $blockOpen, .end = $blockClose}; }
 ;
 
 
@@ -298,8 +315,8 @@ funcArgs:
 ;
 
 funcArgList:
-  '(' /*Void*/ ')'
-| '(' funcArgs ')'
+  LEFT_PAREN /*Void*/ RIGHT_PAREN
+| LEFT_PAREN funcArgs RIGHT_PAREN
 ;
 
 funcSignature:
@@ -308,7 +325,7 @@ funcSignature:
 ;
 
 funcDef:
-  funcSignature block { funcDef__funcSignature_block(parse_ctx); }
+  funcSignature block { funcDef__funcSignature_block(parse_ctx, $block); }
 ;
 
 const:
@@ -322,12 +339,12 @@ const:
 
 
 ifStmt:
-  IF '(' expr ')' stmt %prec THEN
-| IF '(' expr ')' stmt ELSE stmt
+  IF LEFT_PAREN expr RIGHT_PAREN stmt %prec THEN
+| IF LEFT_PAREN expr RIGHT_PAREN stmt ELSE stmt
 ;
 
 whileHeader:
-  WHILE '(' expr ')' 
+  WHILE LEFT_PAREN expr RIGHT_PAREN 
 ;
 
 whileStmt:
@@ -338,7 +355,7 @@ whileStmt:
 ;
 
 forHeader:
-  FOR '(' elist ';' expr ';' elist ')'
+  FOR LEFT_PAREN elist SEMICOLON expr SEMICOLON elist RIGHT_PAREN
 ;
 
 forStmt:
@@ -359,7 +376,7 @@ returnStmt: //OK
 
 indexedElemList:
   indexedElem
-| indexedElem ',' indexedElemList
+| indexedElem COMMA indexedElemList
 ;
 
 %%

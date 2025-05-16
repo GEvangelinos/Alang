@@ -25,12 +25,45 @@
 namespace Alpha
 {
         // Classes define here:
-        struct FunctionDataFrame;
+        struct ParseCache;
+        class SpaceHandler;
         class SpaceHandler;
         class ScopeHandler;
         class FunctionCtxHandler;
+        struct FunctionBackpatchInfo;
+        struct FunctionDataFrame;
         class TempGenerator;
         class ParseCtx;
+
+        /**
+         * @brief Temporary semantic state used during parsing.
+         *
+         * ParseCache holds intermediate data needed across specific grammar rules
+         * during Bison parsing. It stores complex semantic values that cannot
+         * safely or cleanly be represented in the %union (e.g., std::string,
+         * structs with non-trivial constructors).
+         *
+         * This separation exists because the parser uses Bison's C backend,
+         * which relies on a raw union for token values. To maintain clean
+         * memory safety and modern C++ idioms (RAII, strong typing), ParseCache
+         * acts as a companion scratchpad for semantic actions that require
+         * richer state tracking.
+         *
+         * Each substructure in ParseCache typically maps to a specific grammar rule
+         * or parsing context (e.g., function headers, block spans), allowing
+         * clean separation, clarity, and scalability.
+         *
+         * Lifetime: ParseCache is owned by ParseCtx and lives for the duration
+         * of parsing a single alpha source file.
+         */
+        struct ParseCache
+        {
+                struct funcPrefixState
+                {
+                        std::string id;
+                        Location location;
+                } func_prefix;
+        };
 
         class SpaceHandler : private Immobile
         {
@@ -81,10 +114,6 @@ namespace Alpha
                         const u32 local_variable_count;
                         const Function *function_symbol;
                 };
-
-                std::string new_function_id;
-                Location new_function_location = k_no_location;
-                bool new_function_is_anonymous = false;
 
                 FunctionCtxHandler(ParseCtx *parse_ctx);
                 ~FunctionCtxHandler();
@@ -150,7 +179,7 @@ namespace Alpha
                     const Expr *result,
                     Location location);
 
-                [[nodiscard]] const std::vector<Quad> &quads() { return quads_; }
+                [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
 
         private:
                 std::vector<Quad> quads_;
@@ -178,6 +207,7 @@ namespace Alpha
         class ParseCtx : private Immobile
         {
         public:
+                ParseCache cache;
                 SpaceHandler space_handler;
                 ScopeHandler scope_handler;
                 FunctionCtxHandler function_ctx_handler;
@@ -305,9 +335,9 @@ namespace Alpha
                 DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
                 if (function_symbol != nullptr)
                         DEBUG_SMART_ASSERT(
-                            function_symbol->name == new_function_id,
+                            function_symbol->name == parse_ctx_->cache.func_prefix.id,
                             function_symbol->scope == parse_ctx_->scope_handler.scope(),
-                            function_symbol->location == new_function_location,
+                            function_symbol->location == parse_ctx_->cache.func_prefix.location,
                             function_symbol->is_function(),
                             function_symbol->type == Symbol::Type::PROGRAM_FUNCTION
                             // Only library functions are defined in source code.
@@ -315,9 +345,9 @@ namespace Alpha
 #endif // DEBUG_MODE
 
                 frame_stack_.emplace(FunctionDataFrame{
-                    .name = new_function_id,
+                    .name = parse_ctx_->cache.func_prefix.id,
                     .scope = parse_ctx_->scope_handler.scope(),
-                    .location = new_function_location,
+                    .location = parse_ctx_->cache.func_prefix.location,
                     .function_symbol = function_symbol //
                 });
 
