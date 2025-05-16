@@ -81,10 +81,10 @@ int main(int argc, char **argv)
                 driver.export_quads();
         if (cli_parser[flag_show_symbol_table].is_provided())
                 driver.show_symbol_table();
-        if (cli_parser[flag_no_show_errors].is_provided() == false)
-                driver.show_compile_errors();
         if (cli_parser[flag_show_quads].is_provided())
                 driver.show_quads();
+        if (cli_parser[flag_no_show_errors].is_provided() == false)
+                driver.show_compile_errors();
 
         return driver.ok() ? 0 : 1;
 }

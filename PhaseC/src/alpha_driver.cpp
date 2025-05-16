@@ -10,6 +10,7 @@
 #include "utils/cli_color.h"        // for COLOR_ASCII_BLUE, SGR_RESET
 #include "utils/format_adapter.hpp" // for format, FMT
 #include "utils/smart_assert.h"     // for SMART_ASSERT
+#include <iomanip>
 
 static constexpr unsigned k_flex_eof_padding = 2;
 
@@ -40,6 +41,90 @@ namespace // (Anonymous)
         void exit_export_directory(auto original_path)
         {
                 std::filesystem::current_path(original_path);
+        }
+
+        template <unsigned column, unsigned column_width, typename T>
+        std::string color_column(T &&value)
+        {
+                constexpr unsigned column_count = 7;
+                static_assert(column < column_count, "So far we support a maximum of 7 columns");
+
+                const char *ascii_color;
+                // clang-format off
+                switch (column)
+                {
+                case 0:  ascii_color = COLOR_ASCII_WHITE;   break;
+                case 1:  ascii_color = COLOR_ASCII_RED;     break;
+                case 2:  ascii_color = COLOR_ASCII_GREEN;   break;
+                case 3:  ascii_color = COLOR_ASCII_BLUE;    break;
+                case 4:  ascii_color = COLOR_ASCII_CYAN;    break;
+                case 5:  ascii_color = COLOR_ASCII_MAGENTA; break;
+                case 6:  ascii_color = COLOR_ASCII_YELLOW;  break;
+                default: ascii_color = COLOR_ASCII_DEFAULT; break;
+                }
+                // clang-format on
+                return FMT::format("{}{:<{}}{}", ascii_color, std::forward<T>(value), column_width, SGR_RESET);
+        }
+
+        template <bool colorize, unsigned column, unsigned column_width, typename T>
+        std::string format_column(T &&value)
+        {
+                if (colorize)
+                        return color_column<column, column_width>(std::forward<T>(value));
+                else
+                        return FMT::format("{:<{}}", std::forward<T>(value), column_width);
+        }
+
+        template <bool colorize, typename Stream>
+        void print_quads(
+            Stream &out,
+            const std::vector<Alpha::Quad> &quads,
+            const Alpha::LocationTracker &lt)
+        {
+                constexpr Alpha::u32 widths[] = {10, 15, 20, 20, 20, 10, 10};
+                constexpr Alpha::u32 quad_header_width = [&widths]() constexpr
+                {
+                        Alpha::u32 width = 0;
+                        for (Alpha::u32 i = 0; i < std::size(widths); ++i)
+                                width += widths[i];
+                        width += std::size(widths) - 1; // One space between each column
+                        return width;
+                }();
+
+                // Write export header.
+                out << FMT::format(
+                    "{} {} {} {} {} {} {}\n",
+                    format_column<colorize, 0, widths[0]>("quad#"),
+                    format_column<colorize, 1, widths[1]>("opcode"),
+                    format_column<colorize, 2, widths[2]>("result"),
+                    format_column<colorize, 3, widths[3]>("arg1"),
+                    format_column<colorize, 4, widths[4]>("arg2"),
+                    format_column<colorize, 5, widths[5]>("label"),
+                    format_column<colorize, 6, widths[6]>("line") //
+                );
+
+                // Write separating dash line.
+                out << std::string(quad_header_width, '-') << '\n';
+
+                // Write quads.
+                const auto quads_size = quads.size();
+                for (Alpha::u32 i = 0; i < quads_size; i++)
+                {
+                        const Alpha::Quad &q = quads[i];
+                        out << FMT::format(
+                            "{} {} {} {} {} {} {}\n",
+                            format_column<colorize, 0, widths[0]>(i + 1),
+                            format_column<colorize, 1, widths[1]>(to_string(q.iopcode)),
+                            format_column<colorize, 2, widths[2]>(q.result ? q.result->symbol_->name : ""),
+                            format_column<colorize, 3, widths[3]>(q.arg1 ? q.arg1->symbol_->name : ""),
+                            format_column<colorize, 4, widths[4]>(q.arg2 ? q.arg2->symbol_->name : ""),
+                            format_column<colorize, 5, widths[5]>(q.label),
+                            format_column<colorize, 6, widths[6]>(lt.find_first_line(q.location)) //
+                        );
+                }
+                if constexpr (colorize)
+                        out << SGR_RESET;
+                out << std::endl;
         }
 
 } // namespace (Anonymous)
@@ -94,29 +179,7 @@ namespace Alpha
 
         void Driver::show_quads() const
         {
-#define QUAD_EXPORT_FORMAT "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10} {:<10}\n"
-#define QUAD_HEADER_WIDTH (10 + 1 + 15 + 1 + 20 + 1 + 20 + 1 + 20 + 1 + 10 + 1 + 10)
-                // Write export header.
-                std::cout << FMT::format(
-                    QUAD_EXPORT_FORMAT, "quad#", "opcode", "result", "arg1", "arg2", "label", "line");
-                // Write separating dash line.
-                std::cout << std::string(QUAD_HEADER_WIDTH, '-') << '\n';
-                // Write quads.
-                const auto &quads = parse_ctx_.quad_handler.quads();
-                const auto quads_size = quads.size();
-                for (u32 i = 0; i < quads_size; i++)
-                {
-                        const Quad &q = quads[i];
-                        std::cout << FMT::format(
-                            QUAD_EXPORT_FORMAT,
-                            i + 1,
-                            to_string(q.iopcode),
-                            q.result ? q.result->symbol_->name : "",
-                            q.arg1 ? q.arg1->symbol_->name : "",
-                            q.arg2 ? q.arg2->symbol_->name : "",
-                            q.label,
-                            lt_.find_first_line(q.location));
-                }
+                print_quads<true>(std::cout, parse_ctx_.quad_handler.quads(), lt_);
         }
 
         void Driver::export_symbol_table()
@@ -230,7 +293,6 @@ namespace Alpha
                 }
         }
 
-        // TODO: implement, (once you started you had little information as to how to print/write)
         void Driver::export_quads_impl()
         {
                 const std::string outfile_name = source_filepath_.filename().string() + ".quads";
@@ -239,27 +301,6 @@ namespace Alpha
                         throw std::runtime_error(FMT::format(
                             "Failed opening file {} to export quads", outfile_name));
 
-#define QUAD_EXPORT_FORMAT "{:<10} {:<15} {:<20} {:<20} {:<20} {:<10} {:<10}\n"
-#define QUAD_HEADER_WIDTH (10 + 1 + 15 + 1 + 20 + 1 + 20 + 1 + 20 + 1 + 10 + 1 + 10)
-                // Write export header.
-                outfile << FMT::format(QUAD_EXPORT_FORMAT, "quad#", "opcode", "result", "arg1", "arg2", "label", "line");
-                // Write separating dash line.
-                outfile << std::string(QUAD_HEADER_WIDTH, '-') << '\n';
-                // Write quads.
-                const auto &quads = parse_ctx_.quad_handler.quads();
-                const auto quads_size = quads.size();
-                for (u32 i = 0; i < quads_size; i++)
-                {
-                        const Quad &q = quads[i];
-                        outfile << FMT::format(
-                            QUAD_EXPORT_FORMAT,
-                            i + 1,
-                            to_string(q.iopcode),
-                            q.result ? q.result->symbol_->name : "",
-                            q.arg1 ? q.arg1->symbol_->name : "",
-                            q.arg2 ? q.arg2->symbol_->name : "",
-                            q.label,
-                            lt_.find_first_line(q.location));
-                }
+                print_quads<false>(outfile, parse_ctx_.quad_handler.quads(), lt_);
         }
 }
