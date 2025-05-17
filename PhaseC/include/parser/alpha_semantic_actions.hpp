@@ -252,75 +252,79 @@ inline void assignExpr__lvalue_assign_expr(
 	}
 }
 
-inline void lvalue__id(
+ALWAYS_INLINE void lvalue__id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
     const char *id_name,
     const Location id_location,
-    const Symbol *&lvalue,
+    const Expr *&lvalue,
     ErrorTracker &et)
 {
-	const Symbol *found_symbol = st.lookup_chain(id_name, parse_ctx.scope_handler.scope());
-	if (!found_symbol)
-	{
-		lvalue = st.insert_variable(
+	const Symbol *current_symbol = st.lookup_chain(id_name, parse_ctx.scope_handler.scope());
+	if (!current_symbol)
+		current_symbol = st.insert_variable(
 		    id_name,
 		    parse_ctx.scope_handler.scope(),
 		    parse_ctx.space_handler.space(),
 		    parse_ctx.space_handler.next_offset(),
 		    id_location);
-		return;
-	}
-	if (found_symbol->is_variable() &&
-	    found_symbol->scope > k_global_scope &&
-	    found_symbol->scope <= parse_ctx.function_ctx_handler.current_function_scope())
+	else if (current_symbol->is_variable() &&
+		 current_symbol->scope > k_global_scope &&
+		 current_symbol->scope <= parse_ctx.function_ctx_handler.current_function_scope())
 		report_out_of_scope_variable(
 		    id_name,
 		    id_location, parse_ctx.function_ctx_handler.current_function_name(),
 		    parse_ctx.function_ctx_handler.current_function_location(),
-		    found_symbol,
+		    current_symbol,
 		    et);
-	lvalue = found_symbol;
+	lvalue = parse_ctx.expr_handler.add_lvalue_expr(current_symbol);
 }
 
-inline void lvalue__local_id(
+ALWAYS_INLINE void lvalue__local_id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
     const char *id_name,
     const Location id_location,
-    const Symbol *&lvalue,
+    const Expr *&lvalue,
     ErrorTracker &et)
 {
+	const Symbol *current_symbol = nullptr;
 	if (st.is_lib_function(id_name))
 	{
 		std::string error = FMT::format("shadowing library function `{}`", id_name);
 		et.report_error(CTError::Type::SEMANTIC, error, id_location);
-		lvalue = st.lookup_global(id_name);
-		DEBUG_SMART_ASSERT(lvalue != nullptr); // a library function is always resolved at global scope.
-		return;
+		current_symbol = st.lookup_global(id_name);
+		DEBUG_SMART_ASSERT(current_symbol != nullptr); // a library function is always resolved at global scope.
 	}
-	const Symbol *found_symbol = st.lookup_local(id_name, parse_ctx.scope_handler.scope());
-	if (found_symbol)
-		lvalue = found_symbol;
 	else
-		lvalue = st.insert_variable(
-		    id_name,
-		    parse_ctx.scope_handler.scope(),
-		    parse_ctx.space_handler.space(),
-		    parse_ctx.space_handler.next_offset(),
-		    id_location);
+	{
+		current_symbol = st.lookup_local(id_name, parse_ctx.scope_handler.scope());
+		if (!current_symbol)
+			current_symbol = st.insert_variable(
+			    id_name,
+			    parse_ctx.scope_handler.scope(),
+			    parse_ctx.space_handler.space(),
+			    parse_ctx.space_handler.next_offset(),
+			    id_location);
+	}
+
+	lvalue = parse_ctx.expr_handler.add_lvalue_expr(current_symbol);
 }
 
-inline void lvalue__global_id(
+ALWAYS_INLINE void lvalue__global_id(
     SymbolTable &st,
+    ParseCtx &parse_ctx,
     const char *id_name,
     const Location id_location,
-    const Symbol *&lvalue,
+    const Expr *&lvalue,
     ErrorTracker &et)
 {
-	lvalue = st.lookup_global(id_name);
-	if (lvalue)
+	const Symbol *current_symbol = st.lookup_global(id_name);
+	if (current_symbol)
+	{
+		lvalue = parse_ctx.expr_handler.add_lvalue_expr(current_symbol);
 		return;
+	}
 	std::string error = FMT::format("variable `::{}` not found in global scope", id_name);
 	et.report_error(CTError::Type::SEMANTIC, error, id_location);
 }

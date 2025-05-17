@@ -126,7 +126,6 @@ namespace // (Anonymous)
                         out << SGR_RESET;
                 out << std::endl;
         }
-
 } // namespace (Anonymous)
 
 namespace Alpha

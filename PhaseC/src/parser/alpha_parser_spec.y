@@ -46,7 +46,7 @@
         char *cstring;
         long const_int;
         double const_real;
-        const Alpha::Symbol *symbol_ptr;
+        const Alpha::Expr *expr_ptr;
         Alpha::Location location;
         Alpha::BlockLocation block_location;
 }
@@ -60,7 +60,7 @@
 %token <cstring>        ID             "`identifier`"
 %token <const_int>      INT_CONST      "`integer-constant`"
 %token <const_real>     REAL_CONST     "`real-constant`"
-%type  <symbol_ptr>     lvalue
+%type  <expr_ptr>     lvalue
 %type  <location>       blockOpen 
 %type  <location>       blockClose
 %type  <block_location> block
@@ -227,7 +227,7 @@ primary:
 lvalue:
   ID { lvalue__id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
 | LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); } 
-| DOUBLE_COLON ID { lvalue__global_id(symbol_table, $ID, @ID, $lvalue, error_tracker); }
+| DOUBLE_COLON ID { lvalue__global_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
 | member { lvalue__member($lvalue); }
 ;
 

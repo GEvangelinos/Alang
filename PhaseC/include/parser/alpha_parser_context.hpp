@@ -357,7 +357,7 @@ namespace Alpha
                 parse_ctx_->scope_handler.skip_next_scope_increment();
         }
 
-        inline FunctionCtxHandler::FunctionBackpatchInfo
+        inline FunctionCtxHaFUNCENDndler::FunctionBackpatchInfo
         FunctionCtxHandler::exit_function() noexcept
         {
                 // A frame always exist for loops outside functions.

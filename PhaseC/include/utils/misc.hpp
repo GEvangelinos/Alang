@@ -16,15 +16,20 @@
         } while (0)
 
 // clang-format off
+#if defined(__GNUC__) || defined(__clang__)
+        #define ALWAYS_INLINE inline __attribute__((always_inline))
+#elif defined(_MSC_VER)
+        #define ALWAYS_INLINE inline __forceinline
+#else
+        #define ALWAYS_INLINE inline
+#endif
+
 #ifdef DEBUG_MODE
         // Disable inlining to ensure that a function visible debug symbols.
         #define DEBUG_ALWAYS_INLINE
-#elif defined(__GNUC__) || defined(__clang__)
-        #define DEBUG_ALWAYS_INLINE inline __attribute__((always_inline))
-#elif defined(_MSC_VER)
-        #define DEBUG_ALWAYS_INLINE inline __forceinline
 #else
-        #define DEBUG_ALWAYS_INLINE inline
+        #define DEBUG_ALWAYS_INLINE ALWAYS_INLINE
+
 #endif
 
 #if defined(__GNUC__) || defined(__clang__)
