@@ -277,7 +277,7 @@ ALWAYS_INLINE void lvalue__id(
 		    parse_ctx.function_ctx_handler.current_function_location(),
 		    current_symbol,
 		    et);
-	lvalue = parse_ctx.expr_handler.add_lvalue_expr(current_symbol);
+	lvalue = parse_ctx.expr_handler.make_expr_lvalue(current_symbol);
 }
 
 ALWAYS_INLINE void lvalue__local_id(
@@ -308,7 +308,7 @@ ALWAYS_INLINE void lvalue__local_id(
 			    id_location);
 	}
 
-	lvalue = parse_ctx.expr_handler.add_lvalue_expr(current_symbol);
+	lvalue = parse_ctx.expr_handler.make_expr_lvalue(current_symbol);
 }
 
 ALWAYS_INLINE void lvalue__global_id(
@@ -322,17 +322,18 @@ ALWAYS_INLINE void lvalue__global_id(
 	const Symbol *current_symbol = st.lookup_global(id_name);
 	if (current_symbol)
 	{
-		lvalue = parse_ctx.expr_handler.add_lvalue_expr(current_symbol);
+		lvalue = parse_ctx.expr_handler.make_expr_lvalue(current_symbol);
 		return;
 	}
 	std::string error = FMT::format("variable `::{}` not found in global scope", id_name);
 	et.report_error(CTError::Type::SEMANTIC, error, id_location);
 }
 
-inline void lvalue__member(const Symbol *&lvalue) noexcept
+inline void tableItem__lvalue_dot_id(
+    const ExprTableItem *&table_item,
+    const ExprLvalue *lvalue,
+    const char *id)
 {
-	// TODO: Should this remain in pHASE 3?
-	lvalue = nullptr; // We can not resolve members at compile time.
 }
 
 inline void blockOpen__lbrace(ParseCtx &parse_ctx) noexcept
@@ -401,7 +402,7 @@ inline void funcSignature__funcPrefix_funcArgList(
 		    IOPCode::FUNCSTART,
 		    nullptr,
 		    nullptr,
-		    parse_ctx.expr_handler.add_lvalue_expr(function_symbol),
+		    parse_ctx.expr_handler.make_expr_lvalue(function_symbol),
 		    parse_ctx.cache.func_prefix.location);
 	}
 	parse_ctx.function_ctx_handler.enter_function(function_symbol);
@@ -425,7 +426,7 @@ inline void funcDef__funcSignature_block(
 		    IOPCode::FUNCEND,
 		    nullptr,
 		    nullptr,
-		    parse_ctx.expr_handler.add_lvalue_expr(fbi.function_symbol),
+		    parse_ctx.expr_handler.make_expr_lvalue(fbi.function_symbol),
 		    block_location.end);
 	}
 

@@ -194,17 +194,17 @@ namespace Alpha
                 ExprHandler() = default;
                 ~ExprHandler()
                 {
-                        for (const Expr *e : expressions_)
-                                delete e;
+                        for (const Expr *e : expr_sink_)
+                                ;
+                        // TODO: implement deletiong based on type.. (switch on type, and static cast pointer, then delete)
+                        //  delete e;
                 }
 
-                const ExprLvalue *add_lvalue_expr(const Symbol *symbol);
-                const ExprLvalue *add_tableitem_expr(const ExprLvalue *lvalue, const char *id);
-
-                const std::vector<const Expr *> &expressions() const noexcept { return expressions_; }
+                const ExprLvalue *make_expr_lvalue(const Symbol *symbol);
+                const ExprLvalue *make_expr_table_item(const ExprLvalue *lvalue, const char *id);
 
         private:
-                std::vector<const Expr *> expressions_;
+                std::vector<const Expr *> expr_sink_;
         };
 
         class ParseCtx : private Immobile
@@ -472,21 +472,25 @@ namespace Alpha
                 });
         }
 
-        inline const ExprLvalue *ExprHandler::add_lvalue_expr(const Symbol *symbol)
+        inline const ExprLvalue *ExprHandler::make_expr_lvalue(const Symbol *symbol)
         {
                 DEBUG_SMART_ASSERT(symbol != nullptr);
                 const ExprLvalue *new_expr_lvalue = new ExprLvalue(symbol);
-                expressions_.push_back(new_expr_lvalue);
+                expr_sink_.push_back(new_expr_lvalue);
                 return new_expr_lvalue;
         }
 
-        inline const ExprLvalue *ExprHandler::add_tableitem_expr(
+        inline const ExprLvalue *ExprHandler::make_expr_table_item(
             const ExprLvalue *lvalue,
             const char *id)
         {
-                DEBUG_SMART_ASSERT(lvalue != nullptr);
+                DEBUG_SMART_ASSERT(lvalue != nullptr, id != nullptr);
+
                 const ExprConstString *new_index = new ExprConstString(id);
-                const ExprTableItem *new_tableitem = new ExprTableItem(lvalue, new_index);
+                const ExprTableItem *new_table_item = new ExprTableItem(lvalue, new_index);
+                expr_sink_.push_back(new_index);
+                expr_sink_.push_back(new_table_item);
+                return new_table_item;
         }
 
         inline ParseCtx::ParseCtx()

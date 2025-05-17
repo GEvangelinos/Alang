@@ -152,6 +152,12 @@ namespace Alpha
                         );
                         DEBUG_SMART_ASSERT(symbol != nullptr);
                 }
+
+                ExprLvalue(const Symbol *symbol)
+                    : ExprLvalue(to_expr_type(symbol->type), symbol)
+                {
+                        DEBUG_SMART_ASSERT(symbol != nullptr);
+                }
         };
         constexpr Expr::Type to_expr_type(Symbol::Type symbol_type)
         {

@@ -47,7 +47,7 @@
         long const_int;
         double const_real;
         const Alpha::ExprLvalue *lvalue_ptr;
-        const Alpha::ExprTableItem &tableitem_ptr;
+        const Alpha::ExprTableItem &table_item_ptr;
         Alpha::Location location;
         Alpha::BlockLocation block_location;
 }
@@ -62,7 +62,7 @@
 %token <const_int>      INT_CONST      "`integer-constant`"
 %token <const_real>     REAL_CONST     "`real-constant`"
 %type  <lvalue_ptr>     lvalue
-%type  <tableitem_ptr>  tableItem
+%type  <table_item_ptr>  tableItem
 %type  <location>       blockOpen 
 %type  <location>       blockClose
 %type  <block_location> block
@@ -172,7 +172,7 @@ stmt:
 | loopCtrlStmt SEMICOLON
 | block
 | funcDef
-|SEMICOLON
+| SEMICOLON
 | error SEMICOLON     { yyerrok; } // Syntax error recovery hook.
 | error RIGHT_PAREN   { yyerrok; } // Syntax error recovery hook.
 | error RIGHT_BRACKET { yyerrok; } // Syntax error recovery hook.
@@ -230,11 +230,11 @@ lvalue:
   ID { lvalue__id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
 | LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); } 
 | DOUBLE_COLON ID { lvalue__global_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
-| member { lvalue__member($lvalue); }
+| member
 ;
 
 tableItem:
-  lvalue DOT ID { tableItem__lvalue_dot_id(); }
+  lvalue DOT ID { tableItem__lvalue_dot_id($tableItem, $lvalue, $ID); }
 ;
 
 member:
