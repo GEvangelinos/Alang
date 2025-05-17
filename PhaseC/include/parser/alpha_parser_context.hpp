@@ -32,7 +32,9 @@ namespace Alpha
         class FunctionCtxHandler;
         struct FunctionBackpatchInfo;
         struct FunctionDataFrame;
-        class TempGenerator;
+        class NameGenerator;
+        class QuadHandler;
+        class ExprHandler;
         class ParseCtx;
 
         /**
@@ -197,6 +199,7 @@ namespace Alpha
                 }
 
                 const ExprLvalue *add_lvalue_expr(const Symbol *symbol);
+                const ExprLvalue *add_tableitem_expr(const ExprLvalue *lvalue, const char *id);
 
                 const std::vector<const Expr *> &expressions() const noexcept { return expressions_; }
 
@@ -357,7 +360,7 @@ namespace Alpha
                 parse_ctx_->scope_handler.skip_next_scope_increment();
         }
 
-        inline FunctionCtxHaFUNCENDndler::FunctionBackpatchInfo
+        inline FunctionCtxHandler::FunctionBackpatchInfo
         FunctionCtxHandler::exit_function() noexcept
         {
                 // A frame always exist for loops outside functions.
@@ -475,6 +478,15 @@ namespace Alpha
                 const ExprLvalue *new_expr_lvalue = new ExprLvalue(symbol);
                 expressions_.push_back(new_expr_lvalue);
                 return new_expr_lvalue;
+        }
+
+        inline const ExprLvalue *ExprHandler::add_tableitem_expr(
+            const ExprLvalue *lvalue,
+            const char *id)
+        {
+                DEBUG_SMART_ASSERT(lvalue != nullptr);
+                const ExprConstString *new_index = new ExprConstString(id);
+                const ExprTableItem *new_tableitem = new ExprTableItem(lvalue, new_index);
         }
 
         inline ParseCtx::ParseCtx()

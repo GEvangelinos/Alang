@@ -59,10 +59,10 @@ namespace Alpha
 
         enum class RValueType
         {
-                NUMBER,
-                STRING,
-                BOOLEAN,
-                NIL,
+                CONST_NUMBER,
+                CONST_STRING,
+                CONST_BOOLEAN,
+                CONST_NIL,
                 FUNCTION_ADDRESS,
                 LIBRARY_FUNCTION,
         };
@@ -82,23 +82,77 @@ namespace Alpha
                         CONST_NUMBER,
                         CONST_BOOLEAN,
                         CONST_STRING,
-                        NIL,
+                        CONST_NIL,
                 };
 
-                const Type type_;
-                const Symbol *symbol_;
-
-                Expr(Type type, const Symbol *symbol)
-                    : type_(type), symbol_(symbol) {}
+                const Type type;
+                Expr(Type type) : type(type) {}
         };
-        // Expr *index;
-        // union
-        // {
-        //         double const_num;
-        //         char *const_str;
-        //         bool const_bool;
-        // };
 
+        struct ExprConst : public Expr
+        {
+                ExprConst(Expr::Type type) : Expr(type)
+                {
+                        DEBUG_SMART_ASSERT(
+                            type == Expr::Type::CONST_BOOLEAN ||
+                            type == Expr::Type::CONST_NUMBER ||
+                            type == Expr::Type::CONST_STRING ||
+                            type == Expr::Type::CONST_NIL //
+                        );
+                }
+        };
+
+        struct ExprConstBoolean : public ExprConst
+        {
+                const bool value;
+
+                explicit ExprConstBoolean(bool value)
+                    : ExprConst(Expr::Type::CONST_BOOLEAN),
+                      value(value) {}
+        };
+
+        struct ExprConstNumber : public ExprConst
+        {
+                const double value;
+
+                ExprConstNumber(double value)
+                    : ExprConst(Expr::Type::CONST_NUMBER),
+                      value(value) {}
+        };
+
+        struct ExprConstString : public ExprConst
+        {
+                const std::string value;
+
+                explicit ExprConstString(const char *value)
+                    : ExprConst(Expr::Type::CONST_STRING),
+                      value(value) {}
+
+                ExprConstString(const std::string &value)
+                    : ExprConst(Expr::Type::CONST_STRING),
+                      value(value) {}
+        };
+
+        struct ExprConstNil : public ExprConst
+        {
+                ExprConstNil() : ExprConst(Expr::Type::CONST_NIL) {}
+        };
+
+        struct ExprLvalue : public Expr
+        {
+                const Symbol *symbol;
+                ExprLvalue(Expr::Type type, const Symbol *symbol)
+                    : Expr(type), symbol(symbol)
+                {
+                        DEBUG_SMART_ASSERT( // TODO: what else it shouldnt be? Like ArithmEXPR maybe?
+                            type != Expr::Type::CONST_BOOLEAN,
+                            type != Expr::Type::CONST_NUMBER,
+                            type != Expr::Type::CONST_STRING,
+                            type != Expr::Type::NIL //
+                        );
+                        DEBUG_SMART_ASSERT(symbol != nullptr);
+                }
+        };
         constexpr Expr::Type to_expr_type(Symbol::Type symbol_type)
         {
                 switch (symbol_type)
@@ -114,20 +168,16 @@ namespace Alpha
                 }
         }
 
-        struct ExprLvalue : public Expr
+        struct ExprTableItem : public ExprLvalue
         {
-                ExprLvalue(const Symbol *symbol)
-                    : Expr(to_expr_type(symbol->type), symbol) {}
-        };
+                const ExprConst *table_index;
 
-        struct ExprConst : protected Expr
-        {
-                union
+                ExprTableItem(const ExprLvalue *lvalue, const ExprConst *table_index)
+                    : ExprLvalue(lvalue->type, lvalue->symbol),
+                      table_index(table_index)
                 {
-                        double const_num;
-                        char *const_str;
-                        bool const_bool;
-                };
+                        DEBUG_SMART_ASSERT(lvalue != nullptr, table_index != nullptr);
+                }
         };
 
         // TODO: Which of the following fields can you make const?
