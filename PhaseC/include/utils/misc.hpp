@@ -7,6 +7,7 @@
 #include "utils/format_adapter.hpp"
 #include "utils/smart_assert.h"
 
+#define UNIMPLEMENTED() throw std::logic_error("Unimplemented function")
 #define REPORT_UNREACHABLE_VIOLATION(_message_if_reached)                                   \
         do                                                                                  \
         {                                                                                   \

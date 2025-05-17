@@ -161,19 +161,21 @@ namespace Alpha
         class NameGenerator : private Immobile
         {
         public:
-                [[nodiscard]] std::string new_temp();
-                void reset_temps() { temp_counter_ = 0; }
+                [[nodiscard]] std::string new_temp_name();
+                void reset_temp_names() { temp_name_counter_ = 0; }
 
                 [[nodiscard]] std::string new_anonymous();
 
         private:
-                u32 temp_counter_ = 0;
+                u32 temp_name_counter_ = 0;
                 u32 anonymous_counter_ = 0;
         };
 
         class QuadHandler : private Immobile
         {
         public:
+                QuadHandler(ParseCtx *parse_ctx_);
+
                 void emit_quad(
                     IOPCode iopcode,
                     const Expr *arg1,
@@ -181,30 +183,28 @@ namespace Alpha
                     const Expr *result,
                     Location location);
 
+                void emit_quad_if_table_item(const ExprLvalue *lvalue);
+
                 [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
 
         private:
                 std::vector<Quad> quads_;
                 u32 next_quad_label_ = 1; // First quad_label is always 1, (0 for backpatching)
+                ParseCtx *const parse_ctx_;
         };
 
         class ExprHandler : private Immobile
         {
         public:
-                ExprHandler() = default;
-                ~ExprHandler()
-                {
-                        for (const Expr *e : expr_sink_)
-                                ;
-                        // TODO: implement deletiong based on type.. (switch on type, and static cast pointer, then delete)
-                        //  delete e;
-                }
+                ExprHandler(ParseCtx *parse_ctx);
+                ~ExprHandler();
 
                 const ExprLvalue *make_expr_lvalue(const Symbol *symbol);
-                const ExprLvalue *make_expr_table_item(const ExprLvalue *lvalue, const char *id);
+                const ExprTableItem *make_expr_table_item(const ExprLvalue *lvalue, const char *id);
 
         private:
                 std::vector<const Expr *> expr_sink_;
+                ParseCtx *const parse_ctx_;
         };
 
         class ParseCtx : private Immobile
@@ -221,7 +221,7 @@ namespace Alpha
                 ParseCtx();
                 ~ParseCtx() = default;
 
-                void register_temp(SymbolTable &st);
+                const Symbol *new_temp(SymbolTable &st);
         };
 
         inline SpaceHandler::SpaceHandler()
@@ -444,14 +444,16 @@ namespace Alpha
                 ++frame_stack_.top().local_variable_count;
         }
 
-        inline std::string NameGenerator::new_temp()
+        inline std::string NameGenerator::new_temp_name()
         {
-                return k_temp_variable_prefix + std::to_string(temp_counter_++);
+                return k_temp_variable_prefix + std::to_string(temp_name_counter_++);
         }
         inline std::string NameGenerator::new_anonymous()
         {
                 return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
         }
+
+        inline QuadHandler::QuadHandler(ParseCtx *const parse_ctx) : parse_ctx_(parse_ctx) {}
 
         inline void QuadHandler::emit_quad(
             const IOPCode iopcode,
@@ -472,19 +474,39 @@ namespace Alpha
                 });
         }
 
+        inline void QuadHandler::emit_quad_if_table_item(
+            SymbolTable &st,
+            const ExprLvalue *lvalue)
+        {
+                if (lvalue->type != Expr::Type::TABLE_ITEM)
+                        return;
+                const Symbol *temp_symbol = parse_ctx_->new_temp(st);
+                const ExprLvalue *ews = parse_ctx_->expr_handler.make_expr_lvalue(temp_symbol);
+                emit_quad(IOPCode::TABLEGETELEM, )
+        }
+
         inline const ExprLvalue *ExprHandler::make_expr_lvalue(const Symbol *symbol)
         {
                 DEBUG_SMART_ASSERT(symbol != nullptr);
-                const ExprLvalue *new_expr_lvalue = new ExprLvalue(symbol);
+                DEBUG_SMART_ASSERT(
+                    symbol->type != Symbol::Type::LIBRARY_FUNCTION,
+                    symbol->type != Symbol::Type::PROGRAM_FUNCTION,
+                    symbol->type == Symbol::Type::VARIABLE //
+                );
+
+                // TODO: In the future if Lvalues are only VARIABLE, move Expr::Type::VARIABLE straight in the constructor
+                const ExprLvalue *new_expr_lvalue = new ExprLvalue(Expr::Type::VARIABLE, symbol);
                 expr_sink_.push_back(new_expr_lvalue);
                 return new_expr_lvalue;
         }
 
-        inline const ExprLvalue *ExprHandler::make_expr_table_item(
+        inline const ExprTableItem *ExprHandler::make_expr_table_item(
             const ExprLvalue *lvalue,
             const char *id)
         {
                 DEBUG_SMART_ASSERT(lvalue != nullptr, id != nullptr);
+
+                parse_ctx_->quad_handler.emit_quad_if_table_item(lvalue);
 
                 const ExprConstString *new_index = new ExprConstString(id);
                 const ExprTableItem *new_table_item = new ExprTableItem(lvalue, new_index);
@@ -493,24 +515,38 @@ namespace Alpha
                 return new_table_item;
         }
 
-        inline ParseCtx::ParseCtx()
-            : function_ctx_handler(this) {}
+        inline ExprHandler::ExprHandler(ParseCtx *parse_ctx) : parse_ctx_(parse_ctx) {}
 
-        inline void ParseCtx::register_temp(SymbolTable &st)
+        inline ExprHandler::~ExprHandler()
         {
-                const std::string temp_name = name_generator.new_temp();
-                const Symbol *found_symbol = st.lookup_local(temp_name, scope_handler.scope());
+                for (const Expr *e : expr_sink_)
+                        ;
+                // TODO: implement deletiong based on type.. (switch on type, and static cast pointer, then delete)
+                //  delete e;
+
+                UNIMPLEMENTED();
+        }
+
+        inline ParseCtx::ParseCtx()
+            : function_ctx_handler(this),
+              expr_handler(this),
+              quad_handler(this) {}
+
+        inline const Symbol *ParseCtx::new_temp(SymbolTable &st)
+        {
+                const std::string temp_name = name_generator.new_temp_name();
+                const Symbol *symbol = st.lookup_local(temp_name, scope_handler.scope());
 
                 // We register new temp, only if current scope doesnt have that temp.
-                if (found_symbol)
-                        return;
+                if (!symbol)
+                        symbol = st.insert_variable(
+                            temp_name,
+                            scope_handler.scope(),
+                            space_handler.space(),
+                            space_handler.next_offset(),
+                            k_no_location);
 
-                st.insert_variable(
-                    temp_name,
-                    scope_handler.scope(),
-                    space_handler.space(),
-                    space_handler.next_offset(),
-                    k_no_location);
+                return symbol;
         }
 } // namespace Alpha
 #endif // ALPHA_PARSER_CONTEXT_HPP

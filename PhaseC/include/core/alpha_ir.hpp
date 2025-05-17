@@ -140,7 +140,8 @@ namespace Alpha
 
         struct ExprLvalue : public Expr
         {
-                const Symbol *symbol;
+                const Symbol *const symbol;
+
                 ExprLvalue(Expr::Type type, const Symbol *symbol)
                     : Expr(type), symbol(symbol)
                 {
@@ -150,15 +151,11 @@ namespace Alpha
                             type != Expr::Type::CONST_STRING,
                             type != Expr::Type::NIL //
                         );
-                        DEBUG_SMART_ASSERT(symbol != nullptr);
-                }
 
-                ExprLvalue(const Symbol *symbol)
-                    : ExprLvalue(to_expr_type(symbol->type), symbol)
-                {
                         DEBUG_SMART_ASSERT(symbol != nullptr);
                 }
         };
+
         constexpr Expr::Type to_expr_type(Symbol::Type symbol_type)
         {
                 switch (symbol_type)
@@ -179,7 +176,7 @@ namespace Alpha
                 const ExprConst *table_index;
 
                 ExprTableItem(const ExprLvalue *lvalue, const ExprConst *table_index)
-                    : ExprLvalue(lvalue->type, lvalue->symbol),
+                    : ExprLvalue(Expr::Type::TABLE_ITEM, lvalue->symbol),
                       table_index(table_index)
                 {
                         DEBUG_SMART_ASSERT(lvalue != nullptr, table_index != nullptr);
