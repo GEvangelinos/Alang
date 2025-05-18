@@ -196,6 +196,8 @@ namespace Alpha
 
                 [[nodiscard]] const Expr *make_expr_lvalue(const Symbol *symbol);
                 [[nodiscard]] const Expr *make_expr_const_string(const char *name);
+                [[nodiscard]] const Expr *make_expr_assign(const Expr *rvalue);
+                [[nodiscard]] const Expr *make_expr_assign(const Symbol *symbol);
                 [[nodiscard]] const Expr *make_expr_table_item(
                     SymbolTable &st,
                     const Expr *&lvalue,
@@ -545,6 +547,32 @@ namespace Alpha
                 return expr_table_item;
         }
 
+        inline const Expr *ExprHandler::make_expr_assign(const Symbol *symbol)
+        {
+                DEBUG_SMART_ASSERT(symbol != nullptr);
+                const Expr *expr_assign = new Expr{
+                    .type = Expr::Type::ASSIGN,
+                    .symbol = symbol,
+                    .index = nullptr,
+                    .next = nullptr,
+                };
+                expr_sink_.push_back(expr_assign);
+                return expr_assign;
+        }
+
+        inline const Expr *ExprHandler::make_expr_assign(const Expr *rvalue)
+        {
+                DEBUG_SMART_ASSERT(rvalue != nullptr);
+                const Expr *expr_assign = new Expr{
+                    .type = Expr::Type::ASSIGN,
+                    .symbol = rvalue->symbol,
+                    .index = rvalue->index,
+                    .next = rvalue->next,
+                };
+                expr_sink_.push_back(expr_assign);
+                return expr_assign;
+        }
+
         inline const Expr *ExprHandler::emit_quad_if_table_item(SymbolTable &st, const Expr *expr)
         {
                 DEBUG_SMART_ASSERT(expr != nullptr);
@@ -566,7 +594,7 @@ namespace Alpha
 
         inline ExprHandler::ExprHandler(ParseCtx *parse_ctx) : parse_ctx_(parse_ctx) {}
 
-        inline ExprHandler::~ExprHandler()
+        inline ExprHandler::~ExprHandler() noexcept
         {
                 for (const Expr *e : expr_sink_)
                         delete e;

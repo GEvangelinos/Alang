@@ -173,8 +173,9 @@ namespace // (Anonymous)
 	[[nodiscard]] DEBUG_ALWAYS_INLINE bool
 	is_modifiable_lvalue(const Symbol *const lvalue)
 	{
-		if (lvalue == nullptr) // nullptr implies runtime-evaluated lvalue (e.g. member access)
-			return true;
+		// TODO: remove (deprecated part from phase 2)
+		// if (lvalue == nullptr) // nullptr implies runtime-evaluated lvalue (e.g. member access)
+		// 	return true;
 		return lvalue->is_variable();
 	}
 
@@ -228,27 +229,63 @@ inline void term__lvalue_dec(const Symbol *lvalue, const Location term_location,
 	term__lvalue_op("decrement", lvalue, term_location, et);
 }
 
-inline void assignExpr__lvalue_assign_expr(
-    const Symbol *lvalue,
+ALWAYS_INLINE void assignExpr__lvalue_assign_expr(
+    SymbolTable &st,
+    ParseCtx &parse_ctx,
+    const Expr *&assignExpr,
+    const Expr *lvalue,
+    const Expr *expr,
     const Location assign_location,
     ErrorTracker &et)
 {
-	if (is_modifiable_lvalue(lvalue))
-		return;
+	DEBUG_SMART_ASSERT(
+	    assignExpr != nullptr,
+	    lvalue != nullptr,
+	    expr != nullptr //
+	);
+	const Symbol *lvalue_symbol = lvalue->symbol;
+	DEBUG_SMART_ASSERT(lvalue_symbol != nullptr);
 
-	DEBUG_SMART_ASSERT(lvalue != nullptr);
-	DEBUG_SMART_ASSERT(lvalue->is_function());
-
-	if (lvalue->type == Symbol::Type::LIBRARY_FUNCTION)
+	if (lvalue_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
 	{
-		std::string error = FMT::format("assignment of library function `{}`", lvalue->name);
+		std::string error = FMT::format("assignment of library function `{}`", lvalue_symbol->name);
 		et.report_error(CTError::Type::SEMANTIC, error, assign_location);
+	}
+	else if (lvalue_symbol->type == Symbol::Type::PROGRAM_FUNCTION)
+	{
+		std::string error = FMT::format("assignment of function `{}`", lvalue_symbol->name);
+		std::string note = FMT::format("function {} declared here", lvalue_symbol->name);
+		et.report_error(CTError::Type::SEMANTIC, error, assign_location, note, lvalue_symbol->location);
+	}
+
+	if (lvalue->type == Expr::Type::TABLE_ITEM)
+	{
+		parse_ctx.quad_handler.emit_quad(
+		    IOPCode::TABLESETELEM,
+		    lvalue,
+		    lvalue->index,
+		    expr,
+		    assign_location);
+		const Expr *rvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
+		assignExpr = parse_ctx.expr_handler.make_expr_assign(rvalue);
 	}
 	else
 	{
-		std::string error = FMT::format("assignment of function `{}`", lvalue->name);
-		std::string note = FMT::format("function {} declared here", lvalue->name);
-		et.report_error(CTError::Type::SEMANTIC, error, assign_location, note, lvalue->location);
+		parse_ctx.quad_handler.emit_quad(
+		    IOPCode::ASSIGN,
+		    expr,
+		    nullptr,
+		    lvalue,
+		    assign_location);
+
+		assignExpr = parse_ctx.expr_handler.make_expr_assign(parse_ctx.new_temp(st));
+
+		parse_ctx.quad_handler.emit_quad(
+		    IOPCode::ASSIGN,
+		    lvalue,
+		    nullptr,
+		    assignExpr,
+		    assign_location);
 	}
 }
 

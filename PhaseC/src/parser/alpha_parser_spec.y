@@ -65,6 +65,8 @@
 %type  <expr_ptr>       tableItem
 %type  <expr_ptr>       member
 %type  <expr_ptr>       primary
+%type  <expr_ptr>       expr
+%type  <expr_ptr>       assignExpr
 
 %type  <location>       blockOpen 
 %type  <location>       blockClose
