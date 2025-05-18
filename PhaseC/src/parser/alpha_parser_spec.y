@@ -60,8 +60,12 @@
 %token <cstring>        ID             "`identifier`"
 %token <const_int>      INT_CONST      "`integer-constant`"
 %token <const_real>     REAL_CONST     "`real-constant`"
+
 %type  <expr_ptr>       lvalue
 %type  <expr_ptr>       tableItem
+%type  <expr_ptr>       member
+%type  <expr_ptr>       primary
+
 %type  <location>       blockOpen 
 %type  <location>       blockClose
 %type  <block_location> block
@@ -114,12 +118,12 @@
 %token INC       "increment operator `++`"
 
 /* Punctuation tokens */
-%token LEFT_BRACE    "{"
-%token RIGHT_BRACE   "}"
-%token LEFT_BRACKET  "["
-%token RIGHT_BRACKET "]"
-%token LEFT_PAREN    "(" 
-%token RIGHT_PAREN   ")"
+%token LBRACE    "{"
+%token RBRACE   "}"
+%token LBRACKET  "["
+%token RBRACKET "]"
+%token LPAREN    "(" 
+%token RPAREN   ")"
 %token SEMICOLON     ";"   
 %token COMMA         ","
 %token DOT           "."   
@@ -143,8 +147,8 @@
 
 %left DOT DOUBLE_DOT
 
-%left LEFT_BRACKET RIGHT_BRACKET
-%left LEFT_PAREN RIGHT_PAREN
+%left LBRACKET RBRACKET
+%left LPAREN RPAREN
 
 %precedence THEN
 %precedence ELSE
@@ -173,9 +177,9 @@ stmt:
 | funcDef
 | SEMICOLON
 | error SEMICOLON     { yyerrok; } // Syntax error recovery hook.
-| error RIGHT_PAREN   { yyerrok; } // Syntax error recovery hook.
-| error RIGHT_BRACKET { yyerrok; } // Syntax error recovery hook.
-| error RIGHT_BRACE   { yyerrok; } // Syntax error recovery hook.
+| error RPAREN   { yyerrok; } // Syntax error recovery hook.
+| error RBRACKET { yyerrok; } // Syntax error recovery hook.
+| error RBRACE   { yyerrok; } // Syntax error recovery hook.
 ;
 
 loopCtrlStmt:
@@ -202,7 +206,7 @@ expr:
 ;
 
 term:
-  LEFT_PAREN expr RIGHT_PAREN
+  LPAREN expr RPAREN
 | MINUS expr %prec UMINUS
 | NOT expr
 | INC lvalue { term__inc_lvalue($lvalue, @term, error_tracker); }
@@ -217,10 +221,10 @@ assignExpr:
 ;
 
 primary:
-  lvalue
+  lvalue { primary__lvalue(symbol_table, parse_ctx, $primary, $lvalue); }
 | call
 | objectDef
-| LEFT_PAREN funcDef RIGHT_PAREN
+| LPAREN funcDef RPAREN
 | const
 ;
 
@@ -229,24 +233,26 @@ lvalue:
   ID { lvalue__id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
 | LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); } 
 | DOUBLE_COLON ID { lvalue__global_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
-| member
+| member { $lvalue = $member; }
 ;
 
 tableItem:
-  lvalue DOT ID  { tableItem__lvalue_dot_id(symbol_table, parse_ctx ,$tableItem, $lvalue, $ID); } 
+  lvalue DOT ID  
+  { tableItem__lvalue_dot_id(symbol_table, parse_ctx ,$tableItem, $lvalue, $ID); } 
+| lvalue LBRACKET expr RBRACKET
+  { tableItem__lvalue_lbracket_expr_rbracket(symbol_table,parse_ctx, $tableItem, $lvalue, $expr); }
 ;
 
 member:
-  tableItem
-| lvalue LEFT_BRACKET expr RIGHT_BRACKET
+  tableItem { $member = $tableItem; }
 | call DOT ID
-| call LEFT_BRACKET expr RIGHT_BRACKET
+| call LBRACKET expr RBRACKET
 ;
 
 call:
-  call LEFT_PAREN elist RIGHT_PAREN
+  call LPAREN elist RPAREN
 | lvalue callSuffix
-| LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN
+| LPAREN funcDef RPAREN LPAREN elist RPAREN
 ;
 
 callSuffix:
@@ -255,11 +261,11 @@ callSuffix:
 ;
 
 normalCall:
-  LEFT_PAREN elist RIGHT_PAREN
+  LPAREN elist RPAREN
 ;
 
 methodCall:
-  DOUBLE_DOT ID LEFT_PAREN elist RIGHT_PAREN
+  DOUBLE_DOT ID LPAREN elist RPAREN
 ;
 
 exprList:
@@ -273,8 +279,8 @@ elist:
 ;
 
 objectDef:
-  LEFT_BRACKET elist RIGHT_BRACKET
-| LEFT_BRACKET indexed RIGHT_BRACKET
+  LBRACKET elist RBRACKET
+| LBRACKET indexed RBRACKET
 ;
 
 indexed:
@@ -282,22 +288,22 @@ indexed:
 ;
 
 indexedElem:
-  LEFT_BRACE expr COLON expr RIGHT_BRACE
+  LBRACE expr COLON expr RBRACE
 ;
 
 blockOpen:
-  LEFT_BRACE
+  LBRACE
   { 
     blockOpen__lbrace(parse_ctx);
-    $blockOpen = @LEFT_BRACE;
+    $blockOpen = @LBRACE;
   }
 ;
 
 blockClose:
-  RIGHT_BRACE
+  RBRACE
   { 
     blockClose__rbrace(symbol_table, parse_ctx);
-    $blockClose = @RIGHT_BRACE;
+    $blockClose = @RBRACE;
   }
 ;
 
@@ -320,8 +326,8 @@ funcArgs:
 ;
 
 funcArgList:
-  LEFT_PAREN /*Void*/ RIGHT_PAREN
-| LEFT_PAREN funcArgs RIGHT_PAREN
+  LPAREN /*Void*/ RPAREN
+| LPAREN funcArgs RPAREN
 ;
 
 funcSignature:
@@ -344,12 +350,12 @@ const:
 
 
 ifStmt:
-  IF LEFT_PAREN expr RIGHT_PAREN stmt %prec THEN
-| IF LEFT_PAREN expr RIGHT_PAREN stmt ELSE stmt
+  IF LPAREN expr RPAREN stmt %prec THEN
+| IF LPAREN expr RPAREN stmt ELSE stmt
 ;
 
 whileHeader:
-  WHILE LEFT_PAREN expr RIGHT_PAREN 
+  WHILE LPAREN expr RPAREN 
 ;
 
 whileStmt:
@@ -360,7 +366,7 @@ whileStmt:
 ;
 
 forHeader:
-  FOR LEFT_PAREN elist SEMICOLON expr SEMICOLON elist RIGHT_PAREN
+  FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN
 ;
 
 forStmt:

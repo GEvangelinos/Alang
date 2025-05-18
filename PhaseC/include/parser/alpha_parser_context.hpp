@@ -198,14 +198,18 @@ namespace Alpha
                 [[nodiscard]] const Expr *make_expr_const_string(const char *name);
                 [[nodiscard]] const Expr *make_expr_table_item(
                     SymbolTable &st,
-                    const Expr *lvalue,
+                    const Expr *&lvalue,
                     const char *id);
+                [[nodiscard]] const Expr *make_expr_table_item(
+                    SymbolTable &st,
+                    const Expr *&lvalue,
+                    const Expr *expr);
+
+                const Expr *emit_quad_if_table_item(SymbolTable &st, const Expr *lvalue);
 
         private:
                 std::vector<const Expr *> expr_sink_;
                 ParseCtx *const parse_ctx_;
-
-                const Expr *emit_quad_if_table_item(SymbolTable &st, const Expr *lvalue);
         };
 
         class ParseCtx : private Immobile
@@ -506,11 +510,11 @@ namespace Alpha
 
         inline const Expr *ExprHandler::make_expr_table_item(
             SymbolTable &st,
-            const Expr *lvalue,
+            const Expr *&lvalue,
             const char *id)
         {
                 DEBUG_SMART_ASSERT(lvalue != nullptr, id != nullptr);
-                emit_quad_if_table_item(st, lvalue);
+                lvalue = emit_quad_if_table_item(st, lvalue);
 
                 const Expr *expr_table_item = new Expr{
                     .type = Expr::Type::TABLE_ITEM,
@@ -518,6 +522,25 @@ namespace Alpha
                     .index = make_expr_const_string(id),
                     .next = nullptr,
                 };
+                expr_sink_.push_back(expr_table_item);
+                return expr_table_item;
+        }
+
+        inline const Expr *ExprHandler::make_expr_table_item(
+            SymbolTable &st,
+            const Expr *&lvalue,
+            const Expr *expr)
+        {
+                DEBUG_SMART_ASSERT(lvalue != nullptr, expr != nullptr);
+                lvalue = emit_quad_if_table_item(st, lvalue);
+
+                const Expr *expr_table_item = new Expr{
+                    .type = Expr::Type::TABLE_ITEM,
+                    .symbol = lvalue->symbol,
+                    .index = expr,
+                    .next = nullptr,
+                };
+
                 expr_sink_.push_back(expr_table_item);
                 return expr_table_item;
         }

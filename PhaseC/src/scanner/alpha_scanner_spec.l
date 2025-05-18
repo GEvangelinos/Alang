@@ -90,12 +90,12 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 ">="            {return GTE;} 
 "<="            {return LTE;} 
 
-"{"             {return LEFT_BRACE;}
-"}"             {return RIGHT_BRACE;}
-"["             {return LEFT_BRACKET;}
-"]"             {return RIGHT_BRACKET;}
-"("             {return LEFT_PAREN;}
-")"             {return RIGHT_PAREN;}
+"{"             {return LBRACE;}
+"}"             {return RBRACE;}
+"["             {return LBRACKET;}
+"]"             {return RBRACKET;}
+"("             {return LPAREN;}
+")"             {return RPAREN;}
 ";"             {return SEMICOLON;}
 ","             {return COMMA;}
 ":"             {return COLON;}

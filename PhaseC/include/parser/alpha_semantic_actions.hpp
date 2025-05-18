@@ -252,6 +252,15 @@ inline void assignExpr__lvalue_assign_expr(
 	}
 }
 
+void primary__lvalue(
+    SymbolTable &st,
+    ParseCtx &parse_ctx,
+    const Expr *&primary,
+    const Expr *&lvalue)
+{
+	primary = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
+}
+
 ALWAYS_INLINE void lvalue__id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
@@ -333,10 +342,20 @@ inline void tableItem__lvalue_dot_id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
     const Expr *&table_item,
-    const Expr *lvalue,
+    const Expr *&lvalue,
     const char *id)
 {
 	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, id);
+}
+
+inline void tableItem__lvalue_lbracket_expr_rbracket(
+    SymbolTable &st,
+    ParseCtx &parse_ctx,
+    const Expr *&table_item,
+    const Expr *&lvalue,
+    const Expr *expr)
+{
+	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, expr);
 }
 
 inline void blockOpen__lbrace(ParseCtx &parse_ctx) noexcept
