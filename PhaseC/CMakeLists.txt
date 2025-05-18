@@ -54,6 +54,8 @@ if(STD_FORMAT_SUPPORTED)
         add_compile_definitions(STD_FORMAT_SUPPORTED)
 endif()
 
+set(DEBUG_MODE ON) #TODO REMOVE!
+
 if(DEBUG_MODE)
         add_compile_options(
                 -g

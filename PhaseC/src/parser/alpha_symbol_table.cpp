@@ -90,7 +90,7 @@ namespace Alpha
 
         // Explicit instantiations for insert_symbol()
         template const Function *SymbolTable::insert_symbol<Function>(
-            const std::string &, u32, Symbol::Type &&, const std::list<Parameter> &, Location &&);
+            const std::string &, u32, Symbol::Type &&, u32 &&, const std::list<Parameter> &, Location &&);
 
         template const Variable *SymbolTable::insert_symbol<Variable>(
             const std::string &, u32, Variable::Space &&, u32 &&, Location &&);
@@ -98,13 +98,16 @@ namespace Alpha
         SymbolTable::SymbolTable()
         {
                 // Load library functions
-                for (std::string name : k_library_function_names)
+                for (uf32 i = 0; i < k_library_function_names.size(); i++)
                 {
-                        // return value intentionally discarded (useless here)
+                        const std::string &name = k_library_function_names[i];
+                        const auto function_address = i;
+
                         const Function *const function_symbol = insert_symbol<Function>(
                             name,
                             k_global_scope,
                             Symbol::Type::LIBRARY_FUNCTION,
+                            function_address,
                             k_empty_parameter_list,
                             k_no_location);
                         library_function_set_.insert(name);
@@ -125,7 +128,7 @@ namespace Alpha
         {
 
                 return insert_symbol<Function>(
-                    name, scope, Symbol::Type::PROGRAM_FUNCTION, parameter_list, location);
+                    name, scope, Symbol::Type::PROGRAM_FUNCTION, address, parameter_list, location);
         }
 
         const Variable *SymbolTable::insert_variable(

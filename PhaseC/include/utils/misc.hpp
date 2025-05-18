@@ -158,7 +158,7 @@ private:
 
 namespace Utils
 {
-        char *cstrdup(const char *src)
+        inline char *cstrdup(const char *src)
         {
                 DEBUG_SMART_ASSERT(src != nullptr);
                 if (!src) [[unlikely]]

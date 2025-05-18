@@ -58,57 +58,57 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 
 %%
 
-"if"            {return IF;} 
-"else"          {return ELSE;} 
-"while"         {return WHILE;}
-"for"           {return FOR;} 
-"function"      {return FUNCTION;} 
-"return"        {return RETURN;} 
-"break"         {return BREAK;} 
-"continue"      {return CONTINUE;} 
-"and"           {return AND;} 
-"not"           {return NOT;} 
-"or"            {return OR;} 
-"local"         {return LOCAL;} 
-"true"          {return TRUE;} 
-"false"         {return FALSE;} 
-"nil"           {return NIL;} 
+"if"            { return IF; } 
+"else"          { return ELSE; } 
+"while"         { return WHILE; }
+"for"           { return FOR; } 
+"function"      { return FUNCTION; } 
+"return"        { return RETURN; } 
+"break"         { return BREAK; } 
+"continue"      { return CONTINUE; } 
+"and"           { return AND; } 
+"not"           { return NOT; } 
+"or"            { return OR; } 
+"local"         { return LOCAL; } 
+"true"          { return TRUE; } 
+"false"         { return FALSE; } 
+"nil"           { return NIL; } 
 
 
-"="             {return ASSIGN;} 
-"+"             {return PLUS;} 
-"-"             {return MINUS;} 
-"*"             {return MULT;} 
-"/"             {return DIV;} 
-"%"             {return MOD;} 
-"=="            {return EQ;} 
-"!="            {return NEQ;} 
-"++"            {return INC;} 
-"--"            {return DEC;} 
-">"             {return GT;} 
-"<"             {return LT;} 
-">="            {return GTE;} 
-"<="            {return LTE;} 
+"="             { return ASSIGN; } 
+"+"             { return PLUS; } 
+"-"             { return MINUS; } 
+"*"             { return MULT; } 
+"/"             { return DIV; } 
+"%"             { return MOD; } 
+"=="            { return EQ; } 
+"!="            { return NEQ; } 
+"++"            { return INC; } 
+"--"            { return DEC; } 
+">"             { return GT; } 
+"<"             { return LT; } 
+">="            { return GTE; } 
+"<="            { return LTE; } 
 
-"{"             {return LBRACE;}
-"}"             {return RBRACE;}
-"["             {return LBRACKET;}
-"]"             {return RBRACKET;}
-"("             {return LPAREN;}
-")"             {return RPAREN;}
-";"             {return SEMICOLON;}
-","             {return COMMA;}
-":"             {return COLON;}
-"::"            {return DOUBLE_COLON;}
-"."             {return DOT;}
-".."            {return DOUBLE_DOT;}
+"{"             { return LEFT_BRACE; }
+"}"             { return RIGHT_BRACE; }
+"["             { return LEFT_BRACKET; }
+"]"             { return RIGHT_BRACKER; }
+"("             { return LEFT_PAREN; }
+")"             { return RIGHT_PAREN; }
+";"             { return SEMICOLON; }
+","             { return COMMA; }
+":"             { return COLON; }
+"::"            { return DOUBLE_COLON; }
+"."             { return DOT; }
+".."            { return DOUBLE_DOT; }
 
-{id}            {alpha_yylval.cstring = Alpha::TokenID::refreshLastId(yytext); return ID;}
-{real}          {alpha_yylval.const_real = std::stod(yytext); return REAL_CONST;}
-{integer}       {alpha_yylval.const_int = std::stol(yytext); return INT_CONST;}
-{lineComment}   {/* Syntax Anal-yzer doesn't give a fuck about you... */}
-{newline}       {lt.append_line(lexer_ctx.index_);}
-{space}+        {/* Just eat up the spaces. */}
+{id}            { alpha_yylval.cstring = Alpha::TokenID::refreshLastId(yytext); return ID; }
+{real}          { alpha_yylval.const_real = std::stod(yytext); return REAL_CONST; }
+{integer}       { alpha_yylval.const_int = std::stol(yytext); return INT_CONST; }
+{lineComment}   { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
+{newline}       { lt.append_line(lexer_ctx.index_); }
+{space}+        { /* Just eat up the spaces. */ }
 
 {commentBeginRule} {
         BEGIN(INSIDE_COMMENT_BLOCK);
@@ -120,7 +120,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 <INSIDE_COMMENT_BLOCK>{newline} {
         lt.append_line(lexer_ctx.index_);
 }
-<INSIDE_COMMENT_BLOCK>{anyCharacterButNewLine} {/* Just eat up any character use see. */}
+<INSIDE_COMMENT_BLOCK>{anyCharacterButNewLine} { /* Just eat up any character use see. */ }
 <INSIDE_COMMENT_BLOCK><<EOF>> {
         et.report_error(
                 Alpha::CTError::Type::LEXER,

@@ -171,12 +171,12 @@ namespace // (Anonymous)
 	}
 
 	[[nodiscard]] DEBUG_ALWAYS_INLINE bool
-	is_modifiable_lvalue(const Symbol *const lvalue)
+	is_modifiable_symbol(const Symbol *const symbol)
 	{
 		// TODO: remove (deprecated part from phase 2)
 		// if (lvalue == nullptr) // nullptr implies runtime-evaluated lvalue (e.g. member access)
 		// 	return true;
-		return lvalue->is_variable();
+		return symbol->is_variable();
 	}
 
 	DEBUG_ALWAYS_INLINE void
@@ -188,13 +188,78 @@ namespace // (Anonymous)
 	{
 		// lvalue is valid to be nullptr (runtime evaluation).
 		DEBUG_SMART_ASSERT(op_name == "increment" || op_name == "decrement");
-		if (is_modifiable_lvalue(lvalue))
+		if (is_modifiable_symbol(lvalue))
 			return;
 		std::string error = FMT::format("{} operator can not be used on function", op_name);
 		et.report_error(CTError::Type::SEMANTIC, error, term_location);
 	}
 
-} // namespace
+	ALWAYS_INLINE void validate_lvalue_for_assignment(
+	    const Symbol *lvalue_symbol,
+	    const Location &assign_location,
+	    ErrorTracker &et)
+	{
+		DEBUG_SMART_ASSERT(lvalue_symbol != nullptr);
+		if (is_modifiable_symbol(lvalue_symbol))
+			return;
+		if (lvalue_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
+		{
+			std::string error = FMT::format("assignment of library function `{}`", lvalue_symbol->name);
+			et.report_error(CTError::Type::SEMANTIC, error, assign_location);
+		}
+		else if (lvalue_symbol->type == Symbol::Type::PROGRAM_FUNCTION)
+		{
+			std::string error = FMT::format("assignment of function `{}`", lvalue_symbol->name);
+			std::string note = FMT::format("function {} declared here", lvalue_symbol->name);
+			et.report_error(CTError::Type::SEMANTIC, error, assign_location, note, lvalue_symbol->location);
+		}
+	}
+
+	ALWAYS_INLINE void handle_table_item_assignment(
+	    SymbolTable &st,
+	    ParseCtx &parse_ctx,
+	    Expr *&assignExpr,
+	    Expr *lvalue,
+	    Expr *expr,
+	    const Location &assign_location)
+	{
+		parse_ctx.quad_handler.emit_quad(
+		    IOPCode::TABLESETELEM,
+		    lvalue,
+		    lvalue->index,
+		    expr,
+		    assign_location);
+
+		Expr *rvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
+		assignExpr = parse_ctx.expr_handler.make_expr_assign(rvalue);
+	}
+
+	ALWAYS_INLINE void handle_direct_assignment(
+	    SymbolTable &st,
+	    ParseCtx &parse_ctx,
+	    Expr *&assignExpr,
+	    Expr *lvalue,
+	    Expr *expr,
+	    const Location &assign_location)
+	{
+		parse_ctx.quad_handler.emit_quad(
+		    IOPCode::ASSIGN,
+		    expr,
+		    nullptr,
+		    lvalue,
+		    assign_location);
+
+		assignExpr = parse_ctx.expr_handler.make_expr_assign(parse_ctx.new_temp(st));
+
+		parse_ctx.quad_handler.emit_quad(
+		    IOPCode::ASSIGN,
+		    lvalue,
+		    nullptr,
+		    assignExpr,
+		    assign_location);
+	}
+
+} // namespace (Anonymous)
 
 // +-----------------------------------------------------------------+
 // |---------------- SEMANTIC_ACTION_FUNCTIONS_BELOW ----------------|
@@ -232,9 +297,9 @@ inline void term__lvalue_dec(const Symbol *lvalue, const Location term_location,
 ALWAYS_INLINE void assignExpr__lvalue_assign_expr(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    const Expr *&assignExpr,
-    const Expr *lvalue,
-    const Expr *expr,
+    Expr *&assignExpr,
+    Expr *lvalue,
+    Expr *expr,
     const Location assign_location,
     ErrorTracker &et)
 {
@@ -243,57 +308,19 @@ ALWAYS_INLINE void assignExpr__lvalue_assign_expr(
 	    lvalue != nullptr,
 	    expr != nullptr //
 	);
-	const Symbol *lvalue_symbol = lvalue->symbol;
-	DEBUG_SMART_ASSERT(lvalue_symbol != nullptr);
 
-	if (lvalue_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
-	{
-		std::string error = FMT::format("assignment of library function `{}`", lvalue_symbol->name);
-		et.report_error(CTError::Type::SEMANTIC, error, assign_location);
-	}
-	else if (lvalue_symbol->type == Symbol::Type::PROGRAM_FUNCTION)
-	{
-		std::string error = FMT::format("assignment of function `{}`", lvalue_symbol->name);
-		std::string note = FMT::format("function {} declared here", lvalue_symbol->name);
-		et.report_error(CTError::Type::SEMANTIC, error, assign_location, note, lvalue_symbol->location);
-	}
-
+	validate_lvalue_for_assignment(lvalue->symbol, assign_location, et);
 	if (lvalue->type == Expr::Type::TABLE_ITEM)
-	{
-		parse_ctx.quad_handler.emit_quad(
-		    IOPCode::TABLESETELEM,
-		    lvalue,
-		    lvalue->index,
-		    expr,
-		    assign_location);
-		const Expr *rvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
-		assignExpr = parse_ctx.expr_handler.make_expr_assign(rvalue);
-	}
+		handle_table_item_assignment(st, parse_ctx, assignExpr, lvalue, expr, assign_location);
 	else
-	{
-		parse_ctx.quad_handler.emit_quad(
-		    IOPCode::ASSIGN,
-		    expr,
-		    nullptr,
-		    lvalue,
-		    assign_location);
-
-		assignExpr = parse_ctx.expr_handler.make_expr_assign(parse_ctx.new_temp(st));
-
-		parse_ctx.quad_handler.emit_quad(
-		    IOPCode::ASSIGN,
-		    lvalue,
-		    nullptr,
-		    assignExpr,
-		    assign_location);
-	}
+		handle_direct_assignment(st, parse_ctx, assignExpr, lvalue, expr, assign_location);
 }
 
 void primary__lvalue(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    const Expr *&primary,
-    const Expr *&lvalue)
+    Expr *&primary,
+    Expr *&lvalue)
 {
 	primary = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
 }
@@ -303,7 +330,7 @@ ALWAYS_INLINE void lvalue__id(
     ParseCtx &parse_ctx,
     const char *id_name,
     const Location id_location,
-    const Expr *&lvalue,
+    Expr *&lvalue,
     ErrorTracker &et)
 {
 	const Symbol *symbol = st.lookup_chain(id_name, parse_ctx.scope_handler.scope());
@@ -331,7 +358,7 @@ ALWAYS_INLINE void lvalue__local_id(
     ParseCtx &parse_ctx,
     const char *id_name,
     const Location id_location,
-    const Expr *&lvalue,
+    Expr *&lvalue,
     ErrorTracker &et)
 {
 	const Symbol *symbol = nullptr;
@@ -362,7 +389,7 @@ ALWAYS_INLINE void lvalue__global_id(
     ParseCtx &parse_ctx,
     const char *id_name,
     const Location id_location,
-    const Expr *&lvalue,
+    Expr *&lvalue,
     ErrorTracker &et)
 {
 	const Symbol *symbol = st.lookup_global(id_name);
@@ -378,8 +405,8 @@ ALWAYS_INLINE void lvalue__global_id(
 inline void tableItem__lvalue_dot_id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    const Expr *&table_item,
-    const Expr *&lvalue,
+    Expr *&table_item,
+    Expr *&lvalue,
     const char *id)
 {
 	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, id);
@@ -388,9 +415,9 @@ inline void tableItem__lvalue_dot_id(
 inline void tableItem__lvalue_lbracket_expr_rbracket(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    const Expr *&table_item,
-    const Expr *&lvalue,
-    const Expr *expr)
+    Expr *&table_item,
+    Expr *&lvalue,
+    Expr *expr)
 {
 	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, expr);
 }

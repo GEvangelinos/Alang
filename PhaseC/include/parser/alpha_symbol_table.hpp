@@ -100,6 +100,7 @@ namespace Alpha
         class Function : public Symbol
         {
         public:
+                const u32 address;
                 const std::list<Parameter> parameter_list;
                 Once<u32> local_variable_count;
 
@@ -107,9 +108,11 @@ namespace Alpha
                     const std::string &name,
                     const u32 scope,
                     const Symbol::Type type,
+                    const u32 address,
                     const std::list<Parameter> &parameter_list,
                     const Location location)
                     : Symbol(name, scope, type, location),
+                      address(address),
                       parameter_list(parameter_list)
                 {
                         DEBUG_SMART_ASSERT(

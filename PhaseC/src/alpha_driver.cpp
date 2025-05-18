@@ -111,13 +111,27 @@ namespace // (Anonymous)
                 for (Alpha::u32 i = 0; i < quads_size; i++)
                 {
                         const Alpha::Quad &q = quads[i];
+#ifdef DEBUG_MODE
+                        std::cerr << "YEESSS\n"
+                                  << std::endl;
+                        std::cerr << "YEESSS\n"
+                                  << std::endl;
+                        std::cerr << "YEESSS\n"
+                                  << std::endl;
+                        std::cerr << "YEESSS\n"
+                                  << std::endl;
+#endif
+                        DEBUG_SMART_ASSERT(q.result->symbol != nullptr);
+                        // If this hits. it mean we dont always return symbol_name..
+                        // and we must also check for const_TYPES (string,num,bool,nil).
+
                         out << FMT::format(
                             "{} {} {} {} {} {} {}\n",
                             format_column<colorize, 0, widths[0]>(i + 1),
                             format_column<colorize, 1, widths[1]>(to_string(q.iopcode)),
-                            format_column<colorize, 2, widths[2]>(q.result ? q.result->symbol_->name : ""),
-                            format_column<colorize, 3, widths[3]>(q.arg1 ? q.arg1->symbol_->name : ""),
-                            format_column<colorize, 4, widths[4]>(q.arg2 ? q.arg2->symbol_->name : ""),
+                            format_column<colorize, 2, widths[2]>(q.result ? q.result->symbol->name : ""),
+                            format_column<colorize, 3, widths[3]>(q.arg1 ? q.arg1->symbol->name : ""),
+                            format_column<colorize, 4, widths[4]>(q.arg2 ? q.arg2->symbol->name : ""),
                             format_column<colorize, 5, widths[5]>(q.label),
                             format_column<colorize, 6, widths[6]>(lt.find_first_line(q.location)) //
                         );

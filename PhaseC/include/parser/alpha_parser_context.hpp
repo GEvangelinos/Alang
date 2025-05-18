@@ -192,22 +192,25 @@ namespace Alpha
         {
         public:
                 ExprHandler(ParseCtx *parse_ctx);
-                ~ExprHandler();
+                ~ExprHandler() noexcept;
 
-                [[nodiscard]] const Expr *make_expr_lvalue(const Symbol *symbol);
-                [[nodiscard]] const Expr *make_expr_const_string(const char *name);
-                [[nodiscard]] const Expr *make_expr_assign(const Expr *rvalue);
-                [[nodiscard]] const Expr *make_expr_assign(const Symbol *symbol);
-                [[nodiscard]] const Expr *make_expr_table_item(
+                [[nodiscard]] Expr *make_expr_lvalue(const Symbol *symbol);
+                [[nodiscard]] Expr *make_expr_const_string(const char *value);
+                [[nodiscard]] Expr *make_expr_const_number(double value);
+                [[nodiscard]] Expr *make_expr_const_bool(bool value);
+                [[nodiscard]] Expr *make_expr_const_nil();
+                [[nodiscard]] Expr *make_expr_assign(Expr *rvalue);
+                [[nodiscard]] Expr *make_expr_assign(const Symbol *symbol);
+                [[nodiscard]] Expr *make_expr_table_item(
                     SymbolTable &st,
-                    const Expr *&lvalue,
+                    Expr *&lvalue,
                     const char *id);
-                [[nodiscard]] const Expr *make_expr_table_item(
+                [[nodiscard]] Expr *make_expr_table_item(
                     SymbolTable &st,
-                    const Expr *&lvalue,
-                    const Expr *expr);
+                    Expr *&lvalue,
+                    Expr *expr);
 
-                const Expr *emit_quad_if_table_item(SymbolTable &st, const Expr *lvalue);
+                Expr *emit_quad_if_table_item(SymbolTable &st, Expr *lvalue);
 
         private:
                 std::vector<const Expr *> expr_sink_;
@@ -479,7 +482,7 @@ namespace Alpha
                 });
         }
 
-        inline const Expr *ExprHandler::make_expr_lvalue(const Symbol *const symbol)
+        inline Expr *ExprHandler::make_expr_lvalue(const Symbol *const symbol)
         {
                 DEBUG_SMART_ASSERT(symbol != nullptr);
                 DEBUG_SMART_ASSERT(
@@ -488,7 +491,7 @@ namespace Alpha
                     symbol->type == Symbol::Type::VARIABLE //
                 );
 
-                const Expr *expr_lvalue = new Expr{
+                Expr *expr_lvalue = new Expr{
                     .type = Expr::Type::VARIABLE,
                     .symbol = symbol,
                     .index = nullptr,
@@ -498,27 +501,63 @@ namespace Alpha
                 return expr_lvalue;
         }
 
-        inline const Expr *ExprHandler::make_expr_const_string(const char *name)
+        inline Expr *ExprHandler::make_expr_const_string(const char *value)
         {
-                const Expr *expr_str = new Expr{
+                Expr *expr_str = new Expr{
                     .type = Expr::Type::CONST_STRING,
                     .symbol = nullptr,
-                    .const_str = Utils::cstrdup(name),
+                    .const_str = Utils::cstrdup(value),
                     .next = nullptr,
                 };
                 expr_sink_.push_back(expr_str);
                 return expr_str;
         }
 
-        inline const Expr *ExprHandler::make_expr_table_item(
+        inline Expr *ExprHandler::make_expr_const_number(double value)
+        {
+                Expr *expr_num = new Expr{
+                    .type = Expr::Type::CONST_NUMBER,
+                    .symbol = nullptr,
+                    .const_num = value,
+                    .next = nullptr,
+                };
+                expr_sink_.push_back(expr_num);
+                return expr_num;
+        }
+
+        inline Expr *ExprHandler::make_expr_const_bool(bool value)
+        {
+                Expr *expr_bool = new Expr{
+                    .type = Expr::Type::CONST_BOOLEAN,
+                    .symbol = nullptr,
+                    .const_bool = value,
+                    .next = nullptr,
+                };
+                expr_sink_.push_back(expr_bool);
+                return expr_bool;
+        }
+
+        inline Expr *ExprHandler::make_expr_const_nil()
+        {
+                Expr *expr_nil = new Expr{
+                    .type = Expr::Type::CONST_NIL,
+                    .symbol = nullptr,
+                    .index = nullptr,
+                    .next = nullptr,
+                };
+                expr_sink_.push_back(expr_nil);
+                return expr_nil;
+        }
+
+        inline Expr *ExprHandler::make_expr_table_item(
             SymbolTable &st,
-            const Expr *&lvalue,
+            Expr *&lvalue,
             const char *id)
         {
                 DEBUG_SMART_ASSERT(lvalue != nullptr, id != nullptr);
                 lvalue = emit_quad_if_table_item(st, lvalue);
 
-                const Expr *expr_table_item = new Expr{
+                Expr *expr_table_item = new Expr{
                     .type = Expr::Type::TABLE_ITEM,
                     .symbol = lvalue->symbol,
                     .index = make_expr_const_string(id),
@@ -528,15 +567,15 @@ namespace Alpha
                 return expr_table_item;
         }
 
-        inline const Expr *ExprHandler::make_expr_table_item(
+        inline Expr *ExprHandler::make_expr_table_item(
             SymbolTable &st,
-            const Expr *&lvalue,
-            const Expr *expr)
+            Expr *&lvalue,
+            Expr *expr)
         {
                 DEBUG_SMART_ASSERT(lvalue != nullptr, expr != nullptr);
                 lvalue = emit_quad_if_table_item(st, lvalue);
 
-                const Expr *expr_table_item = new Expr{
+                Expr *expr_table_item = new Expr{
                     .type = Expr::Type::TABLE_ITEM,
                     .symbol = lvalue->symbol,
                     .index = expr,
@@ -547,10 +586,10 @@ namespace Alpha
                 return expr_table_item;
         }
 
-        inline const Expr *ExprHandler::make_expr_assign(const Symbol *symbol)
+        inline Expr *ExprHandler::make_expr_assign(const Symbol *symbol)
         {
                 DEBUG_SMART_ASSERT(symbol != nullptr);
-                const Expr *expr_assign = new Expr{
+                Expr *expr_assign = new Expr{
                     .type = Expr::Type::ASSIGN,
                     .symbol = symbol,
                     .index = nullptr,
@@ -560,10 +599,10 @@ namespace Alpha
                 return expr_assign;
         }
 
-        inline const Expr *ExprHandler::make_expr_assign(const Expr *rvalue)
+        inline Expr *ExprHandler::make_expr_assign(Expr *rvalue)
         {
                 DEBUG_SMART_ASSERT(rvalue != nullptr);
-                const Expr *expr_assign = new Expr{
+                Expr *expr_assign = new Expr{
                     .type = Expr::Type::ASSIGN,
                     .symbol = rvalue->symbol,
                     .index = rvalue->index,
@@ -573,13 +612,13 @@ namespace Alpha
                 return expr_assign;
         }
 
-        inline const Expr *ExprHandler::emit_quad_if_table_item(SymbolTable &st, const Expr *expr)
+        inline Expr *ExprHandler::emit_quad_if_table_item(SymbolTable &st, Expr *expr)
         {
                 DEBUG_SMART_ASSERT(expr != nullptr);
                 if (expr->type != Expr::Type::TABLE_ITEM)
                         return expr;
 
-                const Expr *expr_temp_var = make_expr_lvalue(parse_ctx_->new_temp(st));
+                Expr *expr_temp_var = make_expr_lvalue(parse_ctx_->new_temp(st));
 
                 parse_ctx_->quad_handler.emit_quad(
                     IOPCode::TABLEGETELEM,

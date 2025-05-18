@@ -44,9 +44,10 @@
 // complex and appears to be problematic (erroneous).
 %union{
         char *cstring;
+        bool const_bool;
         long const_int;
         double const_real;
-        const Alpha::Expr *expr_ptr;
+        Alpha::Expr *expr_ptr;
         Alpha::Location location;
         Alpha::BlockLocation block_location;
 }
@@ -61,12 +62,18 @@
 %token <const_int>      INT_CONST      "`integer-constant`"
 %token <const_real>     REAL_CONST     "`real-constant`"
 
-%type  <expr_ptr>       lvalue
-%type  <expr_ptr>       tableItem
-%type  <expr_ptr>       member
-%type  <expr_ptr>       primary
-%type  <expr_ptr>       expr
-%type  <expr_ptr>       assignExpr
+%type  <expr_ptr> lvalue
+%type  <expr_ptr> tableItem
+%type  <expr_ptr> member
+%type  <expr_ptr> primary
+%type  <expr_ptr> assignExpr
+%type  <expr_ptr> call
+%type  <expr_ptr> term
+%type  <expr_ptr> objectDef
+%type  <expr_ptr> const
+%type  <expr_ptr> expr
+%type  <expr_ptr> exprList
+%type  <expr_ptr> elist
 
 %type  <location>       blockOpen 
 %type  <location>       blockClose
@@ -98,10 +105,10 @@
 %token NOT      "keyword `not`"
 %token AND      "keyword `and`"
 %token OR       "keyword `or`"
-%token TRUE     "keyword `true`"
-%token FALSE    "keyword `false`"
 %token LOCAL    "keyword `local`"
 %token NIL      "keyword `nil`"
+%token TRUE     "keyword `true`"
+%token FALSE    "keyword `false`"
 
 /* Operator tokens */
 %token ASSIGN    "assignment operator ="
@@ -120,12 +127,12 @@
 %token INC       "increment operator `++`"
 
 /* Punctuation tokens */
-%token LBRACE    "{"
-%token RBRACE   "}"
-%token LBRACKET  "["
-%token RBRACKET "]"
-%token LPAREN    "(" 
-%token RPAREN   ")"
+%token LEFT_BRACE    "{"
+%token RIGHT_BRACE   "}"
+%token LEFT_BRACKET  "["
+%token RIGHT_BRACKER "]"
+%token LEFT_PAREN    "(" 
+%token RIGHT_PAREN   ")"
 %token SEMICOLON     ";"   
 %token COMMA         ","
 %token DOT           "."   
@@ -149,8 +156,8 @@
 
 %left DOT DOUBLE_DOT
 
-%left LBRACKET RBRACKET
-%left LPAREN RPAREN
+%left LEFT_BRACKET RIGHT_BRACKER
+%left LEFT_PAREN RIGHT_PAREN
 
 %precedence THEN
 %precedence ELSE
@@ -179,9 +186,9 @@ stmt:
 | funcDef
 | SEMICOLON
 | error SEMICOLON     { yyerrok; } // Syntax error recovery hook.
-| error RPAREN   { yyerrok; } // Syntax error recovery hook.
-| error RBRACKET { yyerrok; } // Syntax error recovery hook.
-| error RBRACE   { yyerrok; } // Syntax error recovery hook.
+| error RIGHT_PAREN   { yyerrok; } // Syntax error recovery hook.
+| error RIGHT_BRACKER { yyerrok; } // Syntax error recovery hook.
+| error RIGHT_BRACE   { yyerrok; } // Syntax error recovery hook.
 ;
 
 loopCtrlStmt:
@@ -204,30 +211,31 @@ expr:
 | expr NEQ   expr
 | expr AND   expr
 | expr OR    expr
-| term
+| term { $expr = $term; }
 ;
 
 term:
-  LPAREN expr RPAREN
+  LEFT_PAREN expr RIGHT_PAREN
 | MINUS expr %prec UMINUS
 | NOT expr
-| INC lvalue { term__inc_lvalue($lvalue, @term, error_tracker); }
-| lvalue INC { term__lvalue_inc($lvalue, @term, error_tracker); }
-| DEC lvalue { term__dec_lvalue($lvalue, @term, error_tracker); }
-| lvalue DEC { term__lvalue_dec($lvalue, @term, error_tracker); }
-| primary
+| INC lvalue /* { term__inc_lvalue($lvalue, @term, error_tracker); } */
+| lvalue INC /*{ term__lvalue_inc($lvalue, @term, error_tracker); } */
+| DEC lvalue /*{ term__dec_lvalue($lvalue, @term, error_tracker); }*/
+| lvalue DEC /*{ term__lvalue_dec($lvalue, @term, error_tracker); }*/
+| primary { $term = $primary; }
 ;
 
 assignExpr:
-  lvalue ASSIGN expr { assignExpr__lvalue_assign_expr($lvalue, @ASSIGN, error_tracker); }
+  lvalue ASSIGN expr
+  { assignExpr__lvalue_assign_expr(symbol_table, parse_ctx, $assignExpr,$lvalue,$expr, @ASSIGN, error_tracker); }
 ;
 
 primary:
   lvalue { primary__lvalue(symbol_table, parse_ctx, $primary, $lvalue); }
 | call
 | objectDef
-| LPAREN funcDef RPAREN
-| const
+| LEFT_PAREN funcDef RIGHT_PAREN
+| const { $primary = $const; }
 ;
 
 
@@ -241,48 +249,45 @@ lvalue:
 tableItem:
   lvalue DOT ID  
   { tableItem__lvalue_dot_id(symbol_table, parse_ctx ,$tableItem, $lvalue, $ID); } 
-| lvalue LBRACKET expr RBRACKET
+| lvalue LEFT_BRACKET expr RIGHT_BRACKER
   { tableItem__lvalue_lbracket_expr_rbracket(symbol_table,parse_ctx, $tableItem, $lvalue, $expr); }
 ;
 
 member:
   tableItem { $member = $tableItem; }
 | call DOT ID
-| call LBRACKET expr RBRACKET
+| call LEFT_BRACKET expr RIGHT_BRACKER
 ;
 
 call:
-  call LPAREN elist RPAREN
-| lvalue callSuffix
-| LPAREN funcDef RPAREN LPAREN elist RPAREN
-;
-
-callSuffix:
-  normalCall
-| methodCall
-;
-
-normalCall:
-  LPAREN elist RPAREN
-;
-
-methodCall:
-  DOUBLE_DOT ID LPAREN elist RPAREN
+  call LEFT_PAREN elist RIGHT_PAREN
+| lvalue LEFT_PAREN elist RIGHT_PAREN // NORMAL_CALL
+| lvalue DOUBLE_DOT ID LEFT_PAREN elist RIGHT_PAREN // METHOD_CALL
+| LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN
 ;
 
 exprList:
-  expr
-| expr COMMA exprList
+  expr { 
+    if ($exprList == nullptr)
+      $exprList = $expr;
+    else
+      const_cast<Expr *>($exprList)->next = $expr;
+  }
+| expr COMMA exprList [exprList_RHS] { 
+    const_cast<Expr *>($expr)->next = $exprList_RHS;
+    $$ = $expr; 
+  }
 ;
 
+
 elist:
-  // (empty)
-| exprList
+  /* (empty) */ { $elist = nullptr; }
+| exprList      { $elist = $exprList; }
 ;
 
 objectDef:
-  LBRACKET elist RBRACKET
-| LBRACKET indexed RBRACKET
+  LEFT_BRACKET elist RIGHT_BRACKER
+| LEFT_BRACKET indexed RIGHT_BRACKER
 ;
 
 indexed:
@@ -290,22 +295,22 @@ indexed:
 ;
 
 indexedElem:
-  LBRACE expr COLON expr RBRACE
+  LEFT_BRACE expr COLON expr RIGHT_BRACE
 ;
 
 blockOpen:
-  LBRACE
+  LEFT_BRACE
   { 
     blockOpen__lbrace(parse_ctx);
-    $blockOpen = @LBRACE;
+    $blockOpen = @LEFT_BRACE;
   }
 ;
 
 blockClose:
-  RBRACE
+  RIGHT_BRACE
   { 
     blockClose__rbrace(symbol_table, parse_ctx);
-    $blockClose = @RBRACE;
+    $blockClose = @RIGHT_BRACE;
   }
 ;
 
@@ -328,8 +333,8 @@ funcArgs:
 ;
 
 funcArgList:
-  LPAREN /*Void*/ RPAREN
-| LPAREN funcArgs RPAREN
+  LEFT_PAREN /*Void*/ RIGHT_PAREN
+| LEFT_PAREN funcArgs RIGHT_PAREN
 ;
 
 funcSignature:
@@ -342,22 +347,22 @@ funcDef:
 ;
 
 const:
-  INT_CONST
-| REAL_CONST
-| STRING_LITERAL { const__stringliteral($STRING_LITERAL);}
-| NIL
-| TRUE
-| FALSE
+  NIL            { $const = parse_ctx.expr_handler.make_expr_const_nil(); }
+| TRUE           { $const = parse_ctx.expr_handler.make_expr_const_bool(true); }
+| FALSE          { $const = parse_ctx.expr_handler.make_expr_const_bool(false); }
+| INT_CONST      { $const = parse_ctx.expr_handler.make_expr_const_number($INT_CONST); }
+| REAL_CONST     { $const = parse_ctx.expr_handler.make_expr_const_number($REAL_CONST); }
+| STRING_LITERAL { $const = parse_ctx.expr_handler.make_expr_const_string($STRING_LITERAL); }
 ;
 
 
 ifStmt:
-  IF LPAREN expr RPAREN stmt %prec THEN
-| IF LPAREN expr RPAREN stmt ELSE stmt
+  IF LEFT_PAREN expr RIGHT_PAREN stmt %prec THEN
+| IF LEFT_PAREN expr RIGHT_PAREN stmt ELSE stmt
 ;
 
 whileHeader:
-  WHILE LPAREN expr RPAREN 
+  WHILE LEFT_PAREN expr RIGHT_PAREN 
 ;
 
 whileStmt:
@@ -368,7 +373,7 @@ whileStmt:
 ;
 
 forHeader:
-  FOR LPAREN elist SEMICOLON expr SEMICOLON elist RPAREN
+  FOR LEFT_PAREN elist SEMICOLON expr SEMICOLON elist RIGHT_PAREN
 ;
 
 forStmt:
