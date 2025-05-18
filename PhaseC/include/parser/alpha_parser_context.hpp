@@ -174,8 +174,6 @@ namespace Alpha
         class QuadHandler : private Immobile
         {
         public:
-                QuadHandler(ParseCtx *parse_ctx_);
-
                 void emit_quad(
                     IOPCode iopcode,
                     const Expr *arg1,
@@ -183,14 +181,11 @@ namespace Alpha
                     const Expr *result,
                     Location location);
 
-                void emit_quad_if_table_item(const ExprLvalue *lvalue);
-
                 [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
 
         private:
                 std::vector<Quad> quads_;
                 u32 next_quad_label_ = 1; // First quad_label is always 1, (0 for backpatching)
-                ParseCtx *const parse_ctx_;
         };
 
         class ExprHandler : private Immobile
@@ -199,12 +194,18 @@ namespace Alpha
                 ExprHandler(ParseCtx *parse_ctx);
                 ~ExprHandler();
 
-                const ExprLvalue *make_expr_lvalue(const Symbol *symbol);
-                const ExprTableItem *make_expr_table_item(const ExprLvalue *lvalue, const char *id);
+                [[nodiscard]] const Expr *make_expr_lvalue(const Symbol *symbol);
+                [[nodiscard]] const Expr *make_expr_const_string(const char *name);
+                [[nodiscard]] const Expr *make_expr_table_item(
+                    SymbolTable &st,
+                    const Expr *lvalue,
+                    const char *id);
 
         private:
                 std::vector<const Expr *> expr_sink_;
                 ParseCtx *const parse_ctx_;
+
+                const Expr *emit_quad_if_table_item(SymbolTable &st, const Expr *lvalue);
         };
 
         class ParseCtx : private Immobile
@@ -453,8 +454,6 @@ namespace Alpha
                 return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
         }
 
-        inline QuadHandler::QuadHandler(ParseCtx *const parse_ctx) : parse_ctx_(parse_ctx) {}
-
         inline void QuadHandler::emit_quad(
             const IOPCode iopcode,
             const Expr *arg1,
@@ -470,22 +469,11 @@ namespace Alpha
                     .arg2 = arg2,
                     .result = result,
                     .label = next_quad_label_++,
-                    .location = location //
+                    .location = location,
                 });
         }
 
-        inline void QuadHandler::emit_quad_if_table_item(
-            SymbolTable &st,
-            const ExprLvalue *lvalue)
-        {
-                if (lvalue->type != Expr::Type::TABLE_ITEM)
-                        return;
-                const Symbol *temp_symbol = parse_ctx_->new_temp(st);
-                const ExprLvalue *ews = parse_ctx_->expr_handler.make_expr_lvalue(temp_symbol);
-                emit_quad(IOPCode::TABLEGETELEM, )
-        }
-
-        inline const ExprLvalue *ExprHandler::make_expr_lvalue(const Symbol *symbol)
+        inline const Expr *ExprHandler::make_expr_lvalue(const Symbol *const symbol)
         {
                 DEBUG_SMART_ASSERT(symbol != nullptr);
                 DEBUG_SMART_ASSERT(
@@ -494,25 +482,63 @@ namespace Alpha
                     symbol->type == Symbol::Type::VARIABLE //
                 );
 
-                // TODO: In the future if Lvalues are only VARIABLE, move Expr::Type::VARIABLE straight in the constructor
-                const ExprLvalue *new_expr_lvalue = new ExprLvalue(Expr::Type::VARIABLE, symbol);
-                expr_sink_.push_back(new_expr_lvalue);
-                return new_expr_lvalue;
+                const Expr *expr_lvalue = new Expr{
+                    .type = Expr::Type::VARIABLE,
+                    .symbol = symbol,
+                    .index = nullptr,
+                    .next = nullptr,
+                };
+                expr_sink_.push_back(expr_lvalue);
+                return expr_lvalue;
         }
 
-        inline const ExprTableItem *ExprHandler::make_expr_table_item(
-            const ExprLvalue *lvalue,
+        inline const Expr *ExprHandler::make_expr_const_string(const char *name)
+        {
+                const Expr *expr_str = new Expr{
+                    .type = Expr::Type::CONST_STRING,
+                    .symbol = nullptr,
+                    .const_str = Utils::cstrdup(name),
+                    .next = nullptr,
+                };
+                expr_sink_.push_back(expr_str);
+                return expr_str;
+        }
+
+        inline const Expr *ExprHandler::make_expr_table_item(
+            SymbolTable &st,
+            const Expr *lvalue,
             const char *id)
         {
                 DEBUG_SMART_ASSERT(lvalue != nullptr, id != nullptr);
+                emit_quad_if_table_item(st, lvalue);
 
-                parse_ctx_->quad_handler.emit_quad_if_table_item(lvalue);
+                const Expr *expr_table_item = new Expr{
+                    .type = Expr::Type::TABLE_ITEM,
+                    .symbol = lvalue->symbol,
+                    .index = make_expr_const_string(id),
+                    .next = nullptr,
+                };
+                expr_sink_.push_back(expr_table_item);
+                return expr_table_item;
+        }
 
-                const ExprConstString *new_index = new ExprConstString(id);
-                const ExprTableItem *new_table_item = new ExprTableItem(lvalue, new_index);
-                expr_sink_.push_back(new_index);
-                expr_sink_.push_back(new_table_item);
-                return new_table_item;
+        inline const Expr *ExprHandler::emit_quad_if_table_item(SymbolTable &st, const Expr *expr)
+        {
+                DEBUG_SMART_ASSERT(expr != nullptr);
+                if (expr->type != Expr::Type::TABLE_ITEM)
+                        return expr;
+
+                const Expr *expr_temp_var = make_expr_lvalue(parse_ctx_->new_temp(st));
+
+                parse_ctx_->quad_handler.emit_quad(
+                    IOPCode::TABLEGETELEM,
+                    expr,
+                    expr->index,
+                    expr_temp_var,
+                    k_no_location //
+                );
+
+                return expr_temp_var;
         }
 
         inline ExprHandler::ExprHandler(ParseCtx *parse_ctx) : parse_ctx_(parse_ctx) {}
@@ -520,17 +546,12 @@ namespace Alpha
         inline ExprHandler::~ExprHandler()
         {
                 for (const Expr *e : expr_sink_)
-                        ;
-                // TODO: implement deletiong based on type.. (switch on type, and static cast pointer, then delete)
-                //  delete e;
-
-                UNIMPLEMENTED();
+                        delete e;
         }
 
         inline ParseCtx::ParseCtx()
             : function_ctx_handler(this),
-              expr_handler(this),
-              quad_handler(this) {}
+              expr_handler(this) {}
 
         inline const Symbol *ParseCtx::new_temp(SymbolTable &st)
         {

@@ -19,7 +19,7 @@ namespace Alpha
         class Diagnostic
         {
         public:
-                enum class Type
+                enum class Type : u8
                 {
                         ERROR,
                         NOTE,
@@ -40,7 +40,7 @@ namespace Alpha
         class CTError
         {
         public:
-                enum class Type
+                enum class Type : u8
                 {
                         LEXER,
                         SEMANTIC,

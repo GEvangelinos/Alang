@@ -330,12 +330,13 @@ ALWAYS_INLINE void lvalue__global_id(
 }
 
 inline void tableItem__lvalue_dot_id(
+    SymbolTable &st,
     ParseCtx &parse_ctx,
-    const ExprTableItem *&table_item,
-    const ExprLvalue *lvalue,
+    const Expr *&table_item,
+    const Expr *lvalue,
     const char *id)
 {
-	table_item = parse_ctx.expr_handler.make_expr_table_item(lvalue, id);
+	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, id);
 }
 
 inline void blockOpen__lbrace(ParseCtx &parse_ctx) noexcept

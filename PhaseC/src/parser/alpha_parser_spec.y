@@ -46,8 +46,7 @@
         char *cstring;
         long const_int;
         double const_real;
-        const Alpha::ExprLvalue *lvalue_ptr;
-        const Alpha::ExprTableItem &table_item_ptr;
+        const Alpha::Expr *expr_ptr;
         Alpha::Location location;
         Alpha::BlockLocation block_location;
 }
@@ -61,8 +60,8 @@
 %token <cstring>        ID             "`identifier`"
 %token <const_int>      INT_CONST      "`integer-constant`"
 %token <const_real>     REAL_CONST     "`real-constant`"
-%type  <lvalue_ptr>     lvalue
-%type  <table_item_ptr>  tableItem
+%type  <expr_ptr>       lvalue
+%type  <expr_ptr>       tableItem
 %type  <location>       blockOpen 
 %type  <location>       blockClose
 %type  <block_location> block
@@ -234,11 +233,11 @@ lvalue:
 ;
 
 tableItem:
-  lvalue DOT ID { tableItem__lvalue_dot_id($tableItem, $lvalue, $ID); }
+  lvalue DOT ID  { tableItem__lvalue_dot_id(symbol_table, parse_ctx ,$tableItem, $lvalue, $ID); } 
 ;
 
 member:
-| tableItem
+  tableItem
 | lvalue LEFT_BRACKET expr RIGHT_BRACKET
 | call DOT ID
 | call LEFT_BRACKET expr RIGHT_BRACKET

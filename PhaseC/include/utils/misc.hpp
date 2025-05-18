@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <string>
+#include <cstring>
 #include <iostream>
 #include "utils/format_adapter.hpp"
 #include "utils/smart_assert.h"
@@ -154,5 +155,20 @@ private:
         T value_;
         bool assigned_ = false;
 };
+
+namespace Utils
+{
+        char *cstrdup(const char *src)
+        {
+                DEBUG_SMART_ASSERT(src != nullptr);
+                if (!src) [[unlikely]]
+                        return nullptr;
+
+                auto src_size = std::strlen(src) + 1; // +1 for nullbyte
+                char *dest = new char[src_size];
+                std::memcpy(dest, src, src_size);
+                return dest;
+        }
+}
 
 #endif // UTILS_MISC_HPP

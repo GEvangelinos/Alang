@@ -44,7 +44,7 @@ namespace Alpha
         class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
         {
         public:
-                enum class Type
+                enum class Type : u8
                 {
                         LIBRARY_FUNCTION,
                         PROGRAM_FUNCTION,

@@ -67,9 +67,9 @@ namespace Alpha
                 LIBRARY_FUNCTION,
         };
 
-        struct Expr
+        struct Expr // Tagged Union
         {
-                enum class Type
+                enum class Type : u8
                 {
                         VARIABLE,
                         TABLE_ITEM,
@@ -86,74 +86,15 @@ namespace Alpha
                 };
 
                 const Type type;
-                Expr(Type type) : type(type) {}
-        };
-
-        struct ExprConst : public Expr
-        {
-                ExprConst(Expr::Type type) : Expr(type)
+                const Symbol *symbol;
+                union
                 {
-                        DEBUG_SMART_ASSERT(
-                            type == Expr::Type::CONST_BOOLEAN ||
-                            type == Expr::Type::CONST_NUMBER ||
-                            type == Expr::Type::CONST_STRING ||
-                            type == Expr::Type::CONST_NIL //
-                        );
-                }
-        };
-
-        struct ExprConstBoolean : public ExprConst
-        {
-                const bool value;
-
-                explicit ExprConstBoolean(bool value)
-                    : ExprConst(Expr::Type::CONST_BOOLEAN),
-                      value(value) {}
-        };
-
-        struct ExprConstNumber : public ExprConst
-        {
-                const double value;
-
-                ExprConstNumber(double value)
-                    : ExprConst(Expr::Type::CONST_NUMBER),
-                      value(value) {}
-        };
-
-        struct ExprConstString : public ExprConst
-        {
-                const std::string value;
-
-                explicit ExprConstString(const char *value)
-                    : ExprConst(Expr::Type::CONST_STRING),
-                      value(value) {}
-
-                ExprConstString(const std::string &value)
-                    : ExprConst(Expr::Type::CONST_STRING),
-                      value(value) {}
-        };
-
-        struct ExprConstNil : public ExprConst
-        {
-                ExprConstNil() : ExprConst(Expr::Type::CONST_NIL) {}
-        };
-
-        struct ExprLvalue : public Expr
-        {
-                const Symbol *const symbol;
-
-                ExprLvalue(Expr::Type type, const Symbol *symbol)
-                    : Expr(type), symbol(symbol)
-                {
-                        DEBUG_SMART_ASSERT( // TODO: what else it shouldnt be? Like ArithmEXPR maybe?
-                            type != Expr::Type::CONST_BOOLEAN,
-                            type != Expr::Type::CONST_NUMBER,
-                            type != Expr::Type::CONST_STRING,
-                            type != Expr::Type::NIL //
-                        );
-
-                        DEBUG_SMART_ASSERT(symbol != nullptr);
-                }
+                        const Expr *index;
+                        const double const_num;
+                        const char *const_str;
+                        const bool const_bool;
+                };
+                Expr *next;
         };
 
         constexpr Expr::Type to_expr_type(Symbol::Type symbol_type)
@@ -170,18 +111,6 @@ namespace Alpha
                         [[unlikely]] SMART_ASSERT(false);
                 }
         }
-
-        struct ExprTableItem : public ExprLvalue
-        {
-                const ExprConst *table_index;
-
-                ExprTableItem(const ExprLvalue *lvalue, const ExprConst *table_index)
-                    : ExprLvalue(Expr::Type::TABLE_ITEM, lvalue->symbol),
-                      table_index(table_index)
-                {
-                        DEBUG_SMART_ASSERT(lvalue != nullptr, table_index != nullptr);
-                }
-        };
 
         // TODO: Which of the following fields can you make const?
         // TODO: Also if some fields are initialized only once,
