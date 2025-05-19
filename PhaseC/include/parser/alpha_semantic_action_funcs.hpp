@@ -21,16 +21,24 @@
 
 namespace Alpha::Sem::Fns
 {
-        inline std::vector<Expr *> *make_expr_list()
+        using ExprList = std::vector<Expr *>;
+        inline ExprList *make_expr_list()
         {
                 return new std::vector<Expr *>();
         }
 
-        inline std::vector<Expr *> *make_expr_list(Expr *expr)
+        inline ExprList *make_expr_list(Expr *expr)
         {
                 auto elist = make_expr_list();
                 elist->push_back(expr);
                 return elist;
+        }
+
+        inline ExprList *extend_expr_list(Expr *expr, ExprList *exprListTail)
+        {
+                DEBUG_SMART_ASSERT(!!expr, !!exprListTail);
+                exprListTail->push_back(expr);
+                return exprListTail;
         }
 
         inline Expr *make_const_nil(ParseCtx &parse_ctx)

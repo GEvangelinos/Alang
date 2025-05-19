@@ -426,16 +426,6 @@ inline void call__lvalue_ddot_id_lparen_elist_rparen(
 	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
 }
 
-inline void exprList__expr_comma_exprListTail(
-    std::vector<Expr *> *&exprList,
-    Expr *expr,
-    std::vector<Expr *> *exprListTail)
-{
-	DEBUG_SMART_ASSERT(!!expr, !!exprListTail);
-	exprList = exprListTail;
-	exprList->push_back(expr);
-}
-
 inline void blockBegin__lbrace(ParseCtx &parse_ctx) noexcept
 {
 	parse_ctx.scope_handler.enter_scope();

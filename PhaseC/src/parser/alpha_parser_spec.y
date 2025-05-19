@@ -272,9 +272,9 @@ call:
 | LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN
 ;
 
-exprList:
-  expr                      { $exprList = ASF::make_expr_list($expr); }
-| expr COMMA exprList[Tail] { exprList__expr_comma_exprListTail($$, $expr, $Tail); }
+exprList[head]:
+  expr                      { $head = ASF::make_expr_list($expr); }
+| expr COMMA exprList[tail] { $head = ASF::extend_expr_list($expr, $tail); }
 ;
 
 elist:
