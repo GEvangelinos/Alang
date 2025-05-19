@@ -99,9 +99,9 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 ";"             { return SEMICOLON; }
 ","             { return COMMA; }
 ":"             { return COLON; }
-"::"            { return DOUBLE_COLON; }
+"::"            { return GLOBAL; }
 "."             { return DOT; }
-".."            { return DOUBLE_DOT; }
+".."            { return METHOD_CALL; }
 
 {id}            { alpha_yylval.cstring = Alpha::TokenID::refreshLastId(yytext); return ID; }
 {real}          { alpha_yylval.const_real = std::stod(yytext); return REAL; }

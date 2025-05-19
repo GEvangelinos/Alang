@@ -204,8 +204,14 @@ namespace Alpha
         Driver::Driver(const std::string &source_filepath, bool show_parser_trace)
             : source_filepath_(source_filepath), // Convert std::string to std::filesystem::path implicitly
               flex_buffer_(source_filepath),
+              lt_(flex_buffer_.size() - k_flex_eof_padding),
+              et_(),
+              st_(),
               lexer_ctx_(source_filepath),
-              lt_(flex_buffer_.size() - k_flex_eof_padding)
+              parse_ctx_(st_, et_),
+              semantic_manager_(parse_ctx_, st_, et_),
+              semantic_builder_(parse_ctx_, st_, et_)
+
         {
                 g_show_parser_trace = show_parser_trace;
         }
@@ -215,7 +221,7 @@ namespace Alpha
                 parser_retval_ = alpha_yyparse(lexer_ctx_, parse_ctx_, st_, et_, lt_);
         }
 
-        void Driver::show_symbol_table()
+        void Driver::show_symbol_table() const
         {
                 std::cout << COLOR_ASCII_BLUE;
                 const auto &symbol_per_scope_vector = st_.symbols_per_scope();

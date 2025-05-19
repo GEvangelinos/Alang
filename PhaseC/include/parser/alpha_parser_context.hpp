@@ -118,7 +118,7 @@ namespace Alpha
                         const Function *function_symbol;
                 };
 
-                FunctionCtxHandler(ParseCtx *parse_ctx);
+                FunctionCtxHandler(ParseCtx &parse_ctx);
                 ~FunctionCtxHandler();
 
                 void enter_loop() noexcept;
@@ -151,7 +151,7 @@ namespace Alpha
                 std::list<Parameter> function_parameters_;
                 u32 next_function_address_ = 0;
 
-                ParseCtx *const parse_ctx_;
+                ParseCtx &parse_ctx_;
         };
 
         class NameGenerator : private Immobile
@@ -188,7 +188,7 @@ namespace Alpha
         class ExprHandler : private Immobile
         {
         public:
-                ExprHandler(ParseCtx *parse_ctx);
+                ExprHandler(ParseCtx &parse_ctx);
                 ~ExprHandler() noexcept;
 
                 [[nodiscard]] Expr *emit_quad_if_table_item(Expr *lvalue);
@@ -213,7 +213,7 @@ namespace Alpha
 
         private:
                 std::vector<const Expr *> expr_sink_;
-                ParseCtx *const parse_ctx_;
+                ParseCtx &parse_ctx_;
         };
 
         class ParseCtx : private Immobile
@@ -226,15 +226,15 @@ namespace Alpha
                 QuadHandler quad_handler;
                 ExprHandler expr_handler;
                 NameGenerator name_generator;
-                SymbolTable *const st;
-                ErrorTracker *const et;
 
-                ParseCtx(SymbolTable *st, ErrorTracker *et);
+                ParseCtx(SymbolTable &st, ErrorTracker &et);
                 ~ParseCtx() = default;
 
                 [[nodiscard]] const Symbol *new_temp();
 
         private:
+                SymbolTable &st_;
+                ErrorTracker &et_;
         };
 
         inline SpaceHandler::SpaceHandler()
@@ -329,10 +329,9 @@ namespace Alpha
                 --scope_;
         }
 
-        inline FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const parse_ctx)
+        inline FunctionCtxHandler::FunctionCtxHandler(ParseCtx &parse_ctx)
             : parse_ctx_(parse_ctx)
         {
-                SMART_ASSERT(!!parse_ctx_);
                 // We push a stackframe, for loops that might occur outside
                 // functions. So every frame corresponds to a function except the
                 // first.
@@ -359,9 +358,9 @@ namespace Alpha
                 DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
                 if (!!function_symbol)
                         DEBUG_SMART_ASSERT(
-                            function_symbol->name == parse_ctx_->cache.func_prefix.id,
-                            function_symbol->scope == parse_ctx_->scope_handler.scope(),
-                            function_symbol->location == parse_ctx_->cache.func_prefix.location,
+                            function_symbol->name == parse_ctx_.cache.func_prefix.id,
+                            function_symbol->scope == parse_ctx_.scope_handler.scope(),
+                            function_symbol->location == parse_ctx_.cache.func_prefix.location,
                             function_symbol->is_function(),
                             function_symbol->type == Symbol::Type::PROGRAM_FUNCTION
                             // Only library functions are defined in source code.
@@ -369,16 +368,16 @@ namespace Alpha
 #endif // DEBUG_MODE
 
                 frame_stack_.emplace(FunctionDataFrame{
-                    .name = parse_ctx_->cache.func_prefix.id,
-                    .scope = parse_ctx_->scope_handler.scope(),
-                    .location = parse_ctx_->cache.func_prefix.location,
+                    .name = parse_ctx_.cache.func_prefix.id,
+                    .scope = parse_ctx_.scope_handler.scope(),
+                    .location = parse_ctx_.cache.func_prefix.location,
                     .function_symbol = function_symbol //
                 });
 
                 // Function scope is entered here.
                 // We skip the next `{` block’s scope to avoid double scoping.
-                parse_ctx_->scope_handler.enter_scope();
-                parse_ctx_->scope_handler.skip_next_scope_increment();
+                parse_ctx_.scope_handler.enter_scope();
+                parse_ctx_.scope_handler.skip_next_scope_increment();
         }
 
         inline FunctionCtxHandler::FunctionBackpatchInfo
@@ -713,9 +712,9 @@ namespace Alpha
                 if (expr->type != Expr::Type::TABLE_ITEM)
                         return expr;
 
-                Expr *expr_temp_var = make_expr_variable(parse_ctx_->new_temp(), k_no_location);
+                Expr *expr_temp_var = make_expr_variable(parse_ctx_.new_temp(), k_no_location);
 
-                parse_ctx_->quad_handler.emit_quad(
+                parse_ctx_.quad_handler.emit_quad(
                     IOPCode::TABLEGETELEM,
                     expr,
                     expr->index,
@@ -728,7 +727,7 @@ namespace Alpha
                 return expr_temp_var;
         }
 
-        inline ExprHandler::ExprHandler(ParseCtx *parse_ctx) : parse_ctx_(parse_ctx) {}
+        inline ExprHandler::ExprHandler(ParseCtx &parse_ctx) : parse_ctx_(parse_ctx) {}
 
         inline ExprHandler::~ExprHandler() noexcept
         {
@@ -736,21 +735,21 @@ namespace Alpha
                         delete e;
         }
 
-        inline ParseCtx::ParseCtx(SymbolTable *const st, ErrorTracker *const et)
-            : function_ctx_handler(this),
-              expr_handler(this),
-              st(st),
-              et(et) {}
+        inline ParseCtx::ParseCtx(SymbolTable &st, ErrorTracker &et)
+            : function_ctx_handler(*this),
+              expr_handler(*this),
+              st_(st),
+              et_(et) {}
 
         inline const Symbol *
         ParseCtx::new_temp()
         {
                 const std::string temp_name = name_generator.new_temp_name();
-                const Symbol *symbol = st->lookup_local(temp_name, scope_handler.scope());
+                const Symbol *symbol = st_.lookup_local(temp_name, scope_handler.scope());
 
                 // We register new temp, only if current scope doesnt have that temp.
                 if (!symbol)
-                        symbol = st->insert_variable(
+                        symbol = st_.insert_variable(
                             temp_name,
                             scope_handler.scope(),
                             space_handler.space(),

@@ -9,6 +9,8 @@
 #include <memory>                            // for unique_ptr
 #include <string>                            // for string
 #include <string_view>                       // for string_view
+#include "parser/alpha_semantic_manager.hpp"
+#include "parser/alpha_semantic_builder.hpp"
 
 namespace Alpha
 {
@@ -27,19 +29,15 @@ namespace Alpha
         public:
                 explicit Driver(const std::string &source_filepath, bool show_parser_trace);
                 ~Driver() { alpha_yylex_destroy(); }
-                Driver(const Driver &) = delete;
-                Driver(const Driver &&) = delete;
-                Driver &operator=(const Driver &) = delete;
-                Driver &operator=(Driver &&) = delete;
 
                 void run_syntax_analyzer();
-                void show_symbol_table();
+                void show_symbol_table() const;
                 void show_compile_errors() const;
                 void show_quads() const;
                 void export_symbol_table();
                 void export_compile_errors();
                 void export_quads();
-                [[nodiscard]] bool ok() { return ok_flag_; }
+                [[nodiscard]] bool ok() const noexcept { return ok_flag_; }
 
         private:
                 class FlexBuffer : private Immobile
@@ -60,11 +58,13 @@ namespace Alpha
 
                 const std::filesystem::path source_filepath_;
                 FlexBuffer flex_buffer_;
-                Alpha::LexerCtx lexer_ctx_;
-                Alpha::ParseCtx parse_ctx_;
                 Alpha::SymbolTable st_;
                 Alpha::ErrorTracker et_;
                 Alpha::LocationTracker lt_;
+                Alpha::LexerCtx lexer_ctx_;
+                Alpha::ParseCtx parse_ctx_;
+                Alpha::SemanticBuilder semantic_builder_;
+                Alpha::SemanticManager semantic_manager_;
                 int parser_retval_ = 0;
                 bool ok_flag_ = true;
 

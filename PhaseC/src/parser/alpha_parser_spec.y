@@ -7,8 +7,8 @@
         #include <string>                             // for basic_string, string
         #include "parser/alpha_trace_logger.hpp"            // for display_trace
         #include "parser/alpha_parser_context.hpp"    // for ParseCtx
-        #include "parser/alpha_semantic_action_funcs.hpp"  // for block__lbrace, funcArgs...
-        #include "parser/alpha_semantic_action_procs.hpp"  // for block__lbrace, funcArgs...
+        #include "parser/alpha_semantic_manager.hpp"  // for block__lbrace, funcArgs...
+        #include "parser/alpha_semantic_builder.hpp"  // for block__lbrace, funcArgs...
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
         #include "alpha_parser_prologue_code.hpp"
         namespace ASF = Alpha::SemanticFunctions;
@@ -89,7 +89,7 @@
 %type  <location>       blockEnd
 %type  <block_location> block
 
-/* By default Bison uses the bare token names (e.g. IF, GLOBAL)
+/* By default Bison uses the bare token names (e.g. IF, METHOD_CALL)
  * in its syntax‐error messages.  If you follow a %token with
  * a quoted string, Bison will use that string instead as the
  * token’s “display name.”  That way you get messages like:
@@ -100,7 +100,7 @@
  * instead of
  *
  *     syntax error, unexpected IF
- *     syntax error, unexpected DOUBLE_COLON
+ *     syntax error, unexpected GLOBAL
  */
 
 /* Keyword tokens */
@@ -146,9 +146,9 @@
 %token SEMICOLON     ";"   
 %token COMMA         ","
 %token DOT           "."   
-%token DOUBLE_DOT    "method-call operator .."
+%token METHOD_CALL    "method-call operator .."
 %token COLON         ":"   
-%token DOUBLE_COLON  "global operator ::"
+%token GLOBAL  "global operator ::"
 
 /* Priorities */
 %right ASSIGN
@@ -164,7 +164,7 @@
 
 %right NOT INC DEC UMINUS
 
-%left DOT DOUBLE_DOT
+%left DOT METHOD_CALL
 
 %left LEFT_BRACKET RIGHT_BRACKET
 %left LEFT_PAREN RIGHT_PAREN
@@ -252,7 +252,7 @@ primary:
 lvalue:
   ID { lvalue__id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
 | LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); } 
-| DOUBLE_COLON ID { lvalue__global_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
+| GLOBAL ID { lvalue__global_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
 | member { $lvalue = $member; }
 ;
 
@@ -276,7 +276,7 @@ call[invocation]:
   { $invocation = ASF::make_call(symbol_table, parse_ctx, $callable, $elist, @invocation); }
 | lvalue LEFT_PAREN elist RIGHT_PAREN // NORMAL_CALL
   { call__lvalue_lparen_elist_rparen(symbol_table, parse_ctx, $invocation, $lvalue, $elist, @invocation); }
-| lvalue DOUBLE_DOT ID LEFT_PAREN elist RIGHT_PAREN // METHOD_CALL
+| lvalue METHOD_CALL ID LEFT_PAREN elist RIGHT_PAREN // METHOD_CALL
   { call__lvalue_ddot_id_lparen_elist_rparen(symbol_table, parse_ctx, $invocation, $lvalue, $ID, @ID, $elist, @invocation); }
 | LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN
   {

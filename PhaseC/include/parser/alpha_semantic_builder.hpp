@@ -26,7 +26,7 @@ namespace Alpha
         class SemanticBuilder
         {
         public:
-                SemanticBuilder(ParseCtx *const parse_ctx) : parse_ctx_(parse_ctx) {}
+                SemanticBuilder(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et);
 
                 [[nodiscard]] ExprList *make_empty_expr_list();
                 [[nodiscard]] ExprList *extend_expr_list(Expr *expr, ExprList *elist_tail);
@@ -37,22 +37,46 @@ namespace Alpha
                 [[nodiscard]] Expr *make_const_real(f64 real_value, Location real_loc);
                 [[nodiscard]] Expr *make_const_string(const char *str_value, Location str_loc);
                 [[nodiscard]] Expr *make_call(Expr *lvalue, ExprList *elist, Location call_loc);
-                [[nodiscard]] Expr *transform_lvalue_to_primary(Expr *lvalue);
-
+                [[nodiscard]] Expr *resolve_lvalue_to_primary(Expr *lvalue);
+                [[nodiscard]] Expr *resolve_assign_expr(Expr *lvalue, Expr *expr, Location assign_loc);
+                [[nodiscard]] Expr *make_table_item(
+                    Expr *&lvalue,
+                    const char *id,
+                    Location table_item_loc,
+                    Location id_loc);
+                [[nodiscard]] Expr *make_table_item(
+                    Expr *&lvalue,
+                    Expr *expr,
+                    Location table_item_loc);
+                [[nodiscard]] Expr *make_normal_call(
+                    Expr *&lvalue,
+                    ExprList *elist,
+                    Location call_loc);
+                [[nodiscard]] Expr *make_method_call(
+                    Expr *&lvalue,
+                    const char *id,
+                    ExprList *elist,
+                    Location call_loc,
+                    Location id_loc);
                 [[nodiscard]] static BlockLocation
                 make_block_location(Location begin, Location end) noexcept;
 
+                void update_expr_location(Expr *expr, Location new_expr_loc);
+
         private:
-                ParseCtx *const parse_ctx_;
+                ParseCtx &parse_ctx_;
+                SymbolTable &st_;
+                ErrorTracker &et_;
 
                 void validate_lvalue_for_assignment(const Symbol *lvalue_symbol, Location assign_loc);
                 [[nodiscard]] Expr *
                 handle_table_item_assignment(Expr *lvalue, Expr *expr, Location assign_loc);
                 [[nodiscard]] Expr *
                 handle_direct_assignment(Expr *lvalue, Expr *expr, Location assign_loc);
-                [[nodiscard]] Expr *
-                assignExpr__lvalue_assign_expr(Expr *lvalue, Expr *expr, Location assign_loc);
-        };
+        }; // class SemanticBuilder
+
+        inline SemanticBuilder::SemanticBuilder(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et)
+            : parse_ctx_(parse_ctx), st_(st), et_(et) {}
 
         inline ExprList *
         SemanticBuilder::make_empty_expr_list()
@@ -71,46 +95,46 @@ namespace Alpha
         inline Expr *
         SemanticBuilder::make_const_nil(Location nil_loc)
         {
-                return parse_ctx_->expr_handler.make_expr_const_nil(nil_loc);
+                return parse_ctx_.expr_handler.make_expr_const_nil(nil_loc);
         }
 
         inline Expr *
         SemanticBuilder::make_const_true(Location true_loc)
         {
-                return parse_ctx_->expr_handler.make_expr_const_bool(true, true_loc);
+                return parse_ctx_.expr_handler.make_expr_const_bool(true, true_loc);
         }
 
         inline Expr *
         SemanticBuilder::make_const_false(Location false_loc)
         {
-                return parse_ctx_->expr_handler.make_expr_const_bool(false, false_loc);
+                return parse_ctx_.expr_handler.make_expr_const_bool(false, false_loc);
         }
 
         inline Expr *
         SemanticBuilder::make_const_int(i64 int_value, Location int_loc)
         {
-                return parse_ctx_->expr_handler.make_expr_const_int(int_value, int_loc);
+                return parse_ctx_.expr_handler.make_expr_const_int(int_value, int_loc);
         }
 
         inline Expr *
         SemanticBuilder::make_const_real(f64 real_value, Location real_loc)
         {
-                return parse_ctx_->expr_handler.make_expr_const_real(real_value, real_loc);
+                return parse_ctx_.expr_handler.make_expr_const_real(real_value, real_loc);
         }
 
         inline Expr *
         SemanticBuilder::make_const_string(const char *str_value, Location str_loc)
         {
-                return parse_ctx_->expr_handler.make_expr_const_string(str_value, str_loc);
+                return parse_ctx_.expr_handler.make_expr_const_string(str_value, str_loc);
         }
 
         inline Expr *
         SemanticBuilder::make_call(Expr *lvalue, ExprList *elist, Location call_loc)
         {
 
-                Expr *func_expr = parse_ctx_->expr_handler.emit_quad_if_table_item(lvalue);
+                Expr *func_expr = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
                 for (Expr *e : *elist)
-                        parse_ctx_->quad_handler.emit_quad(
+                        parse_ctx_.quad_handler.emit_quad(
                             IOPCode::PARAM,
                             e,
                             nullptr,
@@ -120,19 +144,19 @@ namespace Alpha
 
                 DEBUG_SMART_ASSERT(!!func_expr->symbol);
 
-                parse_ctx_->quad_handler.emit_quad(
+                parse_ctx_.quad_handler.emit_quad(
                     IOPCode::CALL,
                     func_expr,
                     nullptr,
                     nullptr,
                     call_loc);
 
-                Expr *getretval_expr = parse_ctx_->expr_handler.make_expr_variable(
-                    parse_ctx_->new_temp(),
+                Expr *getretval_expr = parse_ctx_.expr_handler.make_expr_variable(
+                    parse_ctx_.new_temp(),
                     k_no_location //
                 );
 
-                parse_ctx_->quad_handler.emit_quad(
+                parse_ctx_.quad_handler.emit_quad(
                     IOPCode::GETRETVAL,
                     nullptr,
                     nullptr,
@@ -143,9 +167,71 @@ namespace Alpha
         }
 
         inline Expr *
-        SemanticBuilder::transform_lvalue_to_primary(Expr *lvalue)
+        SemanticBuilder::resolve_lvalue_to_primary(Expr *lvalue)
         {
-                return parse_ctx_->expr_handler.emit_quad_if_table_item(lvalue);
+                return parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
+        }
+
+        inline Expr *
+        SemanticBuilder::resolve_assign_expr(
+            Expr *lvalue,
+            Expr *expr,
+            const Location assign_loc)
+        {
+                DEBUG_SMART_ASSERT(!!lvalue, !!expr);
+
+                validate_lvalue_for_assignment(lvalue->symbol, assign_loc);
+                if (lvalue->type == Expr::Type::TABLE_ITEM)
+                        return handle_table_item_assignment(lvalue, expr, assign_loc);
+                return handle_direct_assignment(lvalue, expr, assign_loc);
+        }
+
+        inline Expr *
+        SemanticBuilder::make_table_item(
+            Expr *&lvalue,
+            const char *id,
+            Location table_item_loc,
+            Location id_loc)
+        {
+                return parse_ctx_.expr_handler.make_expr_table_item(lvalue, id, id_loc, table_item_loc);
+        }
+
+        inline Expr *
+        SemanticBuilder::make_table_item(
+            Expr *&lvalue,
+            Expr *expr,
+            Location table_item_loc)
+        {
+                return parse_ctx_.expr_handler.make_expr_table_item(lvalue, expr, table_item_loc);
+        }
+
+        inline Expr *
+        SemanticBuilder::make_normal_call(Expr *&lvalue, ExprList *elist, Location call_loc)
+        {
+                lvalue = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
+                return make_call(lvalue, elist, call_loc);
+        }
+
+        inline Expr *
+        SemanticBuilder::make_method_call(
+            Expr *&lvalue,
+            const char *id,
+            ExprList *elist,
+            Location call_loc,
+            Location id_loc)
+        {
+                lvalue = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
+                elist->push_back(lvalue);
+                // TODO: Understand what this name should be... And also understand first emit_quad_if...
+                Expr *temp_var = parse_ctx_.expr_handler.make_expr_table_item(
+                    lvalue,
+                    id,
+                    id_loc,
+                    k_no_location //
+                );
+
+                lvalue = parse_ctx_.expr_handler.emit_quad_if_table_item(temp_var);
+                return make_call(lvalue, elist, call_loc);
         }
 
         inline void
@@ -159,13 +245,13 @@ namespace Alpha
                 if (lvalue_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
                 {
                         std::string error = FMT::format("assignment of library function `{}`", lvalue_symbol->name);
-                        parse_ctx_->et->report_error(CTError::Type::SEMANTIC, error, assign_loc);
+                        et_.report_error(CTError::Type::SEMANTIC, error, assign_loc);
                 }
                 else if (lvalue_symbol->type == Symbol::Type::PROGRAM_FUNCTION)
                 {
                         std::string error = FMT::format("assignment of function `{}`", lvalue_symbol->name);
                         std::string note = FMT::format("function {} declared here", lvalue_symbol->name);
-                        parse_ctx_->et->report_error(CTError::Type::SEMANTIC, error, assign_loc, note, lvalue_symbol->location);
+                        et_.report_error(CTError::Type::SEMANTIC, error, assign_loc, note, lvalue_symbol->location);
                 }
         }
 
@@ -184,15 +270,15 @@ namespace Alpha
             Expr *expr,
             Location assign_loc)
         {
-                parse_ctx_->quad_handler.emit_quad(
+                parse_ctx_.quad_handler.emit_quad(
                     IOPCode::TABLESETELEM,
                     lvalue,
                     lvalue->index,
                     expr,
                     assign_loc);
 
-                Expr *rvalue = parse_ctx_->expr_handler.emit_quad_if_table_item(lvalue);
-                return parse_ctx_->expr_handler.make_expr_assign(rvalue, assign_loc);
+                Expr *rvalue = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
+                return parse_ctx_.expr_handler.make_expr_assign(rvalue, assign_loc);
         }
 
         inline Expr *
@@ -202,19 +288,19 @@ namespace Alpha
             Location assign_loc)
         {
 
-                parse_ctx_->quad_handler.emit_quad(
+                parse_ctx_.quad_handler.emit_quad(
                     IOPCode::ASSIGN,
                     expr,
                     nullptr,
                     lvalue,
                     assign_loc); // TODO (NOT IMPORTANT): location (can we construct it from expr (to catch whole assignment expression?))
 
-                Expr *assignExpr = parse_ctx_->expr_handler.make_expr_assign(
-                    parse_ctx_->new_temp(),
+                Expr *assignExpr = parse_ctx_.expr_handler.make_expr_assign(
+                    parse_ctx_.new_temp(),
                     assign_loc //
                 );
 
-                parse_ctx_->quad_handler.emit_quad(
+                parse_ctx_.quad_handler.emit_quad(
                     IOPCode::ASSIGN,
                     lvalue,
                     nullptr,
@@ -223,20 +309,6 @@ namespace Alpha
 
                 return assignExpr;
         }
-
-        inline Expr *
-        SemanticBuilder::assignExpr__lvalue_assign_expr(
-            Expr *lvalue,
-            Expr *expr,
-            const Location assign_loc)
-        {
-                DEBUG_SMART_ASSERT(!!lvalue, !!expr);
-
-                validate_lvalue_for_assignment(lvalue->symbol, assign_loc);
-                if (lvalue->type == Expr::Type::TABLE_ITEM)
-                        return handle_table_item_assignment(lvalue, expr, assign_loc);
-                return handle_direct_assignment(lvalue, expr, assign_loc);
-        }
-} // namespace Alpha::Sem::Fns
+} // namespace Alpha
 
 #endif // ALPHA_SEMANTIC_ACTION_FUNCS_HPP

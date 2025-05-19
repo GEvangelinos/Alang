@@ -37,6 +37,7 @@ add_compile_options(
         -Wall
         -Wextra
         -Wpedantic
+        -Wreorder
 )
 
 # Check if std::format is allowed
