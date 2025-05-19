@@ -37,12 +37,21 @@ namespace Alpha
                 [[nodiscard]] Expr *make_const_real(f64 real_value, Location real_loc);
                 [[nodiscard]] Expr *make_const_string(const char *str_value, Location str_loc);
                 [[nodiscard]] Expr *make_call(Expr *lvalue, ExprList *elist, Location call_loc);
+                [[nodiscard]] Expr *transform_lvalue_to_primary(Expr *lvalue);
 
                 [[nodiscard]] static BlockLocation
                 make_block_location(Location begin, Location end) noexcept;
 
         private:
                 ParseCtx *const parse_ctx_;
+
+                void validate_lvalue_for_assignment(const Symbol *lvalue_symbol, Location assign_loc);
+                [[nodiscard]] Expr *
+                handle_table_item_assignment(Expr *lvalue, Expr *expr, Location assign_loc);
+                [[nodiscard]] Expr *
+                handle_direct_assignment(Expr *lvalue, Expr *expr, Location assign_loc);
+                [[nodiscard]] Expr *
+                assignExpr__lvalue_assign_expr(Expr *lvalue, Expr *expr, Location assign_loc);
         };
 
         inline ExprList *
@@ -133,6 +142,33 @@ namespace Alpha
                 return getretval_expr;
         }
 
+        inline Expr *
+        SemanticBuilder::transform_lvalue_to_primary(Expr *lvalue)
+        {
+                return parse_ctx_->expr_handler.emit_quad_if_table_item(lvalue);
+        }
+
+        inline void
+        SemanticBuilder::validate_lvalue_for_assignment(
+            const Symbol *lvalue_symbol,
+            const Location assign_loc)
+        {
+                DEBUG_SMART_ASSERT(!!lvalue_symbol);
+                if (is_modifiable_symbol(lvalue_symbol))
+                        return;
+                if (lvalue_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
+                {
+                        std::string error = FMT::format("assignment of library function `{}`", lvalue_symbol->name);
+                        parse_ctx_->et->report_error(CTError::Type::SEMANTIC, error, assign_loc);
+                }
+                else if (lvalue_symbol->type == Symbol::Type::PROGRAM_FUNCTION)
+                {
+                        std::string error = FMT::format("assignment of function `{}`", lvalue_symbol->name);
+                        std::string note = FMT::format("function {} declared here", lvalue_symbol->name);
+                        parse_ctx_->et->report_error(CTError::Type::SEMANTIC, error, assign_loc, note, lvalue_symbol->location);
+                }
+        }
+
         inline BlockLocation
         SemanticBuilder::make_block_location(Location begin, Location end) noexcept
         {
@@ -140,6 +176,66 @@ namespace Alpha
                     .begin = begin,
                     .end = end,
                 };
+        }
+
+        inline Expr *
+        SemanticBuilder::handle_table_item_assignment(
+            Expr *lvalue,
+            Expr *expr,
+            Location assign_loc)
+        {
+                parse_ctx_->quad_handler.emit_quad(
+                    IOPCode::TABLESETELEM,
+                    lvalue,
+                    lvalue->index,
+                    expr,
+                    assign_loc);
+
+                Expr *rvalue = parse_ctx_->expr_handler.emit_quad_if_table_item(lvalue);
+                return parse_ctx_->expr_handler.make_expr_assign(rvalue, assign_loc);
+        }
+
+        inline Expr *
+        SemanticBuilder::handle_direct_assignment(
+            Expr *lvalue,
+            Expr *expr,
+            Location assign_loc)
+        {
+
+                parse_ctx_->quad_handler.emit_quad(
+                    IOPCode::ASSIGN,
+                    expr,
+                    nullptr,
+                    lvalue,
+                    assign_loc); // TODO (NOT IMPORTANT): location (can we construct it from expr (to catch whole assignment expression?))
+
+                Expr *assignExpr = parse_ctx_->expr_handler.make_expr_assign(
+                    parse_ctx_->new_temp(),
+                    assign_loc //
+                );
+
+                parse_ctx_->quad_handler.emit_quad(
+                    IOPCode::ASSIGN,
+                    lvalue,
+                    nullptr,
+                    assignExpr,
+                    k_no_location);
+
+                return assignExpr;
+        }
+
+        inline Expr *
+        SemanticBuilder::assignExpr__lvalue_assign_expr(
+            Expr *lvalue,
+            Expr *expr,
+            const Location assign_loc)
+        {
+                DEBUG_SMART_ASSERT(!!lvalue, !!expr);
+
+                validate_lvalue_for_assignment(lvalue->symbol, assign_loc);
+                if (lvalue->type == Expr::Type::TABLE_ITEM)
+                        return handle_table_item_assignment(lvalue, expr, assign_loc);
+                return handle_direct_assignment(lvalue, expr, assign_loc);
         }
 } // namespace Alpha::Sem::Fns
 
