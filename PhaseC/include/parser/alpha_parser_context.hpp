@@ -176,7 +176,7 @@ namespace Alpha
         {
         public:
                 void emit_quad(
-                    IOPCode iopcode,
+                    IOPCode iopc,
                     const Expr *arg1,
                     const Expr *arg2,
                     const Expr *result,
@@ -472,7 +472,7 @@ namespace Alpha
         }
 
         inline void QuadHandler::emit_quad(
-            const IOPCode iopcode,
+            const IOPCode iopc,
             const Expr *arg1,
             const Expr *arg2,
             const Expr *result,
@@ -481,13 +481,15 @@ namespace Alpha
                 DEBUG_SMART_ASSERT(quads_.size() + 1 == next_quad_label_);
 
                 quads_.emplace_back(Quad{
-                    .iopcode = iopcode,
+                    .iopcode = iopc,
                     .arg1 = arg1,
                     .arg2 = arg2,
                     .result = result,
-                    .label = next_quad_label_++,
+                    .label = requires_label(iopc) ? next_quad_label_ : 0,
                     .location = location,
                 });
+
+                ++next_quad_label_;
         }
 
         inline bool QuadHandler::requires_label(IOPCode iopc) noexcept
