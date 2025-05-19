@@ -19,7 +19,8 @@
 #include "utils/misc.hpp"                  // for DEBUG_ALWAYS_INLINE
 #include "utils/smart_assert.h"            // for DEBUG_SMART_ASSERT
 #include "parser/_parser_type_aliases.hpp"
-namespace
+#include "_parser_common.hpp"
+namespace // (Anonymous)
 {
         Alpha::Location expr_location_founder(Alpha::Expr *e)
         {
@@ -37,56 +38,57 @@ namespace
                         return e->symbol->location;
                 }
         }
-
-}
+} // namespace (Anonymous)
 
 namespace Alpha::Sem::Fns
 {
-        inline ExprList *make_expr_list()
+        [[nodiscard]] inline ExprList *make_expr_list()
         {
                 return new std::vector<Expr *>();
         }
 
-        inline ExprList *make_expr_list(Expr *expr)
+        [[nodiscard]] inline ExprList *make_expr_list(Expr *expr)
         {
                 auto elist = make_expr_list();
                 elist->push_back(expr);
                 return elist;
         }
 
-        inline ExprList *extend_expr_list(Expr *expr, ExprList *exprListTail)
+        [[nodiscard]] inline ExprList *extend_expr_list(Expr *expr, ExprList *exprListTail)
         {
                 DEBUG_SMART_ASSERT(!!expr, !!exprListTail);
                 exprListTail->push_back(expr);
                 return exprListTail;
         }
 
-        inline Expr *make_const_nil(ParseCtx &parse_ctx, Location nil_location)
+        [[nodiscard]] inline Expr *make_const_nil(ParseCtx &parse_ctx, Location nil_location)
         {
                 return parse_ctx.expr_handler.make_expr_const_nil(nil_location);
         }
 
-        inline Expr *make_const_true(ParseCtx &parse_ctx, Location true_location)
+        [[nodiscard]] inline Expr *make_const_true(ParseCtx &parse_ctx, Location true_location)
         {
                 return parse_ctx.expr_handler.make_expr_const_bool(true, true_location);
         }
 
-        inline Expr *make_const_false(ParseCtx &parse_ctx, Location false_location)
+        [[nodiscard]] inline Expr *make_const_false(ParseCtx &parse_ctx, Location false_location)
         {
                 return parse_ctx.expr_handler.make_expr_const_bool(false, false_location);
         }
 
-        inline Expr *make_const_int(ParseCtx &parse_ctx, decltype(Expr::const_int) int_value, Location int_location)
+        [[nodiscard]] inline Expr *
+        make_const_int(ParseCtx &parse_ctx, decltype(Expr::const_int) int_value, Location int_location)
         {
                 return parse_ctx.expr_handler.make_expr_const_int(int_value, int_location);
         }
 
-        inline Expr *make_const_real(ParseCtx &parse_ctx, decltype(Expr::const_real) real_value, Location real_location)
+        [[nodiscard]] inline Expr *
+        make_const_real(ParseCtx &parse_ctx, decltype(Expr::const_real) real_value, Location real_location)
         {
                 return parse_ctx.expr_handler.make_expr_const_real(real_value, real_location);
         }
 
-        inline Expr *make_const_string(
+        [[nodiscard]] inline Expr *make_const_string(
             ParseCtx &parse_ctx,
             const char *str_value,
             Location str_location)
@@ -94,16 +96,16 @@ namespace Alpha::Sem::Fns
                 return parse_ctx.expr_handler.make_expr_const_string(str_value, str_location);
         }
 
-        inline Expr *make_call(SymbolTable &st, ParseCtx &parse_ctx, Expr *lvalue, ExprList *elist)
+        [[nodiscard]] inline Expr *make_call(SymbolTable &st, ParseCtx &parse_ctx, Expr *lvalue, ExprList *elist)
         {
 
                 Expr *func_expr = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
                 for (Expr *e : *elist)
                         parse_ctx.quad_handler.emit_quad(
                             IOPCode::PARAM,
-                            nullptr,
-                            nullptr,
                             e,
+                            nullptr,
+                            nullptr,
                             expr_location_founder(e) //
                         );
 
@@ -111,23 +113,32 @@ namespace Alpha::Sem::Fns
 
                 parse_ctx.quad_handler.emit_quad(
                     IOPCode::CALL,
-                    nullptr,
-                    nullptr,
                     func_expr,
+                    nullptr,
+                    nullptr,
                     func_expr->symbol->location //
                 );
 
-                Expr *call_result_expr = parse_ctx.expr_handler.make_expr_lvalue(parse_ctx.new_temp(st));
-        }
-}
+                Expr *getretval_expr = parse_ctx.expr_handler.make_expr_lvalue(parse_ctx.new_temp(st));
 
-inline BlockLocation make_block_location(Location begin, Location end) noexcept
-{
-        return {
-            .begin = begin,
-            .end = end,
-        };
-}
+                parse_ctx.quad_handler.emit_quad(
+                    IOPCode::GETRETVAL,
+                    nullptr,
+                    nullptr,
+                    getretval_expr,
+                    expr_location_founder(func_expr) //
+                );
+
+                return getretval_expr;
+        }
+
+        [[nodiscard]] inline BlockLocation make_block_location(Location begin, Location end) noexcept
+        {
+                return {
+                    .begin = begin,
+                    .end = end,
+                };
+        }
 } // namespace Alpha::Sem::Fns
 
 #endif // ALPHA_SEMANTIC_ACTION_FUNCS_HPP

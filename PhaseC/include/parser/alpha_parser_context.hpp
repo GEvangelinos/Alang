@@ -12,6 +12,7 @@
 
 #include "_parser_common.hpp"
 #include "core/alpha_ir.hpp"
+#include "parser/alpha_symbol_table.hpp"
 #include "core/alpha_konstants.hpp"
 #include "utils/misc.hpp"
 #include "core/alpha_types.hpp"
@@ -643,6 +644,8 @@ namespace Alpha
                     expr->index,
                     expr_temp_var,
                     k_no_location //
+
+                    //  expr_location_founder(expr) // TODO: REMOVE (if you dont want location here)
                 );
 
                 return expr_temp_var;
@@ -672,7 +675,8 @@ namespace Alpha
                             scope_handler.scope(),
                             space_handler.space(),
                             space_handler.next_offset(),
-                            k_no_location);
+                            k_no_location); // TODO: Remove locations from temps and auto generated
+                                            // variables and values.. known the line a temp was generated is useless...
 
                 return symbol;
         }

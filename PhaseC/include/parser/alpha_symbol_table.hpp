@@ -17,14 +17,12 @@
 #include <vector>           // for vector
 #include <array>
 #include <memory>
+#include "parser/alpha_symbols.hpp"
 
 namespace Alpha
 {
         // Classes defined here:
-        class Symbol;      // IWYU pragma: keep
         class SymbolTable; // IWYU pragma: keep
-        class Variable;    // IYU pragma: keep
-        class Function;    // IWYU pragma: keep
 
         const std::array<std::string, 12> k_library_function_names = {
             "print",
@@ -39,89 +37,6 @@ namespace Alpha
             "sqrt",
             "cos",
             "sin" //
-        };
-
-        class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
-        {
-        public:
-                enum class Type : u8
-                {
-                        LIBRARY_FUNCTION,
-                        PROGRAM_FUNCTION,
-                        VARIABLE,
-                };
-
-                const std::string &name;
-                const u32 scope;
-                const Type type;
-                const Location location;
-
-                virtual ~Symbol() = default;
-
-                [[nodiscard]] std::string_view type_to_string() const noexcept;
-
-                [[nodiscard]] bool is_variable() const noexcept { return type == Type::VARIABLE; }
-                [[nodiscard]] bool is_function() const noexcept { return !is_variable(); }
-                [[nodiscard]] bool is_active() const noexcept { return is_active_; }
-
-        protected:
-                Symbol(const std::string &name, u32 scope, Type type, Location location) noexcept
-                    : name(name), scope(scope), type(type), location(location) {}
-
-        private:
-                bool is_active_ = true;
-
-                DEBUG_ALWAYS_INLINE void activate() noexcept { is_active_ = true; }
-                DEBUG_ALWAYS_INLINE void deactivate() noexcept { is_active_ = false; }
-
-                friend class SymbolTable;
-        };
-
-        class Variable : public Symbol
-        {
-        public:
-                enum class Space
-                {
-                        PROGRAM_VAR,
-                        FUNCTION_LOCAL,
-                        FORMAL_ARGUMENT,
-                };
-
-                const Space space;
-                const u32 offset;
-
-                Variable(const std::string &name, u32 scope, Space space, u32 offset, Location location)
-                    : Symbol(name, scope, Symbol::Type::VARIABLE, location),
-                      space(space),
-                      offset(offset) {}
-                ~Variable() override = default;
-        };
-
-        class Function : public Symbol
-        {
-        public:
-                const u32 address;
-                const std::list<Parameter> parameter_list;
-                Once<u32> local_variable_count;
-
-                Function(
-                    const std::string &name,
-                    const u32 scope,
-                    const Symbol::Type type,
-                    const u32 address,
-                    const std::list<Parameter> &parameter_list,
-                    const Location location)
-                    : Symbol(name, scope, type, location),
-                      address(address),
-                      parameter_list(parameter_list)
-                {
-                        DEBUG_SMART_ASSERT(
-                            type == Symbol::Type::LIBRARY_FUNCTION ||
-                            type == Symbol::Type::PROGRAM_FUNCTION //
-                        );
-                }
-
-                ~Function() override = default;
         };
 
         class SymbolTable : private Immobile

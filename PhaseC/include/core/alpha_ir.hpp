@@ -1,7 +1,7 @@
 #ifndef ALPHA_IR_HPP
 #define ALPHA_IR_HPP
 
-#include "parser/alpha_symbol_table.hpp"
+#include "parser/alpha_symbols.hpp"
 #include "utils/misc.hpp"
 #include <string>
 
