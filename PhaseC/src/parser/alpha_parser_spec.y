@@ -261,13 +261,14 @@ member:
 | call DOT ID
 | call LEFT_BRACKET expr RIGHT_BRACKET
 ;
+// TODO: ADD normal_call and Method_call and pass needed variable trhoguh a Call struct!!
 
 call:
   call LEFT_PAREN elist RIGHT_PAREN
 | lvalue LEFT_PAREN elist RIGHT_PAREN // NORMAL_CALL
-// { call__lvalue_lparen_elist_rparen(); }
+  { call__lvalue_lparen_elist_rparen(symbol_table, parse_ctx, $call, $lvalue, $elist); }
 | lvalue DOUBLE_DOT ID LEFT_PAREN elist RIGHT_PAREN // METHOD_CALL
-// { call__lvalue_ddot_id_lparen_elist_rparen(); }
+  { call__lvalue_ddot_id_lparen_elist_rparen(symbol_table, parse_ctx, $call, $lvalue, $ID, @ID, $elist); }
 
 | LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN
 ;

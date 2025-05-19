@@ -247,7 +247,7 @@ namespace // (Anonymous)
 		    expr,
 		    nullptr,
 		    lvalue,
-		    assign_location);
+		    assign_location); // TODO (NOT IMPORTANT): location (can we construct it from expr (to catch whole assignment expression?))
 
 		assignExpr = parse_ctx.expr_handler.make_expr_assign(parse_ctx.new_temp(st));
 
@@ -419,6 +419,17 @@ inline void tableItem__lvalue_lbracket_expr_rbracket(
 	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, expr);
 }
 
+inline void call__lvalue_lparen_elist_rparen(
+    SymbolTable &st,
+    ParseCtx &parse_ctx,
+    Expr *&call,
+    Expr *&lvalue,
+    ExprList *elist)
+{
+	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
+	call = ASF::make_call(st, parse_ctx, lvalue, elist);
+}
+
 inline void call__lvalue_ddot_id_lparen_elist_rparen(
     SymbolTable &st,
     ParseCtx &parse_ctx,
@@ -429,11 +440,15 @@ inline void call__lvalue_ddot_id_lparen_elist_rparen(
     ExprList *elist)
 {
 	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
+
+	// BEGIN_BOUND: CODE RUNNING ONLY FOR METHODS // TODO: remove comment bounds.. or parameterize (DRY)
 	elist->push_back(lvalue);
 	// TODO: Understand what this name should be... And also understand first emit_quad_if...
 	Expr *temp_var = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, id, id_location);
 	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, temp_var);
-	call =
+	// END_BOUND: CODE RUNNING ONLY FOR METHODS
+
+	call = ASF::make_call(st, parse_ctx, lvalue, elist);
 }
 
 inline void blockBegin__lbrace(ParseCtx &parse_ctx) noexcept
