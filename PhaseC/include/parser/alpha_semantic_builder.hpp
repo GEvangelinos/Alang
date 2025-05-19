@@ -28,8 +28,11 @@ namespace Alpha
         public:
                 SemanticBuilder(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et);
 
-                [[nodiscard]] ExprList *make_empty_expr_list();
-                [[nodiscard]] ExprList *extend_expr_list(Expr *expr, ExprList *elist_tail);
+                [[nodiscard]] ExprList *make_expr_list_with(Expr *expr, Location new_expr_loc);
+                [[nodiscard]] ExprList *extend_expr_list_with(
+                    ExprList *expr_list,
+                    Expr *expr,
+                    Location new_expr_loc);
                 [[nodiscard]] Expr *make_const_nil(Location nil_loc);
                 [[nodiscard]] Expr *make_const_true(Location true_loc);
                 [[nodiscard]] Expr *make_const_false(Location false_loc);
@@ -68,7 +71,7 @@ namespace Alpha
 
         private:
                 ParseCtx &parse_ctx_;
-                SymbolTable &st_;
+                [[maybe_unused]] SymbolTable &st_; // TODO: REMOVE IF UNUSED
                 ErrorTracker &et_;
 
                 void validate_lvalue_for_assignment(const Symbol *lvalue_symbol, Location assign_loc);
@@ -76,6 +79,10 @@ namespace Alpha
                 handle_table_item_assignment(Expr *lvalue, Expr *expr, Location assign_loc);
                 [[nodiscard]] Expr *
                 handle_direct_assignment(Expr *lvalue, Expr *expr, Location assign_loc);
+                [[nodiscard]] ExprList *make_empty_expr_list();
+                [[nodiscard]] ExprList *extend_expr_list(ExprList *expr_list, Expr *expr);
+
+                static void update_expr_location(Expr *expr, Location new_expr_loc);
         }; // class SemanticBuilder
 
         inline SemanticBuilder::SemanticBuilder(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et)
@@ -88,11 +95,29 @@ namespace Alpha
         }
 
         inline ExprList *
-        SemanticBuilder::extend_expr_list(Expr *expr, ExprList *elist_tail)
+        SemanticBuilder::make_expr_list_with(Expr *expr, const Location new_expr_loc)
         {
-                DEBUG_SMART_ASSERT(!!expr, !!elist_tail);
-                elist_tail->push_back(expr);
-                return elist_tail;
+                update_expr_location(expr, new_expr_loc);
+                ExprList *new_expr_list = make_empty_expr_list();
+                return extend_expr_list(new_expr_list, expr);
+        }
+
+        inline ExprList *
+        SemanticBuilder::extend_expr_list_with(
+            ExprList *expr_list,
+            Expr *expr,
+            const Location new_expr_loc)
+        {
+                update_expr_location(expr, new_expr_loc);
+                return extend_expr_list(expr_list, expr);
+        }
+
+        inline ExprList *
+        SemanticBuilder::extend_expr_list(ExprList *expr_list, Expr *expr)
+        {
+                DEBUG_SMART_ASSERT(!!expr, !!expr_list);
+                expr_list->push_back(expr);
+                return expr_list;
         }
 
         inline Expr *
@@ -321,6 +346,12 @@ namespace Alpha
                     k_no_location);
 
                 return assignExpr;
+        }
+
+        inline void
+        SemanticBuilder::update_expr_location(Expr *expr, Location new_expr_loc)
+        {
+                expr->location = new_expr_loc;
         }
 } // namespace Alpha
 

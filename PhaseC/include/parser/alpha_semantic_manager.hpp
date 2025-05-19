@@ -75,9 +75,6 @@ namespace Alpha
                 void forStmt__forHeader_stmt() noexcept;
                 void funcCtrlStmt__return(Location return_loc);
 
-                // Tool functions:
-                static void update_expr_location(Expr *expr, Location new_expr_loc);
-
         private:
                 ParseCtx &parse_ctx_;
                 SymbolTable &st_;
@@ -487,12 +484,6 @@ namespace Alpha
                         return;
                 std::string error = "`return` statement not in a function statement";
                 et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
-        }
-
-        inline void
-        SemanticManager::update_expr_location(Expr *expr, Location new_expr_loc)
-        {
-                expr->location = new_expr_loc;
         }
 } // namespace Alpha
 

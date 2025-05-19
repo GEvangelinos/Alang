@@ -280,17 +280,10 @@ call[invocation]:
 ;
 
 exprList[head]:
-  expr
-  { 
-    sm.update_expr_location($expr, @expr);
-    $head = sb.make_empty_expr_list();
-    $head = sb.extend_expr_list($expr, $exprList);
-  }
+  expr 
+  { $head = sb.make_expr_list_with($expr, @exrp); }
 | expr COMMA exprList[tail] 
-  {
-    sm.update_expr_location($expr, @expr);
-    $head = sb.extend_expr_list($expr, $tail);
-  }
+  { $head = sb.extend_expr_list_with($tail, $expr, @expr); }
 ;
 
 elist:
