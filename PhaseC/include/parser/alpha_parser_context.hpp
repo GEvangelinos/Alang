@@ -195,17 +195,18 @@ namespace Alpha
                 ~ExprHandler() noexcept;
 
                 [[nodiscard]] Expr *make_expr_lvalue(const Symbol *symbol);
-                [[nodiscard]] Expr *make_expr_const_string(const char *str_value);
-                [[nodiscard]] Expr *make_expr_const_real(decltype(Expr::const_real) real_value);
-                [[nodiscard]] Expr *make_expr_const_int(decltype(Expr::const_int) int_value);
-                [[nodiscard]] Expr *make_expr_const_bool(bool bool_value);
-                [[nodiscard]] Expr *make_expr_const_nil();
+                [[nodiscard]] Expr *make_expr_const_string(const char *str_value, Location str_location);
+                [[nodiscard]] Expr *make_expr_const_real(decltype(Expr::const_real) real_value, Location real_location);
+                [[nodiscard]] Expr *make_expr_const_int(decltype(Expr::const_int) int_value, Location int_location);
+                [[nodiscard]] Expr *make_expr_const_bool(bool bool_value, Location bool_location);
+                [[nodiscard]] Expr *make_expr_const_nil(Location nil_location);
                 [[nodiscard]] Expr *make_expr_assign(Expr *rvalue);
                 [[nodiscard]] Expr *make_expr_assign(const Symbol *symbol);
                 [[nodiscard]] Expr *make_expr_table_item(
                     SymbolTable &st,
                     Expr *&lvalue,
-                    const char *id);
+                    const char *id,
+                    Location id_location);
                 [[nodiscard]] Expr *make_expr_table_item(
                     SymbolTable &st,
                     Expr *&lvalue,
@@ -502,11 +503,11 @@ namespace Alpha
                 return expr_lvalue;
         }
 
-        inline Expr *ExprHandler::make_expr_const_string(const char *str_value)
+        inline Expr *ExprHandler::make_expr_const_string(const char *str_value, Location str_location)
         {
                 Expr *expr_str = new Expr{
                     .type = Expr::Type::CONST_STRING,
-                    .symbol = nullptr,
+                    .location = str_location,
                     .const_str = Utils::cstrdup(str_value),
                     .next = nullptr,
                 };
@@ -514,11 +515,11 @@ namespace Alpha
                 return expr_str;
         }
 
-        inline Expr *ExprHandler::make_expr_const_int(decltype(Expr::const_int) int_value)
+        inline Expr *ExprHandler::make_expr_const_int(decltype(Expr::const_int) int_value, Location int_location)
         {
                 Expr *expr_num = new Expr{
                     .type = Expr::Type::CONST_INT,
-                    .symbol = nullptr,
+                    .location = int_location,
                     .const_int = int_value,
                     .next = nullptr,
                 };
@@ -526,11 +527,11 @@ namespace Alpha
                 return expr_num;
         }
 
-        inline Expr *ExprHandler::make_expr_const_real(decltype(Expr::const_real) real_value)
+        inline Expr *ExprHandler::make_expr_const_real(decltype(Expr::const_real) real_value, Location real_location)
         {
                 Expr *expr_num = new Expr{
                     .type = Expr::Type::CONST_REAL,
-                    .symbol = nullptr,
+                    .location = real_location,
                     .const_real = real_value,
                     .next = nullptr,
                 };
@@ -538,11 +539,11 @@ namespace Alpha
                 return expr_num;
         }
 
-        inline Expr *ExprHandler::make_expr_const_bool(bool bool_value)
+        inline Expr *ExprHandler::make_expr_const_bool(bool bool_value, Location bool_location)
         {
                 Expr *expr_bool = new Expr{
                     .type = Expr::Type::CONST_BOOLEAN,
-                    .symbol = nullptr,
+                    .location = bool_location,
                     .const_bool = bool_value,
                     .next = nullptr,
                 };
@@ -550,11 +551,11 @@ namespace Alpha
                 return expr_bool;
         }
 
-        inline Expr *ExprHandler::make_expr_const_nil()
+        inline Expr *ExprHandler::make_expr_const_nil(Location nil_location)
         {
                 Expr *expr_nil = new Expr{
                     .type = Expr::Type::CONST_NIL,
-                    .symbol = nullptr,
+                    .location = nil_location,
                     .index = nullptr,
                     .next = nullptr,
                 };
@@ -565,7 +566,8 @@ namespace Alpha
         inline Expr *ExprHandler::make_expr_table_item(
             SymbolTable &st,
             Expr *&lvalue,
-            const char *id)
+            const char *id,
+            Location id_location)
         {
                 DEBUG_SMART_ASSERT(!!lvalue, !!id);
                 lvalue = emit_quad_if_table_item(st, lvalue);
@@ -573,7 +575,7 @@ namespace Alpha
                 Expr *expr_table_item = new Expr{
                     .type = Expr::Type::TABLE_ITEM,
                     .symbol = lvalue->symbol,
-                    .index = make_expr_const_string(id),
+                    .index = make_expr_const_string(id, id_location),
                     .next = nullptr,
                 };
                 expr_sink_.push_back(expr_table_item);

@@ -403,9 +403,10 @@ inline void tableItem__lvalue_dot_id(
     ParseCtx &parse_ctx,
     Expr *&table_item,
     Expr *&lvalue,
-    const char *id)
+    const char *id,
+    Location id_location)
 {
-	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, id);
+	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, id, id_location);
 }
 
 inline void tableItem__lvalue_lbracket_expr_rbracket(
@@ -421,9 +422,18 @@ inline void tableItem__lvalue_lbracket_expr_rbracket(
 inline void call__lvalue_ddot_id_lparen_elist_rparen(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    Expr *&lvalue)
+    Expr *&call,
+    Expr *&lvalue,
+    const char *id,
+    Location id_location,
+    ExprList *elist)
 {
 	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
+	elist->push_back(lvalue);
+	// TODO: Understand what this name should be... And also understand first emit_quad_if...
+	Expr *temp_var = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, id, id_location);
+	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, temp_var);
+	call =
 }
 
 inline void blockBegin__lbrace(ParseCtx &parse_ctx) noexcept

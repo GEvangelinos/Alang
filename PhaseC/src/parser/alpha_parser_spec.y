@@ -251,7 +251,7 @@ lvalue:
 
 tableItem:
   lvalue DOT ID  
-  { tableItem__lvalue_dot_id(symbol_table, parse_ctx ,$tableItem, $lvalue, $ID); } 
+  { tableItem__lvalue_dot_id(symbol_table, parse_ctx ,$tableItem, $lvalue, $ID, @ID); } 
 | lvalue LEFT_BRACKET expr RIGHT_BRACKET
   { tableItem__lvalue_lbracket_expr_rbracket(symbol_table,parse_ctx, $tableItem, $lvalue, $expr); }
 ;
@@ -334,12 +334,12 @@ funcDef:
 ;
 
 const:
-  NIL    { $const = ASF::make_const_nil(parse_ctx); }
-| TRUE   { $const = ASF::make_const_true(parse_ctx); }
-| FALSE  { $const = ASF::make_const_false(parse_ctx); }
-| INT    { $const = ASF::make_const_int(parse_ctx, $INT); }
-| REAL   { $const = ASF::make_const_real(parse_ctx, $REAL); }
-| STRING { $const = ASF::make_const_string(parse_ctx, $STRING); }
+  NIL    { $const = ASF::make_const_nil(parse_ctx, @NIL); }
+| TRUE   { $const = ASF::make_const_true(parse_ctx, @TRUE); }
+| FALSE  { $const = ASF::make_const_false(parse_ctx, @FALSE); }
+| INT    { $const = ASF::make_const_int(parse_ctx, $INT, @INT); }
+| REAL   { $const = ASF::make_const_real(parse_ctx, $REAL, @REAL); }
+| STRING { $const = ASF::make_const_string(parse_ctx, $STRING, @STRING); }
 ;
 
 

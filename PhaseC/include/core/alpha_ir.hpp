@@ -88,7 +88,13 @@ namespace Alpha
                 };
 
                 const Type type;
-                const Symbol *symbol;
+
+                union
+                {
+                        const Symbol *symbol;    // if expr holds symbol... then it has its own location.
+                        const Location location; // Only for CONST_(expressions).
+                };
+
                 union
                 {
                         const Expr *index;
