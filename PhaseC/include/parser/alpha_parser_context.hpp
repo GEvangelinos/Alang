@@ -185,6 +185,7 @@ namespace Alpha
                 [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
 
         private:
+                [[nodiscard]] static bool requires_label(IOPCode iopc) noexcept;
                 std::vector<Quad> quads_;
                 u32 next_quad_label_ = 1; // First quad_label is always 1, (0 for backpatching)
         };
@@ -195,23 +196,27 @@ namespace Alpha
                 ExprHandler(ParseCtx *parse_ctx);
                 ~ExprHandler() noexcept;
 
-                [[nodiscard]] Expr *make_expr_lvalue(const Symbol *symbol);
+                [[nodiscard]] Expr *make_expr_variable(const Symbol *symbol, Location var_location);
                 [[nodiscard]] Expr *make_expr_const_string(const char *str_value, Location str_location);
                 [[nodiscard]] Expr *make_expr_const_real(decltype(Expr::const_real) real_value, Location real_location);
                 [[nodiscard]] Expr *make_expr_const_int(decltype(Expr::const_int) int_value, Location int_location);
                 [[nodiscard]] Expr *make_expr_const_bool(bool bool_value, Location bool_location);
                 [[nodiscard]] Expr *make_expr_const_nil(Location nil_location);
-                [[nodiscard]] Expr *make_expr_assign(Expr *rvalue);
-                [[nodiscard]] Expr *make_expr_assign(const Symbol *symbol);
+                [[nodiscard]] Expr *make_expr_program_function(const Function *function_symbol);
+
+                [[nodiscard]] Expr *make_expr_assign(Expr *rvalue, Location assign_location);         // TODO: !! Why two make assign expr?
+                [[nodiscard]] Expr *make_expr_assign(const Symbol *symbol, Location assign_location); // TODO: WHy 2? make_assign_expr?
                 [[nodiscard]] Expr *make_expr_table_item(
                     SymbolTable &st,
                     Expr *&lvalue,
                     const char *id,
-                    Location id_location);
+                    Location id_location,
+                    Location table_item_location);
                 [[nodiscard]] Expr *make_expr_table_item(
                     SymbolTable &st,
                     Expr *&lvalue,
-                    Expr *expr);
+                    Expr *expr,
+                    Location table_tem_Location);
 
                 Expr *emit_quad_if_table_item(SymbolTable &st, Expr *lvalue);
 
@@ -485,18 +490,30 @@ namespace Alpha
                 });
         }
 
-        inline Expr *ExprHandler::make_expr_lvalue(const Symbol *const symbol)
+        inline bool QuadHandler::requires_label(IOPCode iopc) noexcept
+        {
+                // clang-format off
+                switch (iopc)
+                {
+                #define X(iopcode) case Alpha::IOPCode::iopcode: return true;
+                        IOPCODES_WITH_LABEL
+                #undef  X
+                #define X(iopcode) case Alpha::IOPCode::iopcode: return false;
+                        IOPCODES_WITHOUT_LABEL
+                #undef  X
+                default: [[unlikely]] SMART_ASSERT(false);
+                }
+                // clang-format on
+        }
+
+        inline Expr *ExprHandler::make_expr_variable(const Symbol *const symbol, Location var_location)
         {
                 DEBUG_SMART_ASSERT(!!symbol);
-                DEBUG_SMART_ASSERT(
-                    symbol->type != Symbol::Type::LIBRARY_FUNCTION,
-                    symbol->type != Symbol::Type::PROGRAM_FUNCTION,
-                    symbol->type == Symbol::Type::VARIABLE //
-                );
 
                 Expr *expr_lvalue = new Expr{
                     .type = Expr::Type::VARIABLE,
                     .symbol = symbol,
+                    .location = var_location,
                     .index = nullptr,
                     .next = nullptr,
                 };
@@ -506,8 +523,11 @@ namespace Alpha
 
         inline Expr *ExprHandler::make_expr_const_string(const char *str_value, Location str_location)
         {
+                DEBUG_SMART_ASSERT(str_location != k_no_location);
+
                 Expr *expr_str = new Expr{
                     .type = Expr::Type::CONST_STRING,
+                    .symbol = nullptr,
                     .location = str_location,
                     .const_str = Utils::cstrdup(str_value),
                     .next = nullptr,
@@ -518,8 +538,11 @@ namespace Alpha
 
         inline Expr *ExprHandler::make_expr_const_int(decltype(Expr::const_int) int_value, Location int_location)
         {
+                DEBUG_SMART_ASSERT(int_location != k_no_location);
+
                 Expr *expr_num = new Expr{
                     .type = Expr::Type::CONST_INT,
+                    .symbol = nullptr,
                     .location = int_location,
                     .const_int = int_value,
                     .next = nullptr,
@@ -530,8 +553,11 @@ namespace Alpha
 
         inline Expr *ExprHandler::make_expr_const_real(decltype(Expr::const_real) real_value, Location real_location)
         {
+                DEBUG_SMART_ASSERT(real_location != k_no_location);
+
                 Expr *expr_num = new Expr{
                     .type = Expr::Type::CONST_REAL,
+                    .symbol = nullptr,
                     .location = real_location,
                     .const_real = real_value,
                     .next = nullptr,
@@ -542,8 +568,11 @@ namespace Alpha
 
         inline Expr *ExprHandler::make_expr_const_bool(bool bool_value, Location bool_location)
         {
+                DEBUG_SMART_ASSERT(bool_location != k_no_location);
+
                 Expr *expr_bool = new Expr{
                     .type = Expr::Type::CONST_BOOLEAN,
+                    .symbol = nullptr,
                     .location = bool_location,
                     .const_bool = bool_value,
                     .next = nullptr,
@@ -554,8 +583,11 @@ namespace Alpha
 
         inline Expr *ExprHandler::make_expr_const_nil(Location nil_location)
         {
+                DEBUG_SMART_ASSERT(nil_location != k_no_location);
+
                 Expr *expr_nil = new Expr{
                     .type = Expr::Type::CONST_NIL,
+                    .symbol = nullptr,
                     .location = nil_location,
                     .index = nullptr,
                     .next = nullptr,
@@ -564,11 +596,27 @@ namespace Alpha
                 return expr_nil;
         }
 
+        inline Expr *ExprHandler::make_expr_program_function(const Function *function_symbol)
+        {
+                DEBUG_SMART_ASSERT(!!function_symbol);
+
+                Expr *expr_progfunc = new Expr{
+                    .type = Expr::Type::PROGRAM_FUNCTION,
+                    .symbol = function_symbol,
+                    .location = function_symbol->location,
+                    .index = nullptr,
+                    .next = nullptr,
+                };
+                expr_sink_.push_back(expr_progfunc);
+                return expr_progfunc;
+        }
+
         inline Expr *ExprHandler::make_expr_table_item(
             SymbolTable &st,
             Expr *&lvalue,
             const char *id,
-            Location id_location)
+            Location id_location,
+            Location table_item_location)
         {
                 DEBUG_SMART_ASSERT(!!lvalue, !!id);
                 lvalue = emit_quad_if_table_item(st, lvalue);
@@ -576,6 +624,7 @@ namespace Alpha
                 Expr *expr_table_item = new Expr{
                     .type = Expr::Type::TABLE_ITEM,
                     .symbol = lvalue->symbol,
+                    .location = table_item_location,
                     .index = make_expr_const_string(id, id_location),
                     .next = nullptr,
                 };
@@ -586,7 +635,8 @@ namespace Alpha
         inline Expr *ExprHandler::make_expr_table_item(
             SymbolTable &st,
             Expr *&lvalue,
-            Expr *expr)
+            Expr *expr,
+            Location table_item_location)
         {
                 DEBUG_SMART_ASSERT(!!lvalue, !!expr);
                 lvalue = emit_quad_if_table_item(st, lvalue);
@@ -594,6 +644,7 @@ namespace Alpha
                 Expr *expr_table_item = new Expr{
                     .type = Expr::Type::TABLE_ITEM,
                     .symbol = lvalue->symbol,
+                    .location = table_item_location,
                     .index = expr,
                     .next = nullptr,
                 };
@@ -602,12 +653,13 @@ namespace Alpha
                 return expr_table_item;
         }
 
-        inline Expr *ExprHandler::make_expr_assign(const Symbol *symbol)
+        inline Expr *ExprHandler::make_expr_assign(const Symbol *symbol, Location assign_location)
         {
                 DEBUG_SMART_ASSERT(!!symbol);
                 Expr *expr_assign = new Expr{
                     .type = Expr::Type::ASSIGN,
                     .symbol = symbol,
+                    .location = assign_location,
                     .index = nullptr,
                     .next = nullptr,
                 };
@@ -617,12 +669,13 @@ namespace Alpha
 
         // TODO: I dont like we make assign but we say rvalue... wtf.. UNDERSTAND IT BETTER
         // TODO 2: DONT MAKE THE SAME NAME make_expr functions (AKA DONT OVERLOAD THEM...)!!! (VERY BAD DESIGN (BOMB WAITING TO EXPLODE!!!!))
-        inline Expr *ExprHandler::make_expr_assign(Expr *rvalue)
+        inline Expr *ExprHandler::make_expr_assign(Expr *rvalue, Location assign_location)
         {
                 DEBUG_SMART_ASSERT(!!rvalue);
                 Expr *expr_assign = new Expr{
                     .type = Expr::Type::ASSIGN,
                     .symbol = rvalue->symbol,
+                    .location = assign_location,
                     .index = rvalue->index,
                     .next = rvalue->next,
                 };
@@ -636,7 +689,7 @@ namespace Alpha
                 if (expr->type != Expr::Type::TABLE_ITEM)
                         return expr;
 
-                Expr *expr_temp_var = make_expr_lvalue(parse_ctx_->new_temp(st));
+                Expr *expr_temp_var = make_expr_variable(parse_ctx_->new_temp(st), k_no_location);
 
                 parse_ctx_->quad_handler.emit_quad(
                     IOPCode::TABLEGETELEM,

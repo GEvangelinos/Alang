@@ -26,6 +26,10 @@ namespace Alpha
         static constexpr u32 k_libfunc_local_variable_count = 0;
         static constexpr u32 k_no_line = 0;
         static constexpr Location k_no_location = {0, 0};
+        static constexpr char k_no_location_marker[] = "NLOC";
+
+        static constexpr u32 k_no_label = 0;
+        static constexpr char k_no_label_marker[] = "NLAB";
 
 }
 

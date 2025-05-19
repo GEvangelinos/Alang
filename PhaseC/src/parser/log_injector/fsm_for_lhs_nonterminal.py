@@ -29,8 +29,9 @@ def _handle_found_backslash(ctx: ParserContext) -> None:
             if ctx.charStream.peek() is None:
                 raise_error(
                     EOFError, f"In line {ctx.line_counter}: reached EOF with stray '/'.")
+            advance_and_track_line(ctx)
             if ctx.charStream.peek() != '\n':
-                advance_and_track_line(ctx)
+                break
     elif ch == '/' and ch_next == '*':  # Handle block-comment
         advance_and_track_line(ctx)  # Skip '/'
         advance_and_track_line(ctx)  # Skip '*'

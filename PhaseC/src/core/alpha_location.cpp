@@ -21,16 +21,23 @@ namespace Alpha
 
         u32 LocationTracker::find_first_line(Location location) const
         {
+                if (location == k_no_location)
+                        return k_no_line;
                 return find_line(location.first_index);
         }
 
         u32 LocationTracker::find_last_line(Location location) const
         {
+                if (location == k_no_location)
+                        return k_no_line;
                 return find_line(location.last_index);
         }
 
         u32 LocationTracker::find_symbol_line(Location location) const
         {
+                if (location == k_no_location)
+                        return k_no_line;
+
                 auto [begin_line, end_line] = find_lines(location);
 
                 if (begin_line != end_line)
@@ -40,11 +47,22 @@ namespace Alpha
 
         u32 LocationTracker::find_index_of_line(u32 line) const
         {
+                if (line == k_no_line)
+                        throw std::logic_error(FMT::format(
+                            "{}:{}:{}(): LocationTracker asked to find index of k_no_line = {})",
+                            __FILENAME__, __LINE__, __func__, k_no_line //
+                            ));
                 return line_start_indices_[line - 1]; // -1 as line starts at pos 0.
         }
 
         u32 LocationTracker::find_first_column(Location location) const
         {
+                if (location == k_no_location)
+                        throw std::logic_error(FMT::format(
+                            "{}:{}:{}(): LocationTracker asked was asked to find column of k_no_location",
+                            __FILENAME__, __LINE__, __func__ //
+                            ));
+
                 u32 starting_line = find_first_line(location);
                 // DEBUG_SMART_ASSERT(starting_line < line_start_indices_.size());
                 u32 index_at_starting_line = line_start_indices_[starting_line - 1]; // -1 as line starts at pos 0.

@@ -19,6 +19,7 @@
 #include "utils/format_adapter.hpp"	   // for format, FMT
 #include "utils/smart_assert.h"		   // for DEBUG_SMART_ASSERT
 #include "parser/alpha_backpatcher.hpp"
+#include "parser/alpha_semantic_action_funcs.hpp"
 
 using namespace Alpha;
 
@@ -221,7 +222,7 @@ namespace // (Anonymous)
 	    Expr *&assignExpr,
 	    Expr *lvalue,
 	    Expr *expr,
-	    const Location &assign_location)
+	    Location assign_location)
 	{
 		parse_ctx.quad_handler.emit_quad(
 		    IOPCode::TABLESETELEM,
@@ -231,7 +232,7 @@ namespace // (Anonymous)
 		    assign_location);
 
 		Expr *rvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
-		assignExpr = parse_ctx.expr_handler.make_expr_assign(rvalue);
+		assignExpr = parse_ctx.expr_handler.make_expr_assign(rvalue, assign_location);
 	}
 
 	ALWAYS_INLINE void handle_direct_assignment(
@@ -240,8 +241,9 @@ namespace // (Anonymous)
 	    Expr *&assignExpr,
 	    Expr *lvalue,
 	    Expr *expr,
-	    const Location &assign_location)
+	    Location assign_location)
 	{
+
 		parse_ctx.quad_handler.emit_quad(
 		    IOPCode::ASSIGN,
 		    expr,
@@ -249,14 +251,14 @@ namespace // (Anonymous)
 		    lvalue,
 		    assign_location); // TODO (NOT IMPORTANT): location (can we construct it from expr (to catch whole assignment expression?))
 
-		assignExpr = parse_ctx.expr_handler.make_expr_assign(parse_ctx.new_temp(st));
+		assignExpr = parse_ctx.expr_handler.make_expr_assign(parse_ctx.new_temp(st), assign_location);
 
 		parse_ctx.quad_handler.emit_quad(
 		    IOPCode::ASSIGN,
 		    lvalue,
 		    nullptr,
 		    assignExpr,
-		    assign_location);
+		    k_no_location);
 	}
 
 } // namespace (Anonymous)
@@ -346,7 +348,8 @@ ALWAYS_INLINE void lvalue__id(
 		    parse_ctx.function_ctx_handler.current_function_location(),
 		    symbol,
 		    et);
-	lvalue = parse_ctx.expr_handler.make_expr_lvalue(symbol);
+
+	lvalue = parse_ctx.expr_handler.make_expr_variable(symbol, symbol->location); // TODO : PROBABLY not symbol's location
 }
 
 ALWAYS_INLINE void lvalue__local_id(
@@ -377,7 +380,7 @@ ALWAYS_INLINE void lvalue__local_id(
 			    id_location);
 	}
 
-	lvalue = parse_ctx.expr_handler.make_expr_lvalue(symbol);
+	lvalue = parse_ctx.expr_handler.make_expr_variable(symbol, symbol->location); // TODO : PROBABLY not symbol's location
 }
 
 ALWAYS_INLINE void lvalue__global_id(
@@ -388,10 +391,14 @@ ALWAYS_INLINE void lvalue__global_id(
     Expr *&lvalue,
     ErrorTracker &et)
 {
+	// TODO: I dont like producing shit if global symbol doesnt exist.
+	// TODO: we must find an anchor/hook point, where we can reset, and continue
+	// TODO : producing quads even if they will never be used.
+	// TODO: Or disable quad emission all together even if a single error is found. (?)
 	const Symbol *symbol = st.lookup_global(id_name);
 	if (symbol)
 	{
-		lvalue = parse_ctx.expr_handler.make_expr_lvalue(symbol);
+		lvalue = parse_ctx.expr_handler.make_expr_variable(symbol, symbol->location); // TODO : PROBABLY not symbol's location
 		return;
 	}
 	std::string error = FMT::format("variable `::{}` not found in global scope", id_name);
@@ -401,12 +408,13 @@ ALWAYS_INLINE void lvalue__global_id(
 inline void tableItem__lvalue_dot_id(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    Expr *&table_item,
+    Expr *&tableItem,
     Expr *&lvalue,
     const char *id,
-    Location id_location)
+    Location id_location,
+    Location table_item_location)
 {
-	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, id, id_location);
+	tableItem = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, id, id_location, table_item_location);
 }
 
 inline void tableItem__lvalue_lbracket_expr_rbracket(
@@ -414,9 +422,10 @@ inline void tableItem__lvalue_lbracket_expr_rbracket(
     ParseCtx &parse_ctx,
     Expr *&table_item,
     Expr *&lvalue,
-    Expr *expr)
+    Expr *expr,
+    Location table_item_location)
 {
-	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, expr);
+	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, expr, table_item_location);
 }
 
 inline void call__lvalue_lparen_elist_rparen(
@@ -424,10 +433,13 @@ inline void call__lvalue_lparen_elist_rparen(
     ParseCtx &parse_ctx,
     Expr *&call,
     Expr *&lvalue,
-    ExprList *elist)
+    ExprList *elist,
+    Location call_location)
 {
+	// TODO rethink position of make_call() .. we would like procs not using fns and vice versa.
+	namespace ASF = Alpha::Sem::Fns;
 	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
-	call = ASF::make_call(st, parse_ctx, lvalue, elist);
+	call = ASF::make_call(st, parse_ctx, lvalue, elist, call_location);
 }
 
 inline void call__lvalue_ddot_id_lparen_elist_rparen(
@@ -437,18 +449,20 @@ inline void call__lvalue_ddot_id_lparen_elist_rparen(
     Expr *&lvalue,
     const char *id,
     Location id_location,
-    ExprList *elist)
+    ExprList *elist,
+    Location call_location)
 {
 	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
 
 	// BEGIN_BOUND: CODE RUNNING ONLY FOR METHODS // TODO: remove comment bounds.. or parameterize (DRY)
 	elist->push_back(lvalue);
 	// TODO: Understand what this name should be... And also understand first emit_quad_if...
-	Expr *temp_var = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, id, id_location);
+	Expr *temp_var = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, id, id_location, k_no_location);
 	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, temp_var);
 	// END_BOUND: CODE RUNNING ONLY FOR METHODS
 
-	call = ASF::make_call(st, parse_ctx, lvalue, elist);
+	namespace ASF = Alpha::Sem::Fns; // TODO REMOVE (UGLY RETHINK POSITION OF make_call)
+	call = ASF::make_call(st, parse_ctx, lvalue, elist, call_location);
 }
 
 inline void blockBegin__lbrace(ParseCtx &parse_ctx) noexcept
@@ -493,14 +507,15 @@ inline void funcPrefix__function_id(
 inline void funcSignature__funcPrefix_funcArgList(
     SymbolTable &st,
     ParseCtx &parse_ctx,
-    ErrorTracker &et)
+    ErrorTracker &et,
+    const Function *&funcSignature)
 {
-
+	const Location func_location = parse_ctx.cache.func_prefix.location;
 	bool conflicting_name = reported_function_name_conflict(
 	    st,
 	    parse_ctx.scope_handler.scope(),
 	    parse_ctx.cache.func_prefix.id,
-	    parse_ctx.cache.func_prefix.location,
+	    func_location,
 	    et);
 
 	const Function *function_symbol = nullptr;
@@ -511,19 +526,21 @@ inline void funcSignature__funcPrefix_funcArgList(
 		    parse_ctx.scope_handler.scope(),
 		    parse_ctx.function_ctx_handler.next_function_address(),
 		    parse_ctx.function_ctx_handler.function_parameters(),
-		    parse_ctx.cache.func_prefix.location);
+		    func_location);
 
 		parse_ctx.quad_handler.emit_quad(
 		    IOPCode::FUNCSTART,
 		    nullptr,
 		    nullptr,
-		    parse_ctx.expr_handler.make_expr_lvalue(function_symbol),
-		    parse_ctx.cache.func_prefix.location);
+		    parse_ctx.expr_handler.make_expr_variable(function_symbol, func_location),
+		    func_location);
 	}
 	parse_ctx.function_ctx_handler.enter_function(function_symbol);
 	insert_function_parameters(st, parse_ctx, et);
 	parse_ctx.function_ctx_handler.clear_function_parameters();
 	parse_ctx.space_handler.enter_space(); // IMPORTANT: This line is after parameter insertion!
+
+	funcSignature = function_symbol;
 }
 
 inline void funcDef__funcSignature_block(
@@ -541,7 +558,7 @@ inline void funcDef__funcSignature_block(
 		    IOPCode::FUNCEND,
 		    nullptr,
 		    nullptr,
-		    parse_ctx.expr_handler.make_expr_lvalue(fbi.function_symbol),
+		    parse_ctx.expr_handler.make_expr_variable(fbi.function_symbol, k_no_location), // TODO: what location here?
 		    block_location.end);
 	}
 

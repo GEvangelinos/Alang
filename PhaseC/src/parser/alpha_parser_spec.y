@@ -49,6 +49,7 @@
         bool const_bool;
         long const_int;
         double const_real;
+        const  Alpha::Function *const_function_symbol_ptr;
         Alpha::Expr *expr_ptr;
         std::vector<Alpha::Expr *> *expr_list_ptr; // Keep vector instead of list for better cache locality.
         Alpha::Location location;
@@ -75,8 +76,13 @@
 %type  <expr_ptr> objectDef
 %type  <expr_ptr> const
 %type  <expr_ptr> expr
+
 %type  <expr_list_ptr> exprList
 %type  <expr_list_ptr> elist
+
+%type  <const_function_symbol_ptr> funcDef
+%type  <const_function_symbol_ptr> funcSignature
+
 
 %type  <location>       blockBegin 
 %type  <location>       blockEnd
@@ -251,9 +257,9 @@ lvalue:
 
 tableItem:
   lvalue DOT ID  
-  { tableItem__lvalue_dot_id(symbol_table, parse_ctx ,$tableItem, $lvalue, $ID, @ID); } 
+  { tableItem__lvalue_dot_id(symbol_table, parse_ctx ,$tableItem, $lvalue, $ID, @ID, @tableItem); } 
 | lvalue LEFT_BRACKET expr RIGHT_BRACKET
-  { tableItem__lvalue_lbracket_expr_rbracket(symbol_table,parse_ctx, $tableItem, $lvalue, $expr); }
+  { tableItem__lvalue_lbracket_expr_rbracket(symbol_table,parse_ctx, $tableItem, $lvalue, $expr, @tableItem); }
 ;
 
 member:
@@ -261,16 +267,21 @@ member:
 | call DOT ID
 | call LEFT_BRACKET expr RIGHT_BRACKET
 ;
-// TODO: ADD normal_call and Method_call and pass needed variable trhoguh a Call struct!!
 
-call:
-  call LEFT_PAREN elist RIGHT_PAREN
+//*TODO: ADD normal_call and Method_call and pass needed variable trhoguh a Call struct!! */
+
+call[invocation]:
+  call[callable] LEFT_PAREN elist RIGHT_PAREN
+  { $invocation = ASF::make_call(symbol_table, parse_ctx, $callable, $elist, @invocation); }
 | lvalue LEFT_PAREN elist RIGHT_PAREN // NORMAL_CALL
-  { call__lvalue_lparen_elist_rparen(symbol_table, parse_ctx, $call, $lvalue, $elist); }
+  { call__lvalue_lparen_elist_rparen(symbol_table, parse_ctx, $invocation, $lvalue, $elist, @invocation); }
 | lvalue DOUBLE_DOT ID LEFT_PAREN elist RIGHT_PAREN // METHOD_CALL
-  { call__lvalue_ddot_id_lparen_elist_rparen(symbol_table, parse_ctx, $call, $lvalue, $ID, @ID, $elist); }
-
+  { call__lvalue_ddot_id_lparen_elist_rparen(symbol_table, parse_ctx, $invocation, $lvalue, $ID, @ID, $elist, @invocation); }
 | LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN
+  {
+    Expr * callee_func = parse_ctx.expr_handler.make_expr_program_function($funcDef);
+    $invocation = ASF::make_call(symbol_table, parse_ctx,callee_func, $elist, @invocation);
+  }
 ;
 
 exprList[head]:
@@ -327,11 +338,16 @@ funcArgList:
 
 funcSignature:
   funcPrefix  funcArgList
-  { funcSignature__funcPrefix_funcArgList(symbol_table, parse_ctx, error_tracker); }
+  { funcSignature__funcPrefix_funcArgList(symbol_table, parse_ctx, error_tracker, $funcSignature); }
 ;
 
 funcDef:
-  funcSignature block { funcDef__funcSignature_block(parse_ctx, $block); }
+  funcSignature block 
+  { 
+    // TODO to much inderection remove funcSignature rule and MERGE... 
+    funcDef__funcSignature_block(parse_ctx, $block); 
+    $funcDef = $funcSignature;
+  }
 ;
 
 const:

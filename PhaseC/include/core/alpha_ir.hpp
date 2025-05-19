@@ -5,55 +5,62 @@
 #include "utils/misc.hpp"
 #include <string>
 
-#define IOPCODES        \
-        X(ASSIGN)       \
-        X(ADD)          \
-        X(SUB)          \
-        X(MUL)          \
-        X(DIV)          \
-        X(MOD)          \
-        X(UMINUS)       \
-        X(AND)          \
-        X(OR)           \
-        X(NOT)          \
-        X(IF_EQ)        \
-        X(IF_NOTEQ)     \
-        X(IF_LESS)      \
-        X(IF_GREATER)   \
-        X(IF_LESSEQ)    \
-        X(IF_GREATEREQ) \
-        X(JUMP)         \
-        X(CALL)         \
-        X(PARAM)        \
-        X(RETURN)       \
-        X(GETRETVAL)    \
-        X(FUNCSTART)    \
-        X(FUNCEND)      \
-        X(TABLECREATE)  \
-        X(TABLEGETELEM) \
+#define IOPCODES_WITH_LABEL \
+        X(IF_EQ)            \
+        X(IF_NOTEQ)         \
+        X(IF_LESS)          \
+        X(IF_GREATER)       \
+        X(IF_LESSEQ)        \
+        X(IF_GREATEREQ)     \
+        X(JUMP)
+
+#define IOPCODES_WITHOUT_LABEL \
+        X(ASSIGN)              \
+        X(ADD)                 \
+        X(SUB)                 \
+        X(MUL)                 \
+        X(DIV)                 \
+        X(MOD)                 \
+        X(UMINUS)              \
+        X(AND)                 \
+        X(OR)                  \
+        X(NOT)                 \
+        X(CALL)                \
+        X(PARAM)               \
+        X(RETURN)              \
+        X(GETRETVAL)           \
+        X(FUNCSTART)           \
+        X(FUNCEND)             \
+        X(TABLECREATE)         \
+        X(TABLEGETELEM)        \
         X(TABLESETELEM)
+
+#define ALL_IOPCODES        \
+        IOPCODES_WITH_LABEL \
+        IOPCODES_WITHOUT_LABEL
 
 namespace Alpha
 {
+        // clang-format off
         enum class IOPCode
         {
-#define X(code) code,
-                IOPCODES
-#undef X
+        #define X(code) code,
+                ALL_IOPCODES
+        #undef  X
         };
+        // clang-format on
 
         [[nodiscard]] inline std::string to_string(const IOPCode iopcode)
         {
+                // clang-format off
                 switch (iopcode)
                 {
-#define X(iopcode)             \
-        case IOPCode::iopcode: \
-                return str_to_lower(#iopcode);
-                        IOPCODES
-#undef X
-                default:
-                        [[unlikely]] SMART_ASSERT(false);
+                #define X(iopcode) case IOPCode::iopcode: return str_to_lower(#iopcode);
+                        ALL_IOPCODES
+                #undef  X
+                default: [[unlikely]] SMART_ASSERT(false);
                 }
+                // clang-format on
         }
 #undef IOPCODES
 
@@ -89,11 +96,8 @@ namespace Alpha
 
                 const Type type;
 
-                union
-                {
-                        const Symbol *symbol;    // if expr holds symbol... then it has its own location.
-                        const Location location; // Only for CONST_(expressions).
-                };
+                const Symbol *symbol;
+                const Location location;
 
                 union
                 {

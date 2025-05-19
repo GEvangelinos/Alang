@@ -87,9 +87,9 @@ namespace // (Anonymous)
                         return "";
 
                 using AET = Alpha::Expr::Type;
+                // clang-format off
                 switch (e->type)
                 {
-                        // clang-format off
                 case AET::ASSIGN:        return e->symbol->name;
                 case AET::CONST_BOOLEAN: return e->const_bool ? "true" : "false";
                 case AET::CONST_NIL:     return "nil";
@@ -98,9 +98,11 @@ namespace // (Anonymous)
                 case AET::CONST_STRING:  return e->const_str;
                 case AET::VARIABLE:      return e->symbol->name;
                 default:
-                        throw std::logic_error("Should never reach here");
-                        // clang-format on
+                        throw std::logic_error(FMT::format(
+                            "{}:{}:{}(): Should never reach here",
+                            __FILENAME__, __LINE__, __func__));
                 }
+                // clang-format on
         }
 
         template <unsigned column, unsigned column_width, typename T>
@@ -171,9 +173,14 @@ namespace // (Anonymous)
                 for (Alpha::u32 i = 0; i < quads_size; i++)
                 {
                         const Alpha::Quad &q = quads[i];
-                        DEBUG_SMART_ASSERT(!!q.result->symbol);
-                        // If this hits. it mean we dont always return symbol_name..
-                        // and we must also check for const_TYPES (string,num,bool,nil).
+
+                        auto quad_line_num = lt.find_first_line(q.location);
+                        std::string quad_line_str = (quad_line_num == Alpha::k_no_line)
+                                                        ? Alpha::k_no_location_marker
+                                                        : std::to_string(quad_line_num);
+                        std::string quad_label_str = (q.label == Alpha::k_no_label)
+                                                         ? Alpha::k_no_label_marker
+                                                         : std::to_string(q.label);
 
                         out << FMT::format(
                             "{} {} {} {} {} {} {}\n",
@@ -182,8 +189,8 @@ namespace // (Anonymous)
                             format_column<colorize, 2, widths[2]>(expr_printer(q.result)),
                             format_column<colorize, 3, widths[3]>(expr_printer(q.arg1)),
                             format_column<colorize, 4, widths[4]>(expr_printer(q.arg2)),
-                            format_column<colorize, 5, widths[5]>(q.label),
-                            format_column<colorize, 6, widths[6]>(lt.find_first_line(q.location)) //
+                            format_column<colorize, 5, widths[5]>(quad_label_str),
+                            format_column<colorize, 6, widths[6]>(quad_line_str) //
                         );
                 }
                 if constexpr (colorize)

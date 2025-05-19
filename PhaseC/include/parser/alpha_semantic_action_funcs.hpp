@@ -20,25 +20,6 @@
 #include "utils/smart_assert.h"            // for DEBUG_SMART_ASSERT
 #include "parser/_parser_type_aliases.hpp"
 #include "_parser_common.hpp"
-namespace // (Anonymous)
-{
-        Alpha::Location expr_location_founder(Alpha::Expr *e)
-        {
-                using AET = Alpha::Expr::Type;
-                switch (e->type)
-                {
-                case AET::CONST_BOOLEAN:
-                case AET::CONST_INT:
-                case AET::CONST_NIL:
-                case AET::CONST_REAL:
-                case AET::CONST_STRING:
-                        return e->location;
-                default:
-                        DEBUG_SMART_ASSERT(!!e->symbol);
-                        return e->symbol->location;
-                }
-        }
-} // namespace (Anonymous)
 
 namespace Alpha::Sem::Fns
 {
@@ -96,9 +77,13 @@ namespace Alpha::Sem::Fns
                 return parse_ctx.expr_handler.make_expr_const_string(str_value, str_location);
         }
 
-        [[nodiscard]] inline Expr *make_call(SymbolTable &st, ParseCtx &parse_ctx, Expr *lvalue, ExprList *elist)
+        [[nodiscard]] inline Expr *make_call(
+            SymbolTable &st,
+            ParseCtx &parse_ctx,
+            Expr *lvalue,
+            ExprList *elist,
+            Location call_location)
         {
-
                 Expr *func_expr = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
                 for (Expr *e : *elist)
                         parse_ctx.quad_handler.emit_quad(
@@ -106,7 +91,7 @@ namespace Alpha::Sem::Fns
                             e,
                             nullptr,
                             nullptr,
-                            expr_location_founder(e) //
+                            e->location //
                         );
 
                 DEBUG_SMART_ASSERT(!!func_expr->symbol);
@@ -116,18 +101,16 @@ namespace Alpha::Sem::Fns
                     func_expr,
                     nullptr,
                     nullptr,
-                    func_expr->symbol->location //
-                );
+                    call_location);
 
-                Expr *getretval_expr = parse_ctx.expr_handler.make_expr_lvalue(parse_ctx.new_temp(st));
+                Expr *getretval_expr = parse_ctx.expr_handler.make_expr_variable(parse_ctx.new_temp(st), k_no_location);
 
                 parse_ctx.quad_handler.emit_quad(
                     IOPCode::GETRETVAL,
                     nullptr,
                     nullptr,
                     getretval_expr,
-                    expr_location_founder(func_expr) //
-                );
+                    k_no_location); // We could pass call_location, but we follow strict policy: temps have no location
 
                 return getretval_expr;
         }

@@ -1,0 +1,158 @@
+13) Convert scanner stuff to snake_case
+
+19) Throw warning or error if a function is called with the wrong number of arguments
+
+20) Functionize the code block in scanner (.l file).
+
+22)    Make sure that only private fields in classes end with _ 
+
+23) Use clang-tidy (Static analysis, finds bad patterns and so on....)
+
+25) Check you use _ in all private attributes of classes/structs/types.
+
+31) Read you whole code and add sanity assert in critical parts or edge cases. 
+ Syntax Error:
+
+A violation of the grammar rules of the language.
+
+    ❌ "if (x 5)" → missing operator
+
+    ❌ "int return;" → invalid statement structure
+
+Detected by: Parser
+Semantic Error:
+
+Code that is grammatically correct but meaningfully invalid in the language.
+
+    ❌ "x = y + true;" → type mismatch
+
+    ❌ "return x;" in a void function
+
+    ❌ Using undeclared variables
+
+Detected by: Semantic analysis phase (after parsing)
+TL;DR:
+Error Type	Example	Detected By	When?
+Syntax	Missing ;, bad structure	Parser	During parsing
+Semantic	Type errors, undeclared names	Analyzer	After parsing
+
+Both are compile-time errors, but they come from different stages.
+
+
+32) Extend arguinator (optionally)
+
+        enum class Constraint
+        {
+                READABLE_FILE,
+                WRITEABLE_FILE,
+                EXISTING_FILE,
+                EXISTING_DIR,
+                NUMBER,
+                STRING,
+        };
+                Flag &set_constraint() noexcept;
+                std::vector<Constraint> constraints_;
+
+because map already stores
+SEPERATION OF CONCERNS
+
+
+
+34)  Learn lambdas.. very good for help functions and shit
+
+
+35)
+
+Handle bad input:
+
+no-regular-file 
+Weird_binary_files,
+directories,
+permission issues,
+no-file at all
+
+36) Assert GCC doesnt produces errors/warning (cause you mainly use clang)
+
+37) Assert your python scripts work with versions lowers 3.9 (currently you run only in thanatos)
+
+
+
+40)
+ recursion: 
+ function must be declared in symbol table before you enter the function block, so recursion can happnen
+
+
+41) Check how many times its constructor is called. You should strive for minium calls.
+
+42) Keep a magic number for the binary in phase 4
+
+43) Ask Spiropoulos about cyclic reference on Phase 5
+
+44) (FIREEE )
+
+// Q: any way to register a variable's type based on a max value?
+//    For example if I say max 240 u8 is enough but if i say 13000 we need u16
+//    or if i say 40000000 we need u32 — but change automatically based on max value
+
+// A: Yes, you can do this using template metaprogramming and std::conditional_t.
+//    The following code defines `SelectUInt<Max>` which resolves at compile time
+//    to the smallest unsigned integer type that can hold `Max`.
+
+#include <cstdint>
+#include <type_traits>
+
+template <std::uint64_t Max>
+using SelectUInt = std::conditional_t<
+    (Max <= UINT8_MAX),  std::uint8_t,
+    std::conditional_t<
+        (Max <= UINT16_MAX), std::uint16_t,
+        std::conditional_t<
+            (Max <= UINT32_MAX), std::uint32_t,
+            std::uint64_t
+        >
+    >
+>;
+
+// Usage examples:
+SelectUInt<240> a;        // resolves to uint8_t
+SelectUInt<13000> b;      // resolves to uint16_t
+SelectUInt<40000000> c;   // resolves to uint32_t
+SelectUInt<1ULL << 40> d; // resolves to uint64_t
+
+
+45) Add [[nodiscard]] everywhere the return results must not be ignored (its a bug if ignored)
+
+
+46) Use arena allocator for heap object (where you use new and malloc())
+
+class ExprArena {
+    char* buffer;
+    size_t offset;
+
+public:
+    template<typename T, typename... Args>
+    T* create(Args&&... args) {
+        void* mem = buffer + offset;
+        offset += sizeof(T);
+        return new (mem) T(std::forward<Args>(args)...);
+    }
+};
+
+47)Apply more fine-grain Expr* allocatio/deallocation management. Currently you gather all
+    expressions in the expression handler, and you free in the end..
+
+48) TODOOO!!: COUPLE SYMBOL_TABLE to PARSE_CTX. (basically put st in parse_ctx. (NOT THE OTHER WAY AROUND!!))   
+MODIFY CODE, so .y doesnt now about st only about ParseCtx
+
+49) Make all news std::make_unique<>()
+
+50) IGNORE Polymorphic expression IDEA.. too much headache and little to gain..
+
+51) TODO!! : Functions and procedures (ASF, ASP) can become classes.. 
+and all these functions can become methods... but now they have both symbol table and parse_ctx 
+as private member... (maybe parsectx only and symbol table in parsectx..) (DO IT!) (It will remove code bloat)
+(both in .y file and also in parameter lists of functions) + its way cheaper in runtime,
+as you only do a single dereference for parsectx and symtable instead of passing parameters..
+which means you get a bigger stack frame.!
+
+BUT CAN we put more stuff in union?
