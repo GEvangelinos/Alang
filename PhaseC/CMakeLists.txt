@@ -58,7 +58,8 @@ set(DEBUG_MODE ON) #TODO REMOVE!
 
 if(DEBUG_MODE)
         add_compile_options(
-                -g
+                -g 
+                -Wimplicit-fallthrough
         )
         add_compile_definitions(DEBUG_MODE)
         message(WARNING "CMAKE: Running with DEBUG_MODE ON")

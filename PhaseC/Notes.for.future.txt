@@ -63,7 +63,7 @@ QUESTION_2: (Enter warnings.. like "string"-- or (unary) -"fuck me" there can be
     Example in Bison:
 
     expr:
-        INT_CONST {
+        INT {
             $$ = ExprInfo::make_const(ConstValue::from_int($1));
         }
     | ID {

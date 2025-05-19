@@ -200,7 +200,7 @@ namespace Alpha
 
                 for (Symbol *symbol_ptr : actives_in_scope)
                 {
-                        DEBUG_SMART_ASSERT(symbol_ptr != nullptr);
+                        DEBUG_SMART_ASSERT(!!symbol_ptr);
                         symbol_ptr->deactivate();
                 }
 

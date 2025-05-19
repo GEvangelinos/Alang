@@ -165,7 +165,7 @@ namespace Arguinator
               description_(description)
         {
                 /* We want to assert, because internally we convert to std::size_t, plus argc <= 0 makes no sense. */
-                SMART_ASSERT(argc > 0, argv != nullptr);
+                SMART_ASSERT(argc > 0, !!argv);
 
                 /* Parser must always contain the --help flag. */
                 this->set_flag(ParserConsts::default_help_flag)

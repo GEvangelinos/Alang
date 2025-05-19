@@ -69,6 +69,7 @@ add_library(alpha_parser STATIC
         alpha_backpatcher.cpp
 )
 
+
 add_dependencies(alpha_parser generate_parser_scanner)
 
 target_include_directories(alpha_parser PRIVATE

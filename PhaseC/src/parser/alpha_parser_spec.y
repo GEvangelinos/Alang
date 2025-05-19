@@ -7,9 +7,11 @@
         #include <string>                             // for basic_string, string
         #include "parser/alpha_trace_logger.hpp"            // for display_trace
         #include "parser/alpha_parser_context.hpp"    // for ParseCtx
-        #include "parser/alpha_semantic_actions.hpp"  // for block__lbrace, funcArgs...
+        #include "parser/alpha_semantic_action_funcs.hpp"  // for block__lbrace, funcArgs...
+        #include "parser/alpha_semantic_action_procs.hpp"  // for block__lbrace, funcArgs...
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
         #include "alpha_parser_prologue_code.hpp"
+        namespace ASF = Alpha::Sem::Fns;
 }
 
 %code requires
@@ -48,6 +50,7 @@
         long const_int;
         double const_real;
         Alpha::Expr *expr_ptr;
+        std::vector<Alpha::Expr *> *expr_list_ptr; // Keep vector instead of list for better cache locality.
         Alpha::Location location;
         Alpha::BlockLocation block_location;
 }
@@ -57,10 +60,10 @@
  *   %token <field> NAME "display name"
  * Bison will use the quoted string in error messages instead of NAME.
  */
-%token <cstring>        STRING_LITERAL "`string-literal`"
+%token <cstring>        STRING "`string-literal`"
 %token <cstring>        ID             "`identifier`"
-%token <const_int>      INT_CONST      "`integer-constant`"
-%token <const_real>     REAL_CONST     "`real-constant`"
+%token <const_int>      INT      "`integer-constant`"
+%token <const_real>     REAL     "`real-constant`"
 
 %type  <expr_ptr> lvalue
 %type  <expr_ptr> tableItem
@@ -72,11 +75,11 @@
 %type  <expr_ptr> objectDef
 %type  <expr_ptr> const
 %type  <expr_ptr> expr
-%type  <expr_ptr> exprList
-%type  <expr_ptr> elist
+%type  <expr_list_ptr> exprList
+%type  <expr_list_ptr> elist
 
-%type  <location>       blockOpen 
-%type  <location>       blockClose
+%type  <location>       blockBegin 
+%type  <location>       blockEnd
 %type  <block_location> block
 
 /* By default Bison uses the bare token names (e.g. IF, GLOBAL)
@@ -130,7 +133,7 @@
 %token LEFT_BRACE    "{"
 %token RIGHT_BRACE   "}"
 %token LEFT_BRACKET  "["
-%token RIGHT_BRACKER "]"
+%token RIGHT_BRACKET "]"
 %token LEFT_PAREN    "(" 
 %token RIGHT_PAREN   ")"
 %token SEMICOLON     ";"   
@@ -156,7 +159,7 @@
 
 %left DOT DOUBLE_DOT
 
-%left LEFT_BRACKET RIGHT_BRACKER
+%left LEFT_BRACKET RIGHT_BRACKET
 %left LEFT_PAREN RIGHT_PAREN
 
 %precedence THEN
@@ -187,7 +190,7 @@ stmt:
 | SEMICOLON
 | error SEMICOLON     { yyerrok; } // Syntax error recovery hook.
 | error RIGHT_PAREN   { yyerrok; } // Syntax error recovery hook.
-| error RIGHT_BRACKER { yyerrok; } // Syntax error recovery hook.
+| error RIGHT_BRACKET { yyerrok; } // Syntax error recovery hook.
 | error RIGHT_BRACE   { yyerrok; } // Syntax error recovery hook.
 ;
 
@@ -249,45 +252,39 @@ lvalue:
 tableItem:
   lvalue DOT ID  
   { tableItem__lvalue_dot_id(symbol_table, parse_ctx ,$tableItem, $lvalue, $ID); } 
-| lvalue LEFT_BRACKET expr RIGHT_BRACKER
+| lvalue LEFT_BRACKET expr RIGHT_BRACKET
   { tableItem__lvalue_lbracket_expr_rbracket(symbol_table,parse_ctx, $tableItem, $lvalue, $expr); }
 ;
 
 member:
   tableItem { $member = $tableItem; }
 | call DOT ID
-| call LEFT_BRACKET expr RIGHT_BRACKER
+| call LEFT_BRACKET expr RIGHT_BRACKET
 ;
 
 call:
   call LEFT_PAREN elist RIGHT_PAREN
 | lvalue LEFT_PAREN elist RIGHT_PAREN // NORMAL_CALL
+// { call__lvalue_lparen_elist_rparen(); }
 | lvalue DOUBLE_DOT ID LEFT_PAREN elist RIGHT_PAREN // METHOD_CALL
+// { call__lvalue_ddot_id_lparen_elist_rparen(); }
+
 | LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN
 ;
 
 exprList:
-  expr { 
-    if ($exprList == nullptr)
-      $exprList = $expr;
-    else
-      const_cast<Expr *>($exprList)->next = $expr;
-  }
-| expr COMMA exprList [exprList_RHS] { 
-    const_cast<Expr *>($expr)->next = $exprList_RHS;
-    $$ = $expr; 
-  }
+  expr                      { $exprList = ASF::make_expr_list($expr); }
+| expr COMMA exprList[Tail] { exprList__expr_comma_exprListTail($$, $expr, $Tail); }
 ;
 
-
 elist:
-  /* (empty) */ { $elist = nullptr; }
+  /* (empty) */ { $elist = ASF::make_expr_list(); }
 | exprList      { $elist = $exprList; }
 ;
 
 objectDef:
-  LEFT_BRACKET elist RIGHT_BRACKER
-| LEFT_BRACKET indexed RIGHT_BRACKER
+  LEFT_BRACKET elist RIGHT_BRACKET
+| LEFT_BRACKET indexed RIGHT_BRACKET
 ;
 
 indexed:
@@ -298,27 +295,17 @@ indexedElem:
   LEFT_BRACE expr COLON expr RIGHT_BRACE
 ;
 
-blockOpen:
-  LEFT_BRACE
-  { 
-    blockOpen__lbrace(parse_ctx);
-    $blockOpen = @LEFT_BRACE;
-  }
+blockBegin:
+  LEFT_BRACE  { blockBegin__lbrace(parse_ctx); $blockBegin = @LEFT_BRACE; }
 ;
 
-blockClose:
-  RIGHT_BRACE
-  { 
-    blockClose__rbrace(symbol_table, parse_ctx);
-    $blockClose = @RIGHT_BRACE;
-  }
+blockEnd:
+  RIGHT_BRACE { blockEnd__rbrace(symbol_table, parse_ctx); $blockEnd = @RIGHT_BRACE; }
 ;
 
 block:
-  blockOpen multiStmt  blockClose 
-  { $block = BlockLocation{.begin = $blockOpen, .end = $blockClose}; }
-| blockOpen blockClose
-  { $block = BlockLocation{.begin = $blockOpen, .end = $blockClose}; }
+  blockBegin multiStmt  blockEnd   { $block = ASF::make_block_location($blockBegin, $blockEnd); }
+| blockBegin blockEnd              { $block = ASF::make_block_location($blockBegin, $blockEnd); }
 ;
 
 
@@ -347,12 +334,12 @@ funcDef:
 ;
 
 const:
-  NIL            { $const = parse_ctx.expr_handler.make_expr_const_nil(); }
-| TRUE           { $const = parse_ctx.expr_handler.make_expr_const_bool(true); }
-| FALSE          { $const = parse_ctx.expr_handler.make_expr_const_bool(false); }
-| INT_CONST      { $const = parse_ctx.expr_handler.make_expr_const_number($INT_CONST); }
-| REAL_CONST     { $const = parse_ctx.expr_handler.make_expr_const_number($REAL_CONST); }
-| STRING_LITERAL { $const = parse_ctx.expr_handler.make_expr_const_string($STRING_LITERAL); }
+  NIL    { $const = ASF::make_const_nil(parse_ctx); }
+| TRUE   { $const = ASF::make_const_true(parse_ctx); }
+| FALSE  { $const = ASF::make_const_false(parse_ctx); }
+| INT    { $const = ASF::make_const_int(parse_ctx, $INT); }
+| REAL   { $const = ASF::make_const_real(parse_ctx, $REAL); }
+| STRING { $const = ASF::make_const_string(parse_ctx, $STRING); }
 ;
 
 

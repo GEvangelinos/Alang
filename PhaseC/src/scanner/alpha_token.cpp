@@ -187,7 +187,7 @@ namespace Alpha
 
         char *TokenID::refreshLastId(const char *id)
         {
-                if (id == nullptr)
+                if (!id)
                         throw std::runtime_error("Error in lexer (probably): `id` is null.");
 
                 delete[] TokenID::lastId;                        /* delete[] is safe with nullptr too (in first initialization). */

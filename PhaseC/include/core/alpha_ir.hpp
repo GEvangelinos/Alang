@@ -59,9 +59,10 @@ namespace Alpha
 
         enum class RValueType
         {
-                CONST_NUMBER,
-                CONST_STRING,
                 CONST_BOOLEAN,
+                CONST_INT,
+                CONST_REAL,
+                CONST_STRING,
                 CONST_NIL,
                 FUNCTION_ADDRESS,
                 LIBRARY_FUNCTION,
@@ -79,7 +80,8 @@ namespace Alpha
                         BOOLEAN,
                         ASSIGN,
                         NEW_TABLE,
-                        CONST_NUMBER,
+                        CONST_INT,
+                        CONST_REAL,
                         CONST_BOOLEAN,
                         CONST_STRING,
                         CONST_NIL,
@@ -90,7 +92,8 @@ namespace Alpha
                 union
                 {
                         const Expr *index;
-                        const double const_num;
+                        const double const_real;
+                        const long const_int;
                         const char *const_str;
                         const bool const_bool;
                 };

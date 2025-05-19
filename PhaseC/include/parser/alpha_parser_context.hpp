@@ -195,9 +195,10 @@ namespace Alpha
                 ~ExprHandler() noexcept;
 
                 [[nodiscard]] Expr *make_expr_lvalue(const Symbol *symbol);
-                [[nodiscard]] Expr *make_expr_const_string(const char *value);
-                [[nodiscard]] Expr *make_expr_const_number(double value);
-                [[nodiscard]] Expr *make_expr_const_bool(bool value);
+                [[nodiscard]] Expr *make_expr_const_string(const char *str_value);
+                [[nodiscard]] Expr *make_expr_const_real(decltype(Expr::const_real) real_value);
+                [[nodiscard]] Expr *make_expr_const_int(decltype(Expr::const_int) int_value);
+                [[nodiscard]] Expr *make_expr_const_bool(bool bool_value);
                 [[nodiscard]] Expr *make_expr_const_nil();
                 [[nodiscard]] Expr *make_expr_assign(Expr *rvalue);
                 [[nodiscard]] Expr *make_expr_assign(const Symbol *symbol);
@@ -322,7 +323,7 @@ namespace Alpha
         inline FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const parse_ctx)
             : parse_ctx_(parse_ctx)
         {
-                SMART_ASSERT(parse_ctx_ != nullptr);
+                SMART_ASSERT(!!parse_ctx_);
                 // We push a stackframe, for loops that might occur outside
                 // functions. So every frame corresponds to a function except the
                 // first.
@@ -346,7 +347,7 @@ namespace Alpha
         {
 #ifdef DEBUG_MODE
                 DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
-                if (function_symbol != nullptr)
+                if (!!function_symbol)
                         DEBUG_SMART_ASSERT(
                             function_symbol->name == parse_ctx_->cache.func_prefix.id,
                             function_symbol->scope == parse_ctx_->scope_handler.scope(),
@@ -484,7 +485,7 @@ namespace Alpha
 
         inline Expr *ExprHandler::make_expr_lvalue(const Symbol *const symbol)
         {
-                DEBUG_SMART_ASSERT(symbol != nullptr);
+                DEBUG_SMART_ASSERT(!!symbol);
                 DEBUG_SMART_ASSERT(
                     symbol->type != Symbol::Type::LIBRARY_FUNCTION,
                     symbol->type != Symbol::Type::PROGRAM_FUNCTION,
@@ -501,36 +502,48 @@ namespace Alpha
                 return expr_lvalue;
         }
 
-        inline Expr *ExprHandler::make_expr_const_string(const char *value)
+        inline Expr *ExprHandler::make_expr_const_string(const char *str_value)
         {
                 Expr *expr_str = new Expr{
                     .type = Expr::Type::CONST_STRING,
                     .symbol = nullptr,
-                    .const_str = Utils::cstrdup(value),
+                    .const_str = Utils::cstrdup(str_value),
                     .next = nullptr,
                 };
                 expr_sink_.push_back(expr_str);
                 return expr_str;
         }
 
-        inline Expr *ExprHandler::make_expr_const_number(double value)
+        inline Expr *ExprHandler::make_expr_const_int(decltype(Expr::const_int) int_value)
         {
                 Expr *expr_num = new Expr{
-                    .type = Expr::Type::CONST_NUMBER,
+                    .type = Expr::Type::CONST_INT,
                     .symbol = nullptr,
-                    .const_num = value,
+                    .const_int = int_value,
                     .next = nullptr,
                 };
                 expr_sink_.push_back(expr_num);
                 return expr_num;
         }
 
-        inline Expr *ExprHandler::make_expr_const_bool(bool value)
+        inline Expr *ExprHandler::make_expr_const_real(decltype(Expr::const_real) real_value)
+        {
+                Expr *expr_num = new Expr{
+                    .type = Expr::Type::CONST_REAL,
+                    .symbol = nullptr,
+                    .const_real = real_value,
+                    .next = nullptr,
+                };
+                expr_sink_.push_back(expr_num);
+                return expr_num;
+        }
+
+        inline Expr *ExprHandler::make_expr_const_bool(bool bool_value)
         {
                 Expr *expr_bool = new Expr{
                     .type = Expr::Type::CONST_BOOLEAN,
                     .symbol = nullptr,
-                    .const_bool = value,
+                    .const_bool = bool_value,
                     .next = nullptr,
                 };
                 expr_sink_.push_back(expr_bool);
@@ -554,7 +567,7 @@ namespace Alpha
             Expr *&lvalue,
             const char *id)
         {
-                DEBUG_SMART_ASSERT(lvalue != nullptr, id != nullptr);
+                DEBUG_SMART_ASSERT(!!lvalue, !!id);
                 lvalue = emit_quad_if_table_item(st, lvalue);
 
                 Expr *expr_table_item = new Expr{
@@ -572,7 +585,7 @@ namespace Alpha
             Expr *&lvalue,
             Expr *expr)
         {
-                DEBUG_SMART_ASSERT(lvalue != nullptr, expr != nullptr);
+                DEBUG_SMART_ASSERT(!!lvalue, !!expr);
                 lvalue = emit_quad_if_table_item(st, lvalue);
 
                 Expr *expr_table_item = new Expr{
@@ -588,7 +601,7 @@ namespace Alpha
 
         inline Expr *ExprHandler::make_expr_assign(const Symbol *symbol)
         {
-                DEBUG_SMART_ASSERT(symbol != nullptr);
+                DEBUG_SMART_ASSERT(!!symbol);
                 Expr *expr_assign = new Expr{
                     .type = Expr::Type::ASSIGN,
                     .symbol = symbol,
@@ -599,9 +612,11 @@ namespace Alpha
                 return expr_assign;
         }
 
+        // TODO: I dont like we make assign but we say rvalue... wtf.. UNDERSTAND IT BETTER
+        // TODO 2: DONT MAKE THE SAME NAME make_expr functions (AKA DONT OVERLOAD THEM...)!!! (VERY BAD DESIGN (BOMB WAITING TO EXPLODE!!!!))
         inline Expr *ExprHandler::make_expr_assign(Expr *rvalue)
         {
-                DEBUG_SMART_ASSERT(rvalue != nullptr);
+                DEBUG_SMART_ASSERT(!!rvalue);
                 Expr *expr_assign = new Expr{
                     .type = Expr::Type::ASSIGN,
                     .symbol = rvalue->symbol,
@@ -614,7 +629,7 @@ namespace Alpha
 
         inline Expr *ExprHandler::emit_quad_if_table_item(SymbolTable &st, Expr *expr)
         {
-                DEBUG_SMART_ASSERT(expr != nullptr);
+                DEBUG_SMART_ASSERT(!!expr);
                 if (expr->type != Expr::Type::TABLE_ITEM)
                         return expr;
 

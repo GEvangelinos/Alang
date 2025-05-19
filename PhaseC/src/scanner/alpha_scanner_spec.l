@@ -93,7 +93,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 "{"             { return LEFT_BRACE; }
 "}"             { return RIGHT_BRACE; }
 "["             { return LEFT_BRACKET; }
-"]"             { return RIGHT_BRACKER; }
+"]"             { return RIGHT_BRACKET; }
 "("             { return LEFT_PAREN; }
 ")"             { return RIGHT_PAREN; }
 ";"             { return SEMICOLON; }
@@ -104,8 +104,8 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 ".."            { return DOUBLE_DOT; }
 
 {id}            { alpha_yylval.cstring = Alpha::TokenID::refreshLastId(yytext); return ID; }
-{real}          { alpha_yylval.const_real = std::stod(yytext); return REAL_CONST; }
-{integer}       { alpha_yylval.const_int = std::stol(yytext); return INT_CONST; }
+{real}          { alpha_yylval.const_real = std::stod(yytext); return REAL; }
+{integer}       { alpha_yylval.const_int = std::stol(yytext); return INT; }
 {lineComment}   { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
 {newline}       { lt.append_line(lexer_ctx.index_); }
 {space}+        { /* Just eat up the spaces. */ }
@@ -164,7 +164,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 <INSIDE_STRING>{stringEndRule} {
         BEGIN(INITIAL);
         Alpha::TokenString::exportStringToken(&alpha_yylval.cstring);
-        return STRING_LITERAL;
+        return STRING;
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/

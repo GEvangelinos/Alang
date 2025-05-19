@@ -160,7 +160,7 @@ namespace Utils
 {
         inline char *cstrdup(const char *src)
         {
-                DEBUG_SMART_ASSERT(src != nullptr);
+                DEBUG_SMART_ASSERT(!!src);
                 if (!src) [[unlikely]]
                         return nullptr;
 

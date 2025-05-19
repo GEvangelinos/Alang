@@ -81,9 +81,9 @@ namespace // (Anonymous)
 		if (formal_symbol)
 		{
 			// Parameter should produce name conflicts only with themselves.
-			DEBUG_SMART_ASSERT(					      //
-			    dynamic_cast<const Variable *>(formal_symbol) != nullptr, //
-			    formal_symbol->is_variable()			      //
+			DEBUG_SMART_ASSERT(				     //
+			    !!dynamic_cast<const Variable *>(formal_symbol), //
+			    formal_symbol->is_variable()		     //
 			);
 
 			const std::string error = FMT::format("redefinition of parameter `{}`", parameter.name);
@@ -142,7 +142,7 @@ namespace // (Anonymous)
 	    ErrorTracker &et)
 	{
 		using DT = Diagnostic::Type;
-		DEBUG_SMART_ASSERT(found_symbol != nullptr);
+		DEBUG_SMART_ASSERT(!!found_symbol);
 		const std::string error = FMT::format("variable `{}` is not accessible in function `{}`",
 						      id_name, current_function_name);
 		const std::string note1 = FMT::format("function `{}` declared here", current_function_name);
@@ -174,7 +174,7 @@ namespace // (Anonymous)
 	is_modifiable_symbol(const Symbol *const symbol)
 	{
 		// TODO: remove (deprecated part from phase 2)
-		// if (lvalue == nullptr) // nullptr implies runtime-evaluated lvalue (e.g. member access)
+		// if (!symbol) // nullptr implies runtime-evaluated lvalue (e.g. member access)
 		// 	return true;
 		return symbol->is_variable();
 	}
@@ -199,7 +199,7 @@ namespace // (Anonymous)
 	    const Location &assign_location,
 	    ErrorTracker &et)
 	{
-		DEBUG_SMART_ASSERT(lvalue_symbol != nullptr);
+		DEBUG_SMART_ASSERT(!!lvalue_symbol);
 		if (is_modifiable_symbol(lvalue_symbol))
 			return;
 		if (lvalue_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
@@ -303,11 +303,7 @@ ALWAYS_INLINE void assignExpr__lvalue_assign_expr(
     const Location assign_location,
     ErrorTracker &et)
 {
-	DEBUG_SMART_ASSERT(
-	    assignExpr != nullptr,
-	    lvalue != nullptr,
-	    expr != nullptr //
-	);
+	DEBUG_SMART_ASSERT(!!assignExpr, !!lvalue, !!expr);
 
 	validate_lvalue_for_assignment(lvalue->symbol, assign_location, et);
 	if (lvalue->type == Expr::Type::TABLE_ITEM)
@@ -367,7 +363,7 @@ ALWAYS_INLINE void lvalue__local_id(
 		std::string error = FMT::format("shadowing library function `{}`", id_name);
 		et.report_error(CTError::Type::SEMANTIC, error, id_location);
 		symbol = st.lookup_global(id_name);
-		DEBUG_SMART_ASSERT(symbol != nullptr); // a library function is always resolved at global scope.
+		DEBUG_SMART_ASSERT(!!symbol); // a library function is always resolved at global scope.
 	}
 	else
 	{
@@ -422,12 +418,30 @@ inline void tableItem__lvalue_lbracket_expr_rbracket(
 	table_item = parse_ctx.expr_handler.make_expr_table_item(st, lvalue, expr);
 }
 
-inline void blockOpen__lbrace(ParseCtx &parse_ctx) noexcept
+inline void call__lvalue_ddot_id_lparen_elist_rparen(
+    SymbolTable &st,
+    ParseCtx &parse_ctx,
+    Expr *&lvalue)
+{
+	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
+}
+
+inline void exprList__expr_comma_exprListTail(
+    std::vector<Expr *> *&exprList,
+    Expr *expr,
+    std::vector<Expr *> *exprListTail)
+{
+	DEBUG_SMART_ASSERT(!!expr, !!exprListTail);
+	exprList = exprListTail;
+	exprList->push_back(expr);
+}
+
+inline void blockBegin__lbrace(ParseCtx &parse_ctx) noexcept
 {
 	parse_ctx.scope_handler.enter_scope();
 }
 
-inline void blockClose__rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept
+inline void blockEnd__rbrace(SymbolTable &st, ParseCtx &parse_ctx) noexcept
 {
 	st.hide_scope_symbols(parse_ctx.scope_handler.scope());
 	parse_ctx.scope_handler.exit_scope();
@@ -502,7 +516,7 @@ inline void funcDef__funcSignature_block(
     const BlockLocation &block_location) noexcept
 {
 	auto fbi = parse_ctx.function_ctx_handler.exit_function();
-	if (fbi.function_symbol != nullptr)
+	if (!!fbi.function_symbol)
 	{
 		Backpatcher::set_function_local_variable_count(
 		    fbi.function_symbol,

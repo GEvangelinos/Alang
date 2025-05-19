@@ -18,6 +18,25 @@ bool g_show_parser_trace = false;
 
 namespace // (Anonymous)
 {
+        std::ifstream open_alpha_source_file(const std::string &filepath);
+        void create_export_directory(std::string_view dirname);
+        void enter_export_directory(std::string_view dirname);
+        void exit_export_directory(std::filesystem::path original_path);
+        void expr_validator(const Alpha::Expr &e);
+        std::string expr_printer(const Alpha::Expr &expr);
+
+        template <unsigned column, unsigned column_width, typename T>
+        std::string color_column(T &&value);
+
+        template <bool colorize, unsigned column, unsigned column_width, typename T>
+        std::string format_column(T &&value);
+
+        template <bool colorize, typename Stream>
+        void print_quads(
+            Stream &out,
+            const std::vector<Alpha::Quad> &quads,
+            const Alpha::LocationTracker &lt);
+
         std::ifstream open_alpha_source_file(const std::string &filepath)
         {
                 if (!std::filesystem::is_regular_file(filepath))
@@ -38,9 +57,50 @@ namespace // (Anonymous)
                 std::filesystem::current_path(dirname);
         }
 
-        void exit_export_directory(auto original_path)
+        void exit_export_directory(std::filesystem::path original_path)
         {
                 std::filesystem::current_path(original_path);
+        }
+
+        void expr_validator(const Alpha::Expr *e)
+        {
+                using AET = Alpha::Expr::Type;
+                switch (e->type)
+                {
+                        // clang-format off
+                #define CASE_ASSERT(...) SMART_ASSERT(__VA_ARGS__); break;
+                case AET::ASSIGN:        CASE_ASSERT(!!e->symbol, !e->next, !e->index);
+                case AET::CONST_BOOLEAN: CASE_ASSERT(!e->symbol, !e->next);
+                case AET::CONST_NIL:     CASE_ASSERT(!e->symbol, !e->next);
+                case AET::CONST_INT:     CASE_ASSERT(!e->symbol, !e->next);
+                case AET::CONST_REAL:    CASE_ASSERT(!e->symbol, !e->next);
+                case AET::CONST_STRING:  CASE_ASSERT(!e->symbol, !e->next);
+                case AET::TABLE_ITEM:    CASE_ASSERT(!!e->symbol, !e->next, !!e->index,);
+                case AET::VARIABLE:      CASE_ASSERT(!!e->symbol, !e->next, !e->index,);
+                        // clang-format on
+                }
+        }
+
+        std::string expr_printer(const Alpha::Expr *e)
+        {
+                if (!e)
+                        return "";
+
+                using AET = Alpha::Expr::Type;
+                switch (e->type)
+                {
+                        // clang-format off
+                case AET::ASSIGN:        return e->symbol->name;
+                case AET::CONST_BOOLEAN: return e->const_bool ? "true" : "false";
+                case AET::CONST_NIL:     return "nil";
+                case AET::CONST_INT:     return std::to_string(e->const_int);
+                case AET::CONST_REAL:    return std::to_string(e->const_real);
+                case AET::CONST_STRING:  return e->const_str;
+                case AET::VARIABLE:      return e->symbol->name;
+                default:
+                        throw std::logic_error("Should never reach here");
+                        // clang-format on
+                }
         }
 
         template <unsigned column, unsigned column_width, typename T>
@@ -111,17 +171,7 @@ namespace // (Anonymous)
                 for (Alpha::u32 i = 0; i < quads_size; i++)
                 {
                         const Alpha::Quad &q = quads[i];
-#ifdef DEBUG_MODE
-                        std::cerr << "YEESSS\n"
-                                  << std::endl;
-                        std::cerr << "YEESSS\n"
-                                  << std::endl;
-                        std::cerr << "YEESSS\n"
-                                  << std::endl;
-                        std::cerr << "YEESSS\n"
-                                  << std::endl;
-#endif
-                        DEBUG_SMART_ASSERT(q.result->symbol != nullptr);
+                        DEBUG_SMART_ASSERT(!!q.result->symbol);
                         // If this hits. it mean we dont always return symbol_name..
                         // and we must also check for const_TYPES (string,num,bool,nil).
 
@@ -129,9 +179,9 @@ namespace // (Anonymous)
                             "{} {} {} {} {} {} {}\n",
                             format_column<colorize, 0, widths[0]>(i + 1),
                             format_column<colorize, 1, widths[1]>(to_string(q.iopcode)),
-                            format_column<colorize, 2, widths[2]>(q.result ? q.result->symbol->name : ""),
-                            format_column<colorize, 3, widths[3]>(q.arg1 ? q.arg1->symbol->name : ""),
-                            format_column<colorize, 4, widths[4]>(q.arg2 ? q.arg2->symbol->name : ""),
+                            format_column<colorize, 2, widths[2]>(expr_printer(q.result)),
+                            format_column<colorize, 3, widths[3]>(expr_printer(q.arg1)),
+                            format_column<colorize, 4, widths[4]>(expr_printer(q.arg2)),
                             format_column<colorize, 5, widths[5]>(q.label),
                             format_column<colorize, 6, widths[6]>(lt.find_first_line(q.location)) //
                         );
@@ -236,7 +286,7 @@ namespace Alpha
         {
                 // Class invariant: `state_` must be non-null after construction.
                 // Violations indicate a serious logic error (e.g., double-deletion or moved-from object).
-                SMART_ASSERT(state_ != nullptr);
+                SMART_ASSERT(!!state_);
                 state_ = nullptr;
                 // We nullified our reference to YY_BUFFER_STATE
                 // Flex has it own, also we DID NOT use alpha_yy_delete_buffer()
