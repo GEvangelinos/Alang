@@ -11,7 +11,8 @@
         #include "parser/alpha_semantic_action_procs.hpp"  // for block__lbrace, funcArgs...
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
         #include "alpha_parser_prologue_code.hpp"
-        namespace ASF = Alpha::Sem::Fns;
+        namespace ASF = Alpha::SemanticFunctions;
+        namespace AST = Alpha::SemanticTransformer;
 }
 
 %code requires
@@ -285,8 +286,14 @@ call[invocation]:
 ;
 
 exprList[head]:
-  expr                      { $head = ASF::make_expr_list($expr); }
-| expr COMMA exprList[tail] { $head = ASF::extend_expr_list($expr, $tail); }
+  expr {
+    AST::update_expr_location($expr, @expr);
+     $head = ASF::make_expr_list($expr); 
+     }
+| expr COMMA exprList[tail] {
+    AST::update_expr_location($expr, @expr);
+     $head = ASF::extend_expr_list($expr, $tail); 
+   }
 ;
 
 elist:

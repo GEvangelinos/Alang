@@ -21,7 +21,7 @@
 #include "parser/_parser_type_aliases.hpp"
 #include "_parser_common.hpp"
 
-namespace Alpha::Sem::Fns
+namespace Alpha::SemanticFunctions
 {
         [[nodiscard]] inline ExprList *make_expr_list()
         {

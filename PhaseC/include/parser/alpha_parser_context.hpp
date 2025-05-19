@@ -121,25 +121,20 @@ namespace Alpha
                 FunctionCtxHandler(ParseCtx *parse_ctx);
                 ~FunctionCtxHandler();
 
+                void enter_loop() noexcept;
+                void exit_loop() noexcept;
+                void add_function_parameter(const std::string &name, Location loc);
+                void clear_function_parameters() noexcept;
+                void add_local() noexcept;
                 void enter_function(const Function *function_symbol);
                 [[nodiscard]] FunctionBackpatchInfo exit_function() noexcept;
-
                 [[nodiscard]] u32 function_nesting_depth() const noexcept;
                 [[nodiscard]] u32 current_function_scope() const noexcept;
                 [[nodiscard]] const std::string &current_function_name() const noexcept;
                 [[nodiscard]] Location current_function_location() const noexcept;
-
-                void enter_loop() noexcept;
-                void exit_loop() noexcept;
                 [[nodiscard]] u32 loop_depth() const noexcept;
-
-                void add_function_parameter(const std::string &name, Location location);
                 [[nodiscard]] const std::list<Parameter> &function_parameters() const noexcept;
-                void clear_function_parameters() noexcept;
-
                 [[nodiscard]] u32 next_function_address() noexcept { return next_function_address_++; }
-
-                void add_local() noexcept;
 
         private:
                 struct FunctionDataFrame
@@ -196,29 +191,25 @@ namespace Alpha
                 ExprHandler(ParseCtx *parse_ctx);
                 ~ExprHandler() noexcept;
 
-                [[nodiscard]] Expr *make_expr_variable(const Symbol *symbol, Location var_location);
-                [[nodiscard]] Expr *make_expr_const_string(const char *str_value, Location str_location);
-                [[nodiscard]] Expr *make_expr_const_real(decltype(Expr::const_real) real_value, Location real_location);
-                [[nodiscard]] Expr *make_expr_const_int(decltype(Expr::const_int) int_value, Location int_location);
-                [[nodiscard]] Expr *make_expr_const_bool(bool bool_value, Location bool_location);
-                [[nodiscard]] Expr *make_expr_const_nil(Location nil_location);
+                [[nodiscard]] Expr *emit_quad_if_table_item(Expr *lvalue);
+                [[nodiscard]] Expr *make_expr_variable(const Symbol *symbol, Location var_loc);
+                [[nodiscard]] Expr *make_expr_const_string(const char *str_value, Location str_loc);
+                [[nodiscard]] Expr *make_expr_const_real(f64 real_value, Location real_loc);
+                [[nodiscard]] Expr *make_expr_const_int(i64 int_value, Location int_loc);
+                [[nodiscard]] Expr *make_expr_const_bool(bool bool_value, Location bool_loc);
+                [[nodiscard]] Expr *make_expr_const_nil(Location nil_loc);
                 [[nodiscard]] Expr *make_expr_program_function(const Function *function_symbol);
-
-                [[nodiscard]] Expr *make_expr_assign(Expr *rvalue, Location assign_location);         // TODO: !! Why two make assign expr?
-                [[nodiscard]] Expr *make_expr_assign(const Symbol *symbol, Location assign_location); // TODO: WHy 2? make_assign_expr?
+                [[nodiscard]] Expr *make_expr_assign(Expr *rvalue, Location assign_loc);         // TODO: !! Why two make assign expr?
+                [[nodiscard]] Expr *make_expr_assign(const Symbol *symbol, Location assign_loc); // TODO: WHy 2? make_assign_expr?
                 [[nodiscard]] Expr *make_expr_table_item(
-                    SymbolTable &st,
                     Expr *&lvalue,
                     const char *id,
-                    Location id_location,
-                    Location table_item_location);
+                    Location id_loc,
+                    Location table_item_loc);
                 [[nodiscard]] Expr *make_expr_table_item(
-                    SymbolTable &st,
                     Expr *&lvalue,
                     Expr *expr,
-                    Location table_tem_Location);
-
-                Expr *emit_quad_if_table_item(SymbolTable &st, Expr *lvalue);
+                    Location table_tem_Loc);
 
         private:
                 std::vector<const Expr *> expr_sink_;
@@ -235,11 +226,15 @@ namespace Alpha
                 QuadHandler quad_handler;
                 ExprHandler expr_handler;
                 NameGenerator name_generator;
+                SymbolTable *const st;
+                ErrorTracker *const et;
 
-                ParseCtx();
+                ParseCtx(SymbolTable *st, ErrorTracker *et);
                 ~ParseCtx() = default;
 
-                const Symbol *new_temp(SymbolTable &st);
+                [[nodiscard]] const Symbol *new_temp();
+
+        private:
         };
 
         inline SpaceHandler::SpaceHandler()
@@ -252,12 +247,14 @@ namespace Alpha
                 DEBUG_SMART_ASSERT(variable_offset_stack_.size() == 1);
         }
 
-        inline void SpaceHandler::enter_space()
+        inline void
+        SpaceHandler::enter_space()
         {
                 variable_offset_stack_.push(k_initial_variable_offset);
         }
 
-        inline void SpaceHandler::exit_space()
+        inline void
+        SpaceHandler::exit_space()
         {
                 constexpr auto spaces_for_closure = 2; // 1 formalArg + 1 functionLocal
 
@@ -273,7 +270,8 @@ namespace Alpha
                 // clang-format on
         }
 
-        inline Variable::Space SpaceHandler::space() const noexcept
+        inline Variable::Space
+        SpaceHandler::space() const noexcept
         {
                 DEBUG_SMART_ASSERT(variable_offset_stack_.size() > 0);      // A stack frame must always exist
                 const auto frame_index = variable_offset_stack_.size() - 1; // -1 for size to index
@@ -285,7 +283,8 @@ namespace Alpha
                 return Variable::Space::FUNCTION_LOCAL;
         }
 
-        inline u32 SpaceHandler::next_offset() noexcept
+        inline u32
+        SpaceHandler::next_offset() noexcept
         {
                 DEBUG_SMART_ASSERT(variable_offset_stack_.size() > 0);
                 return variable_offset_stack_.top()++;
@@ -297,12 +296,14 @@ namespace Alpha
                 SMART_ASSERT(skip_next_scope_increment_.is_disabled());
         }
 
-        inline void ScopeHandler::skip_next_scope_increment() noexcept
+        inline void
+        ScopeHandler::skip_next_scope_increment() noexcept
         {
                 skip_next_scope_increment_.enable();
         }
 
-        inline void ScopeHandler::enter_scope() noexcept
+        inline void
+        ScopeHandler::enter_scope() noexcept
         {
                 if (skip_next_scope_increment_.is_enabled())
                 {
@@ -313,7 +314,8 @@ namespace Alpha
                 ++scope_;
         }
 
-        inline void ScopeHandler::exit_scope() noexcept
+        inline void
+        ScopeHandler::exit_scope() noexcept
         {
                 // We expect `skip_next_scope_increment` ToggleSwitch to be
                 // disabled. That is because if you exit a block, it means you first
@@ -350,7 +352,8 @@ namespace Alpha
                 );
         }
 
-        inline void FunctionCtxHandler::enter_function(const Function *function_symbol)
+        inline void
+        FunctionCtxHandler::enter_function(const Function *function_symbol)
         {
 #ifdef DEBUG_MODE
                 DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
@@ -397,86 +400,98 @@ namespace Alpha
                     .function_symbol = top_frame.function_symbol};
         }
 
-        inline u32 FunctionCtxHandler::function_nesting_depth() const noexcept
+        inline u32
+        FunctionCtxHandler::function_nesting_depth() const noexcept
         {
                 return frame_stack_.size() - k_global_data_frame_count;
         }
 
-        inline u32 FunctionCtxHandler::current_function_scope() const noexcept
+        inline u32
+        FunctionCtxHandler::current_function_scope() const noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
                 return frame_stack_.top().scope;
         }
 
-        inline const std::string &FunctionCtxHandler::current_function_name() const noexcept
+        inline const std::string &
+        FunctionCtxHandler::current_function_name() const noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
                 return frame_stack_.top().name;
         }
 
-        inline Location FunctionCtxHandler::current_function_location() const noexcept
+        inline Location
+        FunctionCtxHandler::current_function_location() const noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
                 return frame_stack_.top().location;
         }
 
-        inline void FunctionCtxHandler::enter_loop() noexcept
+        inline void
+        FunctionCtxHandler::enter_loop() noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
                 DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count < k_max_loop_nesting);
                 ++frame_stack_.top().loop_nesting_count;
         }
 
-        inline void FunctionCtxHandler::exit_loop() noexcept
+        inline void
+        FunctionCtxHandler::exit_loop() noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
                 DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count > 0);
                 --frame_stack_.top().loop_nesting_count;
         }
 
-        inline u32 FunctionCtxHandler::loop_depth() const noexcept
+        inline u32
+        FunctionCtxHandler::loop_depth() const noexcept
         {
                 DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
                 return frame_stack_.top().loop_nesting_count;
         }
 
-        inline void FunctionCtxHandler::add_function_parameter(
-            const std::string &name,
-            Location location)
+        inline void
+        FunctionCtxHandler::add_function_parameter(const std::string &name, Location loc)
         {
-                function_parameters_.emplace_back(name, location);
+                function_parameters_.emplace_back(name, loc);
         }
 
-        inline const std::list<Parameter> &FunctionCtxHandler::function_parameters() const noexcept
+        inline const std::list<Parameter> &
+        FunctionCtxHandler::function_parameters() const noexcept
         {
                 return function_parameters_;
         }
 
-        inline void FunctionCtxHandler::clear_function_parameters() noexcept
+        inline void
+        FunctionCtxHandler::clear_function_parameters() noexcept
         {
                 function_parameters_.clear();
         }
 
-        inline void FunctionCtxHandler::add_local() noexcept
+        inline void
+        FunctionCtxHandler::add_local() noexcept
         {
                 ++frame_stack_.top().local_variable_count;
         }
 
-        inline std::string NameGenerator::new_temp_name()
+        inline std::string
+        NameGenerator::new_temp_name()
         {
                 return k_temp_variable_prefix + std::to_string(temp_name_counter_++);
         }
-        inline std::string NameGenerator::new_anonymous()
+        inline std::string
+        NameGenerator::new_anonymous()
         {
                 return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
         }
 
-        inline void QuadHandler::emit_quad(
+        inline void
+        QuadHandler::emit_quad(
             const IOPCode iopc,
             const Expr *arg1,
             const Expr *arg2,
             const Expr *result,
-            const Location location)
+            const Location loc)
         {
                 DEBUG_SMART_ASSERT(quads_.size() + 1 == next_quad_label_);
 
@@ -486,13 +501,14 @@ namespace Alpha
                     .arg2 = arg2,
                     .result = result,
                     .label = requires_label(iopc) ? next_quad_label_ : 0,
-                    .location = location,
+                    .location = loc,
                 });
 
                 ++next_quad_label_;
         }
 
-        inline bool QuadHandler::requires_label(IOPCode iopc) noexcept
+        inline bool
+        QuadHandler::requires_label(IOPCode iopc) noexcept
         {
                 // clang-format off
                 switch (iopc)
@@ -508,14 +524,15 @@ namespace Alpha
                 // clang-format on
         }
 
-        inline Expr *ExprHandler::make_expr_variable(const Symbol *const symbol, Location var_location)
+        inline Expr *
+        ExprHandler::make_expr_variable(const Symbol *const symbol, Location var_loc)
         {
                 DEBUG_SMART_ASSERT(!!symbol);
 
                 Expr *expr_lvalue = new Expr{
                     .type = Expr::Type::VARIABLE,
                     .symbol = symbol,
-                    .location = var_location,
+                    .location = var_loc,
                     .index = nullptr,
                     .next = nullptr,
                 };
@@ -523,14 +540,15 @@ namespace Alpha
                 return expr_lvalue;
         }
 
-        inline Expr *ExprHandler::make_expr_const_string(const char *str_value, Location str_location)
+        inline Expr *
+        ExprHandler::make_expr_const_string(const char *str_value, Location str_loc)
         {
-                DEBUG_SMART_ASSERT(str_location != k_no_location);
+                DEBUG_SMART_ASSERT(str_loc != k_no_location);
 
                 Expr *expr_str = new Expr{
                     .type = Expr::Type::CONST_STRING,
                     .symbol = nullptr,
-                    .location = str_location,
+                    .location = str_loc,
                     .const_str = Utils::cstrdup(str_value),
                     .next = nullptr,
                 };
@@ -538,14 +556,15 @@ namespace Alpha
                 return expr_str;
         }
 
-        inline Expr *ExprHandler::make_expr_const_int(decltype(Expr::const_int) int_value, Location int_location)
+        inline Expr *
+        ExprHandler::make_expr_const_int(i64 int_value, Location int_loc)
         {
-                DEBUG_SMART_ASSERT(int_location != k_no_location);
+                DEBUG_SMART_ASSERT(int_loc != k_no_location);
 
                 Expr *expr_num = new Expr{
                     .type = Expr::Type::CONST_INT,
                     .symbol = nullptr,
-                    .location = int_location,
+                    .location = int_loc,
                     .const_int = int_value,
                     .next = nullptr,
                 };
@@ -553,14 +572,15 @@ namespace Alpha
                 return expr_num;
         }
 
-        inline Expr *ExprHandler::make_expr_const_real(decltype(Expr::const_real) real_value, Location real_location)
+        inline Expr *
+        ExprHandler::make_expr_const_real(f64 real_value, Location real_loc)
         {
-                DEBUG_SMART_ASSERT(real_location != k_no_location);
+                DEBUG_SMART_ASSERT(real_loc != k_no_location);
 
                 Expr *expr_num = new Expr{
                     .type = Expr::Type::CONST_REAL,
                     .symbol = nullptr,
-                    .location = real_location,
+                    .location = real_loc,
                     .const_real = real_value,
                     .next = nullptr,
                 };
@@ -568,14 +588,15 @@ namespace Alpha
                 return expr_num;
         }
 
-        inline Expr *ExprHandler::make_expr_const_bool(bool bool_value, Location bool_location)
+        inline Expr *
+        ExprHandler::make_expr_const_bool(bool bool_value, Location bool_loc)
         {
-                DEBUG_SMART_ASSERT(bool_location != k_no_location);
+                DEBUG_SMART_ASSERT(bool_loc != k_no_location);
 
                 Expr *expr_bool = new Expr{
                     .type = Expr::Type::CONST_BOOLEAN,
                     .symbol = nullptr,
-                    .location = bool_location,
+                    .location = bool_loc,
                     .const_bool = bool_value,
                     .next = nullptr,
                 };
@@ -583,14 +604,15 @@ namespace Alpha
                 return expr_bool;
         }
 
-        inline Expr *ExprHandler::make_expr_const_nil(Location nil_location)
+        inline Expr *
+        ExprHandler::make_expr_const_nil(Location nil_loc)
         {
-                DEBUG_SMART_ASSERT(nil_location != k_no_location);
+                DEBUG_SMART_ASSERT(nil_loc != k_no_location);
 
                 Expr *expr_nil = new Expr{
                     .type = Expr::Type::CONST_NIL,
                     .symbol = nullptr,
-                    .location = nil_location,
+                    .location = nil_loc,
                     .index = nullptr,
                     .next = nullptr,
                 };
@@ -598,7 +620,8 @@ namespace Alpha
                 return expr_nil;
         }
 
-        inline Expr *ExprHandler::make_expr_program_function(const Function *function_symbol)
+        inline Expr *
+        ExprHandler::make_expr_program_function(const Function *function_symbol)
         {
                 DEBUG_SMART_ASSERT(!!function_symbol);
 
@@ -613,55 +636,52 @@ namespace Alpha
                 return expr_progfunc;
         }
 
-        inline Expr *ExprHandler::make_expr_table_item(
-            SymbolTable &st,
+        inline Expr *
+        ExprHandler::make_expr_table_item(
             Expr *&lvalue,
             const char *id,
-            Location id_location,
-            Location table_item_location)
+            Location id_loc,
+            Location table_item_loc)
         {
                 DEBUG_SMART_ASSERT(!!lvalue, !!id);
-                lvalue = emit_quad_if_table_item(st, lvalue);
+                lvalue = emit_quad_if_table_item(lvalue);
 
                 Expr *expr_table_item = new Expr{
                     .type = Expr::Type::TABLE_ITEM,
                     .symbol = lvalue->symbol,
-                    .location = table_item_location,
-                    .index = make_expr_const_string(id, id_location),
+                    .location = table_item_loc,
+                    .index = make_expr_const_string(id, id_loc),
                     .next = nullptr,
                 };
                 expr_sink_.push_back(expr_table_item);
                 return expr_table_item;
         }
 
-        inline Expr *ExprHandler::make_expr_table_item(
-            SymbolTable &st,
-            Expr *&lvalue,
-            Expr *expr,
-            Location table_item_location)
+        inline Expr *
+        ExprHandler::make_expr_table_item(Expr *&lvalue, Expr *expr, Location table_item_loc)
         {
                 DEBUG_SMART_ASSERT(!!lvalue, !!expr);
-                lvalue = emit_quad_if_table_item(st, lvalue);
+                lvalue = emit_quad_if_table_item(lvalue);
 
                 Expr *expr_table_item = new Expr{
                     .type = Expr::Type::TABLE_ITEM,
                     .symbol = lvalue->symbol,
-                    .location = table_item_location,
+                    .location = table_item_loc,
                     .index = expr,
                     .next = nullptr,
                 };
-
                 expr_sink_.push_back(expr_table_item);
                 return expr_table_item;
         }
 
-        inline Expr *ExprHandler::make_expr_assign(const Symbol *symbol, Location assign_location)
+        inline Expr *
+        ExprHandler::make_expr_assign(const Symbol *symbol, Location assign_loc)
         {
                 DEBUG_SMART_ASSERT(!!symbol);
                 Expr *expr_assign = new Expr{
                     .type = Expr::Type::ASSIGN,
                     .symbol = symbol,
-                    .location = assign_location,
+                    .location = assign_loc,
                     .index = nullptr,
                     .next = nullptr,
                 };
@@ -671,13 +691,14 @@ namespace Alpha
 
         // TODO: I dont like we make assign but we say rvalue... wtf.. UNDERSTAND IT BETTER
         // TODO 2: DONT MAKE THE SAME NAME make_expr functions (AKA DONT OVERLOAD THEM...)!!! (VERY BAD DESIGN (BOMB WAITING TO EXPLODE!!!!))
-        inline Expr *ExprHandler::make_expr_assign(Expr *rvalue, Location assign_location)
+        inline Expr *
+        ExprHandler::make_expr_assign(Expr *rvalue, Location assign_loc)
         {
                 DEBUG_SMART_ASSERT(!!rvalue);
                 Expr *expr_assign = new Expr{
                     .type = Expr::Type::ASSIGN,
                     .symbol = rvalue->symbol,
-                    .location = assign_location,
+                    .location = assign_loc,
                     .index = rvalue->index,
                     .next = rvalue->next,
                 };
@@ -685,13 +706,14 @@ namespace Alpha
                 return expr_assign;
         }
 
-        inline Expr *ExprHandler::emit_quad_if_table_item(SymbolTable &st, Expr *expr)
+        inline Expr *
+        ExprHandler::emit_quad_if_table_item(Expr *expr)
         {
                 DEBUG_SMART_ASSERT(!!expr);
                 if (expr->type != Expr::Type::TABLE_ITEM)
                         return expr;
 
-                Expr *expr_temp_var = make_expr_variable(parse_ctx_->new_temp(st), k_no_location);
+                Expr *expr_temp_var = make_expr_variable(parse_ctx_->new_temp(), k_no_location);
 
                 parse_ctx_->quad_handler.emit_quad(
                     IOPCode::TABLEGETELEM,
@@ -714,25 +736,28 @@ namespace Alpha
                         delete e;
         }
 
-        inline ParseCtx::ParseCtx()
+        inline ParseCtx::ParseCtx(SymbolTable *const st, ErrorTracker *const et)
             : function_ctx_handler(this),
-              expr_handler(this) {}
+              expr_handler(this),
+              st(st),
+              et(et) {}
 
-        inline const Symbol *ParseCtx::new_temp(SymbolTable &st)
+        inline const Symbol *
+        ParseCtx::new_temp()
         {
                 const std::string temp_name = name_generator.new_temp_name();
-                const Symbol *symbol = st.lookup_local(temp_name, scope_handler.scope());
+                const Symbol *symbol = st->lookup_local(temp_name, scope_handler.scope());
 
                 // We register new temp, only if current scope doesnt have that temp.
                 if (!symbol)
-                        symbol = st.insert_variable(
+                        symbol = st->insert_variable(
                             temp_name,
                             scope_handler.scope(),
                             space_handler.space(),
                             space_handler.next_offset(),
-                            k_no_location); // TODO: Remove locations from temps and auto generated
-                                            // variables and values.. known the line a temp was generated is useless...
-
+                            k_no_location //
+                        );                // TODO: Remove locations from temps and auto generated
+                                          // variables and values.. known the line a temp was generated is useless...
                 return symbol;
         }
 } // namespace Alpha

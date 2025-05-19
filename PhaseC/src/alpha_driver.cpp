@@ -22,8 +22,8 @@ namespace // (Anonymous)
         void create_export_directory(std::string_view dirname);
         void enter_export_directory(std::string_view dirname);
         void exit_export_directory(std::filesystem::path original_path);
-        void expr_validator(const Alpha::Expr &e);
-        std::string expr_printer(const Alpha::Expr &expr);
+        void expr_validator(const Alpha::Expr *e);
+        std::string expr_printer(const Alpha::Expr *expr);
 
         template <unsigned column, unsigned column_width, typename T>
         std::string color_column(T &&value);
@@ -166,7 +166,7 @@ namespace // (Anonymous)
                 );
 
                 // Write separating dash line.
-                out << std::string(quad_header_width, '-') << '\n';
+                out << std::string(quad_header_width, '-') << std::endl;
 
                 // Write quads.
                 const auto quads_size = quads.size();
@@ -176,10 +176,10 @@ namespace // (Anonymous)
 
                         auto quad_line_num = lt.find_first_line(q.location);
                         std::string quad_line_str = (quad_line_num == Alpha::k_no_line)
-                                                        ? Alpha::k_no_location_marker
+                                                        ? Alpha::k_not_available_marker
                                                         : std::to_string(quad_line_num);
                         std::string quad_label_str = (q.label == Alpha::k_no_label)
-                                                         ? Alpha::k_no_label_marker
+                                                         ? Alpha::k_not_available_marker
                                                          : std::to_string(q.label);
 
                         out << FMT::format(

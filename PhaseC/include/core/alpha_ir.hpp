@@ -97,13 +97,13 @@ namespace Alpha
                 const Type type;
 
                 const Symbol *symbol;
-                const Location location;
+                Location location;
 
                 union
                 {
                         const Expr *index;
-                        const double const_real;
-                        const long const_int;
+                        const f64 const_real;
+                        const i64 const_int;
                         const char *const_str;
                         const bool const_bool;
                 };

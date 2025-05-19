@@ -263,6 +263,14 @@ namespace // (Anonymous)
 
 } // namespace (Anonymous)
 
+namespace Alpha::SemanticTransformer
+{
+	void update_expr_location(Expr *expr, Location new_expr_loc)
+	{
+		expr->location = new_expr_loc;
+	}
+}
+
 // +-----------------------------------------------------------------+
 // |---------------- SEMANTIC_ACTION_FUNCTIONS_BELOW ----------------|
 // +-----------------------------------------------------------------+
@@ -437,7 +445,7 @@ inline void call__lvalue_lparen_elist_rparen(
     Location call_location)
 {
 	// TODO rethink position of make_call() .. we would like procs not using fns and vice versa.
-	namespace ASF = Alpha::Sem::Fns;
+	namespace ASF = Alpha::SemanticFunctions;
 	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, lvalue);
 	call = ASF::make_call(st, parse_ctx, lvalue, elist, call_location);
 }
@@ -461,7 +469,7 @@ inline void call__lvalue_ddot_id_lparen_elist_rparen(
 	lvalue = parse_ctx.expr_handler.emit_quad_if_table_item(st, temp_var);
 	// END_BOUND: CODE RUNNING ONLY FOR METHODS
 
-	namespace ASF = Alpha::Sem::Fns; // TODO REMOVE (UGLY RETHINK POSITION OF make_call)
+	namespace ASF = Alpha::SemanticFunctions; // TODO REMOVE (UGLY RETHINK POSITION OF make_call)
 	call = ASF::make_call(st, parse_ctx, lvalue, elist, call_location);
 }
 
