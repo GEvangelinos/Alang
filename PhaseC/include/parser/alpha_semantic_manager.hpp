@@ -55,10 +55,10 @@ namespace Alpha
                 SemanticManager(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et);
                 void loopCtrlStmt__break(Location break_loc);
                 void loopCtrlStmt__continue(Location continue_loc);
-                void term__inc_lvalue(const Symbol *lvalue, Location term_loc);
-                void term__lvalue_inc(const Symbol *lvalue, Location term_loc);
-                void term__dec_lvalue(const Symbol *lvalue, Location term_loc);
-                void term__lvalue_dec(const Symbol *lvalue, Location term_loc);
+                void term__inc_lvalue(const Expr *lvalue, Location term_loc);
+                void term__lvalue_inc(const Expr *lvalue, Location term_loc);
+                void term__dec_lvalue(const Expr *lvalue, Location term_loc);
+                void term__lvalue_dec(const Expr *lvalue, Location term_loc);
                 void lvalue__id(Expr *&lvalue, const char *id_name, Location id_loc);
                 void lvalue__local_id(Expr *&lvalue, const char *id_name, Location id_loc);
                 void lvalue__global_id(Expr *&lvalue, const char *id_name, Location id_loc);
@@ -84,7 +84,7 @@ namespace Alpha
                 ErrorTracker &et_;
 
                 void loopCtrlStmt__loopkeyword_impl(Loop::Keyword keyword, Location keyword_loc);
-                void term__lvalue_op(const char *op_name, const Symbol *lvalue, Location term_loc);
+                void term__lvalue_op(const char *op_name, const Expr *lvalue, Location term_loc);
                 void report_out_of_scope_variable(
                     const char *id_name,
                     const std::string &current_function_name,
@@ -122,12 +122,18 @@ namespace Alpha
         inline void
         SemanticManager::term__lvalue_op(
             const char *op_name,
-            const Symbol *lvalue,
+            const Expr *lvalue,
             const Location term_loc)
         {
-                // lvalue is valid to be nullptr (runtime evaluation).
-                DEBUG_SMART_ASSERT(op_name == "increment" || op_name == "decrement");
-                if (is_modifiable_symbol(lvalue))
+                DEBUG_SMART_ASSERT(!!op_name, !!lvalue);
+                DEBUG_SMART_ASSERT(!!lvalue->symbol); // TODO :will crash (assert fail) error  like 5++; ?
+
+                DEBUG_SMART_ASSERT(
+                    std::strcmp(op_name, "increment") == 0 ||
+                    std::strcmp(op_name, "decrement") == 0 //
+                );
+
+                if (Symbol::is_modifiable_symbol(lvalue->symbol))
                         return;
                 std::string error = FMT::format("{} operator can not be used on function", op_name);
                 et_.report_error(CTError::Type::SEMANTIC, error, term_loc);
@@ -198,7 +204,7 @@ namespace Alpha
 
                 auto current_scope = parse_ctx_.scope_handler.scope();
                 constexpr auto space = Variable::Space::FORMAL_ARGUMENT;
-                DEBUG_SMART_ASSERT(parse_ctx.space_handler.space() == Variable::Space::FORMAL_ARGUMENT);
+                DEBUG_SMART_ASSERT(parse_ctx_.space_handler.space() == Variable::Space::FORMAL_ARGUMENT);
 
                 for (const Parameter &param : parse_ctx_.function_ctx_handler.function_parameters())
                         if (!reported_parameter_name_conflict(current_scope, param))
@@ -255,25 +261,25 @@ namespace Alpha
         }
 
         inline void
-        SemanticManager::term__inc_lvalue(const Symbol *lvalue, const Location term_loc)
+        SemanticManager::term__inc_lvalue(const Expr *lvalue, const Location term_loc)
         {
                 term__lvalue_op("increment", lvalue, term_loc);
         }
 
         inline void
-        SemanticManager::term__lvalue_inc(const Symbol *lvalue, const Location term_loc)
+        SemanticManager::term__lvalue_inc(const Expr *lvalue, const Location term_loc)
         {
                 term__lvalue_op("increment", lvalue, term_loc);
         }
 
         inline void
-        SemanticManager::term__dec_lvalue(const Symbol *lvalue, const Location term_loc)
+        SemanticManager::term__dec_lvalue(const Expr *lvalue, const Location term_loc)
         {
                 term__lvalue_op("decrement", lvalue, term_loc);
         }
 
         inline void
-        SemanticManager::term__lvalue_dec(const Symbol *lvalue, const Location term_loc)
+        SemanticManager::term__lvalue_dec(const Expr *lvalue, const Location term_loc)
         {
                 term__lvalue_op("decrement", lvalue, term_loc);
         }
@@ -481,6 +487,12 @@ namespace Alpha
                         return;
                 std::string error = "`return` statement not in a function statement";
                 et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
+        }
+
+        inline void
+        SemanticManager::update_expr_location(Expr *expr, Location new_expr_loc)
+        {
+                expr->location = new_expr_loc;
         }
 } // namespace Alpha
 

@@ -24,14 +24,5 @@ namespace Alpha
                 Location begin;
                 Location end;
         };
-
-        [[nodiscard]] bool is_modifiable_symbol(const Symbol *const symbol)
-        {
-                // TODO: remove (deprecated part from phase 2)
-                // if (!symbol) // nullptr implies runtime-evaluated lvalue (e.g. member access)
-                // 	return true;
-                return symbol->is_variable();
-        }
-
 } // namespace Alpha
 #endif //_PARSER_COMMON_HPP

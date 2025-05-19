@@ -7,18 +7,16 @@
         #include <string>                             // for basic_string, string
         #include "parser/alpha_trace_logger.hpp"            // for display_trace
         #include "parser/alpha_parser_context.hpp"    // for ParseCtx
-        #include "parser/alpha_semantic_manager.hpp"  // for block__lbrace, funcArgs...
-        #include "parser/alpha_semantic_builder.hpp"  // for block__lbrace, funcArgs...
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
         #include "alpha_parser_prologue_code.hpp"
-        namespace ASF = Alpha::SemanticFunctions;
-        namespace AST = Alpha::SemanticTransformer;
 }
 
 %code requires
 {
         #include "core/alpha_error.hpp"               // for ErrorTracker
         #include "core/alpha_location.hpp"            // for Location, LocationTracker
+        #include "parser/alpha_semantic_manager.hpp"  // for block__lbrace, funcArgs...
+        #include "parser/alpha_semantic_builder.hpp"  // for block__lbrace, funcArgs...
         #include "parser/alpha_parser_context.hpp"    // for ParseCtx
         #include "parser/alpha_symbol_table.hpp"      // for Symbol, SymbolTable
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
@@ -30,15 +28,15 @@
 %define api.location.type {Alpha::Location}
 %locations
 
-%parse-param{Alpha::LexerCtx &lexer_ctx}
-%parse-param{Alpha::ParseCtx &parse_ctx}
-%parse-param{Alpha::SymbolTable &symbol_table}
-%parse-param{Alpha::ErrorTracker &error_tracker}
 %parse-param{Alpha::LocationTracker &location_tracker}
+%parse-param{Alpha::ErrorTracker &error_tracker}
+%parse-param{Alpha::LexerCtx &lexer_ctx}
+%parse-param{Alpha::SemanticManager &sm}
+%parse-param{Alpha::SemanticBuilder &sb}
 
-%lex-param{Alpha::LexerCtx &lexer_ctx}
-%lex-param{Alpha::ErrorTracker &error_tracker}
 %lex-param{Alpha::LocationTracker &location_tracker}
+%lex-param{Alpha::ErrorTracker &error_tracker}
+%lex-param{Alpha::LexerCtx &lexer_ctx}
 
 // Here I declare the trivial types that can be used in union.
 // More complex types are stores in ParseCache of ParseCtx.
@@ -202,8 +200,8 @@ stmt:
 ;
 
 loopCtrlStmt:
-  BREAK    { loopCtrlStmt__break(parse_ctx, @BREAK, error_tracker); }
-| CONTINUE { loopCtrlStmt__continue(parse_ctx, @CONTINUE, error_tracker); }
+  BREAK    { sm.loopCtrlStmt__break(@BREAK); }
+| CONTINUE { sm.loopCtrlStmt__continue(@CONTINUE); }
 ;
 
 expr:
@@ -228,39 +226,39 @@ term:
   LEFT_PAREN expr RIGHT_PAREN
 | MINUS expr %prec UMINUS
 | NOT expr
-| INC lvalue /* { term__inc_lvalue($lvalue, @term, error_tracker); } */
-| lvalue INC /*{ term__lvalue_inc($lvalue, @term, error_tracker); } */
-| DEC lvalue /*{ term__dec_lvalue($lvalue, @term, error_tracker); }*/
-| lvalue DEC /*{ term__lvalue_dec($lvalue, @term, error_tracker); }*/
+| INC lvalue { sm.term__inc_lvalue($lvalue, @term); }
+| lvalue INC { sm.term__lvalue_inc($lvalue, @term); }
+| DEC lvalue { sm.term__dec_lvalue($lvalue, @term); }
+| lvalue DEC { sm.term__lvalue_dec($lvalue, @term); }
 | primary { $term = $primary; }
 ;
 
 assignExpr:
-  lvalue ASSIGN expr
-  { assignExpr__lvalue_assign_expr(symbol_table, parse_ctx, $assignExpr,$lvalue,$expr, @ASSIGN, error_tracker); }
+  lvalue ASSIGN expr  
+  { $assignExpr = sb.resolve_assign_expr($lvalue,$expr, @ASSIGN); }
 ;
 
 primary:
-  lvalue { primary__lvalue(symbol_table, parse_ctx, $primary, $lvalue); }
+  lvalue { $primary = sb.resolve_lvalue_to_primary($lvalue); }
 | call
 | objectDef
 | LEFT_PAREN funcDef RIGHT_PAREN
-| const { $primary = $const; }
+| const  { $primary = $const; }
 ;
 
 
 lvalue:
-  ID { lvalue__id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
-| LOCAL ID { lvalue__local_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); } 
-| GLOBAL ID { lvalue__global_id(symbol_table, parse_ctx, $ID, @ID, $lvalue, error_tracker); }
+  ID        { sm.lvalue__id($lvalue, $ID, @ID); }
+| LOCAL ID  { sm.lvalue__local_id($lvalue, $ID, @ID); } 
+| GLOBAL ID { sm.lvalue__global_id($lvalue, $ID, @ID); }
 | member { $lvalue = $member; }
 ;
 
 tableItem:
-  lvalue DOT ID  
-  { tableItem__lvalue_dot_id(symbol_table, parse_ctx ,$tableItem, $lvalue, $ID, @ID, @tableItem); } 
-| lvalue LEFT_BRACKET expr RIGHT_BRACKET
-  { tableItem__lvalue_lbracket_expr_rbracket(symbol_table,parse_ctx, $tableItem, $lvalue, $expr, @tableItem); }
+  lvalue DOT ID
+  { $tableItem = sb.make_table_item($lvalue, $ID, @tableItem ,@ID); } 
+| lvalue LEFT_BRACKET expr RIGHT_BRACKET 
+  { $tableItem = sb.make_table_item($lvalue, $expr, @tableItem); } 
 ;
 
 member:
@@ -270,34 +268,33 @@ member:
 ;
 
 //*TODO: ADD normal_call and Method_call and pass needed variable trhoguh a Call struct!! */
-
 call[invocation]:
   call[callable] LEFT_PAREN elist RIGHT_PAREN
-  { $invocation = ASF::make_call(symbol_table, parse_ctx, $callable, $elist, @invocation); }
+  { $invocation = sb.make_call($callable, $elist, @invocation); }
 | lvalue LEFT_PAREN elist RIGHT_PAREN // NORMAL_CALL
-  { call__lvalue_lparen_elist_rparen(symbol_table, parse_ctx, $invocation, $lvalue, $elist, @invocation); }
+  { $invocation = sb.make_normal_call($lvalue, $elist, @invocation); }
 | lvalue METHOD_CALL ID LEFT_PAREN elist RIGHT_PAREN // METHOD_CALL
-  { call__lvalue_ddot_id_lparen_elist_rparen(symbol_table, parse_ctx, $invocation, $lvalue, $ID, @ID, $elist, @invocation); }
+  { $invocation = sb.make_method_call($lvalue, $ID, $elist, @invocation, @ID); }
 | LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN
-  {
-    Expr * callee_func = parse_ctx.expr_handler.make_expr_program_function($funcDef);
-    $invocation = ASF::make_call(symbol_table, parse_ctx,callee_func, $elist, @invocation);
-  }
+  { $invocation = sb.make_iife_call($funcDef, $elist, @invocation); }
 ;
 
 exprList[head]:
-  expr {
-    AST::update_expr_location($expr, @expr);
-     $head = ASF::make_expr_list($expr); 
-     }
-| expr COMMA exprList[tail] {
-    AST::update_expr_location($expr, @expr);
-     $head = ASF::extend_expr_list($expr, $tail); 
-   }
+  expr
+  { 
+    sm.update_expr_location($expr, @expr);
+    $head = sb.make_empty_expr_list();
+    $head = sb.extend_expr_list($expr, $exprList);
+  }
+| expr COMMA exprList[tail] 
+  {
+    sm.update_expr_location($expr, @expr);
+    $head = sb.extend_expr_list($expr, $tail);
+  }
 ;
 
 elist:
-  /* (empty) */ { $elist = ASF::make_expr_list(); }
+  /* (empty) */ { $elist = sb.make_empty_expr_list(); }
 | exprList      { $elist = $exprList; }
 ;
 

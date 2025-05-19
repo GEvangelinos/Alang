@@ -38,13 +38,14 @@ static void alpha_yyerror([[maybe_unused]] Alpha::LexerCtx &lexer_ctx,
         static constexpr char k_prefix[] = "syntax error, ";
         if (error_message.rfind(k_prefix, 0) == 0)        // does it start with that?
                 error_message.erase(0, strlen(k_prefix)); // remove it
-        extern Location alpha_yylloc;
+        extern Alpha::Location alpha_yylloc;
         error_tracker.report_error(
             Alpha::CTError::Type::SYNTAX,
             error_message,
-            Location{
+            Alpha::Location{
                 .first_index = alpha_yylloc.first_index,
-                .last_index = alpha_yylloc.last_index});
+                .last_index = alpha_yylloc.last_index} //
+        );
 }
 
 #endif // ALPHA_PARSER_PROLOGUE_CODE_HPP

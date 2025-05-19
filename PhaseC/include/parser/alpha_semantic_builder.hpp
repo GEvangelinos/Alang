@@ -1,5 +1,5 @@
 #ifndef ALPHA_SEMANTIC_BUILDER_HPP
-#define ALPHA_SEMANTIC_ACTION_FUNCS_HPP
+#define ALPHA_SEMANTIC_BUILDER_HPP
 #include "core/alpha_error.hpp"            // for ErrorTracker
 #include "core/alpha_location.hpp"         // for Location
 #include "parser/alpha_parser_context.hpp" // for ParseCtx
@@ -36,7 +36,6 @@ namespace Alpha
                 [[nodiscard]] Expr *make_const_int(i64 int_value, Location int_loc);
                 [[nodiscard]] Expr *make_const_real(f64 real_value, Location real_loc);
                 [[nodiscard]] Expr *make_const_string(const char *str_value, Location str_loc);
-                [[nodiscard]] Expr *make_call(Expr *lvalue, ExprList *elist, Location call_loc);
                 [[nodiscard]] Expr *resolve_lvalue_to_primary(Expr *lvalue);
                 [[nodiscard]] Expr *resolve_assign_expr(Expr *lvalue, Expr *expr, Location assign_loc);
                 [[nodiscard]] Expr *make_table_item(
@@ -48,6 +47,7 @@ namespace Alpha
                     Expr *&lvalue,
                     Expr *expr,
                     Location table_item_loc);
+                [[nodiscard]] Expr *make_call(Expr *lvalue, const ExprList *elist, Location call_loc);
                 [[nodiscard]] Expr *make_normal_call(
                     Expr *&lvalue,
                     ExprList *elist,
@@ -58,10 +58,13 @@ namespace Alpha
                     ExprList *elist,
                     Location call_loc,
                     Location id_loc);
+                [[nodiscard]] Expr *make_iife_call(
+                    const Function *func_symbol,
+                    const ExprList *elist,
+                    Location call_loc);
+
                 [[nodiscard]] static BlockLocation
                 make_block_location(Location begin, Location end) noexcept;
-
-                void update_expr_location(Expr *expr, Location new_expr_loc);
 
         private:
                 ParseCtx &parse_ctx_;
@@ -129,7 +132,7 @@ namespace Alpha
         }
 
         inline Expr *
-        SemanticBuilder::make_call(Expr *lvalue, ExprList *elist, Location call_loc)
+        SemanticBuilder::make_call(Expr *lvalue, const ExprList *elist, Location call_loc)
         {
 
                 Expr *func_expr = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
@@ -234,13 +237,23 @@ namespace Alpha
                 return make_call(lvalue, elist, call_loc);
         }
 
+        inline Expr *
+        SemanticBuilder::make_iife_call(
+            const Function *func_symbol,
+            const ExprList *elist,
+            const Location call_loc)
+        {
+                Expr *func_expr = parse_ctx_.expr_handler.make_expr_program_function(func_symbol);
+                return make_call(func_expr, elist, call_loc);
+        }
+
         inline void
         SemanticBuilder::validate_lvalue_for_assignment(
             const Symbol *lvalue_symbol,
             const Location assign_loc)
         {
                 DEBUG_SMART_ASSERT(!!lvalue_symbol);
-                if (is_modifiable_symbol(lvalue_symbol))
+                if (Symbol::is_modifiable_symbol(lvalue_symbol))
                         return;
                 if (lvalue_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
                 {
@@ -311,4 +324,4 @@ namespace Alpha
         }
 } // namespace Alpha
 
-#endif // ALPHA_SEMANTIC_ACTION_FUNCS_HPP
+#endif // ALPHA_SEMANTIC_BUILDER_HPP

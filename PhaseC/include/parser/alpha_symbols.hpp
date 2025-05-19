@@ -31,10 +31,10 @@ namespace Alpha
                 virtual ~Symbol() = default;
 
                 [[nodiscard]] std::string_view type_to_string() const noexcept;
-
                 [[nodiscard]] bool is_variable() const noexcept { return type == Type::VARIABLE; }
                 [[nodiscard]] bool is_function() const noexcept { return !is_variable(); }
                 [[nodiscard]] bool is_active() const noexcept { return is_active_; }
+                [[nodiscard]] static bool is_modifiable_symbol(const Symbol *symbol);
 
         protected:
                 Symbol(const std::string &name, u32 scope, Type type, Location location) noexcept
@@ -95,5 +95,15 @@ namespace Alpha
 
                 ~Function() override = default;
         };
+
+        inline bool
+        Symbol::is_modifiable_symbol(const Symbol *symbol)
+        {
+                // TODO: remove (deprecated part from phase 2)
+                // if (!symbol) // nullptr implies runtime-evaluated lvalue (e.g. member access)
+                // 	return true;
+                return symbol->is_variable();
+        }
+
 } // namespace Alpha
 #endif // ALPHA_SYMBOLS_HPP

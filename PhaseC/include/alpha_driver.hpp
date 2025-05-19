@@ -58,13 +58,14 @@ namespace Alpha
 
                 const std::filesystem::path source_filepath_;
                 FlexBuffer flex_buffer_;
-                Alpha::SymbolTable st_;
-                Alpha::ErrorTracker et_;
                 Alpha::LocationTracker lt_;
+                Alpha::ErrorTracker et_;
+                Alpha::SymbolTable st_;
                 Alpha::LexerCtx lexer_ctx_;
                 Alpha::ParseCtx parse_ctx_;
-                Alpha::SemanticBuilder semantic_builder_;
-                Alpha::SemanticManager semantic_manager_;
+                Alpha::SemanticManager sm_;
+                Alpha::SemanticBuilder sb_;
+
                 int parser_retval_ = 0;
                 bool ok_flag_ = true;
 

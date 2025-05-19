@@ -17,6 +17,7 @@
 #include "utils/misc.hpp"
 #include "core/alpha_types.hpp"
 #include "utils/smart_assert.h"
+#include "core/alpha_error.hpp"
 #include <limits>
 #include <list>
 #include <stack>
@@ -234,7 +235,7 @@ namespace Alpha
 
         private:
                 SymbolTable &st_;
-                ErrorTracker &et_;
+                [[maybe_unused]] ErrorTracker &et_; // TODO: remove if unused
         };
 
         inline SpaceHandler::SpaceHandler()

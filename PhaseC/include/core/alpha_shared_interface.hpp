@@ -4,8 +4,8 @@
 #include "scanner/alpha_scanner_context.hpp"
 
 #define ALPHA_YYLEX_SIGNATURE int alpha_yylex( \
-    Alpha::LexerCtx &lexer_ctx,                 \
+    Alpha::LocationTracker &lt,                \
     Alpha::ErrorTracker &et,                   \
-    Alpha::LocationTracker &lt)
+    Alpha::LexerCtx &lexer_ctx)
 
 #endif // ALPHA_SHARED_INTERFACE_HPP

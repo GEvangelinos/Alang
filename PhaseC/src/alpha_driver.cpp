@@ -209,8 +209,8 @@ namespace Alpha
               st_(),
               lexer_ctx_(source_filepath),
               parse_ctx_(st_, et_),
-              semantic_manager_(parse_ctx_, st_, et_),
-              semantic_builder_(parse_ctx_, st_, et_)
+              sm_(parse_ctx_, st_, et_),
+              sb_(parse_ctx_, st_, et_)
 
         {
                 g_show_parser_trace = show_parser_trace;
@@ -218,7 +218,7 @@ namespace Alpha
 
         void Driver::run_syntax_analyzer()
         {
-                parser_retval_ = alpha_yyparse(lexer_ctx_, parse_ctx_, st_, et_, lt_);
+                parser_retval_ = alpha_yyparse(lt_, et_, lexer_ctx_, sm_, sb_);
         }
 
         void Driver::show_symbol_table() const
