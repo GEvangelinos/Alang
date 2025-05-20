@@ -187,6 +187,7 @@ namespace Alpha
 
         char *TokenID::refreshLastId(const char *id)
         {
+                // TODO in future driver.. just malloc a buffer, and write the same (grow only if needed..);
                 if (!id)
                         throw std::runtime_error("Error in lexer (probably): `id` is null.");
 

@@ -50,7 +50,10 @@
         double const_real;
         const  Alpha::Function *const_function_symbol_ptr;
         Alpha::Expr *expr_ptr;
-        std::vector<Alpha::Expr *> *expr_list_ptr; // Keep vector instead of list for better cache locality.
+        Alpha::ExprList *expr_list_ptr;
+        Alpha::ExprPair *expr_pair_ptr;
+        Alpha::DictList *dict_list_ptr;
+
         Alpha::Location location;
         Alpha::BlockLocation block_location;
 }
@@ -80,6 +83,9 @@
 
 %type  <expr_list_ptr> exprList
 %type  <expr_list_ptr> elist
+%type  <dict_list_ptr> indexed
+%type  <dict_list_ptr> indexedElemList
+%type  <expr_pair_ptr> indexedElem
 
 %type  <const_function_symbol_ptr> funcDef
 %type  <const_function_symbol_ptr> funcSignature
@@ -225,8 +231,8 @@ expr:
 ;
 
 term:
-  LEFT_PAREN expr RIGHT_PAREN
-| MINUS expr %prec UMINUS
+  LEFT_PAREN expr RIGHT_PAREN { $term = $expr; }
+| MINUS expr %prec UMINUS { sm.term__minus_expr($term, $expr, @expr); }
 | NOT expr
 | INC lvalue { sm.term__inc_lvalue($lvalue, @term); }
 | lvalue INC { sm.term__lvalue_inc($lvalue, @term); }
@@ -243,16 +249,17 @@ assignExpr:
 primary:
   lvalue { $primary = sb.resolve_lvalue_to_primary($lvalue); }
 | call
-| objectDef
+| objectDef // TODO do you need to forward. // TODO2: Find ALL places you need to forward
 | LEFT_PAREN funcDef RIGHT_PAREN
+  { $primary = sb.make_program_function($funcDef); }
 | const  { $primary = $const; }
 ;
 
 
 lvalue:
-  ID        { sm.lvalue__id($lvalue, $ID, @ID); }
-| LOCAL ID  { sm.lvalue__local_id($lvalue, $ID, @ID); } 
-| GLOBAL ID { sm.lvalue__global_id($lvalue, $ID, @ID); }
+  ID        { sm.lvalue__id($lvalue, $ID, @ID);  std::cout << "4.PARSER: ID ==  " << $ID << std::endl; }
+| LOCAL ID  { sm.lvalue__local_id($lvalue, $ID, @ID); std::cout << "5.PARSER: ID ==  " << $ID << std::endl;} 
+| GLOBAL ID { sm.lvalue__global_id($lvalue, $ID, @ID); std::cout << "6.PARSER: ID ==  " << $ID << std::endl;}
 | member { $lvalue = $member; }
 ;
 
@@ -305,7 +312,7 @@ tableList:
 
 tableDict:
   LEFT_BRACKET indexed RIGHT_BRACKET
-  { $tableDict = sb.make_table_dict(@tableDict); }
+  { $tableDict = sb.make_table_dict($indexed, @tableDict); }
 ;
 
 objectDef:
@@ -314,11 +321,19 @@ objectDef:
 ;
 
 indexed:
-  indexedElemList
+  indexedElemList { $indexed = $indexedElemList; }
+;
+
+indexedElemList[head]:
+  indexedElem
+  { $head = sb.make_dict_list_with($indexedElem); }
+| indexedElem COMMA indexedElemList[tail]
+  { $head = sb.extend_dict_list_with($tail, $indexedElem); }
 ;
 
 indexedElem:
-  LEFT_BRACE expr COLON expr RIGHT_BRACE
+  LEFT_BRACE expr[key] COLON expr[value] RIGHT_BRACE
+  { $indexedElem = sb.make_expr_pair($key, $value); }
 ;
 
 blockBegin:
@@ -346,8 +361,8 @@ block:
 
 
 funcPrefix:
-  FUNCTION      { sm.funcPrefix__function(@FUNCTION); }
-| FUNCTION ID   { sm.funcPrefix__function_id($ID, @ID); }
+  FUNCTION    { sm.funcPrefix__function(@FUNCTION); }
+| FUNCTION ID { sm.funcPrefix__function_id($ID, @ID); }
 ;
 
 funcArgs:
@@ -361,7 +376,7 @@ funcArgList:
 ;
 
 funcSignature:
-  funcPrefix funcArgList
+  funcPrefix funcArgList // need funcPREFIX ID here
   { sm.funcSignature__funcPrefix_funcArgList($funcSignature); }
 ;
 
@@ -380,9 +395,12 @@ const:
 | FALSE  { $const = sb.make_const_false(@FALSE); }
 | INT    { $const = sb.make_const_int($INT, @INT); }
 | REAL   { $const = sb.make_const_real($REAL, @REAL); }
-| STRING { $const = sb.make_const_string($STRING, @STRING); }
-;
+| STRING {
 
+//TODO. STOP LEXER FROM COMPYING THE STRING.. IT USESLESS and MAKES US NEED EXTRA Deaclocation bookeeping 
+
+   $const = sb.make_const_string($STRING, @STRING); delete[] $STRING; $STRING = nullptr; }
+;
 
 ifStmt:
   IF LEFT_PAREN expr RIGHT_PAREN stmt %prec THEN
@@ -420,9 +438,5 @@ returnStmt: //OK
 | funcCtrlStmt expr
 ;
 
-indexedElemList:
-  indexedElem
-| indexedElem COMMA indexedElemList
-;
 
 %%

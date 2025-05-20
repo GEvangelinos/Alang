@@ -34,6 +34,10 @@ namespace Alpha
                     ExprList *expr_list,
                     Expr *expr,
                     Location new_expr_loc);
+                [[nodiscard]] DictList *make_dict_list_with(ExprPair *first_pair);
+                [[nodiscard]] DictList *extend_dict_list_with(
+                    DictList *dict_list,
+                    ExprPair *new_pair);
                 [[nodiscard]] Expr *make_const_nil(Location nil_loc);
                 [[nodiscard]] Expr *make_const_true(Location true_loc);
                 [[nodiscard]] Expr *make_const_false(Location false_loc);
@@ -42,8 +46,10 @@ namespace Alpha
                 [[nodiscard]] Expr *make_const_string(const char *str_value, Location str_loc);
                 [[nodiscard]] Expr *resolve_lvalue_to_primary(Expr *lvalue);
                 [[nodiscard]] Expr *resolve_assign_expr(Expr *lvalue, Expr *expr, Location assign_loc);
-                [[nodiscard]] Expr *make_table_list(ExprList *elist, Location table_list_loc);
-                [[nodiscard]] Expr *make_table_dict(Location table_dict_loc);
+                [[nodiscard]] Expr *make_table_list(ExprList *&elist, Location table_list_loc);
+                [[nodiscard]] Expr *make_table_dict(DictList *&dlist, Location table_dict_loc);
+                [[nodiscard]] Expr *make_program_function(const Function *function_symbol);
+                [[nodiscard]] ExprPair *make_expr_pair(Expr *first, Expr *second);
                 [[nodiscard]] Expr *make_table_item(
                     Expr *&lvalue,
                     const char *id,
@@ -53,18 +59,18 @@ namespace Alpha
                     Expr *&lvalue,
                     Expr *expr,
                     Location table_item_loc);
-                [[nodiscard]] Expr *make_call(Expr *lvalue, const ExprList *elist, Location call_loc);
+                [[nodiscard]] Expr *make_call(Expr *lvalue, ExprList *&elist, Location call_loc);
                 [[nodiscard]] Expr *make_normal_call(
                     Expr *&lvalue,
-                    ExprList *elist,
+                    ExprList *&elist,
                     Location call_loc);
                 [[nodiscard]] Expr *make_method_call(
                     Expr *&lvalue,
-                    ExprList *elist,
+                    ExprList *&elist,
                     Location call_loc);
                 [[nodiscard]] Expr *make_iife_call(
                     const Function *func_symbol,
-                    const ExprList *elist,
+                    ExprList *&elist,
                     Location call_loc);
 
                 [[nodiscard]] static BlockLocation
@@ -75,6 +81,8 @@ namespace Alpha
                 [[maybe_unused]] SymbolTable &st_; // TODO: REMOVE IF UNUSED
                 ErrorTracker &et_;
 
+                void delete_expr_list(ExprList *&elist);
+                void delete_dict_list(DictList *&dlist);
                 void validate_lvalue_for_assignment(const Symbol *lvalue_symbol, Location assign_loc);
                 [[nodiscard]] Expr *
                 handle_table_item_assignment(Expr *lvalue, Expr *expr, Location assign_loc);
@@ -82,6 +90,7 @@ namespace Alpha
                 handle_direct_assignment(Expr *lvalue, Expr *expr, Location assign_loc);
 
                 static void update_expr_location(Expr *expr, Location new_expr_loc);
+                [[nodiscard]] DictList *make_empty_dict_list();
         }; // class SemanticBuilder
 
         inline SemanticBuilder::SemanticBuilder(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et)
@@ -90,7 +99,23 @@ namespace Alpha
         inline ExprList *
         SemanticBuilder::make_empty_expr_list()
         {
-                return new std::vector<Expr *>();
+                return new ExprList();
+        }
+
+        inline void
+        SemanticBuilder::delete_expr_list(ExprList *&elist)
+        {
+                delete elist;
+                DEBUG_NULLIFY(elist);
+        }
+
+        inline void
+        SemanticBuilder::delete_dict_list(DictList *&dlist)
+        {
+                for (ExprPair *pair : *dlist)
+                        delete pair;
+                delete dlist;
+                DEBUG_NULLIFY(dlist);
         }
 
         inline ExprList *
@@ -150,7 +175,7 @@ namespace Alpha
         }
 
         inline Expr *
-        SemanticBuilder::make_call(Expr *lvalue, const ExprList *elist, Location call_loc)
+        SemanticBuilder::make_call(Expr *lvalue, ExprList *&elist, Location call_loc)
         {
 
                 Expr *func_expr = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
@@ -184,6 +209,7 @@ namespace Alpha
                     getretval_expr,
                     k_no_location); // We could pass call_location, but we follow strict policy: temps have no location
 
+                delete_expr_list(elist);
                 return getretval_expr;
         }
 
@@ -208,8 +234,9 @@ namespace Alpha
         }
 
         inline Expr *
-        SemanticBuilder::make_table_list(ExprList *elist, Location table_list_loc)
+        SemanticBuilder::make_table_list(ExprList *&elist, Location table_list_loc)
         {
+                DEBUG_SMART_ASSERT(!!elist);
                 Expr *new_table_expr = parse_ctx_.expr_handler.make_expr_new_table(table_list_loc);
                 parse_ctx_.quad_handler.emit_quad(
                     IOPCode::TABLECREATE,
@@ -225,24 +252,82 @@ namespace Alpha
                 {
                         Expr *index_expr = parse_ctx_.expr_handler.make_expr_const_int(
                             list_index++,
-                            (*expr_it)->location //
+                            (*expr_it)->location // //TODO: you could remove as index its unseen is source code,
+                                                 // and locations is ment to point to source code,
+                                                 // Except if we think of it, as "cause-of-existance"
+                                                 // Like I exist dude to this thing there...
                         );
                         parse_ctx_.quad_handler.emit_quad(
                             IOPCode::TABLESETELEM,
                             index_expr,
                             *expr_it,
                             new_table_expr,
-                            table_list_loc //
+                            (*expr_it)->location //
                         );
                 }
-
+                delete_expr_list(elist);
                 return new_table_expr;
         }
 
         inline Expr *
-        SemanticBuilder::make_table_dict(Location table_dict_loc)
+        SemanticBuilder::make_table_dict(DictList *&dlist, Location table_dict_loc)
         {
-                SMART_ASSERT(false); // NOT IMPLEMENTED YET
+                Expr *new_table_expr = parse_ctx_.expr_handler.make_expr_new_table(table_dict_loc);
+                parse_ctx_.quad_handler.emit_quad(
+                    IOPCode::TABLECREATE,
+                    nullptr,
+                    nullptr,
+                    new_table_expr,
+                    table_dict_loc //
+                );
+
+                for (auto it = dlist->crbegin(); it != dlist->crend(); ++it)
+                {
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::TABLESETELEM,
+                            (*it)->first,
+                            (*it)->second,
+                            new_table_expr,
+                            k_no_location //
+                        );
+                }
+                delete_dict_list(dlist);
+                return new_table_expr;
+        }
+
+        inline Expr *
+        SemanticBuilder::make_program_function(const Function *function_symbol)
+        {
+                return parse_ctx_.expr_handler.make_expr_program_function(function_symbol);
+        }
+
+        inline ExprPair *
+        SemanticBuilder::make_expr_pair(Expr *first, Expr *second)
+        {
+                return new ExprPair(first, second);
+        }
+
+        inline DictList *
+        SemanticBuilder::make_empty_dict_list()
+        {
+                return new DictList{};
+        }
+
+        inline DictList *
+        SemanticBuilder::make_dict_list_with(ExprPair *first_element)
+        {
+                DEBUG_SMART_ASSERT(!!first_element);
+                DictList *new_dict_list = make_empty_dict_list();
+                new_dict_list->push_back(first_element);
+                return new_dict_list;
+        }
+
+        inline DictList *
+        SemanticBuilder::extend_dict_list_with(DictList *dict_list, ExprPair *new_pair)
+        {
+                DEBUG_SMART_ASSERT(!!dict_list, !!new_pair);
+                dict_list->push_back(new_pair);
+                return dict_list;
         }
 
         inline Expr *
@@ -265,7 +350,7 @@ namespace Alpha
         }
 
         inline Expr *
-        SemanticBuilder::make_normal_call(Expr *&lvalue, ExprList *elist, Location call_loc)
+        SemanticBuilder::make_normal_call(Expr *&lvalue, ExprList *&elist, Location call_loc)
         {
                 lvalue = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
                 return make_call(lvalue, elist, call_loc);
@@ -274,7 +359,7 @@ namespace Alpha
         inline Expr *
         SemanticBuilder::make_method_call(
             Expr *&lvalue,
-            ExprList *elist,
+            ExprList *&elist,
             Location call_loc)
         {
                 lvalue = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
@@ -295,7 +380,7 @@ namespace Alpha
         inline Expr *
         SemanticBuilder::make_iife_call(
             const Function *func_symbol,
-            const ExprList *elist,
+            ExprList *&elist,
             const Location call_loc)
         {
                 Expr *func_expr = parse_ctx_.expr_handler.make_expr_program_function(func_symbol);

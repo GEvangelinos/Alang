@@ -105,8 +105,11 @@ namespace Alpha
                         const i64 const_int;
                         const char *const_str;
                         const bool const_bool;
+                        const u64 pass_zero_if_union_unused;
                 };
         };
+        static_assert(
+            sizeof(Expr::pass_zero_if_union_unused) >= sizeof(Expr::index));
 
         constexpr Expr::Type to_expr_type(Symbol::Type symbol_type)
         {

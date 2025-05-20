@@ -210,6 +210,7 @@ namespace Alpha
                 [[nodiscard]] Expr *make_expr_assign(Expr *rvalue, Location assign_loc);         // TODO: !! Why two make assign expr?
                 [[nodiscard]] Expr *make_expr_assign(const Symbol *symbol, Location assign_loc); // TODO: WHy 2? make_assign_expr?
                 [[nodiscard]] Expr *make_expr_new_table(Location new_table_loc);
+                [[nodiscard]] Expr *make_expr_arithmetic(Location arithmetic_loc);
                 [[nodiscard]] Expr *make_expr_table_item(
                     Expr *&lvalue,
                     const std::string &id,
@@ -688,6 +689,19 @@ namespace Alpha
         }
 
         inline Expr *
+        ExprHandler::make_expr_arithmetic(Location arithmetic_loc)
+        {
+                Expr *expr_arithmetic = new Expr{
+                    .type = Expr::Type::ARITHMETIC,
+                    .symbol = parse_ctx_.new_temp(),
+                    .location = arithmetic_loc,
+                    .index = nullptr,
+                };
+                expr_sink_.push_back(expr_arithmetic);
+                return expr_arithmetic;
+        }
+
+        inline Expr *
         ExprHandler::make_expr_assign(const Symbol *symbol, Location assign_loc)
         {
                 DEBUG_SMART_ASSERT(!!symbol);
@@ -744,7 +758,11 @@ namespace Alpha
         inline ExprHandler::~ExprHandler() noexcept
         {
                 for (const Expr *e : expr_sink_)
+                {
+                        if (e->type == Expr::Type::CONST_STRING)
+                                delete[] e->const_str;
                         delete e;
+                }
         }
 
         inline ParseCtx::ParseCtx(SymbolTable &st, ErrorTracker &et)

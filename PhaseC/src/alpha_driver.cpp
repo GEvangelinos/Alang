@@ -73,15 +73,16 @@ namespace // (Anonymous)
                 {
                         // clang-format off
                 #define CASE_ASSERT(...) SMART_ASSERT(__VA_ARGS__); break;
-                case AET::ASSIGN:        CASE_ASSERT(!!e->symbol, !e->index);
-                case AET::CONST_BOOLEAN: CASE_ASSERT(!e->symbol);
-                case AET::CONST_NIL:     CASE_ASSERT(!e->symbol);
-                case AET::CONST_INT:     CASE_ASSERT(!e->symbol);
-                case AET::CONST_REAL:    CASE_ASSERT(!e->symbol);
-                case AET::CONST_STRING:  CASE_ASSERT(!e->symbol);
-                case AET::TABLE_ITEM:    CASE_ASSERT(!!e->symbol, !!e->index);
-                case AET::VARIABLE:      CASE_ASSERT(!!e->symbol, !e->index);
-                case AET::NEW_TABLE:     CASE_ASSERT(!!e->symbol, e->location != no_loc, !e->index);
+                case AET::ASSIGN:           CASE_ASSERT(!!e->symbol, !e->index);
+                case AET::CONST_BOOLEAN:    CASE_ASSERT(!e->symbol);
+                case AET::CONST_NIL:        CASE_ASSERT(!e->symbol);
+                case AET::CONST_INT:        CASE_ASSERT(!e->symbol);
+                case AET::CONST_REAL:       CASE_ASSERT(!e->symbol);
+                case AET::CONST_STRING:     CASE_ASSERT(!e->symbol);
+                case AET::TABLE_ITEM:       CASE_ASSERT(!!e->symbol, !!e->index);
+                case AET::VARIABLE:         CASE_ASSERT(!!e->symbol, !e->index);
+                case AET::NEW_TABLE:        CASE_ASSERT(!!e->symbol, e->location != no_loc, !e->index);
+                case AET::PROGRAM_FUNCTION: CASE_ASSERT(!!e->symbol, e->location != no_loc,!e->index);
                         // clang-format on
                 }
         }
@@ -97,20 +98,21 @@ namespace // (Anonymous)
                 // clang-format off
                 switch (e->type)
                 {
-                case AET::ASSIGN:        return e->symbol->name;
-                case AET::CONST_BOOLEAN: return e->const_bool ? "true" : "false";
-                case AET::CONST_NIL:     return "nil";
-                case AET::CONST_INT:     return std::to_string(e->const_int);
-                case AET::CONST_REAL:    return std::to_string(e->const_real);
-                case AET::CONST_STRING:  return std::string("\"") + e->const_str + std::string("\"");
-                case AET::VARIABLE:      return e->symbol->name;
-                case AET::TABLE_ITEM:    return e->symbol->name;
-                case AET::NEW_TABLE:     return e->symbol->name;
+                case AET::ASSIGN:           return e->symbol->name;
+                case AET::CONST_BOOLEAN:    return e->const_bool ? "true" : "false";
+                case AET::CONST_NIL:        return "nil";
+                case AET::CONST_INT:        return FMT::to_string(e->const_int);
+                case AET::CONST_REAL:       return FMT::to_string(e->const_real);
+                case AET::CONST_STRING:     return FMT::format("\"{}\"", e->const_str);
+                case AET::VARIABLE:         return e->symbol->name;
+                case AET::TABLE_ITEM:       return e->symbol->name;
+                case AET::NEW_TABLE:        return e->symbol->name;
+                case AET::PROGRAM_FUNCTION: return e->symbol->name;
                         throw std::logic_error("Not sure yet!"); //TODO:REMOVE
                 default:
                         throw std::logic_error(FMT::format(
-                            "{}:{}:{}(): Should never reach here",
-                            __FILENAME__, __LINE__, __func__));
+                            "{}:{}:{}(): Should never reach here. Type's int_value =={} ",
+                            __FILENAME__, __LINE__, __func__, static_cast<int>(e->type)));
                 }
                 // clang-format on
         }

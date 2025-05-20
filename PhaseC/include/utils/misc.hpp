@@ -7,7 +7,11 @@
 #include <iostream>
 #include "utils/format_adapter.hpp"
 #include "utils/smart_assert.h"
-
+#ifdef DEBUG_MODE
+#define DEBUG_NULLIFY(pointer) ((pointer) = nullptr)
+#else
+#define DEBUG_NULLIFY(pointer) ((void)0)
+#endif
 #define UNIMPLEMENTED() throw std::logic_error("Unimplemented function")
 #define REPORT_UNREACHABLE_VIOLATION(_message_if_reached)                                   \
         do                                                                                  \

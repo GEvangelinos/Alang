@@ -55,6 +55,7 @@ namespace Alpha
                 SemanticManager(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et);
                 void loopCtrlStmt__break(Location break_loc);
                 void loopCtrlStmt__continue(Location continue_loc);
+                void term__minus_expr(Expr *&term, Expr *expr, Location expr_loc);
                 void term__inc_lvalue(const Expr *lvalue, Location term_loc);
                 void term__lvalue_inc(const Expr *lvalue, Location term_loc);
                 void term__dec_lvalue(const Expr *lvalue, Location term_loc);
@@ -258,7 +259,15 @@ namespace Alpha
         {
                 loopCtrlStmt__loopkeyword_impl(Loop::Keyword::CONTINUE, continue_loc);
         }
+        inline void
+        SemanticManager::term__minus_expr(Expr *&term, Expr *expr, Location expr_loc)
+        {
+                // check_arith($expr, “unary minus”);
 
+                $term = newexpr(arithexpr_e);
+                $term->sym = newtemp();
+                emit(uminus, $expr, NULL, $term);
+        }
         inline void
         SemanticManager::term__inc_lvalue(const Expr *lvalue, const Location term_loc)
         {

@@ -103,7 +103,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 "."             { return DOT; }
 ".."            { return METHOD_CALL; }
 
-{id}            { alpha_yylval.cstring = Alpha::TokenID::refreshLastId(yytext); return ID; }
+{id}            { alpha_yylval.cstring = Alpha::TokenID::refreshLastId(yytext); return ID; } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
 {real}          { alpha_yylval.const_real = std::stod(yytext); return REAL; }
 {integer}       { alpha_yylval.const_int = std::stol(yytext); return INT; }
 {lineComment}   { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
