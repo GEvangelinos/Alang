@@ -62,6 +62,7 @@ namespace Alpha
                 void lvalue__id(Expr *&lvalue, const char *id_name, Location id_loc);
                 void lvalue__local_id(Expr *&lvalue, const char *id_name, Location id_loc);
                 void lvalue__global_id(Expr *&lvalue, const char *id_name, Location id_loc);
+                void methodCallId__methodcall_id(const char *id, Location id_loc, Location method_call_loc);
                 void blockBegin__lbrace() noexcept;
                 void blockEnd__rbrace() noexcept;
                 void funcPrefix__function(Location anonymous_loc);
@@ -208,6 +209,7 @@ namespace Alpha
                                 st_.insert_variable(
                                     param.name,
                                     current_scope,
+                                    Variable::Type::FORMAL_ARGUMENT,
                                     space,
                                     parse_ctx_.space_handler.next_offset(),
                                     param.location);
@@ -290,12 +292,19 @@ namespace Alpha
                 );
 
                 if (!symbol)
+                {
+                        Variable::Type var_type =
+                            parse_ctx_.scope_handler.scope() == k_global_scope
+                                ? Variable::Type::GLOBAL_VARIABLE
+                                : Variable::Type::LOCAL_VARIABLE;
                         symbol = st_.insert_variable(
                             id_name,
                             parse_ctx_.scope_handler.scope(),
+                            var_type,
                             parse_ctx_.space_handler.space(),
                             parse_ctx_.space_handler.next_offset(),
                             id_loc);
+                }
                 else if (symbol->is_variable() &&
                          symbol->scope > k_global_scope &&
                          symbol->scope <= parse_ctx_.function_ctx_handler.current_function_scope())
@@ -327,6 +336,7 @@ namespace Alpha
                                 symbol = st_.insert_variable(
                                     id_name,
                                     parse_ctx_.scope_handler.scope(),
+                                    Variable::Type::LOCAL_VARIABLE,
                                     parse_ctx_.space_handler.space(),
                                     parse_ctx_.space_handler.next_offset(),
                                     id_loc);
@@ -350,6 +360,17 @@ namespace Alpha
                 }
                 std::string error = FMT::format("variable `::{}` not found in global scope", id_name);
                 et_.report_error(CTError::Type::SEMANTIC, error, id_loc);
+        }
+
+        inline void
+        SemanticManager::methodCallId__methodcall_id(
+            const char *id,
+            const Location id_loc,
+            const Location method_call_loc)
+        {
+                parse_ctx_.cache.method_call_id.id = id;
+                parse_ctx_.cache.method_call_id.id_location = id_loc;
+                parse_ctx_.cache.method_call_id.method_call_location = method_call_loc;
         }
 
         inline void

@@ -59,6 +59,7 @@ namespace Alpha
                 const Variable *insert_variable(
                     const std::string &name,
                     u32 scope,
+                    Variable::Type type,
                     Variable::Space space,
                     u32 offset,
                     Location location);

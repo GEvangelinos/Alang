@@ -11,6 +11,7 @@
 #include "utils/format_adapter.hpp" // for format, FMT
 #include "utils/smart_assert.h"     // for SMART_ASSERT
 #include <iomanip>
+#include <string>
 
 static constexpr unsigned k_flex_eof_padding = 2;
 
@@ -65,18 +66,22 @@ namespace // (Anonymous)
         void expr_validator(const Alpha::Expr *e)
         {
                 using AET = Alpha::Expr::Type;
+                constexpr const Alpha::Location &no_loc = Alpha::k_no_location;
+                SMART_ASSERT(!!e);
+
                 switch (e->type)
                 {
                         // clang-format off
                 #define CASE_ASSERT(...) SMART_ASSERT(__VA_ARGS__); break;
-                case AET::ASSIGN:        CASE_ASSERT(!!e->symbol, !e->next, !e->index);
-                case AET::CONST_BOOLEAN: CASE_ASSERT(!e->symbol, !e->next);
-                case AET::CONST_NIL:     CASE_ASSERT(!e->symbol, !e->next);
-                case AET::CONST_INT:     CASE_ASSERT(!e->symbol, !e->next);
-                case AET::CONST_REAL:    CASE_ASSERT(!e->symbol, !e->next);
-                case AET::CONST_STRING:  CASE_ASSERT(!e->symbol, !e->next);
-                case AET::TABLE_ITEM:    CASE_ASSERT(!!e->symbol, !e->next, !!e->index,);
-                case AET::VARIABLE:      CASE_ASSERT(!!e->symbol, !e->next, !e->index,);
+                case AET::ASSIGN:        CASE_ASSERT(!!e->symbol, !e->index);
+                case AET::CONST_BOOLEAN: CASE_ASSERT(!e->symbol);
+                case AET::CONST_NIL:     CASE_ASSERT(!e->symbol);
+                case AET::CONST_INT:     CASE_ASSERT(!e->symbol);
+                case AET::CONST_REAL:    CASE_ASSERT(!e->symbol);
+                case AET::CONST_STRING:  CASE_ASSERT(!e->symbol);
+                case AET::TABLE_ITEM:    CASE_ASSERT(!!e->symbol, !!e->index);
+                case AET::VARIABLE:      CASE_ASSERT(!!e->symbol, !e->index);
+                case AET::NEW_TABLE:     CASE_ASSERT(!!e->symbol, e->location != no_loc, !e->index);
                         // clang-format on
                 }
         }
@@ -85,7 +90,9 @@ namespace // (Anonymous)
         {
                 if (!e)
                         return "";
-
+#ifdef DEBUG_MODE
+                expr_validator(e);
+#endif
                 using AET = Alpha::Expr::Type;
                 // clang-format off
                 switch (e->type)
@@ -95,8 +102,11 @@ namespace // (Anonymous)
                 case AET::CONST_NIL:     return "nil";
                 case AET::CONST_INT:     return std::to_string(e->const_int);
                 case AET::CONST_REAL:    return std::to_string(e->const_real);
-                case AET::CONST_STRING:  return e->const_str;
+                case AET::CONST_STRING:  return std::string("\"") + e->const_str + std::string("\"");
                 case AET::VARIABLE:      return e->symbol->name;
+                case AET::TABLE_ITEM:    return e->symbol->name;
+                case AET::NEW_TABLE:     return e->symbol->name;
+                        throw std::logic_error("Not sure yet!"); //TODO:REMOVE
                 default:
                         throw std::logic_error(FMT::format(
                             "{}:{}:{}(): Should never reach here",

@@ -20,7 +20,9 @@ namespace Alpha
                 {
                         LIBRARY_FUNCTION,
                         PROGRAM_FUNCTION,
-                        VARIABLE,
+                        FORMAL_ARGUMENT,
+                        GLOBAL_VARIABLE,
+                        LOCAL_VARIABLE,
                 };
 
                 const std::string &name;
@@ -31,8 +33,13 @@ namespace Alpha
                 virtual ~Symbol() = default;
 
                 [[nodiscard]] std::string_view type_to_string() const noexcept;
-                [[nodiscard]] bool is_variable() const noexcept { return type == Type::VARIABLE; }
-                [[nodiscard]] bool is_function() const noexcept { return !is_variable(); }
+                // TODO REMOVE // [[nodiscard]] bool is_variable() const noexcept { return type == Type::VARIABLE; }
+                [[nodiscard]] bool is_variable() const noexcept { return !is_function(); }
+                [[nodiscard]] bool is_function() const noexcept
+                {
+                        return type == Type::LIBRARY_FUNCTION ||
+                               type == Type::PROGRAM_FUNCTION;
+                }
                 [[nodiscard]] bool is_active() const noexcept { return is_active_; }
                 [[nodiscard]] static bool is_modifiable_symbol(const Symbol *symbol);
 
@@ -62,8 +69,14 @@ namespace Alpha
                 const Space space;
                 const u32 offset;
 
-                Variable(const std::string &name, u32 scope, Space space, u32 offset, Location location)
-                    : Symbol(name, scope, Symbol::Type::VARIABLE, location),
+                Variable(
+                    const std::string &name,
+                    u32 scope,
+                    Type type,
+                    Space space,
+                    u32 offset,
+                    Location loc)
+                    : Symbol(name, scope, type, location),
                       space(space),
                       offset(offset) {}
                 ~Variable() override = default;

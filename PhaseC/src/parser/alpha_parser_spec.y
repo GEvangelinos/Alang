@@ -73,6 +73,8 @@
 %type  <expr_ptr> call
 %type  <expr_ptr> term
 %type  <expr_ptr> objectDef
+%type  <expr_ptr> tableList
+%type  <expr_ptr> tableDict
 %type  <expr_ptr> const
 %type  <expr_ptr> expr
 
@@ -263,25 +265,30 @@ tableItem:
 
 member:
   tableItem { $member = $tableItem; }
-| call DOT ID
+| call DOT ID 
 | call LEFT_BRACKET expr RIGHT_BRACKET
+;
+
+methodCallId:
+  METHOD_CALL ID 
+  { sm.methodCallId__methodcall_id($ID, @ID, @methodCallId);}
 ;
 
 //*TODO: ADD normal_call and Method_call and pass needed variable trhoguh a Call struct!! */
 call[invocation]:
-  call[callable] LEFT_PAREN elist RIGHT_PAREN
+  call[callable] LEFT_PAREN elist RIGHT_PAREN // <------------------------------------ CHAIN_CALL
   { $invocation = sb.make_call($callable, $elist, @invocation); }
-| lvalue LEFT_PAREN elist RIGHT_PAREN // NORMAL_CALL
+| lvalue LEFT_PAREN elist RIGHT_PAREN // <-------------------------------------------- NORMAL_CALL
   { $invocation = sb.make_normal_call($lvalue, $elist, @invocation); }
-| lvalue METHOD_CALL ID LEFT_PAREN elist RIGHT_PAREN // METHOD_CALL
-  { $invocation = sb.make_method_call($lvalue, $ID, $elist, @invocation, @ID); }
-| LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN
+| lvalue methodCallId LEFT_PAREN elist RIGHT_PAREN // <----------------------------- METHOD_CALL
+  { $invocation = sb.make_method_call($lvalue, $elist, @invocation); }
+| LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN // <---------------------IIFE_CALL
   { $invocation = sb.make_iife_call($funcDef, $elist, @invocation); }
 ;
 
 exprList[head]:
   expr 
-  { $head = sb.make_expr_list_with($expr, @exrp); }
+  { $head = sb.make_expr_list_with($expr, @expr); }
 | expr COMMA exprList[tail] 
   { $head = sb.extend_expr_list_with($tail, $expr, @expr); }
 ;
@@ -291,9 +298,19 @@ elist:
 | exprList      { $elist = $exprList; }
 ;
 
-objectDef:
+tableList:
   LEFT_BRACKET elist RIGHT_BRACKET
-| LEFT_BRACKET indexed RIGHT_BRACKET
+  { $tableList = sb.make_table_list($elist, @tableList); }
+;
+
+tableDict:
+  LEFT_BRACKET indexed RIGHT_BRACKET
+  { $tableDict = sb.make_table_dict(@tableDict); }
+;
+
+objectDef:
+  tableList { $objectDef = $tableList; }
+| tableDict { $objectDef = $tableDict; }
 ;
 
 indexed:
@@ -305,55 +322,65 @@ indexedElem:
 ;
 
 blockBegin:
-  LEFT_BRACE  { blockBegin__lbrace(parse_ctx); $blockBegin = @LEFT_BRACE; }
+  LEFT_BRACE  
+  { 
+    sm.blockBegin__lbrace();
+    $blockBegin = @LEFT_BRACE;
+  }
 ;
 
 blockEnd:
-  RIGHT_BRACE { blockEnd__rbrace(symbol_table, parse_ctx); $blockEnd = @RIGHT_BRACE; }
+  RIGHT_BRACE 
+  { 
+    sm.blockEnd__rbrace();
+    $blockEnd = @RIGHT_BRACE;
+  }
 ;
 
 block:
-  blockBegin multiStmt  blockEnd   { $block = ASF::make_block_location($blockBegin, $blockEnd); }
-| blockBegin blockEnd              { $block = ASF::make_block_location($blockBegin, $blockEnd); }
+  blockBegin multiStmt  blockEnd   
+  { $block = sb.make_block_location($blockBegin, $blockEnd); }
+| blockBegin blockEnd
+  { $block = sb.make_block_location($blockBegin, $blockEnd); }
 ;
 
 
 funcPrefix:
-  FUNCTION      { funcPrefix__function(parse_ctx, @FUNCTION); }
-| FUNCTION ID   { funcPrefix__function_id(parse_ctx, $ID, @ID); }
+  FUNCTION      { sm.funcPrefix__function(@FUNCTION); }
+| FUNCTION ID   { sm.funcPrefix__function_id($ID, @ID); }
 ;
 
 funcArgs:
-  ID { funcArgs__id(parse_ctx, $ID, @ID); }
-| ID { funcArgs__id(parse_ctx, $ID, @ID); } ',' funcArgs
+  ID { std::cout << "BAD" <<std::endl; sm.funcArgs__id($ID, @ID); }
+| ID { std::cout << "GOOD" <<std::endl;sm.funcArgs__id($ID, @ID); } ',' funcArgs
 ;
 
 funcArgList:
   LEFT_PAREN /*Void*/ RIGHT_PAREN
-| LEFT_PAREN funcArgs RIGHT_PAREN
+| LEFT_PAREN {std::cout << "YES\n" << std::endl;} funcArgs {std::cout << "NOO" << std::endl;} RIGHT_PAREN
 ;
 
 funcSignature:
-  funcPrefix  funcArgList
-  { funcSignature__funcPrefix_funcArgList(symbol_table, parse_ctx, error_tracker, $funcSignature); }
+  funcPrefix  {std::cout << "PASS" << std::endl;}funcArgList
+  { std::cout << "PASS2!\n" << std::endl; sm.funcSignature__funcPrefix_funcArgList($funcSignature); }
 ;
 
 funcDef:
   funcSignature block 
   { 
     // TODO to much inderection remove funcSignature rule and MERGE... 
-    funcDef__funcSignature_block(parse_ctx, $block); 
+    sm.funcDef__funcSignature_block($block); 
     $funcDef = $funcSignature;
   }
 ;
 
 const:
-  NIL    { $const = ASF::make_const_nil(parse_ctx, @NIL); }
-| TRUE   { $const = ASF::make_const_true(parse_ctx, @TRUE); }
-| FALSE  { $const = ASF::make_const_false(parse_ctx, @FALSE); }
-| INT    { $const = ASF::make_const_int(parse_ctx, $INT, @INT); }
-| REAL   { $const = ASF::make_const_real(parse_ctx, $REAL, @REAL); }
-| STRING { $const = ASF::make_const_string(parse_ctx, $STRING, @STRING); }
+  NIL    { $const = sb.make_const_nil(@NIL); }
+| TRUE   { $const = sb.make_const_true(@TRUE); }
+| FALSE  { $const = sb.make_const_false(@FALSE); }
+| INT    { $const = sb.make_const_int($INT, @INT); }
+| REAL   { $const = sb.make_const_real($REAL, @REAL); }
+| STRING { $const = sb.make_const_string($STRING, @STRING); }
 ;
 
 
@@ -368,9 +395,9 @@ whileHeader:
 
 whileStmt:
   whileHeader
-  { whileStmt__whileHeader(parse_ctx); }
+  { sm.whileStmt__whileHeader(); }
   stmt
-  { whileStmt__whileHeader_stmt(parse_ctx); }
+  { sm.whileStmt__whileHeader_stmt(); }
 ;
 
 forHeader:
@@ -379,13 +406,13 @@ forHeader:
 
 forStmt:
   forHeader
-  { forStmt__forHeader(parse_ctx); } 
+  { sm.forStmt__forHeader(); } 
   stmt
-  { forStmt__forHeader_stmt(parse_ctx); }
+  { sm.forStmt__forHeader_stmt(); }
 ;
 
 funcCtrlStmt: //OK
-  RETURN { funcCtrlStmt__return(parse_ctx, @RETURN, error_tracker); }
+  RETURN { sm.funcCtrlStmt__return(@RETURN); }
 ;
 
 returnStmt: //OK

@@ -67,6 +67,13 @@ namespace Alpha
                         std::string id;
                         Location location;
                 } func_prefix;
+
+                struct methodCallIdState
+                {
+                        std::string id;
+                        Location id_location;
+                        Location method_call_location;
+                } method_call_id;
         };
 
         class SpaceHandler : private Immobile
@@ -202,9 +209,10 @@ namespace Alpha
                 [[nodiscard]] Expr *make_expr_program_function(const Function *function_symbol);
                 [[nodiscard]] Expr *make_expr_assign(Expr *rvalue, Location assign_loc);         // TODO: !! Why two make assign expr?
                 [[nodiscard]] Expr *make_expr_assign(const Symbol *symbol, Location assign_loc); // TODO: WHy 2? make_assign_expr?
+                [[nodiscard]] Expr *make_expr_new_table(Location new_table_loc);
                 [[nodiscard]] Expr *make_expr_table_item(
                     Expr *&lvalue,
-                    const char *id,
+                    const std::string &id,
                     Location id_loc,
                     Location table_item_loc);
                 [[nodiscard]] Expr *make_expr_table_item(
@@ -245,6 +253,7 @@ namespace Alpha
 
         inline SpaceHandler::~SpaceHandler()
         {
+                std::cerr << "VARIABLE OFFSET_STACK_SIZE = " << variable_offset_stack_.size() << std::endl;
                 DEBUG_SMART_ASSERT(variable_offset_stack_.size() == 1);
         }
 
@@ -534,7 +543,6 @@ namespace Alpha
                     .symbol = symbol,
                     .location = var_loc,
                     .index = nullptr,
-                    .next = nullptr,
                 };
                 expr_sink_.push_back(expr_lvalue);
                 return expr_lvalue;
@@ -550,7 +558,6 @@ namespace Alpha
                     .symbol = nullptr,
                     .location = str_loc,
                     .const_str = Utils::cstrdup(str_value),
-                    .next = nullptr,
                 };
                 expr_sink_.push_back(expr_str);
                 return expr_str;
@@ -566,7 +573,6 @@ namespace Alpha
                     .symbol = nullptr,
                     .location = int_loc,
                     .const_int = int_value,
-                    .next = nullptr,
                 };
                 expr_sink_.push_back(expr_num);
                 return expr_num;
@@ -582,7 +588,6 @@ namespace Alpha
                     .symbol = nullptr,
                     .location = real_loc,
                     .const_real = real_value,
-                    .next = nullptr,
                 };
                 expr_sink_.push_back(expr_num);
                 return expr_num;
@@ -598,7 +603,6 @@ namespace Alpha
                     .symbol = nullptr,
                     .location = bool_loc,
                     .const_bool = bool_value,
-                    .next = nullptr,
                 };
                 expr_sink_.push_back(expr_bool);
                 return expr_bool;
@@ -614,7 +618,6 @@ namespace Alpha
                     .symbol = nullptr,
                     .location = nil_loc,
                     .index = nullptr,
-                    .next = nullptr,
                 };
                 expr_sink_.push_back(expr_nil);
                 return expr_nil;
@@ -630,7 +633,6 @@ namespace Alpha
                     .symbol = function_symbol,
                     .location = function_symbol->location,
                     .index = nullptr,
-                    .next = nullptr,
                 };
                 expr_sink_.push_back(expr_progfunc);
                 return expr_progfunc;
@@ -639,26 +641,25 @@ namespace Alpha
         inline Expr *
         ExprHandler::make_expr_table_item(
             Expr *&lvalue,
-            const char *id,
+            const std::string &id,
             Location id_loc,
             Location table_item_loc)
         {
-                DEBUG_SMART_ASSERT(!!lvalue, !!id);
+                DEBUG_SMART_ASSERT(!!lvalue);
                 lvalue = emit_quad_if_table_item(lvalue);
 
                 Expr *expr_table_item = new Expr{
                     .type = Expr::Type::TABLE_ITEM,
                     .symbol = lvalue->symbol,
                     .location = table_item_loc,
-                    .index = make_expr_const_string(id, id_loc),
-                    .next = nullptr,
+                    .index = make_expr_const_string(id.c_str(), id_loc),
                 };
                 expr_sink_.push_back(expr_table_item);
                 return expr_table_item;
         }
 
         inline Expr *
-        ExprHandler::make_expr_table_item(Expr *&lvalue, Expr *expr, Location table_item_loc)
+        ExprHandler::make_expr_table_item(Expr *&lvalue, Expr *expr, const Location table_item_loc)
         {
                 DEBUG_SMART_ASSERT(!!lvalue, !!expr);
                 lvalue = emit_quad_if_table_item(lvalue);
@@ -668,10 +669,22 @@ namespace Alpha
                     .symbol = lvalue->symbol,
                     .location = table_item_loc,
                     .index = expr,
-                    .next = nullptr,
                 };
                 expr_sink_.push_back(expr_table_item);
                 return expr_table_item;
+        }
+
+        inline Expr *
+        ExprHandler::make_expr_new_table(const Location new_table_loc)
+        {
+                Expr *expr_new_table = new Expr{
+                    .type = Expr::Type::NEW_TABLE,
+                    .symbol = parse_ctx_.new_temp(),
+                    .location = new_table_loc,
+                    .index = nullptr,
+                };
+                expr_sink_.push_back(expr_new_table);
+                return expr_new_table;
         }
 
         inline Expr *
@@ -683,7 +696,6 @@ namespace Alpha
                     .symbol = symbol,
                     .location = assign_loc,
                     .index = nullptr,
-                    .next = nullptr,
                 };
                 expr_sink_.push_back(expr_assign);
                 return expr_assign;
@@ -700,7 +712,6 @@ namespace Alpha
                     .symbol = rvalue->symbol,
                     .location = assign_loc,
                     .index = rvalue->index,
-                    .next = rvalue->next,
                 };
                 expr_sink_.push_back(expr_assign);
                 return expr_assign;
@@ -750,14 +761,22 @@ namespace Alpha
 
                 // We register new temp, only if current scope doesnt have that temp.
                 if (!symbol)
+                {
+                        Variable::Type var_type =
+                            scope_handler.scope() == k_global_scope
+                                ? Variable::Type::GLOBAL_VARIABLE
+                                : Variable::Type::LOCAL_VARIABLE;
+
                         symbol = st_.insert_variable(
                             temp_name,
                             scope_handler.scope(),
+                            var_type,
                             space_handler.space(),
                             space_handler.next_offset(),
                             k_no_location //
                         );                // TODO: Remove locations from temps and auto generated
-                                          // variables and values.. known the line a temp was generated is useless...
+                }
+                // variables and values.. known the line a temp was generated is useless...
                 return symbol;
         }
 } // namespace Alpha

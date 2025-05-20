@@ -28,6 +28,7 @@ namespace Alpha
         public:
                 SemanticBuilder(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et);
 
+                [[nodiscard]] ExprList *make_empty_expr_list();
                 [[nodiscard]] ExprList *make_expr_list_with(Expr *expr, Location new_expr_loc);
                 [[nodiscard]] ExprList *extend_expr_list_with(
                     ExprList *expr_list,
@@ -41,6 +42,8 @@ namespace Alpha
                 [[nodiscard]] Expr *make_const_string(const char *str_value, Location str_loc);
                 [[nodiscard]] Expr *resolve_lvalue_to_primary(Expr *lvalue);
                 [[nodiscard]] Expr *resolve_assign_expr(Expr *lvalue, Expr *expr, Location assign_loc);
+                [[nodiscard]] Expr *make_table_list(ExprList *elist, Location table_list_loc);
+                [[nodiscard]] Expr *make_table_dict(Location table_dict_loc);
                 [[nodiscard]] Expr *make_table_item(
                     Expr *&lvalue,
                     const char *id,
@@ -57,10 +60,8 @@ namespace Alpha
                     Location call_loc);
                 [[nodiscard]] Expr *make_method_call(
                     Expr *&lvalue,
-                    const char *id,
                     ExprList *elist,
-                    Location call_loc,
-                    Location id_loc);
+                    Location call_loc);
                 [[nodiscard]] Expr *make_iife_call(
                     const Function *func_symbol,
                     const ExprList *elist,
@@ -79,8 +80,6 @@ namespace Alpha
                 handle_table_item_assignment(Expr *lvalue, Expr *expr, Location assign_loc);
                 [[nodiscard]] Expr *
                 handle_direct_assignment(Expr *lvalue, Expr *expr, Location assign_loc);
-                [[nodiscard]] ExprList *make_empty_expr_list();
-                [[nodiscard]] ExprList *extend_expr_list(ExprList *expr_list, Expr *expr);
 
                 static void update_expr_location(Expr *expr, Location new_expr_loc);
         }; // class SemanticBuilder
@@ -97,9 +96,9 @@ namespace Alpha
         inline ExprList *
         SemanticBuilder::make_expr_list_with(Expr *expr, const Location new_expr_loc)
         {
-                update_expr_location(expr, new_expr_loc);
+                DEBUG_SMART_ASSERT(!!expr);
                 ExprList *new_expr_list = make_empty_expr_list();
-                return extend_expr_list(new_expr_list, expr);
+                return extend_expr_list_with(new_expr_list, expr, new_expr_loc);
         }
 
         inline ExprList *
@@ -108,14 +107,8 @@ namespace Alpha
             Expr *expr,
             const Location new_expr_loc)
         {
+                DEBUG_SMART_ASSERT(!!expr_list, !!expr);
                 update_expr_location(expr, new_expr_loc);
-                return extend_expr_list(expr_list, expr);
-        }
-
-        inline ExprList *
-        SemanticBuilder::extend_expr_list(ExprList *expr_list, Expr *expr)
-        {
-                DEBUG_SMART_ASSERT(!!expr, !!expr_list);
                 expr_list->push_back(expr);
                 return expr_list;
         }
@@ -215,6 +208,44 @@ namespace Alpha
         }
 
         inline Expr *
+        SemanticBuilder::make_table_list(ExprList *elist, Location table_list_loc)
+        {
+                Expr *new_table_expr = parse_ctx_.expr_handler.make_expr_new_table(table_list_loc);
+                parse_ctx_.quad_handler.emit_quad(
+                    IOPCode::TABLECREATE,
+                    nullptr,
+                    nullptr,
+                    new_table_expr,
+                    table_list_loc //
+                );
+
+                // Emit list's items.
+                u32 list_index = 0;
+                for (auto expr_it = elist->crbegin(); expr_it != elist->crend(); ++expr_it)
+                {
+                        Expr *index_expr = parse_ctx_.expr_handler.make_expr_const_int(
+                            list_index++,
+                            (*expr_it)->location //
+                        );
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::TABLESETELEM,
+                            index_expr,
+                            *expr_it,
+                            new_table_expr,
+                            table_list_loc //
+                        );
+                }
+
+                return new_table_expr;
+        }
+
+        inline Expr *
+        SemanticBuilder::make_table_dict(Location table_dict_loc)
+        {
+                SMART_ASSERT(false); // NOT IMPLEMENTED YET
+        }
+
+        inline Expr *
         SemanticBuilder::make_table_item(
             Expr *&lvalue,
             const char *id,
@@ -243,18 +274,17 @@ namespace Alpha
         inline Expr *
         SemanticBuilder::make_method_call(
             Expr *&lvalue,
-            const char *id,
             ExprList *elist,
-            Location call_loc,
-            Location id_loc)
+            Location call_loc)
         {
                 lvalue = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
                 elist->push_back(lvalue);
+
                 // TODO: Understand what this name should be... And also understand first emit_quad_if...
                 Expr *temp_var = parse_ctx_.expr_handler.make_expr_table_item(
                     lvalue,
-                    id,
-                    id_loc,
+                    parse_ctx_.cache.method_call_id.id,
+                    parse_ctx_.cache.method_call_id.id_location,
                     k_no_location //
                 );
 

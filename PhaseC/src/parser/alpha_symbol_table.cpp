@@ -49,17 +49,17 @@ namespace Alpha
 
         std::string_view Symbol::type_to_string() const noexcept
         {
+                // clang-format off
                 switch (type)
                 {
-                case Symbol::Type::LIBRARY_FUNCTION:
-                        return "LIBRARY_FUNCTION";
-                case Symbol::Type::PROGRAM_FUNCTION:
-                        return "PROGRAM_FUNCTION";
-                case Symbol::Type::VARIABLE:
-                        return "VARIABLE";
-                default:
-                        [[unlikely]] SMART_ASSERT(false);
+                case Symbol::Type::LIBRARY_FUNCTION: return "LIBRARY_FUNCTION";
+                case Symbol::Type::PROGRAM_FUNCTION: return "PROGRAM_FUNCTION";
+                case Symbol::Type::GLOBAL_VARIABLE:  return "GLOBAL_VARIABLE";
+                case Symbol::Type::FORMAL_ARGUMENT:  return "FORMAL_ARGUMENT";
+                case Symbol::Type::LOCAL_VARIABLE:   return "LOCAL_VARIABLE";
+                default: [[unlikely]] SMART_ASSERT(false);
                 }
+                // clang-format on
         }
 
         template <typename SymbolKind, typename... Args>
@@ -90,10 +90,10 @@ namespace Alpha
 
         // Explicit instantiations for insert_symbol()
         template const Function *SymbolTable::insert_symbol<Function>(
-            const std::string &, u32, Symbol::Type &&, u32 &&, const std::list<Parameter> &, Location &&);
+            const std::string &, u32, Function::Type &&, u32 &&, const std::list<Parameter> &, Location &&);
 
         template const Variable *SymbolTable::insert_symbol<Variable>(
-            const std::string &, u32, Variable::Space &&, u32 &&, Location &&);
+            const std::string &, u32, Variable::Type &&, Variable::Space &&, u32 &&, Location &&);
 
         SymbolTable::SymbolTable()
         {
@@ -134,11 +134,12 @@ namespace Alpha
         const Variable *SymbolTable::insert_variable(
             const std::string &name,
             u32 scope,
+            Variable::Type type,
             Variable::Space space,
             u32 offset,
             Location location)
         {
-                return insert_symbol<Variable>(name, scope, space, offset, location);
+                return insert_symbol<Variable>(name, scope, type, space, offset, location);
         }
 
         const Symbol *SymbolTable::lookup_global(const std::string &symbol_name) const

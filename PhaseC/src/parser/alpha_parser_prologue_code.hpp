@@ -8,6 +8,8 @@
 #include "parser/alpha_symbol_table.hpp"
 #include "core/alpha_error.hpp"
 #include "core/alpha_location.hpp"
+#include "parser/alpha_semantic_manager.hpp"
+#include "parser/alpha_semantic_builder.hpp"
 
 extern ALPHA_YYLEX_SIGNATURE;
 // TODO: say in your report for  the progect that ';' is not just a plain syntax requirement.
@@ -28,12 +30,13 @@ extern ALPHA_YYLEX_SIGNATURE;
                 }                                                               \
         } while (0)
 
-static void alpha_yyerror([[maybe_unused]] Alpha::LexerCtx &lexer_ctx,
-                          [[maybe_unused]] Alpha::ParseCtx &parse_ctx,
-                          [[maybe_unused]] Alpha::SymbolTable &symbol_table,
-                          Alpha::ErrorTracker &error_tracker,
-                          [[maybe_unused]] Alpha::LocationTracker &lt,
-                          std::string error_message)
+static void alpha_yyerror(
+    [[maybe_unused]] Alpha::LocationTracker &lt,
+    Alpha::ErrorTracker &error_tracker,
+    [[maybe_unused]] Alpha::LexerCtx &lexer_ctx,
+    [[maybe_unused]] Alpha::SemanticManager &sm,
+    [[maybe_unused]] Alpha::SemanticBuilder &sb,
+    std::string error_message)
 {
         static constexpr char k_prefix[] = "syntax error, ";
         if (error_message.rfind(k_prefix, 0) == 0)        // does it start with that?

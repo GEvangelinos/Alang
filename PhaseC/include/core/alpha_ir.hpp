@@ -95,7 +95,6 @@ namespace Alpha
                 };
 
                 const Type type;
-
                 const Symbol *symbol;
                 Location location;
 
@@ -107,14 +106,15 @@ namespace Alpha
                         const char *const_str;
                         const bool const_bool;
                 };
-                Expr *next;
         };
 
         constexpr Expr::Type to_expr_type(Symbol::Type symbol_type)
         {
                 switch (symbol_type)
                 {
-                case Symbol::Type::VARIABLE:
+                case Symbol::Type::GLOBAL_VARIABLE:
+                case Symbol::Type::FORMAL_ARGUMENT:
+                case Symbol::Type::LOCAL_VARIABLE:
                         return Expr::Type::VARIABLE;
                 case Symbol::Type::LIBRARY_FUNCTION:
                         return Expr::Type::LIBRARY_FUNCTION;
