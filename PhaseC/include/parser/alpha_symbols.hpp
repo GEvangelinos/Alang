@@ -44,8 +44,8 @@ namespace Alpha
                 [[nodiscard]] static bool is_modifiable_symbol(const Symbol *symbol);
 
         protected:
-                Symbol(const std::string &name, u32 scope, Type type, Location location) noexcept
-                    : name(name), scope(scope), type(type), location(location) {}
+                Symbol(const std::string &name, u32 scope, Type type, Location loc) noexcept
+                    : name(name), scope(scope), type(type), location(loc) {}
 
         private:
                 bool is_active_ = true;
@@ -76,7 +76,7 @@ namespace Alpha
                     Space space,
                     u32 offset,
                     Location loc)
-                    : Symbol(name, scope, type, location),
+                    : Symbol(name, scope, type, loc),
                       space(space),
                       offset(offset) {}
                 ~Variable() override = default;

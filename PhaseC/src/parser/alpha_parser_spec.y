@@ -351,18 +351,18 @@ funcPrefix:
 ;
 
 funcArgs:
-  ID { std::cout << "BAD" <<std::endl; sm.funcArgs__id($ID, @ID); }
-| ID { std::cout << "GOOD" <<std::endl;sm.funcArgs__id($ID, @ID); } ',' funcArgs
+  ID { sm.funcArgs__id($ID, @ID); }
+| ID { sm.funcArgs__id($ID, @ID); } COMMA funcArgs
 ;
 
 funcArgList:
   LEFT_PAREN /*Void*/ RIGHT_PAREN
-| LEFT_PAREN {std::cout << "YES\n" << std::endl;} funcArgs {std::cout << "NOO" << std::endl;} RIGHT_PAREN
+| LEFT_PAREN funcArgs  RIGHT_PAREN
 ;
 
 funcSignature:
-  funcPrefix  {std::cout << "PASS" << std::endl;}funcArgList
-  { std::cout << "PASS2!\n" << std::endl; sm.funcSignature__funcPrefix_funcArgList($funcSignature); }
+  funcPrefix funcArgList
+  { sm.funcSignature__funcPrefix_funcArgList($funcSignature); }
 ;
 
 funcDef:
