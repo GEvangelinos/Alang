@@ -42,6 +42,7 @@ namespace // (Anonymous)
                                 [[unlikely]] SMART_ASSERT(false);
                         }
                 }
+
         }; // namespace Loop
 
 } // namespace (Anonymous)
@@ -53,13 +54,15 @@ namespace Alpha
         {
         public:
                 SemanticManager(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et);
+                void multiStmt__stmt();
                 void loopCtrlStmt__break(Location break_loc);
                 void loopCtrlStmt__continue(Location continue_loc);
-                void term__minus_expr(Expr *&term, Expr *expr, Location expr_loc);
-                void term__inc_lvalue(const Expr *lvalue, Location term_loc);
-                void term__lvalue_inc(const Expr *lvalue, Location term_loc);
-                void term__dec_lvalue(const Expr *lvalue, Location term_loc);
-                void term__lvalue_dec(const Expr *lvalue, Location term_loc);
+                void term__minus_expr(Expr *&term, Expr *expr, Location term_loc, Location expr_loc);
+                void term__not_expr(Expr *&term, Expr *expr, Location term_loc);
+                void term__inc_lvalue(Expr *&term, Expr *lvalue, Location term_loc);
+                void term__lvalue_inc(Expr *&term, Expr *lvalue, Location term_loc);
+                void term__dec_lvalue(Expr *&term, Expr *lvalue, Location term_loc);
+                void term__lvalue_dec(Expr *&term, Expr *lvalue, Location term_loc);
                 void lvalue__id(Expr *&lvalue, const char *id_name, Location id_loc);
                 void lvalue__local_id(Expr *&lvalue, const char *id_name, Location id_loc);
                 void lvalue__global_id(Expr *&lvalue, const char *id_name, Location id_loc);
@@ -98,6 +101,7 @@ namespace Alpha
                 [[nodiscard]] bool reported_parameter_name_conflict(
                     u32 current_scope,
                     const Parameter &parameter);
+                void validate_arithmetic_expr(const Expr *expr, Location expr_loc, const char *context);
         }; // class SemanticManager
 
         inline SemanticManager::SemanticManager(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et)
@@ -125,7 +129,7 @@ namespace Alpha
             const Location term_loc)
         {
                 DEBUG_SMART_ASSERT(!!op_name, !!lvalue);
-                DEBUG_SMART_ASSERT(!!lvalue->symbol); // TODO :will crash (assert fail) error  like 5++; ?
+                DEBUG_SMART_ASSERT(!!lvalue->symbol);
 
                 DEBUG_SMART_ASSERT(
                     std::strcmp(op_name, "increment") == 0 ||
@@ -249,6 +253,37 @@ namespace Alpha
         }
 
         inline void
+        SemanticManager::validate_arithmetic_expr(
+            const Expr *expr,
+            const Location expr_loc,
+            const char *const context)
+        {
+                using ET = Expr::Type;
+                switch (expr->type)
+                {
+                case ET::BOOLEAN_EXPR:
+                case ET::NEW_TABLE:
+                case ET::LIBRARY_FUNCTION:
+                case ET::PROGRAM_FUNCTION:
+                case ET::CONST_BOOL:
+                case ET::CONST_NIL:
+                case ET::CONST_STRING:
+                        et_.report_error(
+                            CTError::Type::SEMANTIC,
+                            FMT::format("{} {}", "Invalid arithmetic expr: ", context), // TODO: fix ugly AF!
+                            expr_loc);
+                        break;
+                default:
+                        break; // No error to report for the other Expr Types.
+                }
+        }
+
+        inline void
+        SemanticManager::multiStmt__stmt()
+        {
+                parse_ctx_.name_generator.reset_temp_names();
+        }
+        inline void
         SemanticManager::loopCtrlStmt__break(Location break_loc)
         {
                 loopCtrlStmt__loopkeyword_impl(Loop::Keyword::BREAK, break_loc);
@@ -259,37 +294,208 @@ namespace Alpha
         {
                 loopCtrlStmt__loopkeyword_impl(Loop::Keyword::CONTINUE, continue_loc);
         }
-        inline void
-        SemanticManager::term__minus_expr(Expr *&term, Expr *expr, Location expr_loc)
-        {
-                // check_arith($expr, “unary minus”);
 
-                $term = newexpr(arithexpr_e);
-                $term->sym = newtemp();
-                emit(uminus, $expr, NULL, $term);
-        }
         inline void
-        SemanticManager::term__inc_lvalue(const Expr *lvalue, const Location term_loc)
+        SemanticManager::term__minus_expr(
+            Expr *&term,
+            Expr *expr,
+            Location term_loc,
+            Location expr_loc)
+        {
+                DEBUG_SMART_ASSERT(!!expr);
+                validate_arithmetic_expr(expr, expr_loc, "-expr"); // TODO: context variable is silly fix .
+                term = parse_ctx_.expr_handler.make_expr_arithmetic(term_loc);
+                parse_ctx_.quad_handler.emit_quad(
+                    IOPCode::UMINUS,
+                    expr,
+                    nullptr,
+                    term,
+                    term_loc //
+                );
+        }
+
+        inline void
+        SemanticManager::term__not_expr(
+            Expr *&term,
+            Expr *expr,
+            Location term_loc)
+        {
+                DEBUG_SMART_ASSERT(!!expr);
+                term = parse_ctx_.expr_handler.make_expr_boolean(term_loc);
+                parse_ctx_.quad_handler.emit_quad(
+                    IOPCode::NOT,
+                    expr,
+                    nullptr,
+                    term,
+                    term_loc //
+                );
+        }
+
+        inline void
+        SemanticManager::term__inc_lvalue(Expr *&term, Expr *const lvalue, const Location term_loc)
         {
                 term__lvalue_op("increment", lvalue, term_loc);
+                validate_arithmetic_expr(lvalue, term_loc, "++lvalue");
+                if (lvalue->type == Expr::Type::TABLE_ITEM)
+                {
+                        term = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::ADD,
+                            term,
+                            parse_ctx_.expr_handler.make_expr_const_int(1, term_loc), // TODO, Use a global const_int expr (with value 1) Dont recreate it all the time
+                            term,
+                            term_loc);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::TABLESETELEM,
+                            lvalue,
+                            lvalue->index,
+                            term,
+                            term_loc);
+                }
+                else
+                {
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::ADD,
+                            lvalue,
+                            parse_ctx_.expr_handler.make_expr_const_int(1, term_loc), // TODO, Use a global const_int expr (with value 1) Dont recreate it all the time
+                            lvalue,
+                            term_loc);
+                        term = parse_ctx_.expr_handler.make_expr_arithmetic(term_loc);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::ASSIGN,
+                            lvalue,
+                            nullptr,
+                            term,
+                            term_loc);
+                }
         }
 
         inline void
-        SemanticManager::term__lvalue_inc(const Expr *lvalue, const Location term_loc)
+        SemanticManager::term__lvalue_inc(Expr *&term, Expr *lvalue, const Location term_loc)
         {
                 term__lvalue_op("increment", lvalue, term_loc);
+                validate_arithmetic_expr(lvalue, term_loc, "lvalue++"); // TODO: context variable is silly fix .
+                term = parse_ctx_.expr_handler.make_expr_variable(parse_ctx_.new_temp(), term_loc);
+                if (lvalue->type == Expr::Type::TABLE_ITEM)
+                {
+                        Expr *val = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::ASSIGN,
+                            val,
+                            nullptr,
+                            term,
+                            term_loc);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::ADD,
+                            val,
+                            parse_ctx_.expr_handler.make_expr_const_int(1, term_loc),
+                            val,
+                            term_loc);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::TABLESETELEM,
+                            lvalue,
+                            lvalue->index,
+                            val,
+                            term_loc);
+                }
+                else
+                {
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::ASSIGN,
+                            lvalue,
+                            nullptr,
+                            term,
+                            term_loc);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::ADD,
+                            lvalue,
+                            parse_ctx_.expr_handler.make_expr_const_int(1, term_loc),
+                            lvalue,
+                            term_loc);
+                }
         }
 
         inline void
-        SemanticManager::term__dec_lvalue(const Expr *lvalue, const Location term_loc)
+        SemanticManager::term__dec_lvalue(Expr *&term, Expr *lvalue, const Location term_loc)
         {
                 term__lvalue_op("decrement", lvalue, term_loc);
+                validate_arithmetic_expr(lvalue, term_loc, "--lvalue");
+                if (lvalue->type == Expr::Type::TABLE_ITEM)
+                {
+                        term = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::SUB,
+                            term,
+                            parse_ctx_.expr_handler.make_expr_const_int(1, term_loc), // TODO, Use a global const_int expr (with value 1) Dont recreate it all the time
+                            term,
+                            term_loc);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::TABLESETELEM,
+                            lvalue,
+                            lvalue->index,
+                            term,
+                            term_loc);
+                }
+                else
+                {
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::SUB,
+                            lvalue,
+                            parse_ctx_.expr_handler.make_expr_const_int(1, term_loc), // TODO, Use a global const_int expr (with value 1) Dont recreate it all the time
+                            lvalue,
+                            term_loc);
+                        term = parse_ctx_.expr_handler.make_expr_arithmetic(term_loc);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::ASSIGN,
+                            lvalue,
+                            nullptr,
+                            term,
+                            term_loc);
+                }
         }
 
         inline void
-        SemanticManager::term__lvalue_dec(const Expr *lvalue, const Location term_loc)
+        SemanticManager::term__lvalue_dec(Expr *&term, Expr *lvalue, const Location term_loc)
         {
                 term__lvalue_op("decrement", lvalue, term_loc);
+                validate_arithmetic_expr(lvalue, term_loc, "lvalue--"); // TODO: context variable is silly fix .
+                term = parse_ctx_.expr_handler.make_expr_variable(parse_ctx_.new_temp(), term_loc);
+                if (lvalue->type == Expr::Type::TABLE_ITEM)
+                {
+                        Expr *val = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::ASSIGN,
+                            val,
+                            nullptr,
+                            term,
+                            term_loc);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::SUB,
+                            val,
+                            parse_ctx_.expr_handler.make_expr_const_int(1, term_loc),
+                            val,
+                            term_loc);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::TABLESETELEM,
+                            lvalue,
+                            lvalue->index,
+                            val, term_loc);
+                }
+                else
+                {
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::ASSIGN,
+                            lvalue,
+                            nullptr,
+                            term,
+                            term_loc);
+                        parse_ctx_.quad_handler.emit_quad(
+                            IOPCode::SUB,
+                            lvalue,
+                            parse_ctx_.expr_handler.make_expr_const_int(1, term_loc),
+                            lvalue,
+                            term_loc);
+                }
         }
 
         inline void

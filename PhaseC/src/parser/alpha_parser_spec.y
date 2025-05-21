@@ -188,7 +188,10 @@ program:
 
 multiStmt:
   stmt
-| stmt multiStmt
+  { sm.multiStmt__stmt(); }
+| stmt
+  { sm.multiStmt__stmt(); }
+ multiStmt
 ;
 
 stmt:   
@@ -232,12 +235,12 @@ expr:
 
 term:
   LEFT_PAREN expr RIGHT_PAREN { $term = $expr; }
-| MINUS expr %prec UMINUS { sm.term__minus_expr($term, $expr, @expr); }
-| NOT expr
-| INC lvalue { sm.term__inc_lvalue($lvalue, @term); }
-| lvalue INC { sm.term__lvalue_inc($lvalue, @term); }
-| DEC lvalue { sm.term__dec_lvalue($lvalue, @term); }
-| lvalue DEC { sm.term__lvalue_dec($lvalue, @term); }
+| MINUS expr %prec UMINUS { sm.term__minus_expr($term, $expr, @term, @expr); }
+| NOT expr { sm.term__not_expr($term, $expr, @term); }
+| INC lvalue { sm.term__inc_lvalue($term, $lvalue, @term); }
+| lvalue INC { sm.term__lvalue_inc($term, $lvalue, @term); }
+| DEC lvalue { sm.term__dec_lvalue($term, $lvalue, @term); }
+| lvalue DEC { sm.term__lvalue_dec($term, $lvalue, @term); }
 | primary { $term = $primary; }
 ;
 
@@ -248,7 +251,7 @@ assignExpr:
 
 primary:
   lvalue { $primary = sb.resolve_lvalue_to_primary($lvalue); }
-| call
+| call // TODO do I need to forward here?
 | objectDef // TODO do you need to forward. // TODO2: Find ALL places you need to forward
 | LEFT_PAREN funcDef RIGHT_PAREN
   { $primary = sb.make_program_function($funcDef); }

@@ -79,19 +79,20 @@ namespace Alpha
         {
                 enum class Type : u8
                 {
-                        VARIABLE,
-                        TABLE_ITEM,
-                        PROGRAM_FUNCTION,
-                        LIBRARY_FUNCTION,
-                        ARITHMETIC,
-                        BOOLEAN,
-                        ASSIGN,
-                        NEW_TABLE,
+                        ARITHMETIC_EXPR,
+                        ASSIGN_EXPR,
+                        BOOLEAN_EXPR,
+                        CONST_BOOL,
                         CONST_INT,
-                        CONST_REAL,
-                        CONST_BOOLEAN,
-                        CONST_STRING,
                         CONST_NIL,
+                        CONST_REAL,
+                        CONST_STRING,
+                        LIBRARY_FUNCTION,
+                        NEW_TABLE,
+                        PROGRAM_FUNCTION,
+                        TABLE_ITEM,
+                        VARIABLE,
+
                 };
 
                 const Type type;
@@ -105,11 +106,8 @@ namespace Alpha
                         const i64 const_int;
                         const char *const_str;
                         const bool const_bool;
-                        const u64 pass_zero_if_union_unused;
                 };
         };
-        static_assert(
-            sizeof(Expr::pass_zero_if_union_unused) >= sizeof(Expr::index));
 
         constexpr Expr::Type to_expr_type(Symbol::Type symbol_type)
         {

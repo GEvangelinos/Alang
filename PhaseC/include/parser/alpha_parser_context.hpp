@@ -211,6 +211,7 @@ namespace Alpha
                 [[nodiscard]] Expr *make_expr_assign(const Symbol *symbol, Location assign_loc); // TODO: WHy 2? make_assign_expr?
                 [[nodiscard]] Expr *make_expr_new_table(Location new_table_loc);
                 [[nodiscard]] Expr *make_expr_arithmetic(Location arithmetic_loc);
+                [[nodiscard]] Expr *make_expr_boolean(Location bool_expr_loc);
                 [[nodiscard]] Expr *make_expr_table_item(
                     Expr *&lvalue,
                     const std::string &id,
@@ -600,7 +601,7 @@ namespace Alpha
                 DEBUG_SMART_ASSERT(bool_loc != k_no_location);
 
                 Expr *expr_bool = new Expr{
-                    .type = Expr::Type::CONST_BOOLEAN,
+                    .type = Expr::Type::CONST_BOOL,
                     .symbol = nullptr,
                     .location = bool_loc,
                     .const_bool = bool_value,
@@ -692,7 +693,7 @@ namespace Alpha
         ExprHandler::make_expr_arithmetic(Location arithmetic_loc)
         {
                 Expr *expr_arithmetic = new Expr{
-                    .type = Expr::Type::ARITHMETIC,
+                    .type = Expr::Type::ARITHMETIC_EXPR,
                     .symbol = parse_ctx_.new_temp(),
                     .location = arithmetic_loc,
                     .index = nullptr,
@@ -702,11 +703,24 @@ namespace Alpha
         }
 
         inline Expr *
+        ExprHandler::make_expr_boolean(Location bool_expr_loc)
+        {
+                Expr *bool_expr = new Expr{
+                    .type = Expr::Type::BOOLEAN_EXPR,
+                    .symbol = parse_ctx_.new_temp(),
+                    .location = bool_expr_loc,
+                    .index = nullptr,
+                };
+                expr_sink_.push_back(bool_expr);
+                return bool_expr;
+        }
+
+        inline Expr *
         ExprHandler::make_expr_assign(const Symbol *symbol, Location assign_loc)
         {
                 DEBUG_SMART_ASSERT(!!symbol);
                 Expr *expr_assign = new Expr{
-                    .type = Expr::Type::ASSIGN,
+                    .type = Expr::Type::ASSIGN_EXPR,
                     .symbol = symbol,
                     .location = assign_loc,
                     .index = nullptr,
@@ -722,7 +736,7 @@ namespace Alpha
         {
                 DEBUG_SMART_ASSERT(!!rvalue);
                 Expr *expr_assign = new Expr{
-                    .type = Expr::Type::ASSIGN,
+                    .type = Expr::Type::ASSIGN_EXPR,
                     .symbol = rvalue->symbol,
                     .location = assign_loc,
                     .index = rvalue->index,
