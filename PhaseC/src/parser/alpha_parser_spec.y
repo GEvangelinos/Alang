@@ -9,6 +9,7 @@
         #include "parser/alpha_parser_context.hpp"    // for ParseCtx
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
         #include "alpha_parser_prologue_code.hpp"
+        using AOP =  Alpha::IOPCode;
 }
 
 %code requires
@@ -130,7 +131,7 @@
 %token ASSIGN    "assignment operator ="
 %token PLUS      "+" 
 %token MINUS     "-"
-%token MULT      "*"
+%token MUL      "*"
 %token DIV       "/"
 %token MOD       "%"
 %token LT        ">"
@@ -166,7 +167,7 @@
 %nonassoc GT GTE LT LTE
 
 %left PLUS MINUS
-%left MULT DIV MOD
+%left MUL DIV MOD
 
 %right NOT INC DEC UMINUS
 
@@ -215,27 +216,27 @@ loopCtrlStmt:
 | CONTINUE { sm.loopCtrlStmt__continue(@CONTINUE); }
 ;
 
-expr:
+expr[result]:
   assignExpr
-| expr PLUS  expr
-| expr MINUS expr
-| expr MULT  expr
-| expr DIV   expr
-| expr MOD   expr
-| expr GT    expr
-| expr GTE   expr
-| expr LT    expr
-| expr LTE   expr
-| expr EQ    expr
-| expr NEQ   expr
-| expr AND   expr
-| expr OR    expr
-| term { $expr = $term; }
+| expr[left] PLUS  expr[right] { $result = sb.make_arithmetic(AOP::ADD, $left, $right, @result, @left, @right); }
+| expr[left] MINUS expr[right] { $result = sb.make_arithmetic(AOP::SUB, $left, $right, @result, @left, @right); }
+| expr[left] MUL   expr[right] { $result = sb.make_arithmetic(AOP::MUL, $left, $right, @result, @left, @right); }
+| expr[left] DIV   expr[right] { $result = sb.make_arithmetic(AOP::DIV, $left, $right, @result, @left, @right); }
+| expr[left] MOD   expr[right] { $result = sb.make_arithmetic(AOP::MOD, $left, $right, @result, @left, @right); }
+| expr[left] GT    expr[right]
+| expr[left] GTE   expr[right]
+| expr[left] LT    expr[right]
+| expr[left] LTE   expr[right]
+| expr[left] EQ    expr[right]
+| expr[left] NEQ   expr[right]
+| expr[left] AND   expr[right]
+| expr[left] OR    expr[right]
+| term { $result = $term; }
 ;
 
 term:
   LEFT_PAREN expr RIGHT_PAREN { $term = $expr; }
-| MINUS expr %prec UMINUS { sm.term__minus_expr($term, $expr, @term, @expr); }
+| MINUS expr %prec UMINUS     { $term = sb.make_uminus($expr, @term, @expr); }
 | NOT expr { sm.term__not_expr($term, $expr, @term); }
 | INC lvalue { sm.term__inc_lvalue($term, $lvalue, @term); }
 | lvalue INC { sm.term__lvalue_inc($term, $lvalue, @term); }

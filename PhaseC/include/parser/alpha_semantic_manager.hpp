@@ -57,7 +57,6 @@ namespace Alpha
                 void multiStmt__stmt();
                 void loopCtrlStmt__break(Location break_loc);
                 void loopCtrlStmt__continue(Location continue_loc);
-                void term__minus_expr(Expr *&term, Expr *expr, Location term_loc, Location expr_loc);
                 void term__not_expr(Expr *&term, Expr *expr, Location term_loc);
                 void term__inc_lvalue(Expr *&term, Expr *lvalue, Location term_loc);
                 void term__lvalue_inc(Expr *&term, Expr *lvalue, Location term_loc);
@@ -293,25 +292,6 @@ namespace Alpha
         SemanticManager::loopCtrlStmt__continue(const Location continue_loc)
         {
                 loopCtrlStmt__loopkeyword_impl(Loop::Keyword::CONTINUE, continue_loc);
-        }
-
-        inline void
-        SemanticManager::term__minus_expr(
-            Expr *&term,
-            Expr *expr,
-            Location term_loc,
-            Location expr_loc)
-        {
-                DEBUG_SMART_ASSERT(!!expr);
-                validate_arithmetic_expr(expr, expr_loc, "-expr"); // TODO: context variable is silly fix .
-                term = parse_ctx_.expr_handler.make_expr_arithmetic(term_loc);
-                parse_ctx_.quad_handler.emit_quad(
-                    IOPCode::UMINUS,
-                    expr,
-                    nullptr,
-                    term,
-                    term_loc //
-                );
         }
 
         inline void

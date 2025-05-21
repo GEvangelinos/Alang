@@ -92,9 +92,9 @@ namespace // (Anonymous)
                 case AET::TABLE_ITEM:       CASE_ASSERT( has_symbol(e),  has_loc(e),  has_index(e));
                 case AET::VARIABLE:         CASE_ASSERT( has_symbol(e),   !has_index(e));
                 default:
-                        throw std::logic_error(FMT::format(
-                            "{}:{}:{}(): Should never reach here. Type's int_value =={} ",
-                            __FILENAME__, __LINE__, __func__, static_cast<int>(e->type)));
+                        throw std::logic_error(ATTACH_CONTEXT(FMT::format(
+                            "BUG: Should never reach here. Type's int_value = `{}`",
+                            static_cast<int>(e->type))));
                 }
                 // clang-format on
         }
@@ -304,17 +304,17 @@ namespace Alpha
                 buffer_ = std::make_unique<char[]>(scan_buffer_size);
 
                 if (!input_file.read(buffer_.get(), input_file_size))
-                        throw std::runtime_error("Failed reading input_file.");
+                        throw std::runtime_error(ATTACH_CONTEXT("BUG: Failed reading input_file."));
 
                 // Flex requires two NULL-bytes at the end of the buffer (End-Of-Buffer marker).
                 buffer_[input_file_size] = buffer_[input_file_size + 1] = '\0';
                 size_ = scan_buffer_size;
                 state_ = alpha_yy_scan_buffer(buffer_.get(), size_);
                 if (state_ == nullptr)
-                        throw std::runtime_error(
-                            "Failed to initialize Flex scanner for file '" + input_filepath +
-                            "': alpha_yy_scan_buffer returned nullptr (buffer size=" +
-                            std::to_string(size_) + ").");
+                        throw std::runtime_error(ATTACH_CONTEXT(FMT::format(
+                            "BUG: Failed to initialize Flex scanner for file `{}`:"
+                            "alpha_yy_scan_buffer returned nullptr (buffer-size = `{}`).",
+                            input_filepath, std::to_string(size_))));
         }
 
         Driver::FlexBuffer::~FlexBuffer()

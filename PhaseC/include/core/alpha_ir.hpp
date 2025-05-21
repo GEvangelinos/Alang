@@ -58,10 +58,13 @@ namespace Alpha
                 #define X(iopcode) case IOPCode::iopcode: return str_to_lower(#iopcode);
                         ALL_IOPCODES
                 #undef  X
-                default: [[unlikely]] SMART_ASSERT(false);
+                [[unlikely]] default:
+                        throw std::logic_error(ATTACH_CONTEXT(FMT::format(
+                            "BUG: Unknown IOPCode. IOPCode's int value = `{}`",
+                            static_cast<int>(iopcode))));
                 }
-                // clang-format on
         }
+        // clang-format on
 #undef IOPCODES
 
         enum class RValueType

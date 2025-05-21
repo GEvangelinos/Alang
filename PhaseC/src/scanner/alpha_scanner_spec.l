@@ -78,7 +78,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 "="             { return ASSIGN; } 
 "+"             { return PLUS; } 
 "-"             { return MINUS; } 
-"*"             { return MULT; } 
+"*"             { return MUL; } 
 "/"             { return DIV; } 
 "%"             { return MOD; } 
 "=="            { return EQ; } 

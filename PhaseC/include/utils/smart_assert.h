@@ -2,7 +2,7 @@
  * smart_assert.h
  * ---------------------
  * Smart multi-condition assertion macro for C/C++
- * Author: Your Name (https://github.com/GEvangelinos)
+ * Author: Georgios Evangelinos (https://github.com/GEvangelinos)
  * License: MIT
  * Version: 1.0.0
  *
@@ -61,12 +61,12 @@ extern "C"
 #error SMART_ASSERT() is working with GNU compatible compilers, with C99 or new, and C++20 newer (older produces warnings.. but still works).
 #endif
 
-#define _PRINT_SMART_ASSERT(_format, ...)                                                         \
-        do                                                                                        \
-        {                                                                                         \
+#define _PRINT_SMART_ASSERT(_format, ...)                                                           \
+        do                                                                                          \
+        {                                                                                           \
                 fprintf(stderr, "%s:%d: %s(): SMART_ASSERT(): ", __FILENAME__, __LINE__, __func__); \
-                _PRINT_SMART_ASSERT_FORMAT(_format, __VA_ARGS__); /* Compiler specific. */        \
-                fprintf(stderr, "\n");                                                            \
+                _PRINT_SMART_ASSERT_FORMAT(_format, __VA_ARGS__); /* Compiler specific. */          \
+                fprintf(stderr, "\n");                                                              \
         } while (0);
 
 #define SMART_ASSERT(...)                                                                                                                                   \

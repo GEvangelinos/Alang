@@ -20,6 +20,7 @@
 #include "utils/smart_assert.h"            // for DEBUG_SMART_ASSERT
 #include "parser/_parser_type_aliases.hpp"
 #include "_parser_common.hpp"
+#include <stdexcept>
 
 namespace Alpha
 {
@@ -28,6 +29,15 @@ namespace Alpha
         public:
                 SemanticBuilder(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et);
 
+                [[nodiscard]] Expr *make_arithmetic(
+                    IOPCode iopc,
+                    Expr *left,
+                    Expr *right,
+                    Location result_loc,
+                    Location left_loc,
+                    Location right_loc);
+
+                [[nodiscard]] Expr *make_uminus(Expr *expr, Location term_loc, Location expr_loc);
                 [[nodiscard]] ExprList *make_empty_expr_list();
                 [[nodiscard]] ExprList *make_expr_list_with(Expr *expr, Location new_expr_loc);
                 [[nodiscard]] ExprList *extend_expr_list_with(
@@ -91,10 +101,115 @@ namespace Alpha
 
                 static void update_expr_location(Expr *expr, Location new_expr_loc);
                 [[nodiscard]] DictList *make_empty_dict_list();
+
+                // TODO: ! this checker is the same in semantic MANAGER (merge the two..)
+                // maybe split manager in background actions.
+                // and builder in short actions that return stuff.. no to  much semantic checking..
+                // a few emit , and few expr* create , and out the door ->>>
+                void validate_arithmetic_expr(const Expr *expr, Location expr_loc, const std::string &context);
+                Expr *folded_constant_arithmetic(IOPCode iopc, const Expr *l, const Expr *r, Location loc);
         }; // class SemanticBuilder
 
         inline SemanticBuilder::SemanticBuilder(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et)
             : parse_ctx_(parse_ctx), st_(st), et_(et) {}
+
+        // clang-format off
+        inline Expr *SemanticBuilder::folded_constant_arithmetic(
+            const IOPCode iopc,
+            const Expr *left,
+            const Expr *right,
+            const Location loc)
+        {
+                using T = Expr::Type;
+                auto &eh = parse_ctx_.expr_handler;
+                const bool is_left_int  =  left->type == T::CONST_INT;
+                const bool is_right_int = right->type == T::CONST_INT;
+                const auto etype_to_str = [](const Expr *e) -> const char * {
+                        return e->type == Expr::Type::CONST_INT ? "`int`" :
+                               e->type == Expr::Type::CONST_REAL ? "`real`" : "`unknown`";
+                };
+
+                if (is_left_int && is_right_int)
+                {
+                        const i64 l = left->const_int, r = right->const_int;
+                        switch (iopc)
+                        {
+                        case IOPCode::ADD: return eh.make_expr_const_int(l + r, loc);
+                        case IOPCode::SUB: return eh.make_expr_const_int(l - r, loc);
+                        case IOPCode::MUL: return eh.make_expr_const_int(l * r, loc);
+                        case IOPCode::MOD: return eh.make_expr_const_int(l % r, loc);
+                        case IOPCode::DIV: return eh.make_expr_const_real(f64(l) / r, loc);
+                        default:           return nullptr;
+                        }
+                }
+
+                // Convert to REAL (INT+REAL, REAL+INT, REAL+REAL) // No C++ safety checks
+                const f64 l = is_left_int  ?  left->const_int :  left->const_real;
+                const f64 r = is_right_int ? right->const_int : right->const_real;
+                switch (iopc)
+                {
+                case IOPCode::ADD: return eh.make_expr_const_real(l + r, loc);
+                case IOPCode::SUB: return eh.make_expr_const_real(l - r, loc);
+                case IOPCode::MUL: return eh.make_expr_const_real(l * r, loc);
+                case IOPCode::DIV: return eh.make_expr_const_real(l / r, loc);
+                case IOPCode::MOD: { //Required-block due to initialization inside case label.
+                        std::string error = FMT::format(
+                            "{} and {} constant operands are invalid to binary `operator%`",
+                            etype_to_str(left), etype_to_str(right));
+                        et_.report_error(CTError::Type::SEMANTIC, error, loc);
+                        return nullptr;
+                }
+                [[unlikely]] default:
+                        throw std::logic_error(ATTACH_CONTEXT(FMT::format(
+                            "BUG:Unexpected IOPCode `{}` with operand types `{}` and `{}`",
+                            to_string(iopc), etype_to_str(left), etype_to_str(right))));
+                }
+        }
+        // clang-format on
+
+        inline Expr *
+        SemanticBuilder::make_uminus(
+            Expr *expr,
+            Location term_loc,
+            Location expr_loc)
+        {
+                DEBUG_SMART_ASSERT(!!expr);
+                validate_arithmetic_expr(expr, expr_loc, "-expr");
+
+                auto &eh = parse_ctx_.expr_handler;
+                auto &qh = parse_ctx_.quad_handler;
+
+                switch (expr->type)
+                {
+                case Expr::Type::CONST_INT:
+                        return eh.make_expr_const_int(-expr->const_int, term_loc);
+                case Expr::Type::CONST_REAL:
+                        return eh.make_expr_const_real(-expr->const_real, term_loc);
+                default:
+                        Expr *arithm_expr = eh.make_expr_arithmetic(term_loc);
+                        qh.emit_quad(IOPCode::UMINUS, expr, nullptr, arithm_expr, term_loc);
+                        return arithm_expr;
+                }
+        }
+
+        inline Expr *SemanticBuilder::make_arithmetic(
+            IOPCode iopc,
+            Expr *left,
+            Expr *right,
+            Location result_loc,
+            Location left_loc,
+            Location right_loc)
+        {
+                if (Expr *folded = folded_constant_arithmetic(iopc, left, right, result_loc))
+                        return folded;
+
+                validate_arithmetic_expr(left, left_loc, "binary " + to_string(iopc));
+                validate_arithmetic_expr(right, right_loc, "binary " + to_string(iopc));
+
+                Expr *result = parse_ctx_.expr_handler.make_expr_arithmetic(result_loc);
+                parse_ctx_.quad_handler.emit_quad(iopc, left, right, result, result_loc);
+                return result;
+        }
 
         inline ExprList *
         SemanticBuilder::make_empty_expr_list()
@@ -467,6 +582,32 @@ namespace Alpha
         SemanticBuilder::update_expr_location(Expr *expr, Location new_expr_loc)
         {
                 expr->location = new_expr_loc;
+        }
+
+        inline void
+        SemanticBuilder::validate_arithmetic_expr(
+            const Expr *expr,
+            const Location expr_loc,
+            const std::string &context)
+        {
+                using ET = Expr::Type;
+                switch (expr->type)
+                {
+                case ET::BOOLEAN_EXPR:
+                case ET::NEW_TABLE:
+                case ET::LIBRARY_FUNCTION:
+                case ET::PROGRAM_FUNCTION:
+                case ET::CONST_BOOL:
+                case ET::CONST_NIL:
+                case ET::CONST_STRING:
+                        et_.report_error(
+                            CTError::Type::SEMANTIC,
+                            FMT::format("{} {}", "Invalid arithmetic expr: ", context), // TODO: fix ugly AF!
+                            expr_loc);
+                        break;
+                default:
+                        break; // No error to report for the other Expr Types.
+                }
         }
 } // namespace Alpha
 

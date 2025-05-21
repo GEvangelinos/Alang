@@ -7,12 +7,22 @@
 #include <iostream>
 #include "utils/format_adapter.hpp"
 #include "utils/smart_assert.h"
+
 #ifdef DEBUG_MODE
 #define DEBUG_NULLIFY(pointer) ((pointer) = nullptr)
 #else
 #define DEBUG_NULLIFY(pointer) ((void)0)
 #endif
-#define UNIMPLEMENTED() throw std::logic_error("Unimplemented function")
+
+#define UNIMPLEMENTED()                                                           \
+        do                                                                        \
+        {                                                                         \
+                throw std::logic_error(ATTACH_CONTEXT("Unimplemented function")); \
+        } while (0)
+
+#define ATTACH_CONTEXT(message) \
+        FMT::format("{}:{}:{}(): {}", __FILE__, __LINE__, __func__, message)
+
 #define REPORT_UNREACHABLE_VIOLATION(_message_if_reached)                                   \
         do                                                                                  \
         {                                                                                   \
@@ -141,7 +151,7 @@ public:
         void set(T value)
         {
                 if (assigned_)
-                        throw std::logic_error("`Once` already assigned");
+                        throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
                 value_ = value;
                 assigned_ = true;
         }
@@ -149,7 +159,7 @@ public:
         [[nodiscard]] const T &get()
         {
                 if (!assigned_)
-                        throw std::logic_error("`Once` not assigned yet");
+                        throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` not assigned yet"));
                 return value_;
         }
 

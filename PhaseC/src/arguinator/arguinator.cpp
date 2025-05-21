@@ -10,7 +10,7 @@
 #include "utils/format_adapter.hpp"         // for format, FMT
 #include "utils/smart_assert.h"             // for SMART_ASSERT
 
-#define MESSAGE_WITH_CONTEXT(message) FMT::format("[{}:{}:{}]\n{}", __FILE__, __LINE__, __func__, (message))
+#define ATTACH_CONTEXT(message) FMT::format("[{}:{}:{}]\n{}", __FILE__, __LINE__, __func__, (message))
 
 namespace /* (Anonymous) */
 {
@@ -179,8 +179,8 @@ namespace Arguinator
                 if (inserted)
                         return it->second; /* First field: key(flag_name), second field: value (Flag) */
 
-                throw std::logic_error(MESSAGE_WITH_CONTEXT(FMT::format(
-                    "Duplicate flag `{}`.\n"
+                throw std::logic_error(ATTACH_CONTEXT(FMT::format(
+                    "BUG: Duplicate flag `{}`.\n"
                     "Each flag must be registered only once.\n"
                     "Check for accidental reuse or typos in your flag declarations.",
                     it->first)));
