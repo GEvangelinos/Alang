@@ -36,14 +36,22 @@ namespace Alpha
                     Location result_loc,
                     Location left_loc,
                     Location right_loc);
-                [[nodiscard]] Expr *make_boolean(
+                [[nodiscard]] Expr *make_relational(
                     IOPCode iopc,
                     Expr *left,
                     Expr *right,
                     Location result_loc,
                     Location left_loc,
                     Location right_loc);
+                [[nodiscard]] Expr *make_logical(
+                    IOPCode iopc,
+                    Expr *left,
+                    Expr *right,
+                    Location result_loc,
+                    Location left_loc,   // TODO: If you dont do constant folding remove
+                    Location right_loc); // TODO: If you dont do constant folding remove
                 [[nodiscard]] Expr *make_uminus(Expr *expr, Location term_loc, Location expr_loc);
+                [[nodiscard]] Expr *make_logical_not(Expr *expr, Location term_loc);
                 [[nodiscard]] ExprList *make_empty_expr_list();
                 [[nodiscard]] ExprList *make_expr_list_with(Expr *expr, Location new_expr_loc);
                 [[nodiscard]] ExprList *extend_expr_list_with(
@@ -197,6 +205,16 @@ namespace Alpha
                         return arithm_expr;
                 }
         }
+        inline Expr *
+        SemanticBuilder::make_logical_not(Expr *expr, Location term_loc)
+        {
+                DEBUG_SMART_ASSERT(!!expr);
+                auto &eh = parse_ctx_.expr_handler;
+                auto &qh = parse_ctx_.quad_handler;
+                Expr *not_expr = eh.make_expr_boolean(term_loc);
+                qh.emit_quad(IOPCode::NOT, expr, nullptr, not_expr, term_loc);
+                return not_expr;
+        }
 
         inline Expr *SemanticBuilder::make_arithmetic(
             IOPCode iopc,
@@ -219,7 +237,7 @@ namespace Alpha
         }
 
         inline Expr *
-        SemanticBuilder::make_boolean(
+        SemanticBuilder::make_relational(
             IOPCode iopc,
             Expr *left,
             Expr *right,
@@ -237,10 +255,26 @@ namespace Alpha
                 Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
                 const Expr *false_expr = eh.make_expr_const_bool(false, result_loc);
                 const Expr *true_expr = eh.make_expr_const_bool(true, result_loc);
-                qh.emit_quad(iopc, left, right, jump_step_to_true, result_loc);
+                qh.emit_quad_w_jump_step(iopc, left, right, jump_step_to_true, result_loc);
                 qh.emit_quad(IOPCode::ASSIGN, false_expr, nullptr, bool_result_expr, result_loc);
-                qh.emit_quad(IOPCode::JUMP, nullptr, nullptr, jump_step_to_false, result_loc);
+                qh.emit_quad_w_jump_step(IOPCode::JUMP, nullptr, nullptr, jump_step_to_false, result_loc);
                 qh.emit_quad(IOPCode::ASSIGN, true_expr, nullptr, bool_result_expr, result_loc);
+                return bool_result_expr;
+        }
+
+        inline Expr *
+        SemanticBuilder::make_logical(
+            IOPCode iopc,
+            Expr *left,
+            Expr *right,
+            Location result_loc,
+            [[maybe_unused]] Location left_loc,  // TODO: If you dont do constant folding remove
+            [[maybe_unused]] Location right_loc) // TODO: If you dont do constant folding remove
+        {
+                auto &qh = parse_ctx_.quad_handler;
+                auto &eh = parse_ctx_.expr_handler;
+                Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
+                qh.emit_quad(iopc, left, right, bool_result_expr, result_loc);
                 return bool_result_expr;
         }
 

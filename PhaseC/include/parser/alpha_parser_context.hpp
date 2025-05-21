@@ -74,6 +74,12 @@ namespace Alpha
                         Location id_location;
                         Location method_call_location;
                 } method_call_id;
+
+                struct ifPrefixState
+                {
+                        std::stack<u32> quads_to_patch;
+
+                } if_prefix;
         };
 
         class SpaceHandler : private Immobile
@@ -184,13 +190,21 @@ namespace Alpha
                     const Expr *arg2,
                     const Expr *result,
                     Location loc);
-                void emit_quad(
+                void emit_quad_w_jump_step(
                     IOPCode iopc,
                     const Expr *arg1,
                     const Expr *arg2,
                     u32 jump_step,
                     Location loc);
+                void emit_quad_labelless(
+                    IOPCode iopc,
+                    const Expr *arg1,
+                    const Expr *arg2,
+                    const Expr *result,
+                    Location loc);
 
+                void patch_quad(u32 quad_index, u32 label);
+                void patch_quad_with_next(u32 quad_index);
                 [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
                 [[nodiscard]] u32 next_quad_label() const { return next_quad_label_; }
 
@@ -523,7 +537,7 @@ namespace Alpha
         }
 
         inline void
-        QuadHandler::emit_quad(
+        QuadHandler::emit_quad_w_jump_step(
             const IOPCode iopc,
             const Expr *arg1,
             const Expr *arg2,
@@ -532,6 +546,38 @@ namespace Alpha
         {
                 DEBUG_SMART_ASSERT(requires_label(iopc)); // This emit_quad overload is used for JUMP IOPCs
                 emit_quad_impl(iopc, arg1, arg2, nullptr, next_quad_label_ + jump_step, loc);
+        }
+
+        inline void
+        QuadHandler::emit_quad_labelless(
+            IOPCode iopc,
+            const Expr *arg1,
+            const Expr *arg2,
+            const Expr *result,
+            Location loc)
+        {
+                emit_quad_impl(iopc, arg1, arg2, result, k_no_label, loc);
+        }
+
+        inline void
+        QuadHandler::patch_quad(u32 quad_index, u32 label)
+        {
+                DEBUG_SMART_ASSERT(
+                    quad_index < quads_.size(),
+                    quads_[quad_index].label == k_no_label,
+                    label != k_no_label //
+                );
+                quads_[quad_index].label = label;
+        }
+
+        inline void
+        QuadHandler::patch_quad_with_next(u32 quad_index)
+        {
+                DEBUG_SMART_ASSERT(
+                    quad_index < quads_.size(),
+                    quads_[quad_index].label == k_no_label //
+                );
+                patch_quad(quad_index, next_quad_label_);
         }
 
         inline void

@@ -80,6 +80,12 @@ namespace Alpha
                 LIBRARY_FUNCTION,
         };
 
+        struct BoolExpr
+        {
+                std::vector<u32> true_list;
+                std::vector<u32> false_list;
+        };
+
         struct Expr // Tagged Union
         {
                 enum class Type : u8
@@ -103,6 +109,7 @@ namespace Alpha
                 const Type type;
                 const Symbol *symbol;
                 Location location;
+                BoolExpr *backpatch;
 
                 union
                 {

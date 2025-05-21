@@ -57,7 +57,6 @@ namespace Alpha
                 void multiStmt__stmt();
                 void loopCtrlStmt__break(Location break_loc);
                 void loopCtrlStmt__continue(Location continue_loc);
-                void term__not_expr(Expr *&term, Expr *expr, Location term_loc);
                 void term__inc_lvalue(Expr *&term, Expr *lvalue, Location term_loc);
                 void term__lvalue_inc(Expr *&term, Expr *lvalue, Location term_loc);
                 void term__dec_lvalue(Expr *&term, Expr *lvalue, Location term_loc);
@@ -73,6 +72,8 @@ namespace Alpha
                 void funcSignature__funcPrefix_funcArgList(const Function *&funcSignature);
                 void funcDef__funcSignature_block(const BlockLocation &block_loc) noexcept;
                 void funcArgs__id(const char *id_name, Location id_loc);
+                void ifPrefix__if_lparen_expr_rparen(Expr *expr, Location expr_loc);
+                void ifStmt__ifPrefix_stmt_then();
                 void whileStmt__whileHeader() noexcept;
                 void whileStmt__whileHeader_stmt() noexcept;
                 void forStmt__forHeader() noexcept;
@@ -292,23 +293,6 @@ namespace Alpha
         SemanticManager::loopCtrlStmt__continue(const Location continue_loc)
         {
                 loopCtrlStmt__loopkeyword_impl(Loop::Keyword::CONTINUE, continue_loc);
-        }
-
-        inline void
-        SemanticManager::term__not_expr(
-            Expr *&term,
-            Expr *expr,
-            Location term_loc)
-        {
-                DEBUG_SMART_ASSERT(!!expr);
-                term = parse_ctx_.expr_handler.make_expr_boolean(term_loc);
-                parse_ctx_.quad_handler.emit_quad(
-                    IOPCode::NOT,
-                    expr,
-                    nullptr,
-                    term,
-                    term_loc //
-                );
         }
 
         inline void
@@ -667,6 +651,28 @@ namespace Alpha
         SemanticManager::funcArgs__id(const char *id_name, const Location id_loc)
         {
                 parse_ctx_.function_ctx_handler.add_function_parameter(id_name, id_loc);
+        }
+
+        inline void
+        SemanticManager::ifPrefix__if_lparen_expr_rparen(Expr *expr, const Location expr_loc)
+        {
+                constexpr u32 jump_step_to_true = 2;
+                auto &eh = parse_ctx_.expr_handler;
+                auto &qh = parse_ctx_.quad_handler;
+
+                const Expr *true_expr = eh.make_expr_const_bool(true, expr_loc);
+                qh.emit_quad_w_jump_step(IOPCode::IF_EQ, expr, true_expr, jump_step_to_true, expr_loc);
+                parse_ctx_.cache.if_prefix.quads_to_patch.push(qh.next_quad_label() - 1); // -1 to convert label to quad index.
+                qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr_loc);
+        }
+
+        inline void
+        SemanticManager::ifStmt__ifPrefix_stmt_then()
+        {
+                auto &qh = parse_ctx_.quad_handler;
+                u32 quad_to_patch = parse_ctx_.cache.if_prefix.quads_to_patch.top();
+                parse_ctx_.cache.if_prefix.quads_to_patch.pop();
+                qh.patch_quad_with_next(quad_to_patch);
         }
 
         inline void

@@ -9,7 +9,6 @@
         #include "parser/alpha_parser_context.hpp"    // for ParseCtx
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
         #include "alpha_parser_prologue_code.hpp" // THIS MUST STAY in parser's.cpp not parser's .hpp
-        #include "alpha_parser_semantic_macros.hpp"
         using AOP =  Alpha::IOPCode;
 }
 
@@ -238,7 +237,7 @@ expr[result]:
 term:
   LEFT_PAREN expr RIGHT_PAREN { $term = $expr; }
 | MINUS expr %prec UMINUS     { $term = sb.make_uminus($expr, @term, @expr); }
-| NOT expr { sm.term__not_expr($term, $expr, @term); }
+| NOT expr                    { $term = sb.make_logical_not($expr, @term); }
 | INC lvalue { sm.term__inc_lvalue($term, $lvalue, @term); }
 | lvalue INC { sm.term__lvalue_inc($term, $lvalue, @term); }
 | DEC lvalue { sm.term__dec_lvalue($term, $lvalue, @term); }
@@ -407,9 +406,13 @@ const:
    $const = sb.make_const_string($STRING, @STRING); delete[] $STRING; $STRING = nullptr; }
 ;
 
+ifPrefix:
+  IF LEFT_PAREN expr RIGHT_PAREN { sm.ifPrefix__if_lparen_expr_rparen($expr, @expr); }
+;
+
 ifStmt:
-  IF LEFT_PAREN expr RIGHT_PAREN stmt %prec THEN
-| IF LEFT_PAREN expr RIGHT_PAREN stmt ELSE stmt
+  ifPrefix stmt %prec THEN { sm.ifStmt__ifPrefix_stmt_then(); }
+| ifPrefix stmt ELSE stmt
 ;
 
 whileHeader:
