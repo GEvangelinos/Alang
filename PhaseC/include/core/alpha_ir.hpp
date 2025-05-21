@@ -5,6 +5,8 @@
 #include "utils/misc.hpp"
 #include <string>
 
+// TODO: AFTER PHASE3 change IOPCodes to nicer codes (especially the lengthy ones)
+
 #define IOPCODES_WITH_LABEL \
         X(IF_EQ)            \
         X(IF_NOTEQ)         \

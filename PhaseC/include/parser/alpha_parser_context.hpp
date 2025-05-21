@@ -183,13 +183,26 @@ namespace Alpha
                     const Expr *arg1,
                     const Expr *arg2,
                     const Expr *result,
-                    Location location);
+                    Location loc);
+                void emit_quad(
+                    IOPCode iopc,
+                    const Expr *arg1,
+                    const Expr *arg2,
+                    u32 jump_step,
+                    Location loc);
 
                 [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
                 [[nodiscard]] u32 next_quad_label() const { return next_quad_label_; }
 
         private:
                 [[nodiscard]] static bool requires_label(IOPCode iopc) noexcept;
+                void emit_quad_impl(
+                    IOPCode iopc,
+                    const Expr *arg1,
+                    const Expr *arg2,
+                    const Expr *result,
+                    u32 label,
+                    Location loc);
                 std::vector<Quad> quads_;
                 u32 next_quad_label_ = 1; // First quad_label is always 1, (0 for backpatching)
         };
@@ -505,14 +518,39 @@ namespace Alpha
             const Expr *result,
             const Location loc)
         {
-                DEBUG_SMART_ASSERT(quads_.size() + 1 == next_quad_label_);
+                // TODO. IF only used by non required-IOPCs, emit requires_label check and just put k_no_label.
+                emit_quad_impl(iopc, arg1, arg2, result, requires_label(iopc) ? next_quad_label_ : k_no_label, loc);
+        }
 
+        inline void
+        QuadHandler::emit_quad(
+            const IOPCode iopc,
+            const Expr *arg1,
+            const Expr *arg2,
+            const u32 jump_step,
+            const Location loc)
+        {
+                DEBUG_SMART_ASSERT(requires_label(iopc)); // This emit_quad overload is used for JUMP IOPCs
+                emit_quad_impl(iopc, arg1, arg2, nullptr, next_quad_label_ + jump_step, loc);
+        }
+
+        inline void
+        QuadHandler::emit_quad_impl(
+            IOPCode iopc,
+            const Expr *arg1,
+            const Expr *arg2,
+            const Expr *result,
+            u32 label,
+            Location loc)
+        {
+                DEBUG_SMART_ASSERT(quads_.size() + 1 == next_quad_label_);
+                // TODO. IF only used by non required-IOPCs, emit requires_label check and just put 0.
                 quads_.emplace_back(Quad{
                     .iopcode = iopc,
                     .arg1 = arg1,
                     .arg2 = arg2,
                     .result = result,
-                    .label = requires_label(iopc) ? next_quad_label_ : 0,
+                    .label = label,
                     .location = loc,
                 });
 

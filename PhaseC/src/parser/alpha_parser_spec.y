@@ -8,7 +8,8 @@
         #include "parser/alpha_trace_logger.hpp"            // for display_trace
         #include "parser/alpha_parser_context.hpp"    // for ParseCtx
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
-        #include "alpha_parser_prologue_code.hpp"
+        #include "alpha_parser_prologue_code.hpp" // THIS MUST STAY in parser's.cpp not parser's .hpp
+        #include "alpha_parser_semantic_macros.hpp"
         using AOP =  Alpha::IOPCode;
 }
 
@@ -223,14 +224,14 @@ expr[result]:
 | expr[left] MUL   expr[right] { $result = sb.make_arithmetic(AOP::MUL, $left, $right, @result, @left, @right); }
 | expr[left] DIV   expr[right] { $result = sb.make_arithmetic(AOP::DIV, $left, $right, @result, @left, @right); }
 | expr[left] MOD   expr[right] { $result = sb.make_arithmetic(AOP::MOD, $left, $right, @result, @left, @right); }
-| expr[left] GT    expr[right]
-| expr[left] GTE   expr[right]
-| expr[left] LT    expr[right]
-| expr[left] LTE   expr[right]
-| expr[left] EQ    expr[right]
-| expr[left] NEQ   expr[right]
-| expr[left] AND   expr[right]
-| expr[left] OR    expr[right]
+| expr[left] GT    expr[right] { $result = sb.make_relational(AOP::IF_GREATER, $left, $right,@result, @left, @right); }
+| expr[left] GTE   expr[right] { $result = sb.make_relational(AOP::IF_GREATEREQ, $left, $right,@result, @left, @right); }
+| expr[left] LT    expr[right] { $result = sb.make_relational(AOP::IF_LESS, $left, $right,@result, @left, @right); }
+| expr[left] LTE   expr[right] { $result = sb.make_relational(AOP::IF_LESSEQ, $left, $right,@result, @left, @right); }
+| expr[left] EQ    expr[right] { $result = sb.make_relational(AOP::IF_EQ, $left, $right,@result, @left, @right); }
+| expr[left] NEQ   expr[right] { $result = sb.make_relational(AOP::IF_NOTEQ, $left, $right,@result, @left, @right); }
+| expr[left] AND   expr[right] { $result = sb.make_logical(AOP::AND, $left, $right, @result, @left, @right); }
+| expr[left] OR    expr[right] { $result = sb.make_logical(AOP::OR, $left, $right, @result, @left, @right); }
 | term { $result = $term; }
 ;
 

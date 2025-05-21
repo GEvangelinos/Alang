@@ -218,25 +218,31 @@ namespace Alpha
                 return result;
         }
 
-        inline Expr *SemanticBuilder::make_boolean(
+        inline Expr *
+        SemanticBuilder::make_boolean(
             IOPCode iopc,
             Expr *left,
             Expr *right,
             Location result_loc,
-            Location left_loc,
-            Location right_loc)
+            [[maybe_unused]] Location left_loc,  // TODO: If you dont do constant folding remove
+            [[maybe_unused]] Location right_loc) // TODO: If you dont do constant folding remove
         {
+                // TODO: rename emit_quad to emit().
                 DEBUG_SMART_ASSERT(!!left, !!right);
-                Expr *boolean_expr = parse_ctx_.expr_handler.make_expr_boolean(result_loc);
+                constexpr u32 jump_step_to_true = 3;
+                constexpr u32 jump_step_to_false = 2;
                 auto &qh = parse_ctx_.quad_handler;
-                qh.emit_quad(iopc, left, right, qh.next_quad_label(), k_no_location);
+                auto &eh = parse_ctx_.expr_handler;
+                // TODO: do contstant folding.. BUT first DO short circuit evaluation.
+                Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
+                const Expr *false_expr = eh.make_expr_const_bool(false, result_loc);
+                const Expr *true_expr = eh.make_expr_const_bool(true, result_loc);
+                qh.emit_quad(iopc, left, right, jump_step_to_true, result_loc);
+                qh.emit_quad(IOPCode::ASSIGN, false_expr, nullptr, bool_result_expr, result_loc);
+                qh.emit_quad(IOPCode::JUMP, nullptr, nullptr, jump_step_to_false, result_loc);
+                qh.emit_quad(IOPCode::ASSIGN, true_expr, nullptr, bool_result_expr, result_loc);
+                return bool_result_expr;
         }
-
-        // emit($relop, $expr1 , $expr2, nextquad()+3);
-        // emit(assign, newexpr_constbool(0), $expr);
-        // emit(jump, nextquad()+2);
-        // emit(assign, newexpr_constbool(1), $expr);
-        // }
 
         inline ExprList *
         SemanticBuilder::make_empty_expr_list()
