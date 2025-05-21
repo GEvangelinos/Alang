@@ -36,7 +36,13 @@ namespace Alpha
                     Location result_loc,
                     Location left_loc,
                     Location right_loc);
-
+                [[nodiscard]] Expr *make_boolean(
+                    IOPCode iopc,
+                    Expr *left,
+                    Expr *right,
+                    Location result_loc,
+                    Location left_loc,
+                    Location right_loc);
                 [[nodiscard]] Expr *make_uminus(Expr *expr, Location term_loc, Location expr_loc);
                 [[nodiscard]] ExprList *make_empty_expr_list();
                 [[nodiscard]] ExprList *make_expr_list_with(Expr *expr, Location new_expr_loc);
@@ -200,6 +206,7 @@ namespace Alpha
             Location left_loc,
             Location right_loc)
         {
+                DEBUG_SMART_ASSERT(!!left, !!right);
                 if (Expr *folded = folded_constant_arithmetic(iopc, left, right, result_loc))
                         return folded;
 
@@ -210,6 +217,26 @@ namespace Alpha
                 parse_ctx_.quad_handler.emit_quad(iopc, left, right, result, result_loc);
                 return result;
         }
+
+        inline Expr *SemanticBuilder::make_boolean(
+            IOPCode iopc,
+            Expr *left,
+            Expr *right,
+            Location result_loc,
+            Location left_loc,
+            Location right_loc)
+        {
+                DEBUG_SMART_ASSERT(!!left, !!right);
+                Expr *boolean_expr = parse_ctx_.expr_handler.make_expr_boolean(result_loc);
+                auto &qh = parse_ctx_.quad_handler;
+                qh.emit_quad(iopc, left, right, qh.next_quad_label(), k_no_location);
+        }
+
+        // emit($relop, $expr1 , $expr2, nextquad()+3);
+        // emit(assign, newexpr_constbool(0), $expr);
+        // emit(jump, nextquad()+2);
+        // emit(assign, newexpr_constbool(1), $expr);
+        // }
 
         inline ExprList *
         SemanticBuilder::make_empty_expr_list()

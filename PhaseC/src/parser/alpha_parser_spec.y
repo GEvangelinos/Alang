@@ -291,7 +291,7 @@ call[invocation]:
   { $invocation = sb.make_call($callable, $elist, @invocation); }
 | lvalue LEFT_PAREN elist RIGHT_PAREN // <-------------------------------------------- NORMAL_CALL
   { $invocation = sb.make_normal_call($lvalue, $elist, @invocation); }
-| lvalue methodCallId LEFT_PAREN elist RIGHT_PAREN // <----------------------------- METHOD_CALL
+| lvalue methodCallId LEFT_PAREN elist RIGHT_PAREN // <------------------------------- METHOD_CALL
   { $invocation = sb.make_method_call($lvalue, $elist, @invocation); }
 | LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN // <---------------------IIFE_CALL
   { $invocation = sb.make_iife_call($funcDef, $elist, @invocation); }

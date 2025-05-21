@@ -186,6 +186,7 @@ namespace Alpha
                     Location location);
 
                 [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
+                [[nodiscard]] u32 next_quad_label() const { return next_quad_label_; }
 
         private:
                 [[nodiscard]] static bool requires_label(IOPCode iopc) noexcept;
