@@ -52,9 +52,9 @@ namespace Alpha
         };
         // clang-format on
 
+        // clang-format off
         [[nodiscard]] inline std::string to_string(const IOPCode iopcode)
         {
-                // clang-format off
                 switch (iopcode)
                 {
                 #define X(iopcode) case IOPCode::iopcode: return str_to_lower(#iopcode);
@@ -132,6 +132,29 @@ namespace Alpha
                 };
                 BoolLists *backpatch_info = nullptr; // By default no backpatch_info exists.
         };
+
+        // clang-format off
+        constexpr const char *to_string(Expr::Type type)
+        {
+                using AET = Alpha::Expr::Type;
+                switch (type)
+                {
+                case AET::ARITHMETIC_EXPR:  return "arithmetic-expression";
+                case AET::ASSIGN_EXPR:      return "assign-expression";
+                case AET::BOOLEAN_EXPR:     return "boolean-expression";
+                case AET::CONST_BOOL:       return "boolean-constant";
+                case AET::CONST_INT:        return "integer-constant";
+                case AET::CONST_NIL:        return "nil";
+                case AET::CONST_REAL:       return "floating-point-constant";
+                case AET::CONST_STRING:     return "string-literal";
+                case AET::LIBRARY_FUNCTION: return "library-function";
+                case AET::NEW_TABLE:        return "new-table-expression";
+                case AET::PROGRAM_FUNCTION: return "program-function";
+                case AET::TABLE_ITEM:       return "table-item";
+                case AET::VARIABLE:         return "variable";
+                }
+        }
+        // clang-format on
 
         constexpr Expr::Type to_expr_type(Symbol::Type symbol_type)
         {
