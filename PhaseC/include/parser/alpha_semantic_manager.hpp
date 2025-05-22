@@ -79,6 +79,7 @@ namespace Alpha
                 void forStmt__forHeader() noexcept;
                 void forStmt__forHeader_stmt() noexcept;
                 void funcCtrlStmt__return(Location return_loc);
+                void orHook();
 
         private:
                 ParseCtx &parse_ctx_;
@@ -706,6 +707,13 @@ namespace Alpha
                         return;
                 std::string error = "`return` statement not in a function statement";
                 et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
+        }
+
+        inline void
+        SemanticManager::orHook()
+        {
+                const u32 next_quad = parse_ctx_.quad_handler.next_quad_label();
+                parse_ctx_.cache.or_hook.next_quad_stack.push(next_quad);
         }
 } // namespace Alpha
 

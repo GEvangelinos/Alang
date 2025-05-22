@@ -43,8 +43,13 @@ namespace Alpha
                     Location result_loc,
                     Location left_loc,
                     Location right_loc);
-                [[nodiscard]] Expr *make_logical(
-                    IOPCode iopc,
+                [[nodiscard]] Expr *make_logical_or(
+                    Expr *left,
+                    Expr *right,
+                    Location result_loc,
+                    Location left_loc,   // TODO: If you dont do constant folding remove
+                    Location right_loc); // TODO: If you dont do constant folding remove
+                [[nodiscard]] Expr *make_logical_and(
                     Expr *left,
                     Expr *right,
                     Location result_loc,
@@ -255,16 +260,22 @@ namespace Alpha
                 Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
                 const Expr *false_expr = eh.make_expr_const_bool(false, result_loc);
                 const Expr *true_expr = eh.make_expr_const_bool(true, result_loc);
-                qh.emit_quad_w_jump_step(iopc, left, right, jump_step_to_true, result_loc);
-                qh.emit_quad(IOPCode::ASSIGN, false_expr, nullptr, bool_result_expr, result_loc);
-                qh.emit_quad_w_jump_step(IOPCode::JUMP, nullptr, nullptr, jump_step_to_false, result_loc);
-                qh.emit_quad(IOPCode::ASSIGN, true_expr, nullptr, bool_result_expr, result_loc);
+
+                bool_result_expr->backpatch_info = new BoolLists{};
+                bool_result_expr->backpatch_info->true_list.push_back(qh.next_quad_label());
+                qh.emit_quad_labelless(iopc, left, right, nullptr, result_loc);
+                bool_result_expr->backpatch_info->false_list.push_back(qh.next_quad_label());
+                qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, result_loc);
+
+                // TODO: REMOVE? (code-fragment from full evaluation)
+                // qh.emit_quad(IOPCode::ASSIGN, false_expr, nullptr, bool_result_expr, result_loc);
+                // qh.emit_quad_w_jump_step(IOPCode::JUMP, nullptr, nullptr, jump_step_to_false, result_loc);
+                // qh.emit_quad(IOPCode::ASSIGN, true_expr, nullptr, bool_result_expr, result_loc);
                 return bool_result_expr;
         }
 
         inline Expr *
-        SemanticBuilder::make_logical(
-            IOPCode iopc,
+        SemanticBuilder::make_logical_or(
             Expr *left,
             Expr *right,
             Location result_loc,
@@ -274,8 +285,31 @@ namespace Alpha
                 auto &qh = parse_ctx_.quad_handler;
                 auto &eh = parse_ctx_.expr_handler;
                 Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
-                qh.emit_quad(iopc, left, right, bool_result_expr, result_loc);
+                // qh.emit_quad(IOPCode::OR, left, right, bool_result_expr, result_loc); // full-evaluation
+                DEBUG_SMART_ASSERT(!!left->backpatch_info);
+                for (u32 quad_label : left->backpatch_info->false_list)
+                {
+                        qh.patch_quad(quad_label, parse_ctx_.cache.or_hook.next_quad_stack.top());
+                        parse_ctx_.cache.or_hook.next_quad_stack.pop();
+                }
+
+                left->backpatch_info->true_list.insert(
+                    left->backpatch_info->true_list.end(),
+                    right->backpatch_info->true_list.begin(),
+                    right->backpatch_info->true_list.end());
+                bool_result_expr->backpatch_info = left->backpatch_info;
+
                 return bool_result_expr;
+        }
+        inline Expr *
+        SemanticBuilder::make_logical_and(
+            Expr *left,
+            Expr *right,
+            Location result_loc,
+            [[maybe_unused]] Location left_loc,  // TODO: If you dont do constant folding remove
+            [[maybe_unused]] Location right_loc) // TODO: If you dont do constant folding remove
+        {
+                UNIMPLEMENTED();
         }
 
         inline ExprList *

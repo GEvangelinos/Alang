@@ -229,9 +229,13 @@ expr[result]:
 | expr[left] LTE   expr[right] { $result = sb.make_relational(AOP::IF_LESSEQ, $left, $right,@result, @left, @right); }
 | expr[left] EQ    expr[right] { $result = sb.make_relational(AOP::IF_EQ, $left, $right,@result, @left, @right); }
 | expr[left] NEQ   expr[right] { $result = sb.make_relational(AOP::IF_NOTEQ, $left, $right,@result, @left, @right); }
-| expr[left] AND   expr[right] { $result = sb.make_logical(AOP::AND, $left, $right, @result, @left, @right); }
-| expr[left] OR    expr[right] { $result = sb.make_logical(AOP::OR, $left, $right, @result, @left, @right); }
+| expr[left] AND       expr[right] { $result = sb.make_logical_and($left, $right, @result, @left, @right); }
+| expr[left] OR orHook expr[right] { $result = sb.make_logical_or($left, $right, @result, @left, @right); }
 | term { $result = $term; }
+;
+
+orHook
+: { sm.orHook(); }  
 ;
 
 term:

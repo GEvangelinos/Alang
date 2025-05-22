@@ -78,8 +78,12 @@ namespace Alpha
                 struct ifPrefixState
                 {
                         std::stack<u32> quads_to_patch;
-
                 } if_prefix;
+
+                struct orHookState
+                {
+                        std::stack<u32> next_quad_stack;
+                } or_hook;
         };
 
         class SpaceHandler : private Immobile
@@ -203,10 +207,11 @@ namespace Alpha
                     const Expr *result,
                     Location loc);
 
-                void patch_quad(u32 quad_index, u32 label);
+                void patch_quad(u32 target_quad_label, u32 destination_label);
                 void patch_quad_with_next(u32 quad_index);
                 [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
                 [[nodiscard]] u32 next_quad_label() const { return next_quad_label_; }
+                [[nodiscard]] u32 next_quad_index() const { return quads_.size(); }
 
         private:
                 [[nodiscard]] static bool requires_label(IOPCode iopc) noexcept;
@@ -560,14 +565,16 @@ namespace Alpha
         }
 
         inline void
-        QuadHandler::patch_quad(u32 quad_index, u32 label)
+        QuadHandler::patch_quad(u32 target_quad_label, u32 destination_label)
         {
+                const u32 quad_index = target_quad_label - 1; // First quad at index 0, has quad with label 1.
                 DEBUG_SMART_ASSERT(
+                    target_quad_label > 0,
                     quad_index < quads_.size(),
                     quads_[quad_index].label == k_no_label,
-                    label != k_no_label //
+                    destination_label != k_no_label //
                 );
-                quads_[quad_index].label = label;
+                quads_[quad_index].label = destination_label;
         }
 
         inline void

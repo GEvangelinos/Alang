@@ -80,7 +80,7 @@ namespace Alpha
                 LIBRARY_FUNCTION,
         };
 
-        struct BoolExpr
+        struct BoolLists
         {
                 std::vector<u32> true_list;
                 std::vector<u32> false_list;
@@ -109,8 +109,6 @@ namespace Alpha
                 const Type type;
                 const Symbol *symbol;
                 Location location;
-                BoolExpr *backpatch;
-
                 union
                 {
                         const Expr *index;
@@ -119,6 +117,7 @@ namespace Alpha
                         const char *const_str;
                         const bool const_bool;
                 };
+                BoolLists *backpatch_info = nullptr; // By default no backpatch_info exists.
         };
 
         constexpr Expr::Type to_expr_type(Symbol::Type symbol_type)
