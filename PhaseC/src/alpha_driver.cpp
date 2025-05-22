@@ -232,9 +232,10 @@ namespace Alpha
               lexer_ctx_(source_filepath),
               parse_ctx_(st_, et_),
               sm_(parse_ctx_, st_, et_),
-              sb_(parse_ctx_, st_, et_)
+              sb_(SemanticOpts{true, true, true}, parse_ctx_, st_, et_)
 
         {
+                // TODO INITIALIZE SEMANTIC OPTS CORRECTLY.
                 g_show_parser_trace = show_parser_trace;
         }
 
@@ -277,6 +278,8 @@ namespace Alpha
 
         void Driver::show_quads() const
         {
+                if (et_.has_errors()) // We dont show quads if there are errors.
+                        return;
                 print_quads<true>(std::cout, parse_ctx_.quad_handler.quads(), lt_);
         }
 
@@ -292,6 +295,8 @@ namespace Alpha
 
         void Driver::export_quads()
         {
+                if (et_.has_errors()) // We dont export quads if there are errors.
+                        return;
                 export_within_dir(k_quad_exports_dirname, &Driver::export_quads_impl);
         }
 

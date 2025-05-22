@@ -80,10 +80,20 @@ namespace Alpha
                         std::stack<u32> quads_to_patch;
                 } if_prefix;
 
+                struct elsePrefixState
+                {
+                        std::stack<u32> quads_to_patch;
+                } else_prefix;
+
                 struct orHookState
                 {
                         std::stack<u32> next_quad_stack;
                 } or_hook;
+
+                struct andHookState
+                {
+                        std::stack<u32> next_quad_stack;
+                } and_hook;
         };
 
         class SpaceHandler : private Immobile
@@ -206,12 +216,10 @@ namespace Alpha
                     const Expr *arg2,
                     const Expr *result,
                     Location loc);
-
                 void patch_quad(u32 target_quad_label, u32 destination_label);
-                void patch_quad_with_next(u32 quad_index);
+                void patch_bool_list(const std::vector<u32> &patch_list, u32 destination_label);
                 [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
                 [[nodiscard]] u32 next_quad_label() const { return next_quad_label_; }
-                [[nodiscard]] u32 next_quad_index() const { return quads_.size(); }
 
         private:
                 [[nodiscard]] static bool requires_label(IOPCode iopc) noexcept;
@@ -578,13 +586,11 @@ namespace Alpha
         }
 
         inline void
-        QuadHandler::patch_quad_with_next(u32 quad_index)
+        QuadHandler::patch_bool_list(const std::vector<u32> &patch_list, u32 destination_label)
         {
-                DEBUG_SMART_ASSERT(
-                    quad_index < quads_.size(),
-                    quads_[quad_index].label == k_no_label //
-                );
-                patch_quad(quad_index, next_quad_label_);
+                DEBUG_SMART_ASSERT(destination_label != k_no_label);
+                for (u32 target_quad_label : patch_list)
+                        patch_quad(target_quad_label, destination_label);
         }
 
         inline void

@@ -38,8 +38,9 @@ namespace // (Anonymous)
                                 return "break";
                         case Keyword::CONTINUE:
                                 return "continue";
+                        [[unlikely]]
                         default:
-                                [[unlikely]] SMART_ASSERT(false);
+                                SMART_ASSERT(false);
                         }
                 }
 
@@ -74,12 +75,16 @@ namespace Alpha
                 void funcArgs__id(const char *id_name, Location id_loc);
                 void ifPrefix__if_lparen_expr_rparen(Expr *expr, Location expr_loc);
                 void ifStmt__ifPrefix_stmt_then();
+                void elsePrefix__else(Location else_loc);
+                void ifStmt__ifPrefix_stmt_elsePrefix_stmt();
                 void whileStmt__whileHeader() noexcept;
                 void whileStmt__whileHeader_stmt() noexcept;
                 void forStmt__forHeader() noexcept;
                 void forStmt__forHeader_stmt() noexcept;
                 void funcCtrlStmt__return(Location return_loc);
+                void backpatch_bool_expr(Expr *expr, Location expr_loc);
                 void orHook();
+                void andHook();
 
         private:
                 ParseCtx &parse_ctx_;
@@ -102,7 +107,7 @@ namespace Alpha
                 [[nodiscard]] bool reported_parameter_name_conflict(
                     u32 current_scope,
                     const Parameter &parameter);
-                void validate_arithmetic_expr(const Expr *expr, Location expr_loc, const char *context);
+                void report_error_if_not_arithmetic(const Expr *expr, Location expr_loc, const char *context);
         }; // class SemanticManager
 
         inline SemanticManager::SemanticManager(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et)
@@ -254,7 +259,7 @@ namespace Alpha
         }
 
         inline void
-        SemanticManager::validate_arithmetic_expr(
+        SemanticManager::report_error_if_not_arithmetic(
             const Expr *expr,
             const Location expr_loc,
             const char *const context)
@@ -300,7 +305,7 @@ namespace Alpha
         SemanticManager::term__inc_lvalue(Expr *&term, Expr *const lvalue, const Location term_loc)
         {
                 term__lvalue_op("increment", lvalue, term_loc);
-                validate_arithmetic_expr(lvalue, term_loc, "++lvalue");
+                report_error_if_not_arithmetic(lvalue, term_loc, "++lvalue");
                 if (lvalue->type == Expr::Type::TABLE_ITEM)
                 {
                         term = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
@@ -339,7 +344,7 @@ namespace Alpha
         SemanticManager::term__lvalue_inc(Expr *&term, Expr *lvalue, const Location term_loc)
         {
                 term__lvalue_op("increment", lvalue, term_loc);
-                validate_arithmetic_expr(lvalue, term_loc, "lvalue++"); // TODO: context variable is silly fix .
+                report_error_if_not_arithmetic(lvalue, term_loc, "lvalue++"); // TODO: context variable is silly fix .
                 term = parse_ctx_.expr_handler.make_expr_variable(parse_ctx_.new_temp(), term_loc);
                 if (lvalue->type == Expr::Type::TABLE_ITEM)
                 {
@@ -384,7 +389,7 @@ namespace Alpha
         SemanticManager::term__dec_lvalue(Expr *&term, Expr *lvalue, const Location term_loc)
         {
                 term__lvalue_op("decrement", lvalue, term_loc);
-                validate_arithmetic_expr(lvalue, term_loc, "--lvalue");
+                report_error_if_not_arithmetic(lvalue, term_loc, "--lvalue");
                 if (lvalue->type == Expr::Type::TABLE_ITEM)
                 {
                         term = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
@@ -423,7 +428,7 @@ namespace Alpha
         SemanticManager::term__lvalue_dec(Expr *&term, Expr *lvalue, const Location term_loc)
         {
                 term__lvalue_op("decrement", lvalue, term_loc);
-                validate_arithmetic_expr(lvalue, term_loc, "lvalue--"); // TODO: context variable is silly fix .
+                report_error_if_not_arithmetic(lvalue, term_loc, "lvalue--"); // TODO: context variable is silly fix .
                 term = parse_ctx_.expr_handler.make_expr_variable(parse_ctx_.new_temp(), term_loc);
                 if (lvalue->type == Expr::Type::TABLE_ITEM)
                 {
@@ -657,14 +662,13 @@ namespace Alpha
         inline void
         SemanticManager::ifPrefix__if_lparen_expr_rparen(Expr *expr, const Location expr_loc)
         {
-                constexpr u32 jump_step_to_true = 2;
                 auto &eh = parse_ctx_.expr_handler;
                 auto &qh = parse_ctx_.quad_handler;
 
-                const Expr *true_expr = eh.make_expr_const_bool(true, expr_loc);
-                qh.emit_quad_w_jump_step(IOPCode::IF_EQ, expr, true_expr, jump_step_to_true, expr_loc);
-                parse_ctx_.cache.if_prefix.quads_to_patch.push(qh.next_quad_label() - 1); // -1 to convert label to quad index.
-                qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr_loc);
+                this->backpatch_bool_expr(expr, expr_loc);
+                const Expr *false_expr = eh.make_expr_const_bool(false, expr_loc);
+                parse_ctx_.cache.if_prefix.quads_to_patch.push(qh.next_quad_label());
+                qh.emit_quad_labelless(IOPCode::IF_NOTEQ, expr, false_expr, nullptr, expr_loc);
         }
 
         inline void
@@ -673,7 +677,29 @@ namespace Alpha
                 auto &qh = parse_ctx_.quad_handler;
                 u32 quad_to_patch = parse_ctx_.cache.if_prefix.quads_to_patch.top();
                 parse_ctx_.cache.if_prefix.quads_to_patch.pop();
-                qh.patch_quad_with_next(quad_to_patch);
+                qh.patch_quad(quad_to_patch, qh.next_quad_label());
+        }
+
+        inline void
+        SemanticManager::elsePrefix__else(Location else_loc)
+        {
+                auto &qh = parse_ctx_.quad_handler;
+                parse_ctx_.cache.else_prefix.quads_to_patch.push(qh.next_quad_label());
+                qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, else_loc);
+
+                u32 if_noteq_quad_to_patch = parse_ctx_.cache.if_prefix.quads_to_patch.top();
+                parse_ctx_.cache.if_prefix.quads_to_patch.pop();
+                qh.patch_quad(if_noteq_quad_to_patch, qh.next_quad_label());
+        }
+
+        inline void
+        SemanticManager::ifStmt__ifPrefix_stmt_elsePrefix_stmt()
+        {
+                auto &qh = parse_ctx_.quad_handler;
+
+                u32 quad_to_patch = parse_ctx_.cache.else_prefix.quads_to_patch.top();
+                parse_ctx_.cache.else_prefix.quads_to_patch.pop();
+                qh.patch_quad(quad_to_patch, qh.next_quad_label());
         }
 
         inline void
@@ -712,9 +738,36 @@ namespace Alpha
         inline void
         SemanticManager::orHook()
         {
-                const u32 next_quad = parse_ctx_.quad_handler.next_quad_label();
-                parse_ctx_.cache.or_hook.next_quad_stack.push(next_quad);
+                parse_ctx_.cache.or_hook.next_quad_stack.push(
+                    parse_ctx_.quad_handler.next_quad_label());
         }
+
+        inline void
+        SemanticManager::andHook()
+        {
+                parse_ctx_.cache.and_hook.next_quad_stack.push(
+                    parse_ctx_.quad_handler.next_quad_label());
+        }
+
+        inline void SemanticManager::backpatch_bool_expr(Expr *expr, Location expr_loc)
+        {
+                DEBUG_SMART_ASSERT(!!expr);
+                if (expr->type != Expr::Type::BOOLEAN_EXPR)
+                        return; // Nothing to finalize (backpatch).
+                DEBUG_SMART_ASSERT(!!expr->symbol);
+
+                auto &qh = parse_ctx_.quad_handler;
+                auto &eh = parse_ctx_.expr_handler;
+                const Expr *true_expr = eh.make_expr_const_bool(true, expr_loc);
+                const Expr *false_expr = eh.make_expr_const_bool(false, expr_loc);
+
+                qh.patch_bool_list(expr->backpatch_info->true_list, qh.next_quad_label());
+                qh.emit_quad(IOPCode::ASSIGN, false_expr, nullptr, expr, expr_loc);
+                qh.emit_quad_w_jump_step(IOPCode::JUMP, nullptr, nullptr, +2, expr_loc);
+                qh.patch_bool_list(expr->backpatch_info->false_list, qh.next_quad_label());
+                qh.emit_quad(IOPCode::ASSIGN, true_expr, nullptr, expr, expr_loc);
+        }
+
 } // namespace Alpha
 
 #endif /* SEMANTIC_MANAGER_HPP */

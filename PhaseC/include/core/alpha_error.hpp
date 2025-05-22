@@ -89,6 +89,8 @@ namespace Alpha
                 [[nodiscard]] const std::vector<std::unique_ptr<const CTError>> &
                 get_compile_time_errors() const noexcept { return cterrors_; }
 
+                [[nodiscard]] bool has_errors() const noexcept { return cterrors_.size() > 0; }
+
         private:
                 std::vector<std::unique_ptr<const CTError>> cterrors_;
         };

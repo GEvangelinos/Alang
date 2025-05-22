@@ -60,7 +60,8 @@ namespace Alpha
                 #define X(iopcode) case IOPCode::iopcode: return str_to_lower(#iopcode);
                         ALL_IOPCODES
                 #undef  X
-                [[unlikely]] default:
+                [[unlikely]]
+                default:
                         throw std::logic_error(ATTACH_CONTEXT(FMT::format(
                             "BUG: Unknown IOPCode. IOPCode's int value = `{}`",
                             static_cast<int>(iopcode))));
@@ -69,16 +70,29 @@ namespace Alpha
         // clang-format on
 #undef IOPCODES
 
-        enum class RValueType
+        enum class OperandPosition
         {
-                CONST_BOOLEAN,
-                CONST_INT,
-                CONST_REAL,
-                CONST_STRING,
-                CONST_NIL,
-                FUNCTION_ADDRESS,
-                LIBRARY_FUNCTION,
+                UNARY,
+                LEFT,
+                RIGHT
         };
+
+        constexpr const char *to_string(OperandPosition pos)
+        {
+                switch (pos)
+                {
+                case OperandPosition::LEFT:
+                        return "left";
+                case OperandPosition::RIGHT:
+                        return "right";
+                [[unlikely]]
+                case OperandPosition::UNARY:
+                        throw std::logic_error(ATTACH_CONTEXT("UNARY has no string representation here"));
+                [[unlikely]]
+                default:
+                        throw std::logic_error(ATTACH_CONTEXT("UNARY has no string representation here"));
+                }
+        }
 
         struct BoolLists
         {
@@ -103,7 +117,6 @@ namespace Alpha
                         PROGRAM_FUNCTION,
                         TABLE_ITEM,
                         VARIABLE,
-
                 };
 
                 const Type type;

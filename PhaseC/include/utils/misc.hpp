@@ -14,6 +14,10 @@
 #define DEBUG_NULLIFY(pointer) ((void)0)
 #endif
 
+#ifndef __FILENAME__
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#endif /* __FILENAME__ */
+
 #define UNIMPLEMENTED()                                                           \
         do                                                                        \
         {                                                                         \
@@ -21,7 +25,7 @@
         } while (0)
 
 #define ATTACH_CONTEXT(message) \
-        FMT::format("{}:{}:{}(): {}", __FILE__, __LINE__, __func__, message)
+        FMT::format("{}:{} -> {}(): {}", __FILENAME__, __LINE__, __func__, message)
 
 #define REPORT_UNREACHABLE_VIOLATION(_message_if_reached)                                   \
         do                                                                                  \

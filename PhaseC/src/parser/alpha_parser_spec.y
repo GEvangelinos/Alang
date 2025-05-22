@@ -182,21 +182,21 @@
 %start program /* Entry rule. */
 
 %%
-program:
-  // (empty)
+program
+: // (empty)
 | multiStmt
 ;
 
-multiStmt:
-  stmt
+multiStmt
+: stmt
   { sm.multiStmt__stmt(); }
 | stmt
   { sm.multiStmt__stmt(); }
  multiStmt
 ;
 
-stmt:   
-  expr SEMICOLON
+stmt
+: expr SEMICOLON { sm.backpatch_bool_expr($expr, @expr); }
 | ifStmt
 | whileStmt
 | forStmt
@@ -211,13 +211,13 @@ stmt:
 | error RIGHT_BRACE   { yyerrok; } // Syntax error recovery hook.
 ;
 
-loopCtrlStmt:
-  BREAK    { sm.loopCtrlStmt__break(@BREAK); }
+loopCtrlStmt
+:  BREAK    { sm.loopCtrlStmt__break(@BREAK); }
 | CONTINUE { sm.loopCtrlStmt__continue(@CONTINUE); }
 ;
 
-expr[result]:
-  assignExpr
+expr[result]
+: assignExpr
 | expr[left] PLUS  expr[right] { $result = sb.make_arithmetic(AOP::ADD, $left, $right, @result, @left, @right); }
 | expr[left] MINUS expr[right] { $result = sb.make_arithmetic(AOP::SUB, $left, $right, @result, @left, @right); }
 | expr[left] MUL   expr[right] { $result = sb.make_arithmetic(AOP::MUL, $left, $right, @result, @left, @right); }
@@ -229,13 +229,17 @@ expr[result]:
 | expr[left] LTE   expr[right] { $result = sb.make_relational(AOP::IF_LESSEQ, $left, $right,@result, @left, @right); }
 | expr[left] EQ    expr[right] { $result = sb.make_relational(AOP::IF_EQ, $left, $right,@result, @left, @right); }
 | expr[left] NEQ   expr[right] { $result = sb.make_relational(AOP::IF_NOTEQ, $left, $right,@result, @left, @right); }
-| expr[left] AND       expr[right] { $result = sb.make_logical_and($left, $right, @result, @left, @right); }
-| expr[left] OR orHook expr[right] { $result = sb.make_logical_or($left, $right, @result, @left, @right); }
+| expr[left] AND andHook expr[right] { $result = sb.make_logical_and($left, $right, @result, @left, @right); }
+| expr[left] OR   orHook expr[right] { $result = sb.make_logical_or($left, $right, @result, @left, @right); }
 | term { $result = $term; }
 ;
 
 orHook
 : { sm.orHook(); }  
+;
+
+andHook
+: { sm.andHook(); }
 ;
 
 term:
@@ -410,13 +414,18 @@ const:
    $const = sb.make_const_string($STRING, @STRING); delete[] $STRING; $STRING = nullptr; }
 ;
 
-ifPrefix:
-  IF LEFT_PAREN expr RIGHT_PAREN { sm.ifPrefix__if_lparen_expr_rparen($expr, @expr); }
+ifPrefix
+: IF LEFT_PAREN expr RIGHT_PAREN { 
+  std::cout << "WELL I RUNNN"<<std::endl;
+  sm.ifPrefix__if_lparen_expr_rparen($expr, @expr); }
+;
+elsePrefix
+: ELSE { sm.elsePrefix__else(@ELSE); }
 ;
 
-ifStmt:
-  ifPrefix stmt %prec THEN { sm.ifStmt__ifPrefix_stmt_then(); }
-| ifPrefix stmt ELSE stmt
+ifStmt
+: ifPrefix stmt %prec THEN { sm.ifStmt__ifPrefix_stmt_then(); }
+| ifPrefix stmt elsePrefix stmt  { sm.ifStmt__ifPrefix_stmt_elsePrefix_stmt(); }
 ;
 
 whileHeader:

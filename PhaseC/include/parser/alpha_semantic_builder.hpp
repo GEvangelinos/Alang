@@ -22,12 +22,37 @@
 #include "_parser_common.hpp"
 #include <stdexcept>
 
+namespace // (Anonymous)
+{
+
+} // namespace (anonymous)
+
 namespace Alpha
 {
+        bool is_relational_iopcode(IOPCode iopc);
+        bool is_equality_iopcode(IOPCode iopc);
+        bool is_numeric_convertible_expr(const Expr *expr);
+        bool is_rvalue_expr(Expr::Type type);
+        constexpr const char *relational_iopc_to_string(IOPCode iopc);
+        constexpr const char *unary_iopc_to_string(IOPCode iopc);
+
+        struct SemanticOpts // TODO: rename?
+        {
+                bool arithmetic_folding;
+                bool realtional_folding;
+                bool logical_foling;
+        };
+
         class SemanticBuilder
         {
         public:
-                SemanticBuilder(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et);
+                const SemanticOpts sem_opts;
+
+                SemanticBuilder(
+                    SemanticOpts sem_opts,
+                    ParseCtx &parse_ctx,
+                    SymbolTable &st,
+                    ErrorTracker &et);
 
                 [[nodiscard]] Expr *make_arithmetic(
                     IOPCode iopc,
@@ -125,20 +150,34 @@ namespace Alpha
                 // maybe split manager in background actions.
                 // and builder in short actions that return stuff.. no to  much semantic checking..
                 // a few emit , and few expr* create , and out the door ->>>
-                void validate_arithmetic_expr(const Expr *expr, Location expr_loc, const std::string &context);
-                Expr *folded_constant_arithmetic(IOPCode iopc, const Expr *l, const Expr *r, Location loc);
+                void report_error_if_not_arithmetic(
+                    IOPCode iopc,
+                    const Expr *expr,
+                    Location expr_loc,
+                    OperandPosition side);
+                void report_error_if_not_relational(
+                    IOPCode iopc,
+                    const Expr *expr,
+                    Location expr_loc,
+                    OperandPosition side);
+                Expr *try_fold_arithmetic(IOPCode iopc, const Expr *l, const Expr *r, Location loc);
         }; // class SemanticBuilder
 
-        inline SemanticBuilder::SemanticBuilder(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et)
-            : parse_ctx_(parse_ctx), st_(st), et_(et) {}
+        inline SemanticBuilder::SemanticBuilder(
+            SemanticOpts sem_opts,
+            ParseCtx &parse_ctx,
+            SymbolTable &st,
+            ErrorTracker &et)
+            : sem_opts(sem_opts), parse_ctx_(parse_ctx), st_(st), et_(et) {}
 
         // clang-format off
-        inline Expr *SemanticBuilder::folded_constant_arithmetic(
+        inline Expr *SemanticBuilder::try_fold_arithmetic(
             const IOPCode iopc,
             const Expr *left,
             const Expr *right,
             const Location loc)
         {
+                DEBUG_SMART_ASSERT(!!left, !!right, sem_opts.arithmetic_folding);
                 using T = Expr::Type;
                 auto &eh = parse_ctx_.expr_handler;
                 const bool is_left_int  =  left->type == T::CONST_INT;
@@ -178,7 +217,8 @@ namespace Alpha
                         et_.report_error(CTError::Type::SEMANTIC, error, loc);
                         return nullptr;
                 }
-                [[unlikely]] default:
+                [[unlikely]]
+                default:
                         throw std::logic_error(ATTACH_CONTEXT(FMT::format(
                             "BUG:Unexpected IOPCode `{}` with operand types `{}` and `{}`",
                             to_string(iopc), etype_to_str(left), etype_to_str(right))));
@@ -193,7 +233,7 @@ namespace Alpha
             Location expr_loc)
         {
                 DEBUG_SMART_ASSERT(!!expr);
-                validate_arithmetic_expr(expr, expr_loc, "-expr");
+                report_error_if_not_arithmetic(IOPCode::UMINUS, expr, expr_loc, OperandPosition::UNARY);
 
                 auto &eh = parse_ctx_.expr_handler;
                 auto &qh = parse_ctx_.quad_handler;
@@ -230,11 +270,12 @@ namespace Alpha
             Location right_loc)
         {
                 DEBUG_SMART_ASSERT(!!left, !!right);
-                if (Expr *folded = folded_constant_arithmetic(iopc, left, right, result_loc))
-                        return folded;
+                report_error_if_not_arithmetic(iopc, left, left_loc, OperandPosition::LEFT);
+                report_error_if_not_arithmetic(iopc, right, right_loc, OperandPosition::RIGHT);
 
-                validate_arithmetic_expr(left, left_loc, "binary " + to_string(iopc));
-                validate_arithmetic_expr(right, right_loc, "binary " + to_string(iopc));
+                if (sem_opts.arithmetic_folding)
+                        if (Expr *folded = try_fold_arithmetic(iopc, left, right, result_loc))
+                                return folded;
 
                 Expr *result = parse_ctx_.expr_handler.make_expr_arithmetic(result_loc);
                 parse_ctx_.quad_handler.emit_quad(iopc, left, right, result, result_loc);
@@ -252,11 +293,12 @@ namespace Alpha
         {
                 // TODO: rename emit_quad to emit().
                 DEBUG_SMART_ASSERT(!!left, !!right);
-                constexpr u32 jump_step_to_true = 3;
-                constexpr u32 jump_step_to_false = 2;
                 auto &qh = parse_ctx_.quad_handler;
                 auto &eh = parse_ctx_.expr_handler;
-                // TODO: do contstant folding.. BUT first DO short circuit evaluation.
+
+                report_error_if_not_relational(iopc, left, left_loc, OperandPosition::LEFT);
+                report_error_if_not_relational(iopc, right, right_loc, OperandPosition::RIGHT);
+
                 Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
                 const Expr *false_expr = eh.make_expr_const_bool(false, result_loc);
                 const Expr *true_expr = eh.make_expr_const_bool(true, result_loc);
@@ -266,11 +308,6 @@ namespace Alpha
                 qh.emit_quad_labelless(iopc, left, right, nullptr, result_loc);
                 bool_result_expr->backpatch_info->false_list.push_back(qh.next_quad_label());
                 qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, result_loc);
-
-                // TODO: REMOVE? (code-fragment from full evaluation)
-                // qh.emit_quad(IOPCode::ASSIGN, false_expr, nullptr, bool_result_expr, result_loc);
-                // qh.emit_quad_w_jump_step(IOPCode::JUMP, nullptr, nullptr, jump_step_to_false, result_loc);
-                // qh.emit_quad(IOPCode::ASSIGN, true_expr, nullptr, bool_result_expr, result_loc);
                 return bool_result_expr;
         }
 
@@ -285,19 +322,26 @@ namespace Alpha
                 auto &qh = parse_ctx_.quad_handler;
                 auto &eh = parse_ctx_.expr_handler;
                 Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
-                // qh.emit_quad(IOPCode::OR, left, right, bool_result_expr, result_loc); // full-evaluation
                 DEBUG_SMART_ASSERT(!!left->backpatch_info);
+
+                // TODO: Semantic Manager has a patch function.. this fucks with DRY
+                // So make a common backpatcher class or namespace that does this function for you
+                // Maybe put it in parseCTX or in QUAD_HANDLER.
                 for (u32 quad_label : left->backpatch_info->false_list)
                 {
                         qh.patch_quad(quad_label, parse_ctx_.cache.or_hook.next_quad_stack.top());
                         parse_ctx_.cache.or_hook.next_quad_stack.pop();
                 }
+                left->backpatch_info->false_list.clear();
 
+                // TODO: MAKE A CUSTOM MERGE FUNCTION this FUCKs with DRY, as in logical and we do
+                // the same fucking thing... just in reverse... FOR FUCK SAKE
                 left->backpatch_info->true_list.insert(
                     left->backpatch_info->true_list.end(),
                     right->backpatch_info->true_list.begin(),
                     right->backpatch_info->true_list.end());
                 bool_result_expr->backpatch_info = left->backpatch_info;
+                bool_result_expr->backpatch_info->false_list = right->backpatch_info->false_list;
 
                 return bool_result_expr;
         }
@@ -309,7 +353,34 @@ namespace Alpha
             [[maybe_unused]] Location left_loc,  // TODO: If you dont do constant folding remove
             [[maybe_unused]] Location right_loc) // TODO: If you dont do constant folding remove
         {
-                UNIMPLEMENTED();
+                auto &qh = parse_ctx_.quad_handler;
+                auto &eh = parse_ctx_.expr_handler;
+                Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
+
+                DEBUG_SMART_ASSERT(!!left->backpatch_info);
+
+                // TODO: Semantic Manager has a patch function.. this fucks with DRY,
+                // So make a common backpatcher class or namespace that does this function for you
+                // Maybe put it in parseCTX or in QUAD_HANDLER.
+                for (u32 quad_label : left->backpatch_info->true_list)
+                {
+                        qh.patch_quad(quad_label, parse_ctx_.cache.and_hook.next_quad_stack.top());
+                        parse_ctx_.cache.and_hook.next_quad_stack.pop();
+                }
+                left->backpatch_info->true_list.clear();
+
+                // TODO: MAKE A CUSTOM MERGE FUNCTION this FUCKs with DRY, as in logical or we do
+                // the same fucking thing... just in reverse... FOR FUCK SAKE
+                left->backpatch_info->false_list.insert(
+                    left->backpatch_info->false_list.end(),
+                    right->backpatch_info->false_list.begin(),
+                    right->backpatch_info->false_list.end());
+                bool_result_expr->backpatch_info = left->backpatch_info;
+
+                // TODO: FUCKING DO SOMETHING MORE EFFIECIENT that COPYING VECTOR. (maybe std::move or std::swap. move sounds more effiecient!!)
+                bool_result_expr->backpatch_info->true_list = right->backpatch_info->true_list;
+
+                return bool_result_expr;
         }
 
         inline ExprList *
@@ -686,30 +757,155 @@ namespace Alpha
         }
 
         inline void
-        SemanticBuilder::validate_arithmetic_expr(
+        SemanticBuilder::report_error_if_not_arithmetic(
+            const IOPCode iopc,
             const Expr *expr,
             const Location expr_loc,
-            const std::string &context)
+            const OperandPosition side)
         {
-                using ET = Expr::Type;
-                switch (expr->type)
+                DEBUG_SMART_ASSERT(!!expr);
+                if (is_numeric_convertible_expr(expr))
+                        return;
+
+                std::string error;
+                switch (side)
                 {
-                case ET::BOOLEAN_EXPR:
-                case ET::NEW_TABLE:
-                case ET::LIBRARY_FUNCTION:
-                case ET::PROGRAM_FUNCTION:
-                case ET::CONST_BOOL:
-                case ET::CONST_NIL:
-                case ET::CONST_STRING:
-                        et_.report_error(
-                            CTError::Type::SEMANTIC,
-                            FMT::format("{} {}", "Invalid arithmetic expr: ", context), // TODO: fix ugly AF!
-                            expr_loc);
+                case OperandPosition::UNARY:
+                        error = FMT::format("operand of unary `{}` never arithmetic convertible",
+                                            unary_iopc_to_string(iopc));
                         break;
+                case OperandPosition::LEFT:
+                case OperandPosition::RIGHT:
+                        error = FMT::format(
+                            "`{}` operand of arithmetic operator `{}` never arithmetic convertible",
+                            to_string(side), relational_iopc_to_string(iopc));
+                        break;
+                [[unlikely]] default:
+                        SMART_ASSERT(false);
+                }
+                et_.report_error(CTError::Type::SEMANTIC, error, expr_loc);
+        }
+
+        inline void
+        SemanticBuilder::report_error_if_not_relational(
+            const IOPCode iopc,
+            const Expr *expr,
+            const Location expr_loc,
+            const OperandPosition op_pos)
+        {
+                DEBUG_SMART_ASSERT(
+                    !!expr,
+                    is_relational_iopcode(iopc),
+                    op_pos == OperandPosition::LEFT || op_pos == OperandPosition::RIGHT //
+                );
+
+                // In Alpha everything convertible to bool.
+                // And operators == and != convert their operands to bool.
+                if (is_equality_iopcode(iopc))
+                        return;
+                // If here operator IOPCode is:  < <= > >=
+                if (is_numeric_convertible_expr(expr))
+                        return;
+
+                const std::string error = FMT::format(
+                    "`{}` operand of relational operator `{}` never arithmetic convertible",
+                    to_string(op_pos), relational_iopc_to_string(iopc));
+                et_.report_error(CTError::Type::SEMANTIC, error, expr_loc);
+        }
+
+        inline bool
+        is_relational_iopcode(const IOPCode iopc)
+        {
+                switch (iopc)
+                {
+                case IOPCode::IF_EQ:
+                case IOPCode::IF_NOTEQ:
+                case IOPCode::IF_GREATER:
+                case IOPCode::IF_GREATEREQ:
+                case IOPCode::IF_LESS:
+                case IOPCode::IF_LESSEQ:
+                        return true;
                 default:
-                        break; // No error to report for the other Expr Types.
+                        return false;
                 }
         }
+
+        inline bool
+        is_equality_iopcode(const Alpha::IOPCode iopc)
+        {
+                return iopc == IOPCode::IF_EQ || iopc == IOPCode::IF_NOTEQ;
+        }
+
+        inline bool
+        is_numeric_convertible_expr(const Alpha::Expr *const expr)
+        {
+                using AET = Alpha::Expr::Type;
+                switch (expr->type)
+                {
+                case AET::ARITHMETIC_EXPR:
+                case AET::ASSIGN_EXPR:
+                case AET::CONST_INT:
+                case AET::CONST_REAL:
+                case AET::TABLE_ITEM:
+                case AET::VARIABLE:
+                        return true;
+                default:
+                        return false;
+                }
+        }
+
+        inline bool
+        is_rvalue_expr(const Alpha::Expr::Type type)
+        {
+                using AET = Alpha::Expr::Type;
+                switch (type)
+                {
+                case AET::CONST_BOOL:
+                case AET::CONST_INT:
+                case AET::CONST_NIL:
+                case AET::CONST_REAL:
+                case AET::CONST_STRING:
+                case AET::LIBRARY_FUNCTION:
+                case AET::PROGRAM_FUNCTION:
+                        return true;
+                default:
+                        return false;
+                }
+        }
+
+        // clang-format off
+        constexpr const char *relational_iopc_to_string(const Alpha::IOPCode iopc)
+        {
+                DEBUG_SMART_ASSERT(is_relational_iopcode(iopc));
+                switch (iopc)
+                {
+                case IOPCode::IF_LESS:      return "<";
+                case IOPCode::IF_GREATER:   return ">";
+                case IOPCode::IF_LESSEQ:    return "<=";
+                case IOPCode::IF_GREATEREQ: return ">=";
+                case IOPCode::IF_EQ:        return "==";
+                case IOPCode::IF_NOTEQ:     return "!=";
+                default: throw std::logic_error(ATTACH_CONTEXT(
+                            "Expected strictly an IOPCode corresponding to a relational operator"));
+                }
+        }
+        // clang-format on
+
+        // clang-format off
+        constexpr const char *unary_iopc_to_string(const Alpha::IOPCode iopc)
+        {
+                DEBUG_SMART_ASSERT(iopc == Alpha::IOPCode::NOT ||
+                                   iopc == Alpha::IOPCode::UMINUS);
+                switch (iopc)
+                {
+                case IOPCode::NOT:    return "not";
+                case IOPCode::UMINUS: return "-";
+                default: throw std::logic_error(ATTACH_CONTEXT(
+                            "Expected strictly an IOPCode corresponding to a unary operator"));
+                }
+        }
+        // clang-format on
+
 } // namespace Alpha
 
 #endif // ALPHA_SEMANTIC_BUILDER_HPP

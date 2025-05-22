@@ -93,8 +93,9 @@ namespace Alpha
                         return "error";
                 case Type::NOTE:
                         return "note";
+                [[unlikely]]
                 default:
-                        [[unlikely]] SMART_ASSERT(false);
+                        SMART_ASSERT(false);
                 }
         }
 
@@ -106,8 +107,9 @@ namespace Alpha
                         return COLOR_ASCII_BOLD_RED;
                 case Type::NOTE:
                         return COLOR_ASCII_BOLD_CYAN;
+                [[unlikely]]
                 default:
-                        [[unlikely]] SMART_ASSERT(false);
+                        SMART_ASSERT(false);
                 }
         }
 
@@ -121,8 +123,9 @@ namespace Alpha
                         return "semantic";
                 case Type::SYNTAX:
                         return "syntax";
+                [[unlikely]]
                 default:
-                        [[unlikely]] SMART_ASSERT(false);
+                        SMART_ASSERT(false);
                 }
         }
 
