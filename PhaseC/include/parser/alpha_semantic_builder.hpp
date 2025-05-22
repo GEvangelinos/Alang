@@ -5,6 +5,7 @@
 #include "parser/alpha_parser_context.hpp" // for ParseCtx
 #include "parser/alpha_symbol_table.hpp"   // for Symbol, SymbolTable
 #include <string>                          // for string
+#include <utility>
 
 #include <list> // for list, _List_const_iterator
 
@@ -50,6 +51,7 @@ public:
         SemanticBuilder(SemanticOpts sem_opts, ParseCtx &parse_ctx, SymbolTable &st,
                         ErrorTracker &et);
 
+        [[nodiscard]] Expr *convert_to_boolean(Expr *expr, Location expr_loc);
         [[nodiscard]] Expr *make_arithmetic(IOPCode iopc, Expr *left, Expr *right,
                                             Location result_loc, Location left_loc,
                                             Location right_loc);
@@ -61,7 +63,7 @@ public:
         [[nodiscard]] Expr *make_logical_and(Expr *left, Expr *right, Location result_loc,
                                              Location left_loc, Location right_loc);
         [[nodiscard]] Expr *make_uminus(Expr *expr, Location term_loc, Location expr_loc);
-        [[nodiscard]] Expr *make_logical_not(Expr *expr, Location term_loc);
+        [[nodiscard]] Expr *make_logical_not(Expr *expr, Location result_loc);
         [[nodiscard]] ExprList *make_empty_expr_list();
         [[nodiscard]] ExprList *make_expr_list_with(Expr *expr, Location new_expr_loc);
         [[nodiscard]] ExprList *extend_expr_list_with(ExprList *expr_list, Expr *expr,
@@ -129,61 +131,57 @@ inline SemanticBuilder::SemanticBuilder(SemanticOpts sem_opts, ParseCtx &parse_c
     : sem_opts(sem_opts), parse_ctx_(parse_ctx), st_(st), et_(et)
 {}
 
-// clang-format off
-        inline Expr *SemanticBuilder::try_fold_arithmetic(
-            const IOPCode iopc,
-            const Expr *left,
-            const Expr *right,
-            const Location loc)
+inline Expr *SemanticBuilder::try_fold_arithmetic(const IOPCode iopc, const Expr *left,
+                                                  const Expr *right, const Location loc)
+{
+        DEBUG_SMART_ASSERT(!!left, !!right, sem_opts.arithmetic_folding);
+        using T = Expr::Type;
+        auto &eh = parse_ctx_.expr_handler;
+        const bool is_left_int = left->type == T::CONST_INT;
+        const bool is_right_int = right->type == T::CONST_INT;
+        const auto etype_to_str = [](const Expr *e) -> const char * {
+                return e->type == Expr::Type::CONST_INT    ? "`int`"
+                       : e->type == Expr::Type::CONST_REAL ? "`real`"
+                                                           : "`unknown`";
+        };
+
+        if (is_left_int && is_right_int)
         {
-                DEBUG_SMART_ASSERT(!!left, !!right, sem_opts.arithmetic_folding);
-                using T = Expr::Type;
-                auto &eh = parse_ctx_.expr_handler;
-                const bool is_left_int  =  left->type == T::CONST_INT;
-                const bool is_right_int = right->type == T::CONST_INT;
-                const auto etype_to_str = [](const Expr *e) -> const char * {
-                        return e->type == Expr::Type::CONST_INT ? "`int`" :
-                               e->type == Expr::Type::CONST_REAL ? "`real`" : "`unknown`";
-                };
-
-                if (is_left_int && is_right_int)
-                {
-                        const i64 l = left->const_int, r = right->const_int;
-                        switch (iopc)
-                        {
-                        case IOPCode::ADD: return eh.make_expr_const_int(l + r, loc);
-                        case IOPCode::SUB: return eh.make_expr_const_int(l - r, loc);
-                        case IOPCode::MUL: return eh.make_expr_const_int(l * r, loc);
-                        case IOPCode::MOD: return eh.make_expr_const_int(l % r, loc);
-                        case IOPCode::DIV: return eh.make_expr_const_real(f64(l) / r, loc);
-                        default:           return nullptr;
-                        }
-                }
-
-                // Convert to REAL (INT+REAL, REAL+INT, REAL+REAL) // No C++ safety checks
-                const f64 l = is_left_int  ?  left->const_int :  left->const_real;
-                const f64 r = is_right_int ? right->const_int : right->const_real;
+                const i64 l = left->const_int, r = right->const_int;
                 switch (iopc)
                 {
-                case IOPCode::ADD: return eh.make_expr_const_real(l + r, loc);
-                case IOPCode::SUB: return eh.make_expr_const_real(l - r, loc);
-                case IOPCode::MUL: return eh.make_expr_const_real(l * r, loc);
-                case IOPCode::DIV: return eh.make_expr_const_real(l / r, loc);
-                case IOPCode::MOD: { //Required-block due to initialization inside case label.
-                        std::string error = FMT::format(
-                            "{} and {} constant operands are invalid to binary `operator%`",
-                            etype_to_str(left), etype_to_str(right));
-                        et_.report_error(CTError::Type::SEMANTIC, error, loc);
-                        return nullptr;
-                }
-                [[unlikely]]
-                default:
-                        throw std::logic_error(ATTACH_CONTEXT(FMT::format(
-                            "BUG:Unexpected IOPCode `{}` with operand types `{}` and `{}`",
-                            to_string(iopc), etype_to_str(left), etype_to_str(right))));
+                case IOPCode::ADD: return eh.make_expr_const_int(l + r, loc);
+                case IOPCode::SUB: return eh.make_expr_const_int(l - r, loc);
+                case IOPCode::MUL: return eh.make_expr_const_int(l * r, loc);
+                case IOPCode::MOD: return eh.make_expr_const_int(l % r, loc);
+                case IOPCode::DIV: return eh.make_expr_const_real(f64(l) / r, loc);
+                default: return nullptr;
                 }
         }
-// clang-format on
+
+        // Convert to REAL (INT+REAL, REAL+INT, REAL+REAL) // No C++ safety checks
+        const f64 l = is_left_int ? left->const_int : left->const_real;
+        const f64 r = is_right_int ? right->const_int : right->const_real;
+        switch (iopc)
+        {
+        case IOPCode::ADD: return eh.make_expr_const_real(l + r, loc);
+        case IOPCode::SUB: return eh.make_expr_const_real(l - r, loc);
+        case IOPCode::MUL: return eh.make_expr_const_real(l * r, loc);
+        case IOPCode::DIV: return eh.make_expr_const_real(l / r, loc);
+        case IOPCode::MOD: { // Required-block due to initialization inside case label.
+                std::string error =
+                    FMT::format("{} and {} constant operands are invalid to binary `operator%`",
+                                etype_to_str(left), etype_to_str(right));
+                et_.report_error(CTError::Type::SEMANTIC, error, loc);
+                return nullptr;
+        }
+        [[unlikely]]
+        default:
+                throw std::logic_error(ATTACH_CONTEXT(
+                    FMT::format("BUG:Unexpected IOPCode `{}` with operand types `{}` and `{}`",
+                                to_string(iopc), etype_to_str(left), etype_to_str(right))));
+        }
+}
 
 inline Expr *SemanticBuilder::make_uminus(Expr *expr, Location term_loc, Location expr_loc)
 {
@@ -195,24 +193,34 @@ inline Expr *SemanticBuilder::make_uminus(Expr *expr, Location term_loc, Locatio
 
         switch (expr->type)
         {
-        case Expr::Type::CONST_INT:
-                return eh.make_expr_const_int(-expr->const_int, term_loc);
-        case Expr::Type::CONST_REAL:
-                return eh.make_expr_const_real(-expr->const_real, term_loc);
+        case Expr::Type::CONST_INT: return eh.make_expr_const_int(-expr->const_int, term_loc);
+        case Expr::Type::CONST_REAL: return eh.make_expr_const_real(-expr->const_real, term_loc);
         default:
                 Expr *arithm_expr = eh.make_expr_arithmetic(term_loc);
                 qh.emit_quad(IOPCode::UMINUS, expr, nullptr, arithm_expr, term_loc);
                 return arithm_expr;
         }
 }
-inline Expr *SemanticBuilder::make_logical_not(Expr *expr, Location term_loc)
+
+inline Expr *SemanticBuilder::convert_to_boolean(Expr *expr, Location expr_loc)
 {
         DEBUG_SMART_ASSERT(!!expr);
+        if (expr->type == Expr::Type::BOOLEAN_EXPR)
+                return expr;
+
         auto &eh = parse_ctx_.expr_handler;
         auto &qh = parse_ctx_.quad_handler;
-        Expr *not_expr = eh.make_expr_boolean(term_loc);
-        qh.emit_quad(IOPCode::NOT, expr, nullptr, not_expr, term_loc);
-        return not_expr;
+
+        Expr *bool_expr = eh.make_expr_boolean(expr_loc);
+        Expr *true_expr = make_const_true(expr_loc); // TODO : Dude.. having so many make function
+                                                     // is confusing and pointless;
+
+        qh.emit_quad_labelless(IOPCode::IF_EQ, expr, true_expr, nullptr, expr_loc);
+        // TODO: this would be a good place to free initial expr* as its now
+        // useless.. Also you could reuse old expr.. why make new all the time??
+        // Like all expressions get a "face-lift"
+        qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr_loc);
+        return bool_expr;
 }
 
 inline Expr *SemanticBuilder::make_arithmetic(IOPCode iopc, Expr *left, Expr *right,
@@ -245,11 +253,12 @@ inline Expr *SemanticBuilder::make_relational(
         report_error_if_not_relational(iopc, left, left_loc, OperandPosition::LEFT);
         report_error_if_not_relational(iopc, right, right_loc, OperandPosition::RIGHT);
 
+        // TODO: If all cases where we need backpatch lists require us to push next label
+        // and next label+1 we put that in the constructor. Or we make constructor ask for next
+        // true and false list. Although I think its always and IOPCode (with label) and then a
+        // jump.
         Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
-        const Expr *false_expr = eh.make_expr_const_bool(false, result_loc);
-        const Expr *true_expr = eh.make_expr_const_bool(true, result_loc);
 
-        bool_result_expr->backpatch_info = new BoolLists{};
         bool_result_expr->backpatch_info->true_list.push_back(qh.next_quad_label());
         qh.emit_quad_labelless(iopc, left, right, nullptr, result_loc);
         bool_result_expr->backpatch_info->false_list.push_back(qh.next_quad_label());
@@ -262,10 +271,10 @@ inline Expr *SemanticBuilder::make_logical_or(
     [[maybe_unused]] Location left_loc,  // TODO: If you dont do constant folding remove
     [[maybe_unused]] Location right_loc) // TODO: If you dont do constant folding remove
 {
+        DEBUG_SMART_ASSERT(!!left, !!right);
         auto &qh = parse_ctx_.quad_handler;
         auto &eh = parse_ctx_.expr_handler;
         Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
-        DEBUG_SMART_ASSERT(!!left->backpatch_info);
 
         // TODO: Semantic Manager has a patch function.. this fucks with DRY
         // So make a common backpatcher class or namespace that does this function for you
@@ -319,6 +328,26 @@ inline Expr *SemanticBuilder::make_logical_and(
         // std::swap. move sounds more effiecient!!)
         bool_result_expr->backpatch_info->true_list = right->backpatch_info->true_list;
 
+        return bool_result_expr;
+}
+
+inline Expr *SemanticBuilder::make_logical_not(Expr *expr, Location result_loc)
+{
+        // TODO: Can we check if already boolexpr and reuse that? instead of making new?
+        DEBUG_SMART_ASSERT(!!expr);
+        auto &eh = parse_ctx_.expr_handler;
+        auto &qh = parse_ctx_.quad_handler;
+
+        Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
+        Expr *true_expr = make_const_true(result_loc);
+
+        bool_result_expr->backpatch_info->true_list.push_back(qh.next_quad_label());
+        qh.emit_quad_labelless(IOPCode::IF_EQ, expr, true_expr, nullptr, result_loc);
+        bool_result_expr->backpatch_info->false_list.push_back(qh.next_quad_label());
+        qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, result_loc);
+
+        std::swap(bool_result_expr->backpatch_info->true_list,
+                  bool_result_expr->backpatch_info->false_list);
         return bool_result_expr;
 }
 
@@ -434,8 +463,7 @@ inline Expr *SemanticBuilder::make_table_list(ExprList *&elist, Location table_l
         DEBUG_SMART_ASSERT(!!elist);
         Expr *new_table_expr = parse_ctx_.expr_handler.make_expr_new_table(table_list_loc);
         parse_ctx_.quad_handler.emit_quad(IOPCode::TABLECREATE, nullptr, nullptr, new_table_expr,
-                                          table_list_loc //
-        );
+                                          table_list_loc);
 
         // Emit list's items.
         u32 list_index = 0;
@@ -684,10 +712,8 @@ inline bool is_relational_iopcode(const IOPCode iopc)
         case IOPCode::IF_GREATER:
         case IOPCode::IF_GREATEREQ:
         case IOPCode::IF_LESS:
-        case IOPCode::IF_LESSEQ:
-                return true;
-        default:
-                return false;
+        case IOPCode::IF_LESSEQ: return true;
+        default: return false;
         }
 }
 
@@ -706,10 +732,8 @@ inline bool is_numeric_convertible_expr(const Alpha::Expr *const expr)
         case AET::CONST_INT:
         case AET::CONST_REAL:
         case AET::TABLE_ITEM:
-        case AET::VARIABLE:
-                return true;
-        default:
-                return false;
+        case AET::VARIABLE: return true;
+        default: return false;
         }
 }
 
@@ -724,30 +748,27 @@ inline bool is_rvalue_expr(const Alpha::Expr::Type type)
         case AET::CONST_REAL:
         case AET::CONST_STRING:
         case AET::LIBRARY_FUNCTION:
-        case AET::PROGRAM_FUNCTION:
-                return true;
-        default:
-                return false;
+        case AET::PROGRAM_FUNCTION: return true;
+        default: return false;
         }
 }
 
-// clang-format off
-        constexpr const char *relational_iopc_to_string(const Alpha::IOPCode iopc)
+constexpr const char *relational_iopc_to_string(const Alpha::IOPCode iopc)
+{
+        DEBUG_SMART_ASSERT(is_relational_iopcode(iopc));
+        switch (iopc)
         {
-                DEBUG_SMART_ASSERT(is_relational_iopcode(iopc));
-                switch (iopc)
-                {
-                case IOPCode::IF_LESS:      return "<";
-                case IOPCode::IF_GREATER:   return ">";
-                case IOPCode::IF_LESSEQ:    return "<=";
-                case IOPCode::IF_GREATEREQ: return ">=";
-                case IOPCode::IF_EQ:        return "==";
-                case IOPCode::IF_NOTEQ:     return "!=";
-                default: throw std::logic_error(ATTACH_CONTEXT(
-                            "Expected strictly an IOPCode corresponding to a relational operator"));
-                }
+        case IOPCode::IF_LESS: return "<";
+        case IOPCode::IF_GREATER: return ">";
+        case IOPCode::IF_LESSEQ: return "<=";
+        case IOPCode::IF_GREATEREQ: return ">=";
+        case IOPCode::IF_EQ: return "==";
+        case IOPCode::IF_NOTEQ: return "!=";
+        default:
+                throw std::logic_error(ATTACH_CONTEXT(
+                    "Expected strictly an IOPCode corresponding to a relational operator"));
         }
-// clang-format on
+}
 } // namespace Alpha
 
 #endif // ALPHA_SEMANTIC_BUILDER_HPP

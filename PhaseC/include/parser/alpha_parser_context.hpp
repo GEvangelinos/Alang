@@ -727,6 +727,7 @@ inline Expr *ExprHandler::make_expr_boolean(Location bool_expr_loc)
             .symbol = parse_ctx_.new_temp(),
             .location = bool_expr_loc,
             .index = nullptr,
+            .backpatch_info = new BoolLists{},
         };
         expr_sink_.push_back(bool_expr);
         return bool_expr;
