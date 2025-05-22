@@ -196,7 +196,7 @@ multiStmt
 ;
 
 stmt
-: expr SEMICOLON { sm.backpatch_bool_expr($expr, @expr); }
+: expr SEMICOLON {  sm.backpatch_bool_expr($expr, @expr); }
 | ifStmt
 | whileStmt
 | forStmt
@@ -298,13 +298,23 @@ tableItem:
   lvalue DOT ID
   { $tableItem = sb.make_table_item($lvalue, $ID, @tableItem ,@ID); } 
 | lvalue LEFT_BRACKET expr RIGHT_BRACKET 
-  { $tableItem = sb.make_table_item($lvalue, $expr, @tableItem); } 
+  {
+    sm.backpatch_bool_expr($expr, @expr);
+    /*TODO  extract sub rule to bracketed expression. an backpatch expr there. TODO2:
+    Try to centralize expr backpatching... So far everything is scatter in different rules.
+    Maybe you can make a rule with all places expressions are needed. and backpatching is also needed. */
+    $tableItem = sb.make_table_item($lvalue, $expr, @tableItem);
+  }
+| call DOT ID { $tableItem = sb.make_table_item($call, $ID, @call, @ID); }
+| call LEFT_BRACKET expr RIGHT_BRACKET 
+  {
+    sm.backpatch_bool_expr($expr, @expr);
+    $tableItem = sb.make_table_item($call, $expr, @tableItem);
+  }
 ;
 
 member:
-  tableItem { $member = $tableItem; }
-| call DOT ID 
-| call LEFT_BRACKET expr RIGHT_BRACKET
+  tableItem { $member = $tableItem; /* USELESS INDIRECTION? */  /*TODO originally there where tableitem here*/}
 ;
 
 methodCallId:
@@ -326,9 +336,15 @@ call[invocation]:
 
 exprList[head]:
   expr 
-  { $head = sb.make_expr_list_with($expr, @expr); }
+  { 
+    sm.backpatch_bool_expr($expr, @expr);
+    $head = sb.make_expr_list_with($expr, @expr); 
+  }
 | expr COMMA exprList[tail] 
-  { $head = sb.extend_expr_list_with($tail, $expr, @expr); }
+  {
+    sm.backpatch_bool_expr($expr, @expr);
+    $head = sb.extend_expr_list_with($tail, $expr, @expr);
+  }
 ;
 
 elist:
@@ -363,8 +379,14 @@ indexedElemList[head]:
 ;
 
 indexedElem:
-  LEFT_BRACE expr[key] COLON expr[value] RIGHT_BRACE
-  { $indexedElem = sb.make_expr_pair($key, $value); }
+  LEFT_BRACE expr[key] COLON
+  { sm.backpatch_bool_expr($key, @key); }
+  expr[value] 
+  RIGHT_BRACE
+  {
+    sm.backpatch_bool_expr($value, @value); 
+    $indexedElem = sb.make_expr_pair($key, $value); 
+  }
 ;
 
 blockBegin:
@@ -434,9 +456,11 @@ const:
 ;
 
 ifPrefix
-: IF LEFT_PAREN expr RIGHT_PAREN { 
-  std::cout << "WELL I RUNNN"<<std::endl;
-  sm.ifPrefix__if_lparen_expr_rparen($expr, @expr); }
+: IF LEFT_PAREN expr RIGHT_PAREN 
+  { 
+    sm.backpatch_bool_expr($expr, @expr);
+    sm.ifPrefix__if_lparen_expr_rparen($expr, @expr);
+  }
 ;
 elsePrefix
 : ELSE { sm.elsePrefix__else(@ELSE); }
@@ -448,7 +472,9 @@ ifStmt
 ;
 
 whileHeader:
-  WHILE LEFT_PAREN expr RIGHT_PAREN 
+  WHILE LEFT_PAREN expr 
+  { sm.backpatch_bool_expr($expr, @expr); }
+  RIGHT_PAREN 
 ;
 
 whileStmt:
@@ -459,7 +485,9 @@ whileStmt:
 ;
 
 forHeader:
-  FOR LEFT_PAREN elist SEMICOLON expr SEMICOLON elist RIGHT_PAREN
+  FOR LEFT_PAREN elist SEMICOLON expr
+  { sm.backpatch_bool_expr($expr, @expr); }
+  SEMICOLON elist RIGHT_PAREN
 ;
 
 forStmt:
@@ -475,7 +503,7 @@ funcCtrlStmt: //OK
 
 returnStmt: //OK
   funcCtrlStmt
-| funcCtrlStmt expr
+| funcCtrlStmt expr  { sm.backpatch_bool_expr($expr, @expr); }
 ;
 
 
