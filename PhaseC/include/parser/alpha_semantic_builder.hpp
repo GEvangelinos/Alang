@@ -215,10 +215,12 @@ inline Expr *SemanticBuilder::convert_to_boolean(Expr *expr, Location expr_loc)
         Expr *true_expr = make_const_true(expr_loc); // TODO : Dude.. having so many make function
                                                      // is confusing and pointless;
 
+        bool_expr->backpatch_info->true_list.push_back(qh.next_quad_label());
         qh.emit_quad_labelless(IOPCode::IF_EQ, expr, true_expr, nullptr, expr_loc);
         // TODO: this would be a good place to free initial expr* as its now
         // useless.. Also you could reuse old expr.. why make new all the time??
         // Like all expressions get a "face-lift"
+        bool_expr->backpatch_info->false_list.push_back(qh.next_quad_label());
         qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr_loc);
         return bool_expr;
 }

@@ -271,7 +271,10 @@ term:
 
 assignExpr:
   lvalue ASSIGN expr  
-  { $assignExpr = sb.resolve_assign_expr($lvalue,$expr, @ASSIGN); }
+  { 
+    sm.backpatch_bool_expr($expr, @expr);
+    $assignExpr = sb.resolve_assign_expr($lvalue,$expr, @ASSIGN); 
+  }
 ;
 
 primary:
