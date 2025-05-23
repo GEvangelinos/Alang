@@ -54,6 +54,9 @@ class SemanticManager
 {
 public:
         SemanticManager(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et);
+        void N(Location n_loc, const int N_index);
+        void M();
+        void forHeader__for_lparen_elist_semicolon_m_expr_semicolon(Expr *expr, Location expr_loc);
         void multiStmt__stmt();
         void loopCtrlStmt__break(Location break_loc);
         void loopCtrlStmt__continue(Location continue_loc);
@@ -76,8 +79,11 @@ public:
         void ifStmt__ifPrefix_stmt_then();
         void elsePrefix__else(Location else_loc);
         void ifStmt__ifPrefix_stmt_elsePrefix_stmt();
+        void whileStart__while();
+        void whileCondition__lparen_expr_rparen(Expr *expr, Location expr_loc,
+                                                Location while_cond_loc);
         void whileStmt__whileHeader() noexcept;
-        void whileStmt__whileHeader_stmt() noexcept;
+        void whileStmt__whileHeader_stmt(Location while_stmt_header);
         void forStmt__forHeader() noexcept;
         void forStmt__forHeader_stmt() noexcept;
         void funcCtrlStmt__return(Location return_loc);
@@ -263,6 +269,7 @@ inline void SemanticManager::multiStmt__stmt()
 {
         parse_ctx_.name_generator.reset_temp_names();
 }
+
 inline void SemanticManager::loopCtrlStmt__break(Location break_loc)
 {
         loopCtrlStmt__loopkeyword_impl(Loop::Keyword::BREAK, break_loc);
@@ -584,14 +591,64 @@ inline void SemanticManager::ifStmt__ifPrefix_stmt_elsePrefix_stmt()
         qh.patch_quad(quad_to_patch, qh.next_quad_label());
 }
 
+inline void SemanticManager::whileStart__while()
+{
+        parse_ctx_.cache.while_start.next_quad_stack.push(
+            parse_ctx_.quad_handler.next_quad_label());
+}
+
+inline void SemanticManager::whileCondition__lparen_expr_rparen(Expr *expr, Location expr_loc,
+                                                                Location while_cond_loc)
+{
+        auto &qh = parse_ctx_.quad_handler;
+        auto &eh = parse_ctx_.expr_handler;
+        Expr *false_expr = eh.make_expr_const_bool(false, expr_loc);
+        parse_ctx_.cache.while_condition.quads_to_patch.push(
+            parse_ctx_.quad_handler.next_quad_label());
+        qh.emit_quad_labelless(IOPCode::IF_NOTEQ, expr, false_expr, nullptr, while_cond_loc);
+}
+
 inline void SemanticManager::whileStmt__whileHeader() noexcept
 {
         parse_ctx_.function_ctx_handler.enter_loop();
 }
 
-inline void SemanticManager::whileStmt__whileHeader_stmt() noexcept
+inline void SemanticManager::whileStmt__whileHeader_stmt(const Location while_stmt_loc)
 {
+        auto &qh = parse_ctx_.quad_handler;
+
         parse_ctx_.function_ctx_handler.exit_loop();
+
+        DEBUG_SMART_ASSERT(parse_ctx_.cache.while_start.next_quad_stack.size() > 0);
+        qh.emit_quad_w_label(IOPCode::JUMP, nullptr, nullptr, nullptr,
+                             parse_ctx_.cache.while_start.next_quad_stack.top(), while_stmt_loc);
+        parse_ctx_.cache.while_start.next_quad_stack.pop();
+
+        DEBUG_SMART_ASSERT(parse_ctx_.cache.while_condition.quads_to_patch.size() > 0);
+        qh.patch_quad(parse_ctx_.cache.while_condition.quads_to_patch.top(), qh.next_quad_label());
+        parse_ctx_.cache.while_condition.quads_to_patch.pop();
+
+        // TODO:
+        // patchlist($stmt.breaklist, nextquad());
+        // patchlist($stmt.contlist, $whilestart);
+}
+
+inline void SemanticManager::N(Location n_loc, const int N_index)
+{
+        auto &qh = parse_ctx_.quad_handler;
+        if (N_index == 1)
+                parse_ctx_.cache.n.quads_to_patch_1.push(qh.next_quad_label());
+        if (N_index == 2)
+                parse_ctx_.cache.n.quads_to_patch_2.push(qh.next_quad_label());
+        if (N_index == 3)
+                parse_ctx_.cache.n.quads_to_patch_3.push(qh.next_quad_label());
+        qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, n_loc);
+}
+
+inline void SemanticManager::M()
+{
+        auto &qh = parse_ctx_.quad_handler;
+        parse_ctx_.cache.m.quads_to_patch.push(qh.next_quad_label());
 }
 
 inline void SemanticManager::forStmt__forHeader() noexcept
@@ -599,9 +656,85 @@ inline void SemanticManager::forStmt__forHeader() noexcept
         parse_ctx_.function_ctx_handler.enter_loop();
 }
 
+inline void SemanticManager::forHeader__for_lparen_elist_semicolon_m_expr_semicolon(
+    Expr *expr, Location expr_loc)
+{
+        // TODO you probably dont need stack here. (like 99%) M is just a variable..
+        // as we use it before any new for-loops can begin.
+        DEBUG_SMART_ASSERT(parse_ctx_.cache.m.quads_to_patch.size() > 0);
+        parse_ctx_.cache.for_header.test_quads_to_patch.push(
+            parse_ctx_.cache.m.quads_to_patch.top());
+        parse_ctx_.cache.m.quads_to_patch.pop();
+
+        parse_ctx_.cache.for_header.enter_quads_to_patch.push(
+            parse_ctx_.quad_handler.next_quad_label());
+
+        Expr *false_expr = parse_ctx_.expr_handler.make_expr_const_bool(false, expr_loc);
+        parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::IF_NOTEQ, expr, false_expr, nullptr,
+                                                    expr_loc);
+}
+// MASSIVE TODO: REFACTOR WHOLE SEMANTIC_BUILDER/MANAGER.. its a HUGE MESS..
+// for HANDLING IS A HUGE MESS TOO.. UNREADABLE UNCLEAR WHAT YOU DO.
+// GOTO SLEEP AND TAKE SOME TIME TO FIX THIS.. ITS A NICE PROJECT... SO DO YOURSELF A FAVOR TO FIX
+// THIS DEAR TA. IF  YOU ARE SEEING THIS.. I AM SORRY.. THIS IS JUST HOW I WRITE THINGS.. AND HOW I
+// TALK TO MYSELF
 inline void SemanticManager::forStmt__forHeader_stmt() noexcept
 {
+        // TODO: just a though.. In code it shows using IF_EQ.. but we used IF_NOTEQ
+        // in order to reduces quads.. (while keeping same program behavior..)
+        // The this is.. that in IF, ELSe and WHILE I ommitted a jump.. What about here?
+        // Is any jump redundant?  // Track generated code. and see is some QUAD is never run.
+        // On the following test: generated quads are used (I check manually.. no one was left out,
+        // but keep searching... weird to just use IF_NOTEQ from IF_EQ, and not needing to make
+        // something else different) (Then again maybe its a behavior of the loops.. because we
+        // always return up (cycle)) .. Maybe in while I did just that.. I am sleepless.. So I might
+        // very well be wrong
+
+        // for ( i = 0; i < N; ++i )
+        //        print("*");
+
+        auto &qh = parse_ctx_.quad_handler;
+
+        DEBUG_SMART_ASSERT(                                              //
+            parse_ctx_.cache.for_header.test_quads_to_patch.size() > 0,  //
+            parse_ctx_.cache.for_header.enter_quads_to_patch.size() > 0, //
+            parse_ctx_.cache.n.quads_to_patch_3.size() > 0,              //
+            parse_ctx_.cache.n.quads_to_patch_2.size() > 0,              //
+            parse_ctx_.cache.n.quads_to_patch_1.size() > 0,              //
+
+        );
+
+        qh.patch_quad(                                              //
+            parse_ctx_.cache.for_header.enter_quads_to_patch.top(), //
+            parse_ctx_.cache.n.quads_to_patch_2.top() + 1           //
+        );
+
+        qh.patch_quad(                                 //
+            parse_ctx_.cache.n.quads_to_patch_1.top(), //
+            qh.next_quad_label()                       //
+        );
+
+        qh.patch_quad(                                            //
+            parse_ctx_.cache.n.quads_to_patch_2.top(),            //
+            parse_ctx_.cache.for_header.test_quads_to_patch.top() //
+        );
+
+        qh.patch_quad(                                    //
+            parse_ctx_.cache.n.quads_to_patch_3.top(),    //
+            parse_ctx_.cache.n.quads_to_patch_1.top() + 1 //
+        );
+
+        parse_ctx_.cache.for_header.test_quads_to_patch.pop();
+        parse_ctx_.cache.for_header.enter_quads_to_patch.pop();
+        parse_ctx_.cache.n.quads_to_patch_3.pop();
+        parse_ctx_.cache.n.quads_to_patch_2.pop();
+        parse_ctx_.cache.n.quads_to_patch_1.pop();
+
         parse_ctx_.function_ctx_handler.exit_loop();
+        // patchlabel($forprefix.enter, $N2+1);
+        // patchlabel($N1, nextquad());
+        // patchlabel($N2, $forprefix.test);
+        // patchlabel($N3, $N1+1);
 }
 
 inline void SemanticManager::funcCtrlStmt__return(const Location return_loc)

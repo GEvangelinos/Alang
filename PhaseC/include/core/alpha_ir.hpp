@@ -43,7 +43,7 @@
 
 namespace Alpha
 {
-enum class IOPCode
+enum class IOPCode : u8
 {
 #define X(code) code,
         ALL_IOPCODES
@@ -67,7 +67,7 @@ enum class IOPCode
 }
 #undef IOPCODES
 
-enum class OperandPosition
+enum class OperandPosition : u8
 {
         UNARY,
         LEFT,

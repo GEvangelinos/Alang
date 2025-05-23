@@ -470,30 +470,61 @@ ifStmt
 | ifPrefix stmt elsePrefix stmt  { sm.ifStmt__ifPrefix_stmt_elsePrefix_stmt(); }
 ;
 
-whileHeader:
-  WHILE LEFT_PAREN expr 
+whileStart:
+WHILE { sm.whileStart__while(); }
+;
+
+whileCondition:
+  LEFT_PAREN expr
   { sm.backpatch_bool_expr($expr, @expr); }
-  RIGHT_PAREN 
+  RIGHT_PAREN
+  { sm.whileCondition__lparen_expr_rparen($expr, @expr, @whileCondition); }
+;
+
+whileHeader:
+  whileStart
+  whileCondition
 ;
 
 whileStmt:
   whileHeader
   { sm.whileStmt__whileHeader(); }
   stmt
-  { sm.whileStmt__whileHeader_stmt(); }
+  { sm.whileStmt__whileHeader_stmt(@whileStmt); }
 ;
 
+N1: { sm.N(@N1,1); };
+N2: { sm.N(@N2,2); };
+N3: { sm.N(@N3,3); };
+
+M: { sm.M(); };
+
 forHeader:
-  FOR LEFT_PAREN elist SEMICOLON expr
+  FOR
+  LEFT_PAREN
+  elist
+  SEMICOLON
+  M
+  expr
   { sm.backpatch_bool_expr($expr, @expr); }
-  SEMICOLON elist RIGHT_PAREN
+  SEMICOLON
+  {
+    sm.forHeader__for_lparen_elist_semicolon_m_expr_semicolon($expr, @expr);
+  }
+  N1
+  elist
+  RIGHT_PAREN
 ;
 
 forStmt:
   forHeader
+  N2
   { sm.forStmt__forHeader(); } 
   stmt
-  { sm.forStmt__forHeader_stmt(); }
+  N3
+  { 
+    sm.forStmt__forHeader_stmt();
+  }
 ;
 
 funcCtrlStmt: //OK

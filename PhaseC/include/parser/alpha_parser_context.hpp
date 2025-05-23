@@ -89,6 +89,34 @@ struct ParseCache
         {
                 std::stack<u32> next_quad_stack;
         } logical_marker;
+
+        struct whileStartState
+        {
+                std::stack<u32> next_quad_stack;
+        } while_start;
+
+        struct whileConditionState
+        {
+                std::stack<u32> quads_to_patch;
+        } while_condition;
+
+        struct
+        {
+                std::stack<u32> quads_to_patch_1;
+                std::stack<u32> quads_to_patch_2;
+                std::stack<u32> quads_to_patch_3;
+        } n;
+
+        struct
+        {
+                std::stack<u32> quads_to_patch;
+        } m;
+
+        struct forHeaderState
+        {
+                std::stack<u32> test_quads_to_patch;
+                std::stack<u32> enter_quads_to_patch;
+        } for_header;
 };
 
 class SpaceHandler : private Immobile
@@ -199,6 +227,8 @@ public:
                                    Location loc);
         void emit_quad_labelless(IOPCode iopc, const Expr *arg1, const Expr *arg2,
                                  const Expr *result, Location loc);
+        void emit_quad_w_label(const IOPCode iopc, const Expr *arg1, const Expr *arg2,
+                               const Expr *result, u32 label, const Location loc);
         void patch_quad(u32 target_quad_label, u32 destination_label);
         void patch_bool_list(const std::vector<u32> &patch_list, u32 destination_label);
         [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
@@ -496,6 +526,12 @@ inline void QuadHandler::emit_quad(const IOPCode iopc, const Expr *arg1, const E
                        requires_label(iopc) ? next_quad_label_ : k_no_label, loc);
 }
 
+inline void QuadHandler::emit_quad_w_label(const IOPCode iopc, const Expr *arg1, const Expr *arg2,
+                                           const Expr *result, u32 label, const Location loc)
+{
+        emit_quad_impl(iopc, arg1, arg2, result, label, loc);
+}
+
 inline void QuadHandler::emit_quad_w_jump_step(const IOPCode iopc, const Expr *arg1,
                                                const Expr *arg2, const u32 jump_step,
                                                const Location loc)
@@ -513,10 +549,11 @@ inline void QuadHandler::emit_quad_labelless(IOPCode iopc, const Expr *arg1, con
 inline void QuadHandler::patch_quad(u32 target_quad_label, u32 destination_label)
 {
         const u32 quad_index =
-            target_quad_label - 1; // First quad at index 0, has quad with label 1.
-        DEBUG_SMART_ASSERT(target_quad_label > 0, quad_index < quads_.size(),
-                           quads_[quad_index].label == k_no_label,
-                           destination_label != k_no_label //
+            target_quad_label - 1;                // First quad at index 0, has quad with label 1.
+        DEBUG_SMART_ASSERT(target_quad_label > 0, //
+                           quad_index < quads_.size(),             //
+                           quads_[quad_index].label == k_no_label, //
+                           destination_label != k_no_label         //
         );
         quads_[quad_index].label = destination_label;
 }
