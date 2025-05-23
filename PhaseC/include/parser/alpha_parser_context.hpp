@@ -186,6 +186,44 @@ public:
         [[nodiscard]] u32 loop_depth() const noexcept;
         [[nodiscard]] const std::list<Parameter> &function_parameters() const noexcept;
         [[nodiscard]] u32 next_function_address() noexcept { return next_function_address_++; }
+        [[nodiscard]] const std::vector<u32> &get_breaklist() // TODO CLEANUP
+        {
+                DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
+                // We must be in a LOOP
+                DEBUG_SMART_ASSERT(frame_stack_.top().function_breaklist_stack.size() > 0);
+
+                return frame_stack_.top().function_breaklist_stack.top();
+        }
+
+        [[nodiscard]] const std::vector<u32> &get_continuelist() // TODO CLEANUP
+        {
+                DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
+                // We must be in a LOOP
+                DEBUG_SMART_ASSERT(frame_stack_.top().function_continuelist_stack.size() > 0);
+
+                return frame_stack_.top().function_continuelist_stack.top();
+        }
+        void add_label_to_breaklist(u32 jump_label) // Quad label of jump used to break.
+        {
+                DEBUG_SMART_ASSERT(frame_stack_.size() > 0); // TODO replace 1 (due to global frame)
+                // We must be in a LOOP
+                DEBUG_SMART_ASSERT(frame_stack_.top().function_breaklist_stack.size() > 0);
+
+                // we used Stack so each loop has its own break list
+                frame_stack_.top().function_breaklist_stack.top().push_back(jump_label);
+        }
+
+        void add_label_to_continuelist(u32 jump_label) // Quad label of jump used to break.
+        {
+                // TODO repetitive code (same as continue.. DRY it out).
+                DEBUG_SMART_ASSERT(frame_stack_.size() > 0); // TODO replace 1 (due to global frame)
+
+                // We must be in a LOOP
+                DEBUG_SMART_ASSERT(frame_stack_.top().function_continuelist_stack.size() > 0);
+
+                // we used Stack so each loop has its own continue list.
+                frame_stack_.top().function_continuelist_stack.top().push_back(jump_label);
+        }
 
 private:
         struct FunctionDataFrame
@@ -196,8 +234,19 @@ private:
                 const Function *function_symbol; // Valid function ONLY IF NOT nullptr;
 
                 u32 loop_nesting_count = 0;
+
+                // This is labels of breaks per loop in function
+                std::stack<std::vector<u32>> function_breaklist_stack;
+                // This is labels of continue of loops per loop in function
+                std::stack<std::vector<u32>> function_continuelist_stack;
+
                 u32 local_variable_count = 0;
+
+                FunctionDataFrame(std::string name, u32 scope, Location loc, const Function *f)
+                    : name(std::move(name)), scope(scope), location(loc), function_symbol(f)
+                {}
         };
+
         std::stack<FunctionDataFrame> frame_stack_;
         std::list<Parameter> function_parameters_;
         u32 next_function_address_ = 0;
@@ -230,7 +279,7 @@ public:
         void emit_quad_w_label(const IOPCode iopc, const Expr *arg1, const Expr *arg2,
                                const Expr *result, u32 label, const Location loc);
         void patch_quad(u32 target_quad_label, u32 destination_label);
-        void patch_bool_list(const std::vector<u32> &patch_list, u32 destination_label);
+        void patch_list(const std::vector<u32> &patch_list, u32 destination_label);
         [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
         [[nodiscard]] u32 next_quad_label() const { return next_quad_label_; }
 
@@ -381,15 +430,9 @@ inline void ScopeHandler::exit_scope() noexcept
 
 inline FunctionCtxHandler::FunctionCtxHandler(ParseCtx &parse_ctx) : parse_ctx_(parse_ctx)
 {
-        // We push a stackframe, for loops that might occur outside
-        // functions. So every frame corresponds to a function except the
-        // first.
-        frame_stack_.emplace(FunctionDataFrame{
-            .name = k_global_data_frame_name,
-            .scope = k_global_scope,
-            .location = k_no_location,
-            .function_symbol = nullptr // There is no function, so no function symbol.
-        });
+        // We push a stackframe, for loops that might occur outside functions.
+        // So every frame corresponds to a function except the first.
+        frame_stack_.emplace(k_global_data_frame_name, k_global_scope, k_no_location, nullptr);
 }
 
 inline FunctionCtxHandler::~FunctionCtxHandler()
@@ -415,12 +458,9 @@ inline void FunctionCtxHandler::enter_function(const Function *function_symbol)
                 );
 #endif // DEBUG_MODE
 
-        frame_stack_.emplace(FunctionDataFrame{
-            .name = parse_ctx_.cache.func_prefix.id,
-            .scope = parse_ctx_.scope_handler.scope(),
-            .location = parse_ctx_.cache.func_prefix.location,
-            .function_symbol = function_symbol //
-        });
+        frame_stack_.emplace(
+            FunctionDataFrame(parse_ctx_.cache.func_prefix.id, parse_ctx_.scope_handler.scope(),
+                              parse_ctx_.cache.func_prefix.location, function_symbol));
 
         // Function scope is entered here.
         // We skip the next `{` block’s scope to avoid double scoping.
@@ -472,7 +512,17 @@ inline void FunctionCtxHandler::enter_loop() noexcept
 {
         DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
         DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count < k_max_loop_nesting);
+
         ++frame_stack_.top().loop_nesting_count;
+
+        // Emplaced empty breaklist (vector)
+        frame_stack_.top().function_breaklist_stack.emplace();
+
+        // Emplaced empty continuelist (vector)
+        frame_stack_.top().function_continuelist_stack.emplace();
+
+        std::cout << "At enter_loop function_continuelist_stack_size == "
+                  << frame_stack_.top().function_continuelist_stack.size() << std::endl;
 }
 
 inline void FunctionCtxHandler::exit_loop() noexcept
@@ -480,6 +530,14 @@ inline void FunctionCtxHandler::exit_loop() noexcept
         DEBUG_SMART_ASSERT(frame_stack_.size() > 0);
         DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count > 0);
         --frame_stack_.top().loop_nesting_count;
+
+        DEBUG_SMART_ASSERT(frame_stack_.top().function_breaklist_stack.size() > 0);
+        DEBUG_SMART_ASSERT(frame_stack_.top().function_continuelist_stack.size() > 0);
+        // Emplaced empty breaklist (vector)
+        frame_stack_.top().function_breaklist_stack.pop();
+
+        // Emplaced empty continuelist (vector)
+        frame_stack_.top().function_continuelist_stack.pop();
 }
 
 inline u32 FunctionCtxHandler::loop_depth() const noexcept
@@ -558,7 +616,7 @@ inline void QuadHandler::patch_quad(u32 target_quad_label, u32 destination_label
         quads_[quad_index].label = destination_label;
 }
 
-inline void QuadHandler::patch_bool_list(const std::vector<u32> &patch_list, u32 destination_label)
+inline void QuadHandler::patch_list(const std::vector<u32> &patch_list, u32 destination_label)
 {
         DEBUG_SMART_ASSERT(destination_label != k_no_label);
         for (u32 target_quad_label : patch_list)

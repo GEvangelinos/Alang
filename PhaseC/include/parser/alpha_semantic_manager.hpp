@@ -95,7 +95,8 @@ private:
         SymbolTable &st_;
         ErrorTracker &et_;
 
-        void loopCtrlStmt__loopkeyword_impl(Loop::Keyword keyword, Location keyword_loc);
+        [[nodiscard]] bool assert_loop_context_or_error(Loop::Keyword keyword,
+                                                        Location keyword_loc);
         void term__lvalue_op(const char *op_name, const Expr *lvalue, Location term_loc);
         void report_out_of_scope_variable(const char *id_name,
                                           const std::string &current_function_name,
@@ -114,15 +115,18 @@ inline SemanticManager::SemanticManager(ParseCtx &parse_ctx, SymbolTable &st, Er
     : parse_ctx_(parse_ctx), st_(st), et_(et)
 {}
 
-inline void SemanticManager::loopCtrlStmt__loopkeyword_impl(const Loop::Keyword keyword,
-                                                            const Location keyword_loc)
+// TODO split function in 2 parts, and put these you parts back to caller function..
+//  this functions does 2 things.. and thus it break Single Responsibility...
+inline bool SemanticManager::assert_loop_context_or_error(const Loop::Keyword keyword,
+                                                          const Location keyword_loc)
 {
         if (parse_ctx_.function_ctx_handler.loop_depth() > 0)
-                return;
+                return true; // we are in loop context
 
         std::string keyword_name = Loop::to_string(keyword);
         std::string error = FMT::format("`{}` statement not in a loop statement", keyword_name);
         et_.report_error(CTError::Type::SEMANTIC, error, keyword_loc);
+        return false;
 }
 
 inline void SemanticManager::term__lvalue_op(const char *op_name, const Expr *lvalue,
@@ -272,12 +276,33 @@ inline void SemanticManager::multiStmt__stmt()
 
 inline void SemanticManager::loopCtrlStmt__break(Location break_loc)
 {
-        loopCtrlStmt__loopkeyword_impl(Loop::Keyword::BREAK, break_loc);
+        // TODO: Split that function in 2
+        if (!assert_loop_context_or_error(Loop::Keyword::BREAK, break_loc))
+                return;
+
+        parse_ctx_.function_ctx_handler.add_label_to_breaklist(
+            parse_ctx_.quad_handler.next_quad_label());
+
+        parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr,
+                                                    break_loc);
 }
 
 inline void SemanticManager::loopCtrlStmt__continue(const Location continue_loc)
 {
-        loopCtrlStmt__loopkeyword_impl(Loop::Keyword::CONTINUE, continue_loc);
+        // TODO: Split that function in 2
+        if (!assert_loop_context_or_error(Loop::Keyword::CONTINUE, continue_loc))
+                return;
+
+        // TODO: Consider this in the end of the project. This code could removed from here.
+        // If we put the label of jump. technically we can know the label.. As continue just returns
+        // to the top.. and if continue is validly existing.. then there was a loop.. and that.
+        // that quad is already emitted.. (loop condition) , thus we can know JUMP's label.
+        // Although this creates assymetric behavior with breaklist and when we patch continues.
+        parse_ctx_.function_ctx_handler.add_label_to_continuelist(
+            parse_ctx_.quad_handler.next_quad_label());
+
+        parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr,
+                                                    continue_loc);
 }
 
 inline void SemanticManager::term__inc_lvalue(Expr *&term, Expr *const lvalue,
@@ -558,9 +583,14 @@ inline void SemanticManager::ifPrefix__if_lparen_expr_rparen(Expr *expr, const L
         auto &eh = parse_ctx_.expr_handler;
         auto &qh = parse_ctx_.quad_handler;
 
-        const Expr *false_expr = eh.make_expr_const_bool(false, expr_loc);
+        const Expr *true_expr = eh.make_expr_const_bool(true, expr_loc);
+
+        // TODO: when you inverseto IF_NOTEQ +2  cause we want to go over jump.
+        // I've done the flow graph on paper.
+        qh.emit_quad_w_jump_step(IOPCode::IF_EQ, expr, true_expr, 2, expr_loc);
+
         parse_ctx_.cache.if_prefix.quads_to_patch.push(qh.next_quad_label());
-        qh.emit_quad_labelless(IOPCode::IF_NOTEQ, expr, false_expr, nullptr, expr_loc);
+        qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr_loc);
 }
 
 inline void SemanticManager::ifStmt__ifPrefix_stmt_then()
@@ -577,14 +607,19 @@ inline void SemanticManager::elsePrefix__else(Location else_loc)
         parse_ctx_.cache.else_prefix.quads_to_patch.push(qh.next_quad_label());
         qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, else_loc);
 
-        u32 if_noteq_quad_to_patch = parse_ctx_.cache.if_prefix.quads_to_patch.top();
-        parse_ctx_.cache.if_prefix.quads_to_patch.pop();
-        qh.patch_quad(if_noteq_quad_to_patch, qh.next_quad_label());
+        // TODO for if_noteq:
+        // u32 if_noteq_quad_to_patch = parse_ctx_.cache.if_prefix.quads_to_patch.top();
+        // parse_ctx_.cache.if_prefix.quads_to_patch.pop();
+        // qh.patch_quad(if_noteq_quad_to_patch, qh.next_quad_label());
 }
 
 inline void SemanticManager::ifStmt__ifPrefix_stmt_elsePrefix_stmt()
 {
         auto &qh = parse_ctx_.quad_handler;
+
+        // patchlabel($ifprefix, $elseprefix + 1);
+        qh.patch_quad(parse_ctx_.cache.if_prefix.quads_to_patch.top(),
+                      parse_ctx_.cache.else_prefix.quads_to_patch.top());
 
         u32 quad_to_patch = parse_ctx_.cache.else_prefix.quads_to_patch.top();
         parse_ctx_.cache.else_prefix.quads_to_patch.pop();
@@ -602,10 +637,12 @@ inline void SemanticManager::whileCondition__lparen_expr_rparen(Expr *expr, Loca
 {
         auto &qh = parse_ctx_.quad_handler;
         auto &eh = parse_ctx_.expr_handler;
-        Expr *false_expr = eh.make_expr_const_bool(false, expr_loc);
+        Expr *true_expr = eh.make_expr_const_bool(true, expr_loc);
+        qh.emit_quad_w_jump_step(IOPCode::IF_EQ, expr, true_expr, +2, while_cond_loc);
         parse_ctx_.cache.while_condition.quads_to_patch.push(
             parse_ctx_.quad_handler.next_quad_label());
-        qh.emit_quad_labelless(IOPCode::IF_NOTEQ, expr, false_expr, nullptr, while_cond_loc);
+
+        qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, while_cond_loc);
 }
 
 inline void SemanticManager::whileStmt__whileHeader() noexcept
@@ -617,20 +654,21 @@ inline void SemanticManager::whileStmt__whileHeader_stmt(const Location while_st
 {
         auto &qh = parse_ctx_.quad_handler;
 
-        parse_ctx_.function_ctx_handler.exit_loop();
-
         DEBUG_SMART_ASSERT(parse_ctx_.cache.while_start.next_quad_stack.size() > 0);
         qh.emit_quad_w_label(IOPCode::JUMP, nullptr, nullptr, nullptr,
                              parse_ctx_.cache.while_start.next_quad_stack.top(), while_stmt_loc);
-        parse_ctx_.cache.while_start.next_quad_stack.pop();
 
         DEBUG_SMART_ASSERT(parse_ctx_.cache.while_condition.quads_to_patch.size() > 0);
         qh.patch_quad(parse_ctx_.cache.while_condition.quads_to_patch.top(), qh.next_quad_label());
         parse_ctx_.cache.while_condition.quads_to_patch.pop();
 
-        // TODO:
-        // patchlist($stmt.breaklist, nextquad());
-        // patchlist($stmt.contlist, $whilestart);
+        qh.patch_list(parse_ctx_.function_ctx_handler.get_breaklist(), qh.next_quad_label());
+        qh.patch_list(parse_ctx_.function_ctx_handler.get_continuelist(),
+                      parse_ctx_.cache.while_start.next_quad_stack.top());
+
+        parse_ctx_.cache.while_start.next_quad_stack.pop();
+
+        parse_ctx_.function_ctx_handler.exit_loop(); // This kills break and continue lists.
 }
 
 inline void SemanticManager::N(Location n_loc, const int N_index)
@@ -669,8 +707,8 @@ inline void SemanticManager::forHeader__for_lparen_elist_semicolon_m_expr_semico
         parse_ctx_.cache.for_header.enter_quads_to_patch.push(
             parse_ctx_.quad_handler.next_quad_label());
 
-        Expr *false_expr = parse_ctx_.expr_handler.make_expr_const_bool(false, expr_loc);
-        parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::IF_NOTEQ, expr, false_expr, nullptr,
+        Expr *true_expr = parse_ctx_.expr_handler.make_expr_const_bool(true, expr_loc);
+        parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::IF_EQ, expr, true_expr, nullptr,
                                                     expr_loc);
 }
 // MASSIVE TODO: REFACTOR WHOLE SEMANTIC_BUILDER/MANAGER.. its a HUGE MESS..
@@ -724,17 +762,17 @@ inline void SemanticManager::forStmt__forHeader_stmt() noexcept
             parse_ctx_.cache.n.quads_to_patch_1.top() + 1 //
         );
 
+        qh.patch_list(parse_ctx_.function_ctx_handler.get_breaklist(), qh.next_quad_label());
+        qh.patch_list(parse_ctx_.function_ctx_handler.get_continuelist(),
+                      parse_ctx_.cache.n.quads_to_patch_1.top() + 1);
+
         parse_ctx_.cache.for_header.test_quads_to_patch.pop();
         parse_ctx_.cache.for_header.enter_quads_to_patch.pop();
         parse_ctx_.cache.n.quads_to_patch_3.pop();
         parse_ctx_.cache.n.quads_to_patch_2.pop();
         parse_ctx_.cache.n.quads_to_patch_1.pop();
 
-        parse_ctx_.function_ctx_handler.exit_loop();
-        // patchlabel($forprefix.enter, $N2+1);
-        // patchlabel($N1, nextquad());
-        // patchlabel($N2, $forprefix.test);
-        // patchlabel($N3, $N1+1);
+        parse_ctx_.function_ctx_handler.exit_loop(); // This kills break and continue lists.
 }
 
 inline void SemanticManager::funcCtrlStmt__return(const Location return_loc)
@@ -763,11 +801,11 @@ inline void SemanticManager::backpatch_bool_expr(Expr *expr, Location expr_loc)
         const Expr *true_expr = eh.make_expr_const_bool(true, expr_loc);
         const Expr *false_expr = eh.make_expr_const_bool(false, expr_loc);
 
-        qh.patch_bool_list(expr->backpatch_info->true_list, qh.next_quad_label());
-        qh.emit_quad(IOPCode::ASSIGN, false_expr, nullptr, expr, expr_loc);
-        qh.emit_quad_w_jump_step(IOPCode::JUMP, nullptr, nullptr, +2, expr_loc);
-        qh.patch_bool_list(expr->backpatch_info->false_list, qh.next_quad_label());
+        qh.patch_list(expr->backpatch_info->true_list, qh.next_quad_label());
         qh.emit_quad(IOPCode::ASSIGN, true_expr, nullptr, expr, expr_loc);
+        qh.emit_quad_w_jump_step(IOPCode::JUMP, nullptr, nullptr, +2, expr_loc);
+        qh.patch_list(expr->backpatch_info->false_list, qh.next_quad_label());
+        qh.emit_quad(IOPCode::ASSIGN, false_expr, nullptr, expr, expr_loc);
 }
 
 } // namespace Alpha
