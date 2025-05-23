@@ -76,7 +76,11 @@ public:
         [[nodiscard]] Expr *make_const_int(i64 int_value, Location int_loc);
         [[nodiscard]] Expr *make_const_real(f64 real_value, Location real_loc);
         [[nodiscard]] Expr *make_const_string(const char *str_value, Location str_loc);
+
+        // TODO: The following 2 are the same.. unify.
         [[nodiscard]] Expr *resolve_lvalue_to_primary(Expr *lvalue);
+        [[nodiscard]] Expr *resolve_call_to_primary(Expr *call);
+
         [[nodiscard]] Expr *resolve_assign_expr(Expr *lvalue, Expr *expr, Location assign_loc);
         [[nodiscard]] Expr *make_table_list(ExprList *&elist, Location table_list_loc);
         [[nodiscard]] Expr *make_table_dict(DictList *&dlist, Location table_dict_loc);
@@ -449,6 +453,11 @@ inline Expr *SemanticBuilder::make_call(Expr *lvalue, ExprList *&elist, Location
 inline Expr *SemanticBuilder::resolve_lvalue_to_primary(Expr *lvalue)
 {
         return parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
+}
+
+inline Expr *SemanticBuilder::resolve_call_to_primary(Expr *call)
+{
+        return parse_ctx_.expr_handler.emit_quad_if_table_item(call);
 }
 
 inline Expr *SemanticBuilder::resolve_assign_expr(Expr *lvalue, Expr *expr,

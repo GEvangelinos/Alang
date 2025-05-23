@@ -167,6 +167,8 @@ public:
                 const Location location;
                 const u32 local_variable_count;
                 const Function *function_symbol;
+                const u32 label_to_jump; // label to jump over function def in runtime.. TODO:
+                                         // please rename its ugly
         };
 
         FunctionCtxHandler(ParseCtx &parse_ctx);
@@ -177,7 +179,7 @@ public:
         void add_function_parameter(const std::string &name, Location loc);
         void clear_function_parameters() noexcept;
         void add_local() noexcept;
-        void enter_function(const Function *function_symbol);
+        void enter_function(const Function *function_symbol, u32 label_of_jump);
         [[nodiscard]] FunctionBackpatchInfo exit_function() noexcept;
         [[nodiscard]] u32 function_nesting_depth() const noexcept;
         [[nodiscard]] u32 current_function_scope() const noexcept;
@@ -225,6 +227,22 @@ public:
                 frame_stack_.top().function_continuelist_stack.top().push_back(jump_label);
         }
 
+        [[nodiscard]] const std::vector<u32> &get_returnlist() // TODO CLEANUP
+        {
+                // We must be in a function. // Note at size 1. it global dataframe
+                // So calling this function while there is only 1 framestack is a logic error.
+                DEBUG_SMART_ASSERT(frame_stack_.size() > 1); // TODO replace 1 (due to global frame)
+                return frame_stack_.top().function_returnlist;
+        }
+
+        void add_label_to_returnlist(u32 jump_label) // Quad label of jump used to break.
+        {
+                // We must be in function
+                DEBUG_SMART_ASSERT(frame_stack_.size() > 1); // TODO replace 1 (due to global frame)
+
+                frame_stack_.top().function_returnlist.push_back(jump_label);
+        }
+
 private:
         struct FunctionDataFrame
         {
@@ -240,10 +258,20 @@ private:
                 // This is labels of continue of loops per loop in function
                 std::stack<std::vector<u32>> function_continuelist_stack;
 
+                // This is labels returns per function (in this FunctionDataFrame).
+                std::vector<u32> function_returnlist;
+
+                const u32 label_of_jump; // used to go over function definition in runtime.
+
                 u32 local_variable_count = 0;
 
-                FunctionDataFrame(std::string name, u32 scope, Location loc, const Function *f)
-                    : name(std::move(name)), scope(scope), location(loc), function_symbol(f)
+                FunctionDataFrame(std::string name, u32 scope, Location loc, const Function *f,
+                                  u32 label_of_jump)
+                    : name(std::move(name)),
+                      scope(scope),
+                      location(loc),
+                      function_symbol(f),
+                      label_of_jump(label_of_jump)
                 {}
         };
 
@@ -432,7 +460,8 @@ inline FunctionCtxHandler::FunctionCtxHandler(ParseCtx &parse_ctx) : parse_ctx_(
 {
         // We push a stackframe, for loops that might occur outside functions.
         // So every frame corresponds to a function except the first.
-        frame_stack_.emplace(k_global_data_frame_name, k_global_scope, k_no_location, nullptr);
+        frame_stack_.emplace(k_global_data_frame_name, k_global_scope, k_no_location, nullptr,
+                             k_no_label);
 }
 
 inline FunctionCtxHandler::~FunctionCtxHandler()
@@ -443,7 +472,8 @@ inline FunctionCtxHandler::~FunctionCtxHandler()
         );
 }
 
-inline void FunctionCtxHandler::enter_function(const Function *function_symbol)
+// Label of jump is for jumping over the function is runtime...
+inline void FunctionCtxHandler::enter_function(const Function *function_symbol, u32 label_of_jump)
 {
 #ifdef DEBUG_MODE
         DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
@@ -458,9 +488,9 @@ inline void FunctionCtxHandler::enter_function(const Function *function_symbol)
                 );
 #endif // DEBUG_MODE
 
-        frame_stack_.emplace(
-            FunctionDataFrame(parse_ctx_.cache.func_prefix.id, parse_ctx_.scope_handler.scope(),
-                              parse_ctx_.cache.func_prefix.location, function_symbol));
+        frame_stack_.emplace(FunctionDataFrame(
+            parse_ctx_.cache.func_prefix.id, parse_ctx_.scope_handler.scope(),
+            parse_ctx_.cache.func_prefix.location, function_symbol, label_of_jump));
 
         // Function scope is entered here.
         // We skip the next `{` block’s scope to avoid double scoping.
@@ -482,7 +512,8 @@ inline FunctionCtxHandler::FunctionBackpatchInfo FunctionCtxHandler::exit_functi
                 .scope = top_frame.scope,
                 .location = top_frame.location,
                 .local_variable_count = top_frame.local_variable_count,
-                .function_symbol = top_frame.function_symbol};
+                .function_symbol = top_frame.function_symbol,
+                .label_to_jump = top_frame.label_of_jump};
 }
 
 inline u32 FunctionCtxHandler::function_nesting_depth() const noexcept

@@ -89,6 +89,8 @@ public:
         void funcCtrlStmt__return(Location return_loc);
         void backpatch_bool_expr(Expr *expr, Location expr_loc);
         void saveNextQuadHook();
+        void returnStmt__return(Location returnStmt_loc, Location return_loc);
+        void returnStmt__return_expr(Expr *expr, Location returnStmt_loc, Location return_loc);
 
 private:
         ParseCtx &parse_ctx_;
@@ -533,6 +535,14 @@ inline void SemanticManager::funcSignature__funcPrefix_funcArgList(const Functio
         bool conflicting_name = reported_function_name_conflict(
             parse_ctx_.cache.func_prefix.id, parse_ctx_.scope_handler.scope(), func_loc);
 
+        // TODO: TRY putting jump only when there is no name_conflict...
+        // as now we jump for no reason. But thenwe throw error.
+        // So quads dont really matter.. But anyway. Tidy thisfunction up.
+        // Its pure eye-pain.
+
+        const u32 label_of_jump = parse_ctx_.quad_handler.next_quad_label();
+        parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr,
+                                                    func_loc);
         const Function *function_symbol = nullptr;
         if (!conflicting_name)
         {
@@ -546,7 +556,8 @@ inline void SemanticManager::funcSignature__funcPrefix_funcArgList(const Functio
                     parse_ctx_.expr_handler.make_expr_variable(function_symbol, func_loc),
                     func_loc);
         }
-        parse_ctx_.function_ctx_handler.enter_function(function_symbol);
+
+        parse_ctx_.function_ctx_handler.enter_function(function_symbol, label_of_jump);
         insert_gathered_function_parameters();
         parse_ctx_.function_ctx_handler.clear_function_parameters();
         parse_ctx_.space_handler
@@ -557,6 +568,8 @@ inline void SemanticManager::funcSignature__funcPrefix_funcArgList(const Functio
 
 inline void SemanticManager::funcDef__funcSignature_block(const BlockLocation &block_loc) noexcept
 {
+        parse_ctx_.quad_handler.patch_list(parse_ctx_.function_ctx_handler.get_returnlist(),
+                                           parse_ctx_.quad_handler.next_quad_label());
         auto fbi = parse_ctx_.function_ctx_handler.exit_function();
         if (!!fbi.function_symbol)
         {
@@ -569,6 +582,9 @@ inline void SemanticManager::funcDef__funcSignature_block(const BlockLocation &b
                         fbi.function_symbol, k_no_location), // TODO: what location here?
                     block_loc.end);
         }
+
+        parse_ctx_.quad_handler.patch_quad(fbi.label_to_jump,
+                                           parse_ctx_.quad_handler.next_quad_label());
 
         parse_ctx_.space_handler.exit_space();
 }
@@ -777,16 +793,65 @@ inline void SemanticManager::forStmt__forHeader_stmt() noexcept
 
 inline void SemanticManager::funcCtrlStmt__return(const Location return_loc)
 {
+        // TODO functionize like you will do with continue and return...
         if (parse_ctx_.function_ctx_handler.function_nesting_depth() > 0)
                 return;
         std::string error = "`return` statement not in a function statement";
         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
+
+        parse_ctx_.function_ctx_handler.add_label_to_returnlist(
+            parse_ctx_.quad_handler.next_quad_label());
+
+        parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr,
+                                                    return_loc);
 }
 
 inline void SemanticManager::saveNextQuadHook()
 {
         parse_ctx_.cache.logical_marker.next_quad_stack.push(
             parse_ctx_.quad_handler.next_quad_label());
+}
+
+inline void SemanticManager::returnStmt__return(Location returnStmt_loc, Location return_loc)
+{
+
+        // TODO functionize like you will do with continue and return...
+        if (parse_ctx_.function_ctx_handler.function_nesting_depth() > 0)
+        {
+                parse_ctx_.quad_handler.emit_quad(IOPCode::RETURN, nullptr, nullptr, nullptr,
+                                                  returnStmt_loc);
+
+                // Label goes to JUMP IOPC not RETURN
+                parse_ctx_.function_ctx_handler.add_label_to_returnlist(
+                    parse_ctx_.quad_handler.next_quad_label());
+                parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr,
+                                                            nullptr, return_loc);
+                return;
+        }
+        std::string error = "`return` statement not in a function statement";
+        et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
+}
+
+inline void SemanticManager::returnStmt__return_expr(Expr *expr, Location returnStmt_loc,
+                                                     Location return_loc)
+{
+
+        // TODO functionize like you will do with continue and return...
+        if (parse_ctx_.function_ctx_handler.function_nesting_depth() > 0)
+        {
+
+                parse_ctx_.quad_handler.emit_quad(IOPCode::RETURN, expr, nullptr, nullptr,
+                                                  returnStmt_loc);
+
+                // Label goes to JUMP IOPC not RETURN
+                parse_ctx_.function_ctx_handler.add_label_to_returnlist(
+                    parse_ctx_.quad_handler.next_quad_label());
+                parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr,
+                                                            nullptr, return_loc);
+                return;
+        }
+        std::string error = "`return` statement not in a function statement";
+        et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
 }
 
 inline void SemanticManager::backpatch_bool_expr(Expr *expr, Location expr_loc)

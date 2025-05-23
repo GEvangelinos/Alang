@@ -275,8 +275,8 @@ assignExpr:
 
 primary:
   lvalue { $primary = sb.resolve_lvalue_to_primary($lvalue); }
-| call // TODO do I need to forward here?
-| objectDef // TODO do you need to forward. // TODO2: Find ALL places you need to forward
+| call   { $primary = sb.resolve_call_to_primary($call); }
+| objectDef { $primary = $objectDef; }
 | LEFT_PAREN funcDef RIGHT_PAREN
   { $primary = sb.make_program_function($funcDef); }
 | const  { $primary = $const; }
@@ -527,14 +527,16 @@ forStmt:
   }
 ;
 
-funcCtrlStmt: //OK
-  RETURN { sm.funcCtrlStmt__return(@RETURN); }
-;
 
 returnStmt: //OK
-  funcCtrlStmt
-| funcCtrlStmt expr  { sm.backpatch_bool_expr($expr, @expr); }
+  RETURN { sm.returnStmt__return(@returnStmt, @RETURN); }
+| RETURN  expr  
+{
+  // TODO: REMOVE COMMENT.. but make clear these two function must be called with this sequence..
+  // Well no reason to change them.. but funcnames. could tell a little bit more.
+  sm.backpatch_bool_expr($expr, @expr); 
+  sm.returnStmt__return_expr($expr, @returnStmt, @RETURN); 
+} 
 ;
-
 
 %%
