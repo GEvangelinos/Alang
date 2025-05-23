@@ -283,10 +283,10 @@ inline Expr *SemanticBuilder::make_logical_or(
         // Maybe put it in parseCTX or in QUAD_HANDLER.
         for (u32 quad_label : left->backpatch_info->false_list)
         {
-                DEBUG_SMART_ASSERT(parse_ctx_.cache.or_hook.next_quad_stack.size() > 0);
-                qh.patch_quad(quad_label, parse_ctx_.cache.or_hook.next_quad_stack.top());
-                parse_ctx_.cache.or_hook.next_quad_stack.pop();
+                DEBUG_SMART_ASSERT(parse_ctx_.cache.logical_marker.next_quad_stack.size() > 0);
+                qh.patch_quad(quad_label, parse_ctx_.cache.logical_marker.next_quad_stack.top());
         }
+        parse_ctx_.cache.logical_marker.next_quad_stack.pop();
         left->backpatch_info->false_list.clear();
 
         // TODO: MAKE A CUSTOM MERGE FUNCTION this FUCKs with DRY, as in logical and we do
@@ -315,10 +315,10 @@ inline Expr *SemanticBuilder::make_logical_and(
         // Maybe put it in parseCTX or in QUAD_HANDLER.
         for (u32 quad_label : left->backpatch_info->true_list)
         {
-                DEBUG_SMART_ASSERT(parse_ctx_.cache.and_hook.next_quad_stack.size() > 0);
-                qh.patch_quad(quad_label, parse_ctx_.cache.and_hook.next_quad_stack.top());
-                parse_ctx_.cache.and_hook.next_quad_stack.pop();
+                DEBUG_SMART_ASSERT(parse_ctx_.cache.logical_marker.next_quad_stack.size() > 0);
+                qh.patch_quad(quad_label, parse_ctx_.cache.logical_marker.next_quad_stack.top());
         }
+        parse_ctx_.cache.logical_marker.next_quad_stack.pop();
         left->backpatch_info->true_list.clear();
 
         // TODO: MAKE A CUSTOM MERGE FUNCTION this FUCKs with DRY, as in logical or we do

@@ -82,8 +82,7 @@ public:
         void forStmt__forHeader_stmt() noexcept;
         void funcCtrlStmt__return(Location return_loc);
         void backpatch_bool_expr(Expr *expr, Location expr_loc);
-        void orHook();
-        void andHook();
+        void saveNextQuadHook();
 
 private:
         ParseCtx &parse_ctx_;
@@ -613,14 +612,10 @@ inline void SemanticManager::funcCtrlStmt__return(const Location return_loc)
         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
 }
 
-inline void SemanticManager::orHook()
+inline void SemanticManager::saveNextQuadHook()
 {
-        parse_ctx_.cache.or_hook.next_quad_stack.push(parse_ctx_.quad_handler.next_quad_label());
-}
-
-inline void SemanticManager::andHook()
-{
-        parse_ctx_.cache.and_hook.next_quad_stack.push(parse_ctx_.quad_handler.next_quad_label());
+        parse_ctx_.cache.logical_marker.next_quad_stack.push(
+            parse_ctx_.quad_handler.next_quad_label());
 }
 
 inline void SemanticManager::backpatch_bool_expr(Expr *expr, Location expr_loc)

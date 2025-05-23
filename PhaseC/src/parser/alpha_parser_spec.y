@@ -206,7 +206,7 @@ stmt
 | funcDef
 | SEMICOLON
 | error SEMICOLON     { yyerrok; } // Syntax error recovery hook.
-| error RIGHT_PAREN   { yyerrok; } // Syntax error recovery hook.
+| error RIGHT_PAREN   { yyerrok; std::cout << "RPAREN ERRORED" << std::endl; } // Syntax error recovery hook.
 | error RIGHT_BRACKET { yyerrok; } // Syntax error recovery hook.
 | error RIGHT_BRACE   { yyerrok; } // Syntax error recovery hook.
 ;
@@ -233,7 +233,7 @@ expr[result]
   {
      $left = sb.convert_to_boolean($left, @left); 
   }
-  andHook expr[right] 
+  saveNextQuadHook expr[right] 
   { 
     $right = sb.convert_to_boolean($right, @right);   
     $result = sb.make_logical_and($left, $right, @result, @left, @right);
@@ -242,7 +242,7 @@ expr[result]
   {
     $left = sb.convert_to_boolean($left, @left); 
   } 
-  orHook expr[right]
+  saveNextQuadHook expr[right]
   {
     $right = sb.convert_to_boolean($right, @right);   
     $result = sb.make_logical_or($left, $right, @result, @left, @right); 
@@ -250,12 +250,8 @@ expr[result]
 | term { $result = $term; }
 ;
 
-orHook
-: { sm.orHook(); }  
-;
-
-andHook
-: { sm.andHook(); }
+saveNextQuadHook
+: { sm.saveNextQuadHook(); }  
 ;
 
 term:
@@ -414,28 +410,31 @@ block:
 
 
 funcPrefix:
-  FUNCTION    { sm.funcPrefix__function(@FUNCTION); }
-| FUNCTION ID { sm.funcPrefix__function_id($ID, @ID); }
+  FUNCTION    { sm.funcPrefix__function(@FUNCTION); std::cout << "I PASSED FROM HERE 1"<< std::endl;}
+| FUNCTION ID { sm.funcPrefix__function_id($ID, @ID); std::cout << "I PASSED FROM HERE 2"<< std::endl;}
 ;
 
 funcArgs:
-  ID { sm.funcArgs__id($ID, @ID); }
-| ID { sm.funcArgs__id($ID, @ID); } COMMA funcArgs
+  ID { sm.funcArgs__id($ID, @ID); std::cout << "I PASSED FROM HERE 3"<< std::endl;}
+| ID { sm.funcArgs__id($ID, @ID); std::cout << "I PASSED FROM HERE 4"<< std::endl;} COMMA funcArgs
 ;
 
 funcArgList:
-  LEFT_PAREN /*Void*/ RIGHT_PAREN
-| LEFT_PAREN funcArgs  RIGHT_PAREN
+  LEFT_PAREN /*Void*/ RIGHT_PAREN {std::cout << "I PASSED FROM HERE 5"<< std::endl;}
+| LEFT_PAREN funcArgs  RIGHT_PAREN {std::cout << "I PASSED FROM HERE 6"<< std::endl;}
 ;
 
 funcSignature:
-  funcPrefix funcArgList // need funcPREFIX ID here
-  { sm.funcSignature__funcPrefix_funcArgList($funcSignature); }
+  funcPrefix{  std::cout << "I PASSED FROM HERE 9"<< std::endl;} funcArgList // need funcPREFIX ID here
+  {
+    std::cout << "I PASSED FROM HERE 7"<< std::endl;
+    sm.funcSignature__funcPrefix_funcArgList($funcSignature); }
 ;
 
 funcDef:
   funcSignature block 
   { 
+    std::cout << "I PASSED FROM HERE 8"<< std::endl;
     // TODO to much inderection remove funcSignature rule and MERGE... 
     sm.funcDef__funcSignature_block($block); 
     $funcDef = $funcSignature;

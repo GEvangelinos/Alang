@@ -61,7 +61,7 @@ class ParseCtx;
  * of parsing a single alpha source file.
  */
 struct ParseCache
-{
+{ // TODO: all these names are ugly.. maybe technique is ugly too.. REFACTOR ASAP!
         struct funcPrefixState
         {
                 std::string id;
@@ -85,15 +85,10 @@ struct ParseCache
                 std::stack<u32> quads_to_patch;
         } else_prefix;
 
-        struct orHookState
+        struct
         {
                 std::stack<u32> next_quad_stack;
-        } or_hook;
-
-        struct andHookState
-        {
-                std::stack<u32> next_quad_stack;
-        } and_hook;
+        } logical_marker;
 };
 
 class SpaceHandler : private Immobile
