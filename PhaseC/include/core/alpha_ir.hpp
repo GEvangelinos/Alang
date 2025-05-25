@@ -117,7 +117,7 @@ struct Expr // Tagged Union
 
         const Type type;
         const Symbol *symbol;
-        Location location;
+        SourceLocation location;
         union {
                 const Expr *index;
                 const f64 const_real;
@@ -175,7 +175,7 @@ struct Quad
         const Expr *result;
         u32 label; // TODO: do we need this? Maybe we can figure this out based on index on vector.
                    // First quad_label is always 1, (0 for backpatching)
-        const Location location;
+        const SourceLocation location;
         // We pass location instead of plain line, so we can extract line and column.
         // It will make diagnostic messages in runtime, much more accurate.
 };

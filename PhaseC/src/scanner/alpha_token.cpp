@@ -214,14 +214,14 @@ namespace Alpha
         /*** ENDOF: class TokenID definitions. ***/
 
         /*** STARTOF: class TokenComment definitions. ***/
-        Location TokenComment::commentStartingLocation;
+        SourceLocation TokenComment::commentStartingLocation;
 
-        void TokenComment::setStartingLocation(Location location)
+        void TokenComment::setStartingLocation(SourceLocation location)
         {
                 TokenComment::commentStartingLocation = location;
         }
 
-        Location TokenComment::getStartingLocation()
+        SourceLocation TokenComment::getStartingLocation()
         {
                 return TokenComment::commentStartingLocation;
         }
@@ -246,14 +246,14 @@ namespace Alpha
 
         /*** STARTOF: class TokenString definitions. ***/
         std::stringstream TokenString::stringAssemblingBuffer;
-        Location TokenString::stringStartingLocation;
+        SourceLocation TokenString::stringStartingLocation;
 
-        void TokenString::setStartingLocation(Location location)
+        void TokenString::setStartingLocation(SourceLocation location)
         {
                 TokenString::stringStartingLocation = location;
         }
 
-        Location TokenString::getStartingLocation()
+        SourceLocation TokenString::getStartingLocation()
         {
                 return TokenString::stringStartingLocation;
         }

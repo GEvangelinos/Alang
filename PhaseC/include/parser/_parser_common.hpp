@@ -14,15 +14,15 @@ namespace Alpha
         {
         public:
                 const std::string name;
-                const Location location;
+                const SourceLocation location;
 
-                Parameter(const std::string &name, Location location) : name(name), location(location) {}
+                Parameter(const std::string &name, SourceLocation location) : name(name), location(location) {}
         };
 
         struct BlockLocation
         {
-                Location begin;
-                Location end;
+                SourceLocation begin;
+                SourceLocation end;
         };
 } // namespace Alpha
 #endif //_PARSER_COMMON_HPP

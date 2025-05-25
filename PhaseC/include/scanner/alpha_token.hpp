@@ -105,13 +105,13 @@ namespace Alpha
         {
         private:
                 static std::stringstream stringAssemblingBuffer;
-                static Location stringStartingLocation;
+                static SourceLocation stringStartingLocation;
                 static void flushAssemblingBuffer();
                 static std::string convertContentEscapesToASCII();
 
         public:
-                static void setStartingLocation(Location location);
-                static Location getStartingLocation();
+                static void setStartingLocation(SourceLocation location);
+                static SourceLocation getStartingLocation();
                 static void appendToAssemblingBuffer(std::string stringChunk);
                 static void exportStringToken(char **cstring_addr);
                 TokenString(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string stringContent);
@@ -122,11 +122,11 @@ namespace Alpha
         {
         private:
                 std::string commentType;
-                static Location commentStartingLocation;
+                static SourceLocation commentStartingLocation;
 
         public:
-                static void setStartingLocation(Location location);
-                static Location getStartingLocation();
+                static void setStartingLocation(SourceLocation location);
+                static SourceLocation getStartingLocation();
                 TokenComment(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &commentLines, const std::string commentType);
                 std::string toString() const override;
         };

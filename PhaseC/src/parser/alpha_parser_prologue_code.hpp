@@ -41,11 +41,11 @@ static void alpha_yyerror(
         static constexpr char k_prefix[] = "syntax error, ";
         if (error_message.rfind(k_prefix, 0) == 0)        // does it start with that?
                 error_message.erase(0, strlen(k_prefix)); // remove it
-        extern Alpha::Location alpha_yylloc;
+        extern Alpha::SourceLocation alpha_yylloc;
         error_tracker.report_error(
             Alpha::CTError::Type::SYNTAX,
             error_message,
-            Alpha::Location{
+            Alpha::SourceLocation{
                 .first_index = alpha_yylloc.first_index,
                 .last_index = alpha_yylloc.last_index} //
         );

@@ -27,9 +27,9 @@ namespace Alpha
 
                 const Type type;
                 const std::string message;
-                const Location location;
+                const SourceLocation location;
 
-                Diagnostic(Type type, const std::string &message, Location location);
+                Diagnostic(Type type, const std::string &message, SourceLocation location);
 
                 [[nodiscard]] u32 line(const LocationTracker &lt) const;
                 [[nodiscard]] u32 column(const LocationTracker &lt) const;
@@ -60,10 +60,10 @@ namespace Alpha
                     const char *input_buffer) const;
 
         private:
-                CTError(Type error_type, const std::string &error, Location error_location);
-                CTError(Type error_type, const std::string &error, Location error_location,
-                        const std::string &note, Location note_location);
-                CTError(Type error_type, const std::string &error, Location error_location,
+                CTError(Type error_type, const std::string &error, SourceLocation error_location);
+                CTError(Type error_type, const std::string &error, SourceLocation error_location,
+                        const std::string &note, SourceLocation note_location);
+                CTError(Type error_type, const std::string &error, SourceLocation error_location,
                         std::list<Diagnostic> &&note_list_);
 
                 [[nodiscard]] std::string make_pretty_diagnostic_impl(
@@ -80,10 +80,10 @@ namespace Alpha
         public:
                 ErrorTracker() = default;
 
-                void report_error(CTError::Type error_type, const std::string &error, Location error_location);
-                void report_error(CTError::Type error_type, const std::string &error, Location error_location,
-                                  const std::string &note, Location note_location);
-                void report_error(CTError::Type errro_type, const std::string &error, Location error_location,
+                void report_error(CTError::Type error_type, const std::string &error, SourceLocation error_location);
+                void report_error(CTError::Type error_type, const std::string &error, SourceLocation error_location,
+                                  const std::string &note, SourceLocation note_location);
+                void report_error(CTError::Type errro_type, const std::string &error, SourceLocation error_location,
                                   std::list<Diagnostic> &&note_list_);
 
                 [[nodiscard]] const std::vector<std::unique_ptr<const CTError>> &

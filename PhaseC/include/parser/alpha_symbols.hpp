@@ -28,7 +28,7 @@ namespace Alpha
                 const std::string &name;
                 const u32 scope;
                 const Type type;
-                const Location location;
+                const SourceLocation location;
 
                 virtual ~Symbol() = default;
 
@@ -44,7 +44,7 @@ namespace Alpha
                 [[nodiscard]] static bool is_modifiable_symbol(const Symbol *symbol);
 
         protected:
-                Symbol(const std::string &name, u32 scope, Type type, Location loc) noexcept
+                Symbol(const std::string &name, u32 scope, Type type, SourceLocation loc) noexcept
                     : name(name), scope(scope), type(type), location(loc) {}
 
         private:
@@ -75,7 +75,7 @@ namespace Alpha
                     Type type,
                     Space space,
                     u32 offset,
-                    Location loc)
+                    SourceLocation loc)
                     : Symbol(name, scope, type, loc),
                       space(space),
                       offset(offset) {}
@@ -95,7 +95,7 @@ namespace Alpha
                     const Symbol::Type type,
                     const u32 address,
                     const std::list<Parameter> &parameter_list,
-                    const Location location)
+                    const SourceLocation location)
                     : Symbol(name, scope, type, location),
                       address(address),
                       parameter_list(parameter_list)

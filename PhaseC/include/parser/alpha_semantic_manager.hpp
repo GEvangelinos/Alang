@@ -54,43 +54,43 @@ class SemanticManager
 {
 public:
         SemanticManager(ParseCtx &parse_ctx, SymbolTable &st, ErrorTracker &et);
-        void N(Location n_loc, const int N_index);
+        void N(SourceLocation n_loc, const int N_index);
         void M();
-        void forHeader__for_lparen_elist_semicolon_m_expr_semicolon(Expr *expr, Location expr_loc);
+        void forHeader__for_lparen_elist_semicolon_m_expr_semicolon(Expr *expr, SourceLocation expr_loc);
         void multiStmt__stmt();
-        void loopCtrlStmt__break(Location break_loc);
-        void loopCtrlStmt__continue(Location continue_loc);
-        void term__inc_lvalue(Expr *&term, Expr *lvalue, Location term_loc);
-        void term__lvalue_inc(Expr *&term, Expr *lvalue, Location term_loc);
-        void term__dec_lvalue(Expr *&term, Expr *lvalue, Location term_loc);
-        void term__lvalue_dec(Expr *&term, Expr *lvalue, Location term_loc);
-        void lvalue__id(Expr *&lvalue, const char *id_name, Location id_loc);
-        void lvalue__local_id(Expr *&lvalue, const char *id_name, Location id_loc);
-        void lvalue__global_id(Expr *&lvalue, const char *id_name, Location id_loc);
-        void methodCallId__methodcall_id(const char *id, Location id_loc, Location method_call_loc);
+        void loopCtrlStmt__break(SourceLocation break_loc);
+        void loopCtrlStmt__continue(SourceLocation continue_loc);
+        void term__inc_lvalue(Expr *&term, Expr *lvalue, SourceLocation term_loc);
+        void term__lvalue_inc(Expr *&term, Expr *lvalue, SourceLocation term_loc);
+        void term__dec_lvalue(Expr *&term, Expr *lvalue, SourceLocation term_loc);
+        void term__lvalue_dec(Expr *&term, Expr *lvalue, SourceLocation term_loc);
+        void lvalue__id(Expr *&lvalue, const char *id_name, SourceLocation id_loc);
+        void lvalue__local_id(Expr *&lvalue, const char *id_name, SourceLocation id_loc);
+        void lvalue__global_id(Expr *&lvalue, const char *id_name, SourceLocation id_loc);
+        void methodCallId__methodcall_id(const char *id, SourceLocation id_loc, SourceLocation method_call_loc);
         void blockBegin__lbrace() noexcept;
         void blockEnd__rbrace() noexcept;
-        void funcPrefix__function(Location anonymous_loc);
-        void funcPrefix__function_id(const char *id_name, Location id_loc);
+        void funcPrefix__function(SourceLocation anonymous_loc);
+        void funcPrefix__function_id(const char *id_name, SourceLocation id_loc);
         void funcSignature__funcPrefix_funcArgList(const Function *&funcSignature);
         void funcDef__funcSignature_block(const BlockLocation &block_loc) noexcept;
-        void funcArgs__id(const char *id_name, Location id_loc);
-        void ifPrefix__if_lparen_expr_rparen(Expr *expr, Location expr_loc);
+        void funcArgs__id(const char *id_name, SourceLocation id_loc);
+        void ifPrefix__if_lparen_expr_rparen(Expr *expr, SourceLocation expr_loc);
         void ifStmt__ifPrefix_stmt_then();
-        void elsePrefix__else(Location else_loc);
+        void elsePrefix__else(SourceLocation else_loc);
         void ifStmt__ifPrefix_stmt_elsePrefix_stmt();
         void whileStart__while();
-        void whileCondition__lparen_expr_rparen(Expr *expr, Location expr_loc,
-                                                Location while_cond_loc);
+        void whileCondition__lparen_expr_rparen(Expr *expr, SourceLocation expr_loc,
+                                                SourceLocation while_cond_loc);
         void whileStmt__whileHeader() noexcept;
-        void whileStmt__whileHeader_stmt(Location while_stmt_header);
+        void whileStmt__whileHeader_stmt(SourceLocation while_stmt_header);
         void forStmt__forHeader() noexcept;
         void forStmt__forHeader_stmt() noexcept;
-        void funcCtrlStmt__return(Location return_loc);
-        void backpatch_bool_expr(Expr *expr, Location expr_loc);
+        void funcCtrlStmt__return(SourceLocation return_loc);
+        void backpatch_bool_expr(Expr *expr, SourceLocation expr_loc);
         void saveNextQuadHook();
-        void returnStmt__return(Location returnStmt_loc, Location return_loc);
-        void returnStmt__return_expr(Expr *expr, Location returnStmt_loc, Location return_loc);
+        void returnStmt__return(SourceLocation returnStmt_loc, SourceLocation return_loc);
+        void returnStmt__return_expr(Expr *expr, SourceLocation returnStmt_loc, SourceLocation return_loc);
 
 private:
         ParseCtx &parse_ctx_;
@@ -98,18 +98,18 @@ private:
         ErrorTracker &et_;
 
         [[nodiscard]] bool assert_loop_context_or_error(Loop::Keyword keyword,
-                                                        Location keyword_loc);
-        void term__lvalue_op(const char *op_name, const Expr *lvalue, Location term_loc);
+                                                        SourceLocation keyword_loc);
+        void term__lvalue_op(const char *op_name, const Expr *lvalue, SourceLocation term_loc);
         void report_out_of_scope_variable(const char *id_name,
                                           const std::string &current_function_name,
-                                          const Symbol *found_symbol, Location id_loc,
-                                          Location current_function_loc);
+                                          const Symbol *found_symbol, SourceLocation id_loc,
+                                          SourceLocation current_function_loc);
         [[nodiscard]] bool reported_function_name_conflict(const std::string &function_name,
-                                                           u32 current_scope, Location id_loc);
+                                                           u32 current_scope, SourceLocation id_loc);
         void insert_gathered_function_parameters();
         [[nodiscard]] bool reported_parameter_name_conflict(u32 current_scope,
                                                             const Parameter &parameter);
-        void report_error_if_not_arithmetic(const Expr *expr, Location expr_loc,
+        void report_error_if_not_arithmetic(const Expr *expr, SourceLocation expr_loc,
                                             const char *context);
 }; // class SemanticManager
 
@@ -120,7 +120,7 @@ inline SemanticManager::SemanticManager(ParseCtx &parse_ctx, SymbolTable &st, Er
 // TODO split function in 2 parts, and put these you parts back to caller function..
 //  this functions does 2 things.. and thus it break Single Responsibility...
 inline bool SemanticManager::assert_loop_context_or_error(const Loop::Keyword keyword,
-                                                          const Location keyword_loc)
+                                                          const SourceLocation keyword_loc)
 {
         if (parse_ctx_.function_ctx_handler.loop_depth() > 0)
                 return true; // we are in loop context
@@ -132,7 +132,7 @@ inline bool SemanticManager::assert_loop_context_or_error(const Loop::Keyword ke
 }
 
 inline void SemanticManager::term__lvalue_op(const char *op_name, const Expr *lvalue,
-                                             const Location term_loc)
+                                             const SourceLocation term_loc)
 {
         DEBUG_SMART_ASSERT(!!op_name, !!lvalue);
         DEBUG_SMART_ASSERT(!!lvalue->symbol);
@@ -150,8 +150,8 @@ inline void SemanticManager::term__lvalue_op(const char *op_name, const Expr *lv
 inline void SemanticManager::report_out_of_scope_variable(const char *id_name,
                                                           const std::string &current_function_name,
                                                           const Symbol *found_symbol,
-                                                          const Location id_loc,
-                                                          const Location current_function_loc)
+                                                          const SourceLocation id_loc,
+                                                          const SourceLocation current_function_loc)
 {
         using DT = Diagnostic::Type;
         DEBUG_SMART_ASSERT(!!found_symbol);
@@ -169,7 +169,7 @@ inline void SemanticManager::report_out_of_scope_variable(const char *id_name,
 
 inline bool SemanticManager::reported_function_name_conflict(const std::string &function_name,
                                                              const u32 current_scope,
-                                                             const Location id_loc)
+                                                             const SourceLocation id_loc)
 {
         if (st_.is_lib_function(function_name))
         {
@@ -249,7 +249,7 @@ inline bool SemanticManager::reported_parameter_name_conflict(const u32 current_
 }
 
 inline void SemanticManager::report_error_if_not_arithmetic(const Expr *expr,
-                                                            const Location expr_loc,
+                                                            const SourceLocation expr_loc,
                                                             const char *const context)
 {
         using ET = Expr::Type;
@@ -276,7 +276,7 @@ inline void SemanticManager::multiStmt__stmt()
         parse_ctx_.name_generator.reset_temp_names();
 }
 
-inline void SemanticManager::loopCtrlStmt__break(Location break_loc)
+inline void SemanticManager::loopCtrlStmt__break(SourceLocation break_loc)
 {
         // TODO: Split that function in 2
         if (!assert_loop_context_or_error(Loop::Keyword::BREAK, break_loc))
@@ -289,7 +289,7 @@ inline void SemanticManager::loopCtrlStmt__break(Location break_loc)
                                                     break_loc);
 }
 
-inline void SemanticManager::loopCtrlStmt__continue(const Location continue_loc)
+inline void SemanticManager::loopCtrlStmt__continue(const SourceLocation continue_loc)
 {
         // TODO: Split that function in 2
         if (!assert_loop_context_or_error(Loop::Keyword::CONTINUE, continue_loc))
@@ -308,7 +308,7 @@ inline void SemanticManager::loopCtrlStmt__continue(const Location continue_loc)
 }
 
 inline void SemanticManager::term__inc_lvalue(Expr *&term, Expr *const lvalue,
-                                              const Location term_loc)
+                                              const SourceLocation term_loc)
 {
         term__lvalue_op("increment", lvalue, term_loc);
         report_error_if_not_arithmetic(lvalue, term_loc, "++lvalue");
@@ -337,7 +337,7 @@ inline void SemanticManager::term__inc_lvalue(Expr *&term, Expr *const lvalue,
         }
 }
 
-inline void SemanticManager::term__lvalue_inc(Expr *&term, Expr *lvalue, const Location term_loc)
+inline void SemanticManager::term__lvalue_inc(Expr *&term, Expr *lvalue, const SourceLocation term_loc)
 {
         term__lvalue_op("increment", lvalue, term_loc);
         report_error_if_not_arithmetic(lvalue, term_loc,
@@ -362,7 +362,7 @@ inline void SemanticManager::term__lvalue_inc(Expr *&term, Expr *lvalue, const L
         }
 }
 
-inline void SemanticManager::term__dec_lvalue(Expr *&term, Expr *lvalue, const Location term_loc)
+inline void SemanticManager::term__dec_lvalue(Expr *&term, Expr *lvalue, const SourceLocation term_loc)
 {
         term__lvalue_op("decrement", lvalue, term_loc);
         report_error_if_not_arithmetic(lvalue, term_loc, "--lvalue");
@@ -391,7 +391,7 @@ inline void SemanticManager::term__dec_lvalue(Expr *&term, Expr *lvalue, const L
         }
 }
 
-inline void SemanticManager::term__lvalue_dec(Expr *&term, Expr *lvalue, const Location term_loc)
+inline void SemanticManager::term__lvalue_dec(Expr *&term, Expr *lvalue, const SourceLocation term_loc)
 {
         term__lvalue_op("decrement", lvalue, term_loc);
         report_error_if_not_arithmetic(lvalue, term_loc,
@@ -416,7 +416,7 @@ inline void SemanticManager::term__lvalue_dec(Expr *&term, Expr *lvalue, const L
         }
 }
 
-inline void SemanticManager::lvalue__id(Expr *&lvalue, const char *id_name, const Location id_loc)
+inline void SemanticManager::lvalue__id(Expr *&lvalue, const char *id_name, const SourceLocation id_loc)
 {
         const Symbol *symbol = st_.lookup_chain(id_name,
                                                 parse_ctx_.scope_handler.scope() //
@@ -442,7 +442,7 @@ inline void SemanticManager::lvalue__id(Expr *&lvalue, const char *id_name, cons
 }
 
 inline void SemanticManager::lvalue__local_id(Expr *&lvalue, const char *id_name,
-                                              const Location id_loc)
+                                              const SourceLocation id_loc)
 {
         const Symbol *symbol = nullptr;
         if (st_.is_lib_function(id_name))
@@ -468,7 +468,7 @@ inline void SemanticManager::lvalue__local_id(Expr *&lvalue, const char *id_name
 }
 
 inline void SemanticManager::lvalue__global_id(Expr *&lvalue, const char *id_name,
-                                               const Location id_loc)
+                                               const SourceLocation id_loc)
 {
         // TODO: I dont like producing shit if global symbol doesnt exist.
         // TODO: we must find an anchor/hook point, where we can reset, and continue
@@ -485,8 +485,8 @@ inline void SemanticManager::lvalue__global_id(Expr *&lvalue, const char *id_nam
         et_.report_error(CTError::Type::SEMANTIC, error, id_loc);
 }
 
-inline void SemanticManager::methodCallId__methodcall_id(const char *id, const Location id_loc,
-                                                         const Location method_call_loc)
+inline void SemanticManager::methodCallId__methodcall_id(const char *id, const SourceLocation id_loc,
+                                                         const SourceLocation method_call_loc)
 {
         parse_ctx_.cache.method_call_id.id = id;
         parse_ctx_.cache.method_call_id.id_location = id_loc;
@@ -504,7 +504,7 @@ inline void SemanticManager::blockEnd__rbrace() noexcept
         parse_ctx_.scope_handler.exit_scope();
 }
 
-inline void SemanticManager::funcPrefix__function(const Location anonymous_loc)
+inline void SemanticManager::funcPrefix__function(const SourceLocation anonymous_loc)
 {
         // Update ParseCache:
         parse_ctx_.cache.func_prefix.id = parse_ctx_.name_generator.new_anonymous();
@@ -513,7 +513,7 @@ inline void SemanticManager::funcPrefix__function(const Location anonymous_loc)
         parse_ctx_.space_handler.enter_space();
 }
 
-inline void SemanticManager::funcPrefix__function_id(const char *id_name, const Location id_loc)
+inline void SemanticManager::funcPrefix__function_id(const char *id_name, const SourceLocation id_loc)
 {
         // Update ParseCache
         parse_ctx_.cache.func_prefix.id = id_name;
@@ -531,7 +531,7 @@ inline void SemanticManager::funcPrefix__function_id(const char *id_name, const 
 /// local_variable_count from the redefinition.
 inline void SemanticManager::funcSignature__funcPrefix_funcArgList(const Function *&funcSignature)
 {
-        const Location func_loc = parse_ctx_.cache.func_prefix.location;
+        const SourceLocation func_loc = parse_ctx_.cache.func_prefix.location;
         bool conflicting_name = reported_function_name_conflict(
             parse_ctx_.cache.func_prefix.id, parse_ctx_.scope_handler.scope(), func_loc);
 
@@ -589,12 +589,12 @@ inline void SemanticManager::funcDef__funcSignature_block(const BlockLocation &b
         parse_ctx_.space_handler.exit_space();
 }
 
-inline void SemanticManager::funcArgs__id(const char *id_name, const Location id_loc)
+inline void SemanticManager::funcArgs__id(const char *id_name, const SourceLocation id_loc)
 {
         parse_ctx_.function_ctx_handler.add_function_parameter(id_name, id_loc);
 }
 
-inline void SemanticManager::ifPrefix__if_lparen_expr_rparen(Expr *expr, const Location expr_loc)
+inline void SemanticManager::ifPrefix__if_lparen_expr_rparen(Expr *expr, const SourceLocation expr_loc)
 {
         auto &eh = parse_ctx_.expr_handler;
         auto &qh = parse_ctx_.quad_handler;
@@ -617,7 +617,7 @@ inline void SemanticManager::ifStmt__ifPrefix_stmt_then()
         qh.patch_quad(quad_to_patch, qh.next_quad_label());
 }
 
-inline void SemanticManager::elsePrefix__else(Location else_loc)
+inline void SemanticManager::elsePrefix__else(SourceLocation else_loc)
 {
         auto &qh = parse_ctx_.quad_handler;
         parse_ctx_.cache.else_prefix.quads_to_patch.push(qh.next_quad_label());
@@ -648,8 +648,8 @@ inline void SemanticManager::whileStart__while()
             parse_ctx_.quad_handler.next_quad_label());
 }
 
-inline void SemanticManager::whileCondition__lparen_expr_rparen(Expr *expr, Location expr_loc,
-                                                                Location while_cond_loc)
+inline void SemanticManager::whileCondition__lparen_expr_rparen(Expr *expr, SourceLocation expr_loc,
+                                                                SourceLocation while_cond_loc)
 {
         auto &qh = parse_ctx_.quad_handler;
         auto &eh = parse_ctx_.expr_handler;
@@ -666,7 +666,7 @@ inline void SemanticManager::whileStmt__whileHeader() noexcept
         parse_ctx_.function_ctx_handler.enter_loop();
 }
 
-inline void SemanticManager::whileStmt__whileHeader_stmt(const Location while_stmt_loc)
+inline void SemanticManager::whileStmt__whileHeader_stmt(const SourceLocation while_stmt_loc)
 {
         auto &qh = parse_ctx_.quad_handler;
 
@@ -687,7 +687,7 @@ inline void SemanticManager::whileStmt__whileHeader_stmt(const Location while_st
         parse_ctx_.function_ctx_handler.exit_loop(); // This kills break and continue lists.
 }
 
-inline void SemanticManager::N(Location n_loc, const int N_index)
+inline void SemanticManager::N(SourceLocation n_loc, const int N_index)
 {
         auto &qh = parse_ctx_.quad_handler;
         if (N_index == 1)
@@ -711,7 +711,7 @@ inline void SemanticManager::forStmt__forHeader() noexcept
 }
 
 inline void SemanticManager::forHeader__for_lparen_elist_semicolon_m_expr_semicolon(
-    Expr *expr, Location expr_loc)
+    Expr *expr, SourceLocation expr_loc)
 {
         // TODO you probably dont need stack here. (like 99%) M is just a variable..
         // as we use it before any new for-loops can begin.
@@ -791,7 +791,7 @@ inline void SemanticManager::forStmt__forHeader_stmt() noexcept
         parse_ctx_.function_ctx_handler.exit_loop(); // This kills break and continue lists.
 }
 
-inline void SemanticManager::funcCtrlStmt__return(const Location return_loc)
+inline void SemanticManager::funcCtrlStmt__return(const SourceLocation return_loc)
 {
         // TODO functionize like you will do with continue and return...
         if (parse_ctx_.function_ctx_handler.function_nesting_depth() > 0)
@@ -812,7 +812,7 @@ inline void SemanticManager::saveNextQuadHook()
             parse_ctx_.quad_handler.next_quad_label());
 }
 
-inline void SemanticManager::returnStmt__return(Location returnStmt_loc, Location return_loc)
+inline void SemanticManager::returnStmt__return(SourceLocation returnStmt_loc, SourceLocation return_loc)
 {
 
         // TODO functionize like you will do with continue and return...
@@ -832,8 +832,8 @@ inline void SemanticManager::returnStmt__return(Location returnStmt_loc, Locatio
         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
 }
 
-inline void SemanticManager::returnStmt__return_expr(Expr *expr, Location returnStmt_loc,
-                                                     Location return_loc)
+inline void SemanticManager::returnStmt__return_expr(Expr *expr, SourceLocation returnStmt_loc,
+                                                     SourceLocation return_loc)
 {
 
         // TODO functionize like you will do with continue and return...
@@ -854,7 +854,7 @@ inline void SemanticManager::returnStmt__return_expr(Expr *expr, Location return
         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
 }
 
-inline void SemanticManager::backpatch_bool_expr(Expr *expr, Location expr_loc)
+inline void SemanticManager::backpatch_bool_expr(Expr *expr, SourceLocation expr_loc)
 {
         DEBUG_SMART_ASSERT(!!expr);
         if (expr->type != Expr::Type::BOOLEAN_EXPR)

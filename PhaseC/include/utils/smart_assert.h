@@ -21,6 +21,7 @@
 #ifdef __cplusplus
 #define _Bool bool
 #define _Static_assert static_assert
+
 extern "C"
 {
 #endif /* __cplusplus*/
@@ -29,27 +30,27 @@ extern "C"
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #endif /* __FILENAME__ */
 
-        static inline int _get_nth_comma_position(const char *_string, int _target_comma_count)
+static int _get_nth_comma_position(const char *_string, int _target_comma_count)
+{
+        int string_index = 0;
+        int found_commas = 0;
+        for(; (_string)[string_index] != '\0'; string_index++)
         {
-                int string_index = 0;
-                int found_commas = 0;
-                for (; (_string)[string_index] != '\0'; string_index++)
-                {
-                        if ((_string)[string_index] == ',')
-                                found_commas++;
-                        if (found_commas == (_target_comma_count))
-                                break;
-                }
-                return (found_commas == _target_comma_count) ? string_index : 0;
+                if((_string)[string_index] == ',')
+                        found_commas++;
+                if(found_commas == (_target_comma_count))
+                        break;
         }
+        return (found_commas == _target_comma_count) ? string_index : 0;
+}
 
-        static inline int _get_leading_spaces(const char *_string)
-        {
-                int offset = 0;
-                while (((char *)(_string))[offset] == ' ')
-                        offset++;
-                return offset;
-        }
+static int _get_leading_spaces(const char *_string)
+{
+        int offset = 0;
+        while(((char *)(_string))[offset] == ' ')
+                offset++;
+        return offset;
+}
 
 #if defined(__cplusplus) && __cplusplus >= 202002L
 #define _PRINT_SMART_ASSERT_FORMAT(_format, ...) \
@@ -115,18 +116,6 @@ extern "C"
                         abort();                                                                                                                            \
                 }                                                                                                                                           \
         } while (0)
-
-#ifdef DEBUG_MODE
-// ✅ Active in debug mode: evaluates and runs full SMART_ASSERT logic
-#define DEBUG_SMART_ASSERT(...) SMART_ASSERT(__VA_ARGS__)
-// ✅ Also active in debug mode: same as above, runs full logic
-#define DEBUG_SMART_ASSERT_EVAL(...) SMART_ASSERT(__VA_ARGS__)
-#else
-// 🟡 In release mode: disables assertion logic, but still evaluates expressions (preserves side effects)
-#define DEBUG_SMART_ASSERT_EVAL(...) ((void)(__VA_ARGS__))
-// 🛑 In release mode: disables assertion and also skips evaluating expressions (no side effects)
-#define DEBUG_SMART_ASSERT(...) ((void)0)
-#endif /* DEBUG_MODE */
 
 #ifdef __cplusplus
 } /* Closing brace for extern "C" */

@@ -90,10 +90,10 @@ namespace Alpha
 
         // Explicit instantiations for insert_symbol()
         template const Function *SymbolTable::insert_symbol<Function>(
-            const std::string &, u32, Function::Type &&, u32 &&, const std::list<Parameter> &, Location &&);
+            const std::string &, u32, Function::Type &&, u32 &&, const std::list<Parameter> &, SourceLocation &&);
 
         template const Variable *SymbolTable::insert_symbol<Variable>(
-            const std::string &, u32, Variable::Type &&, Variable::Space &&, u32 &&, Location &&);
+            const std::string &, u32, Variable::Type &&, Variable::Space &&, u32 &&, SourceLocation &&);
 
         SymbolTable::SymbolTable()
         {
@@ -124,7 +124,7 @@ namespace Alpha
             u32 scope,
             u32 address,
             const std::list<Parameter> &parameter_list,
-            Location location)
+            SourceLocation location)
         {
 
                 return insert_symbol<Function>(
@@ -137,7 +137,7 @@ namespace Alpha
             Variable::Type type,
             Variable::Space space,
             u32 offset,
-            Location location)
+            SourceLocation location)
         {
                 return insert_symbol<Variable>(name, scope, type, space, offset, location);
         }

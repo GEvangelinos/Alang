@@ -72,7 +72,7 @@ namespace // (Anonymous)
 
 namespace Alpha
 {
-        Diagnostic::Diagnostic(Diagnostic::Type type, const std::string &message, Location location)
+        Diagnostic::Diagnostic(Diagnostic::Type type, const std::string &message, SourceLocation location)
             : type(type), message(message), location(location) {}
 
         u32 Diagnostic::line(const LocationTracker &lt) const
@@ -143,16 +143,16 @@ namespace Alpha
                 return ss.str();
         }
 
-        CTError::CTError(CTError::Type error_type, const std::string &error_message, Location error_location)
+        CTError::CTError(CTError::Type error_type, const std::string &error_message, SourceLocation error_location)
             : type(error_type), error(Diagnostic::Type::ERROR, error_message, error_location) {}
 
-        CTError::CTError(CTError::Type error_type, const std::string &error_message, Location error_location,
-                         const std::string &note_message, Location note_location)
+        CTError::CTError(CTError::Type error_type, const std::string &error_message, SourceLocation error_location,
+                         const std::string &note_message, SourceLocation note_location)
             : type(error_type),
               error(Diagnostic::Type::ERROR, error_message, error_location),
               note_list{{Diagnostic::Type::NOTE, note_message, note_location}} {}
 
-        CTError::CTError(CTError::Type error_type, const std::string &error_message, Location error_location,
+        CTError::CTError(CTError::Type error_type, const std::string &error_message, SourceLocation error_location,
                          std::list<Diagnostic> &&note_list_)
             : type(error_type),
               error(Diagnostic::Type::ERROR, error_message, error_location),
@@ -211,7 +211,7 @@ namespace Alpha
         }
 
         void ErrorTracker::report_error(CTError::Type error_type, const std::string &error_message,
-                                        Location error_location)
+                                        SourceLocation error_location)
         {
                 // new ptr is passed to unique_ptr for managing, do NOT manual delete.
                 cterrors_.push_back(std::unique_ptr<const CTError>(
@@ -219,7 +219,7 @@ namespace Alpha
         }
 
         void ErrorTracker::report_error(CTError::Type error_type, const std::string &error_message,
-                                        Location error_location, const std::string &note, Location note_location)
+                                        SourceLocation error_location, const std::string &note, SourceLocation note_location)
         {
                 // new ptr is passed to unique_ptr for managing, do NOT manual delete.
                 cterrors_.push_back(std::unique_ptr<const CTError>(
@@ -227,7 +227,7 @@ namespace Alpha
         }
 
         void ErrorTracker::report_error(CTError::Type error_type, const std::string &error_message,
-                                        Location error_location, std::list<Diagnostic> &&note_list_)
+                                        SourceLocation error_location, std::list<Diagnostic> &&note_list_)
         {
                 // new ptr is passed to unique_ptr for managing, do NOT manual delete.
                 cterrors_.push_back(std::unique_ptr<const CTError>(

@@ -54,7 +54,7 @@ namespace Alpha
                     u32 scope,
                     u32 address,
                     const std::list<Parameter> &parameter_list,
-                    Location location);
+                    SourceLocation location);
 
                 const Variable *insert_variable(
                     const std::string &name,
@@ -62,7 +62,7 @@ namespace Alpha
                     Variable::Type type,
                     Variable::Space space,
                     u32 offset,
-                    Location location);
+                    SourceLocation location);
 
                 [[nodiscard]] const Symbol *lookup_global(const std::string &name) const;
                 [[nodiscard]] const Symbol *lookup_chain(const std::string &name, u32 scope) const;

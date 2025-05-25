@@ -19,21 +19,21 @@ namespace Alpha
                 line_start_indices_.push_back(start_index);
         }
 
-        u32 LocationTracker::find_first_line(Location location) const
+        u32 LocationTracker::find_first_line(SourceLocation location) const
         {
                 if (location == k_no_location)
                         return k_no_line;
                 return find_line(location.first_index);
         }
 
-        u32 LocationTracker::find_last_line(Location location) const
+        u32 LocationTracker::find_last_line(SourceLocation location) const
         {
                 if (location == k_no_location)
                         return k_no_line;
                 return find_line(location.last_index);
         }
 
-        u32 LocationTracker::find_symbol_line(Location location) const
+        u32 LocationTracker::find_symbol_line(SourceLocation location) const
         {
                 if (location == k_no_location)
                         return k_no_line;
@@ -55,7 +55,7 @@ namespace Alpha
                 return line_start_indices_[line - 1]; // -1 as line starts at pos 0.
         }
 
-        u32 LocationTracker::find_first_column(Location location) const
+        u32 LocationTracker::find_first_column(SourceLocation location) const
         {
                 if (location == k_no_location)
                         throw std::logic_error(ATTACH_CONTEXT(
@@ -81,7 +81,7 @@ namespace Alpha
                 return {find_line(first_index), find_line(last_index)};
         }
 
-        LineRange LocationTracker::find_lines(Location location) const
+        LineRange LocationTracker::find_lines(SourceLocation location) const
         {
                 return find_lines(location.first_index, location.last_index);
         }
