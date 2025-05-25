@@ -36,13 +36,27 @@ template<typename N>
 inline char *cstrdup(const char *src)
 {
         DEBUG_SMART_ASSERT(!!src);
-        if(!src) [[unlikely]]
+        if (!src) [[unlikely]]
                 return nullptr;
 
         const auto src_size = std::strlen(src) + 1; // +1 for NULL-byte
         char *dest = new char[src_size];
         std::memcpy(dest, src, src_size);
         return dest;
+}
+
+// Utility function used to mainly assert pointers
+// in initialization lists of constructors.
+template<typename T>
+T *assert_ptr(T *const ptr, const char *context_message = nullptr)
+{
+        if (!!ptr)
+                return ptr;
+        if (!context_message)
+                std::cerr << "Pointer assertion failed! `context_message` was not provided. "
+                        "Check stack to see caller ";
+
+        SMART_ASSERT()
 }
 } // namespace Utils
 #endif // UTILS_MISC_HPP

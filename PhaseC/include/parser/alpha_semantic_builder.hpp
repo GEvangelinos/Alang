@@ -39,18 +39,9 @@ bool is_rvalue_expr(Expr::Type type);
 
 constexpr const char *relational_iopc_to_string(IOPCode iopc);
 
-struct SemanticOpts // TODO: rename?
-{
-        bool arithmetic_folding;
-        bool realtional_folding;
-        bool logical_foling;
-};
-
 class SemanticBuilder
 {
 public:
-        const SemanticOpts sem_opts;
-
         SemanticBuilder(SemanticOpts sem_opts, ParseCtx &parse_ctx, SymbolTable &st,
                         ErrorTracker &et);
 
@@ -146,10 +137,6 @@ private:
 
         [[nodiscard]] DictList *make_empty_dict_list();
 
-        // TODO: ! this checker is the same in semantic MANAGER (merge the two..)
-        // maybe split manager in background actions.
-        // and builder in short actions that return stuff.. no to  much semantic checking..
-        // a few emit , and few expr* create , and out the door ->>>
         void report_error_if_not_arithmetic(IOPCode iopc, const Expr *expr, SourceLocation expr_loc,
                                             OperandPosition side);
 
@@ -670,27 +657,6 @@ inline void SemanticBuilder::update_expr_location(Expr *expr, SourceLocation new
         expr->location = new_expr_loc;
 }
 
-inline void SemanticBuilder::report_non_arithmetic_operand(const IOPCode iopc, const Expr *expr,
-                                                           const SourceLocation expr_loc,
-                                                           const OperandPosition op_pos,
-                                                           ErrorTracker &et)
-{
-        std::string error;
-
-        using OP = OperandPosition;
-        if(op_pos == OP::UNARY)
-                error = "operand of unary `-` is never arithmetic";
-        else if(op_pos == OP::LEFT || op_pos == OP::RIGHT)
-                error = FMT::format("`{}` operand of arithmetic operator `{}` is never arithmetic ",
-                                    to_string(op_pos), relational_iopc_to_string(iopc));
-        else [[unlikely]]
-                throw std::logic_error(ATTACH_CONTEXT("Invalid arithmetic OperandPosition"));
-
-        const std::string note =
-                FMT::format("operand's expression type: `{}`", to_string(expr->type));
-
-        et.report_error(CTError::Type::SEMANTIC, error, expr_loc, note, expr_loc);
-}
 
 inline void SemanticBuilder::report_non_relational_operand(const IOPCode iopc, const Expr *expr,
                                                            const SourceLocation expr_loc,
@@ -709,15 +675,6 @@ inline void SemanticBuilder::report_non_relational_operand(const IOPCode iopc, c
         et.report_error(CTError::Type::SEMANTIC, error, expr_loc, note, expr_loc);
 }
 
-inline void SemanticBuilder::report_error_if_not_arithmetic(const IOPCode iopc, const Expr *expr,
-                                                            const SourceLocation expr_loc,
-                                                            const OperandPosition op_pos)
-{
-        DEBUG_SMART_ASSERT(!!expr);
-        if(is_numeric_convertible_expr(expr))
-                return;
-        SemanticBuilder::report_non_arithmetic_operand(iopc, expr, expr_loc, op_pos, et_);
-}
 
 inline void SemanticBuilder::report_error_if_not_relational(const IOPCode iopc, const Expr *expr,
                                                             const SourceLocation expr_loc,
