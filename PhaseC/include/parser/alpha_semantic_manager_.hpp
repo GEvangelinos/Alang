@@ -12,7 +12,7 @@
 #include "core/alpha_error.hpp"      // for ErrorTracker, Diagnostic
 #include "core/alpha_konstants.hpp"  // for k_global_scope, k_public_...
 #include "core/alpha_location.hpp"   // for Location
-#include "core/alpha_types.hpp"      // for u32
+#include "core/alpha_numeric_types.hpp"      // for u32
 #include "parser/_parser_common.hpp" // for Parameter
 #include "parser/alpha_backpatcher.hpp"
 #include "parser/alpha_parser_context.hpp" // for ParseCtx
