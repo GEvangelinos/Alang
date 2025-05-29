@@ -5,6 +5,7 @@
 #ifndef ALPHA_BASICS_HPP
 #define ALPHA_BASICS_HPP
 #include "utils/debug_tools.hpp"
+#include "utils/format_adapter.hpp"
 
 namespace Alpha
 {
@@ -22,66 +23,66 @@ namespace Alpha
 class Immobile
 {
 public:
-        Immobile() = default;
+    Immobile() = default;
 
-        ~Immobile() = default;
+    ~Immobile() = default;
 
-        Immobile(const Immobile &) = delete;            ///< Disable copy-construction
-        Immobile(Immobile &&) = delete;                 ///< Disable move-construction
-        Immobile &operator=(const Immobile &) = delete; ///< Disable copy-assignment
-        Immobile &operator=(Immobile &&) = delete;      ///< Disable move-assignment
+    Immobile(const Immobile &) = delete;            ///< Disable copy-construction
+    Immobile(Immobile &&) = delete;                 ///< Disable move-construction
+    Immobile &operator=(const Immobile &) = delete; ///< Disable copy-assignment
+    Immobile &operator=(Immobile &&) = delete;      ///< Disable move-assignment
 };
 
 class ToggleSwitch
 {
 public:
-        void enable() noexcept
-        {
-                DEBUG_SMART_ASSERT(is_disabled());
-                state_ = true;
-        }
+    void enable() noexcept
+    {
+        DEBUG_SMART_ASSERT(is_disabled());
+        state_ = true;
+    }
 
-        void disable() noexcept
-        {
-                DEBUG_SMART_ASSERT(is_enabled());
-                state_ = false;
-        }
+    void disable() noexcept
+    {
+        DEBUG_SMART_ASSERT(is_enabled());
+        state_ = false;
+    }
 
-        [[nodiscard]] bool is_enabled() const noexcept { return state_; }
-        [[nodiscard]] bool is_disabled() const noexcept { return !state_; }
+    [[nodiscard]] bool is_enabled() const noexcept { return state_; }
+    [[nodiscard]] bool is_disabled() const noexcept { return !state_; }
 
 private:
-        bool state_ = false; // Initially the switch is off.
+    bool state_ = false; // Initially the switch is off.
 };
 
 template<typename T>
 class Once : private Immobile
 {
 public:
-        Once() = default;
+    Once() = default;
 
-        ~Once() = default;
+    ~Once() = default;
 
-        void set(T value)
-        {
-                if(assigned_)
-                        throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
-                value_ = value;
-                assigned_ = true;
-        }
+    void set(T value)
+    {
+        if (assigned_)
+            throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
+        value_ = value;
+        assigned_ = true;
+    }
 
-        [[nodiscard]] const T &get()
-        {
-                if(!assigned_)
-                        throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` not assigned yet"));
-                return value_;
-        }
+    [[nodiscard]] const T &get()
+    {
+        if (!assigned_)
+            throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` not assigned yet"));
+        return value_;
+    }
 
-        [[nodiscard]] bool assigned() const noexcept { return assigned_; }
+    [[nodiscard]] bool assigned() const noexcept { return assigned_; }
 
 private:
-        T value_;
-        bool assigned_ = false;
+    T value_;
+    bool assigned_ = false;
 };
 } // namespace Alpha
 

@@ -2,7 +2,7 @@
 #define ALPHA_LOCATION_HPP
 
 #include <vector>               // for vector
-#include "core/alpha_types.hpp" // for u32
+#include "core/alpha_numeric_types.hpp" // for u32
 #include "utils/misc.hpp"
 
 namespace Alpha

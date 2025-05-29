@@ -1,118 +1,62 @@
-#ifndef ALPHA_SEMANTIC_BUILDER_HPP
-#define ALPHA_SEMANTIC_BUILDER_HPP
-#include "core/alpha_error.hpp"            // for ErrorTracker
-#include "core/alpha_location.hpp"         // for Location
-#include "parser/alpha_parser_context.hpp" // for ParseCtx
-#include "parser/alpha_symbol_table.hpp"   // for Symbol, SymbolTable
-#include <string>                          // for string
-#include <utility>
+        #ifndef ALPHA_SEMANTIC_BUILDER_HPP
+        #define ALPHA_SEMANTIC_BUILDER_HPP
+        #include "core/alpha_diagnostics.hpp"            // for CTIssueTracker
+        #include "core/alpha_location.hpp"         // for Location
+        #include "parser/alpha_parser_context.hpp" // for ParseCtx
+        #include <string>                          // for string
+        #include <utility>
 
-#include <list> // for list, _List_const_iterator
+        #include <list> // for list, _List_const_iterator
 
-#include "_parser_common.hpp"
-#include "core/alpha_error.hpp"      // for ErrorTracker, Diagnostic
-#include "core/alpha_konstants.hpp"  // for k_global_scope, k_public_...
-#include "core/alpha_location.hpp"   // for Location
-#include "core/alpha_types.hpp"      // for u32
-#include "parser/_parser_common.hpp" // for Parameter
-#include "parser/_parser_type_aliases.hpp"
-#include "parser/alpha_backpatcher.hpp"
-#include "parser/alpha_parser_context.hpp" // for ParseCtx
-#include "utils/format_adapter.hpp"        // for format, FMT
-#include "utils/misc.hpp"                  // for DEBUG_ALWAYS_INLINE
-#include "utils/smart_assert.h"            // for DEBUG_SMART_ASSERT
-#include <stdexcept>
+        #include "_parser_common.hpp"
+        #include "core/alpha_numeric_types.hpp"      // for U32
+        #include "parser/_parser_type_aliases.hpp"
+        #include "utils/format_adapter.hpp"        // for format, FMT
+        #include "utils/misc.hpp"                  // for DEBUG_ALWAYS_INLINE
+        #include "utils/smart_assert.h"            // for DEBUG_SMART_ASSERT
+        #include <stdexcept>
 
-namespace // (Anonymous)
-{
-} // namespace
+        namespace // (Anonymous)
+        {
+        } // namespace
 
-namespace Alpha
-{
-bool is_relational_iopcode(IOPCode iopc);
+        namespace Alpha
+        {
+        class SemanticBuilder
+        {
+        public:
+                SemanticBuilder(SemanticOpts sem_opts, ParseCtx &parse_ctx, SymbolTable &st,
+                                CTIssueTracker &et);
 
-bool is_equality_iopcode(IOPCode iopc);
-
-bool is_numeric_convertible_expr(const Expr *expr);
-
-bool is_rvalue_expr(Expr::Type type);
-
-constexpr const char *relational_iopc_to_string(IOPCode iopc);
-
-class SemanticBuilder
-{
-public:
-        SemanticBuilder(SemanticOpts sem_opts, ParseCtx &parse_ctx, SymbolTable &st,
-                        ErrorTracker &et);
-
-        [[nodiscard]] Expr *convert_to_boolean(Expr *expr, SourceLocation expr_loc);
+                [[nodiscard]] Expr *convert_to_boolean(Expr *expr, SourceLocation expr_loc);
 
 
-        [[nodiscard]] Expr *make_relational(IOPCode iopc, Expr *left, const Expr *right,
-                                            SourceLocation result_loc, SourceLocation left_loc,
-                                            SourceLocation right_loc);
 
-        [[nodiscard]] Expr *make_logical_or(Expr *left, Expr *right, SourceLocation result_loc,
-                                            SourceLocation left_loc, SourceLocation right_loc);
+                [[nodiscard]] ExprList *make_empty_expr_list();
 
-        [[nodiscard]] Expr *make_logical_and(Expr *left, Expr *right, SourceLocation result_loc,
-                                             SourceLocation left_loc, SourceLocation right_loc);
+                [[nodiscard]] ExprList *make_expr_list_with(Expr *expr, SourceLocation new_expr_loc);
 
-        [[nodiscard]] Expr *make_uminus(Expr *expr, SourceLocation term_loc, SourceLocation expr_loc);
+                [[nodiscard]] ExprList *extend_expr_list_with(ExprList *expr_list, Expr *expr,
+                                                              SourceLocation new_expr_loc);
 
-        [[nodiscard]] Expr *make_logical_not(Expr *expr, SourceLocation result_loc);
+                [[nodiscard]] DictList *make_dict_list_with(ExprPair *first_pair);
 
-        [[nodiscard]] ExprList *make_empty_expr_list();
+                [[nodiscard]] DictList *extend_dict_list_with(DictList *dict_list, ExprPair *new_pair);
 
-        [[nodiscard]] ExprList *make_expr_list_with(Expr *expr, SourceLocation new_expr_loc);
+                // TODO: The following 2 are the same.. unify.
+                [[nodiscard]] Expr *resolve_lvalue_to_primary(Expr *lvalue);
 
-        [[nodiscard]] ExprList *extend_expr_list_with(ExprList *expr_list, Expr *expr,
-                                                      SourceLocation new_expr_loc);
+                [[nodiscard]] Expr *resolve_call_to_primary(Expr *call);
 
-        [[nodiscard]] DictList *make_dict_list_with(ExprPair *first_pair);
+                [[nodiscard]] Expr *resolve_assign_expr(Expr *lvalue, Expr *expr, SourceLocation assign_loc);
 
-        [[nodiscard]] DictList *extend_dict_list_with(DictList *dict_list, ExprPair *new_pair);
+                [[nodiscard]] Expr *make_table_list(ExprList *&elist, SourceLocation table_list_loc);
 
-        [[nodiscard]] Expr *make_const_nil(SourceLocation nil_loc);
+                [[nodiscard]] Expr *make_table_dict(DictList *&dlist, SourceLocation table_dict_loc);
 
-        [[nodiscard]] Expr *make_const_true(SourceLocation true_loc);
 
-        [[nodiscard]] Expr *make_const_false(SourceLocation false_loc);
+                [[nodiscard]] ExprPair *make_expr_pair(Expr *first, Expr *second);
 
-        [[nodiscard]] Expr *make_const_int(i64 int_value, SourceLocation int_loc);
-
-        [[nodiscard]] Expr *make_const_real(f64 real_value, SourceLocation real_loc);
-
-        [[nodiscard]] Expr *make_const_string(const char *str_value, SourceLocation str_loc);
-
-        // TODO: The following 2 are the same.. unify.
-        [[nodiscard]] Expr *resolve_lvalue_to_primary(Expr *lvalue);
-
-        [[nodiscard]] Expr *resolve_call_to_primary(Expr *call);
-
-        [[nodiscard]] Expr *resolve_assign_expr(Expr *lvalue, Expr *expr, SourceLocation assign_loc);
-
-        [[nodiscard]] Expr *make_table_list(ExprList *&elist, SourceLocation table_list_loc);
-
-        [[nodiscard]] Expr *make_table_dict(DictList *&dlist, SourceLocation table_dict_loc);
-
-        [[nodiscard]] Expr *make_program_function(const Function *function_symbol);
-
-        [[nodiscard]] ExprPair *make_expr_pair(Expr *first, Expr *second);
-
-        [[nodiscard]] Expr *make_table_item(Expr *&lvalue, const char *id, SourceLocation table_item_loc,
-                                            SourceLocation id_loc);
-
-        [[nodiscard]] Expr *make_table_item(Expr *&lvalue, Expr *expr, SourceLocation table_item_loc);
-
-        [[nodiscard]] Expr *make_call(Expr *lvalue, ExprList *&elist, SourceLocation call_loc);
-
-        [[nodiscard]] Expr *make_normal_call(Expr *&lvalue, ExprList *&elist, SourceLocation call_loc);
-
-        [[nodiscard]] Expr *make_method_call(Expr *&lvalue, ExprList *&elist, SourceLocation call_loc);
-
-        [[nodiscard]] Expr *make_iife_call(const Function *func_symbol, ExprList *&elist,
-                                           SourceLocation call_loc);
 
         [[nodiscard]] static BlockLocation make_block_location(SourceLocation begin,
                                                                SourceLocation end) noexcept;
@@ -120,7 +64,7 @@ public:
 private:
         ParseCtx &parse_ctx_;
         [[maybe_unused]] SymbolTable &st_; // TODO: REMOVE IF UNUSED
-        ErrorTracker &et_;
+        CTIssueTracker &et_;
 
         void delete_expr_list(ExprList *&elist);
 
@@ -138,87 +82,33 @@ private:
         [[nodiscard]] DictList *make_empty_dict_list();
 
         void report_error_if_not_arithmetic(IOPCode iopc, const Expr *expr, SourceLocation expr_loc,
-                                            OperandPosition side);
+                                            OperandSide side);
 
         void report_error_if_not_relational(IOPCode iopc, const Expr *expr, SourceLocation expr_loc,
-                                            OperandPosition side);
+                                            OperandSide side);
 
         Expr *try_fold_arithmetic(IOPCode iopc, const Expr *l, const Expr *r, SourceLocation loc);
 
         static void report_non_arithmetic_operand(const IOPCode iopc, const Expr *expr,
                                                   const SourceLocation expr_loc,
-                                                  const OperandPosition op_pos, ErrorTracker &et);
+                                                  const OperandSide op_pos, CTIssueTracker &et);
 
         void report_non_relational_operand(const IOPCode iopc, const Expr *expr,
-                                           const SourceLocation expr_loc, const OperandPosition op_pos,
-                                           ErrorTracker &et);
+                                           const SourceLocation expr_loc, const OperandSide op_pos,
+                                           CTIssueTracker &et);
 }; // class SemanticBuilder
 
 inline SemanticBuilder::SemanticBuilder(SemanticOpts sem_opts, ParseCtx &parse_ctx, SymbolTable &st,
-                                        ErrorTracker &et)
+                                        CTIssueTracker &et)
         : sem_opts(sem_opts), parse_ctx_(parse_ctx), st_(st), et_(et)
 {}
 
-inline Expr *SemanticBuilder::try_fold_arithmetic(const IOPCode iopc, const Expr *left,
-                                                  const Expr *right, const SourceLocation loc)
-{
-        DEBUG_SMART_ASSERT(!!left, !!right, sem_opts.arithmetic_folding);
-        using T = Expr::Type;
-        auto &eh = parse_ctx_.expr_handler;
-        const bool is_left_int = left->type == T::CONST_INT;
-        const bool is_right_int = right->type == T::CONST_INT;
-        const auto etype_to_str = [](const Expr *e) -> const char *
-        {
-                return e->type == Expr::Type::CONST_INT
-                               ? "`int`"
-                               : e->type == Expr::Type::CONST_REAL
-                                         ? "`real`"
-                                         : "`unknown`";
-        };
-
-        if(is_left_int && is_right_int)
-        {
-                const i64 l = left->const_int, r = right->const_int;
-                switch(iopc)
-                {
-                case IOPCode::ADD: return eh.make_expr_const_int(l + r, loc);
-                case IOPCode::SUB: return eh.make_expr_const_int(l - r, loc);
-                case IOPCode::MUL: return eh.make_expr_const_int(l * r, loc);
-                case IOPCode::MOD: return eh.make_expr_const_int(l % r, loc);
-                case IOPCode::DIV: return eh.make_expr_const_real(f64(l) / r, loc);
-                default: throw std::logic_error(ATTACH_CONTEXT("Called with non-arithmetic IOPC"));
-                }
-        }
-
-        // Convert to REAL (INT+REAL, REAL+INT, REAL+REAL) // No C++ safety checks
-        const f64 l = is_left_int ? left->const_int : left->const_real;
-        const f64 r = is_right_int ? right->const_int : right->const_real;
-        switch(iopc)
-        {
-        case IOPCode::ADD: return eh.make_expr_const_real(l + r, loc);
-        case IOPCode::SUB: return eh.make_expr_const_real(l - r, loc);
-        case IOPCode::MUL: return eh.make_expr_const_real(l * r, loc);
-        case IOPCode::DIV: return eh.make_expr_const_real(l / r, loc);
-        case IOPCode::MOD:
-        { // Required-block due to initialization inside case label.
-                std::string error =
-                        FMT::format("{} and {} constant operands are invalid to binary `operator%`",
-                                    etype_to_str(left), etype_to_str(right));
-                et_.report_error(CTError::Type::SEMANTIC, error, loc);
-                return nullptr;
-        }
-                [[unlikely]]
-        default:
-                throw std::logic_error(ATTACH_CONTEXT(
-                        FMT::format("BUG:Unexpected IOPCode `{}` with operand types `{}` and `{}`",
-                                to_string(iopc), etype_to_str(left), etype_to_str(right))));
-        }
 }
 
 inline Expr *SemanticBuilder::make_uminus(Expr *expr, SourceLocation term_loc, SourceLocation expr_loc)
 {
         DEBUG_SMART_ASSERT(!!expr);
-        report_error_if_not_arithmetic(IOPCode::UMINUS, expr, expr_loc, OperandPosition::UNARY);
+        report_error_if_not_arithmetic(IOPCode::UMINUS, expr, expr_loc, OperandSide::UNARY);
 
         auto &eh = parse_ctx_.expr_handler;
         auto &qh = parse_ctx_.quad_handler;
@@ -258,31 +148,6 @@ inline Expr *SemanticBuilder::convert_to_boolean(Expr *expr, SourceLocation expr
 }
 
 
-inline Expr *SemanticBuilder::make_relational(
-        IOPCode iopc, Expr *left, const Expr *right, SourceLocation result_loc,
-        [[maybe_unused]] SourceLocation left_loc,  // TODO: If you dont do constant folding remove
-        [[maybe_unused]] SourceLocation right_loc) // TODO: If you dont do constant folding remove
-{
-        // TODO: rename emit_quad to emit().
-        DEBUG_SMART_ASSERT(!!left, !!right);
-        auto &qh = parse_ctx_.quad_handler;
-        auto &eh = parse_ctx_.expr_handler;
-
-        report_error_if_not_relational(iopc, left, left_loc, OperandPosition::LEFT);
-        report_error_if_not_relational(iopc, right, right_loc, OperandPosition::RIGHT);
-
-        // TODO: If all cases where we need backpatch lists require us to push next label
-        // and next label+1 we put that in the constructor. Or we make constructor ask for next
-        // true and false list. Although I think its always and IOPCode (with label) and then a
-        // jump.
-        Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
-
-        bool_result_expr->backpatch_info->true_list.push_back(qh.next_quad_label());
-        qh.emit_quad_labelless(iopc, left, right, nullptr, result_loc);
-        bool_result_expr->backpatch_info->false_list.push_back(qh.next_quad_label());
-        qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, result_loc);
-        return bool_result_expr;
-}
 
 inline Expr *SemanticBuilder::make_logical_or(
         Expr *left, Expr *right, SourceLocation result_loc,
@@ -404,37 +269,7 @@ inline ExprList *SemanticBuilder::extend_expr_list_with(ExprList *expr_list, Exp
         return expr_list;
 }
 
-inline Expr *SemanticBuilder::make_const_nil(SourceLocation nil_loc)
-{
-        return parse_ctx_.expr_handler.make_expr_const_nil(nil_loc);
-}
-
-inline Expr *SemanticBuilder::make_const_true(SourceLocation true_loc)
-{
-        return parse_ctx_.expr_handler.make_expr_const_bool(true, true_loc);
-}
-
-inline Expr *SemanticBuilder::make_const_false(SourceLocation false_loc)
-{
-        return parse_ctx_.expr_handler.make_expr_const_bool(false, false_loc);
-}
-
-inline Expr *SemanticBuilder::make_const_int(i64 int_value, SourceLocation int_loc)
-{
-        return parse_ctx_.expr_handler.make_expr_const_int(int_value, int_loc);
-}
-
-inline Expr *SemanticBuilder::make_const_real(f64 real_value, SourceLocation real_loc)
-{
-        return parse_ctx_.expr_handler.make_expr_const_real(real_value, real_loc);
-}
-
-inline Expr *SemanticBuilder::make_const_string(const char *str_value, SourceLocation str_loc)
-{
-        return parse_ctx_.expr_handler.make_expr_const_string(str_value, str_loc);
-}
-
-inline Expr *SemanticBuilder::make_call(Expr *lvalue, ExprList *&elist, SourceLocation call_loc)
+inline Expr *CLASS_NAME::make_call(Expr *lvalue, ExprList *&elist, SourceLocation call_loc)
 {
         Expr *func_expr = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
         for(Expr *e : *elist)
@@ -454,7 +289,7 @@ inline Expr *SemanticBuilder::make_call(Expr *lvalue, ExprList *&elist, SourceLo
                 IOPCode::GETRETVAL, nullptr, nullptr, getretval_expr,
                 k_no_location);
         // We could pass call_location, but we follow strict policy: temps have
-        // no location
+        // no loc
 
         delete_expr_list(elist);
         return getretval_expr;
@@ -639,7 +474,7 @@ inline Expr *SemanticBuilder::handle_direct_assignment(Expr *lvalue, Expr *expr,
         parse_ctx_.quad_handler.emit_quad(
                 IOPCode::ASSIGN, expr, nullptr, lvalue,
                 assign_loc);
-        // TODO (NOT IMPORTANT): location (can we construct it from expr (to catch
+        // TODO (NOT IMPORTANT): loc (can we construct it from expr (to catch
         // whole assignment expression?))
 
         Expr *assignExpr = parse_ctx_.expr_handler.make_expr_assign(parse_ctx_.new_temp(),
@@ -658,42 +493,6 @@ inline void SemanticBuilder::update_expr_location(Expr *expr, SourceLocation new
 }
 
 
-inline void SemanticBuilder::report_non_relational_operand(const IOPCode iopc, const Expr *expr,
-                                                           const SourceLocation expr_loc,
-                                                           const OperandPosition op_pos,
-                                                           ErrorTracker &et)
-{
-        using OP = OperandPosition;
-        if(op_pos != OP::LEFT && op_pos != OP::RIGHT) [[unlikely]]
-                throw std::logic_error(ATTACH_CONTEXT("Invalid relational OperandPosition "));
-
-        const std::string error =
-                FMT::format("`{}` operand of relational operator `{}` is never arithmetic",
-                            to_string(op_pos), relational_iopc_to_string(iopc));
-        const std::string note =
-                FMT::format("operand's expression type: `{}`", to_string(expr->type));
-        et.report_error(CTError::Type::SEMANTIC, error, expr_loc, note, expr_loc);
-}
-
-
-inline void SemanticBuilder::report_error_if_not_relational(const IOPCode iopc, const Expr *expr,
-                                                            const SourceLocation expr_loc,
-                                                            const OperandPosition op_pos)
-{
-        DEBUG_SMART_ASSERT(!!expr, is_relational_iopcode(iopc),
-                           op_pos == OperandPosition::LEFT || op_pos == OperandPosition::RIGHT //
-        );
-
-        // In Alpha everything convertible to bool.
-        // And operators == and != convert their operands to bool.
-        if(is_equality_iopcode(iopc))
-                return;
-        // If here operator IOPCode is:  < <= > >=
-        if(is_numeric_convertible_expr(expr))
-                return;
-
-        SemanticBuilder::report_non_relational_operand(iopc, expr, expr_loc, op_pos, et_);
-}
 
 } // namespace Alpha
 

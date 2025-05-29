@@ -5,7 +5,7 @@
 
 #define ALPHA_YYLEX_SIGNATURE int alpha_yylex( \
     Alpha::LocationTracker &lt,                \
-    Alpha::ErrorTracker &et,                   \
+    Alpha::IssueTracker &et,                   \
     Alpha::LexerCtx &lexer_ctx)
 
 #endif // ALPHA_SHARED_INTERFACE_HPP

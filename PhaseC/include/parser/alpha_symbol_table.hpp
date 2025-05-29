@@ -4,7 +4,7 @@
 #include "_parser_common.hpp"      // for Parameter
 #include "core/alpha_location.hpp" // for Location
 #include "utils/misc.hpp"          // for DEBUG_ALWAYS_INLINE
-#include "core/alpha_types.hpp"    // for u32
+#include "core/alpha_numeric_types.hpp"    // for u32
 #include "utils/smart_assert.h"    //
 #include "utils/misc.hpp"
 #include <initializer_list> // for initializer_list

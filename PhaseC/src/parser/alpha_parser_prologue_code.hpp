@@ -10,6 +10,7 @@
 #include "core/alpha_location.hpp"
 #include "parser/alpha_semantic_manager.hpp"
 #include "parser/alpha_semantic_builder.hpp"
+#include "parser/alpha_semantic_manager_.hpp"
 
 extern ALPHA_YYLEX_SIGNATURE;
 // TODO: say in your report for  the progect that ';' is not just a plain syntax requirement.

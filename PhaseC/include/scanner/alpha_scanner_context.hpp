@@ -3,7 +3,7 @@
 
 #include <string>
 #include "core/alpha_location.hpp"
-#include "core/alpha_types.hpp"
+#include "core/alpha_numeric_types.hpp"
 #include "scanner/alpha_token.hpp"
 #include "utils/misc.hpp"
 

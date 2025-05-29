@@ -8,7 +8,7 @@
 #include <vector>                   // for vector
 #include "alpha_parser.hpp"         // for alpha_yyparse
 #include "core/alpha_konstants.hpp" // for k_global_scope
-#include "core/alpha_types.hpp"     // for u32
+#include "core/alpha_numeric_types.hpp"     // for u32
 #include "utils/cli_color.h"        // for COLOR_ASCII_BLUE, SGR_RESET
 #include "utils/format_adapter.hpp" // for format, FMT
 #include "utils/smart_assert.h"     // for SMART_ASSERT
@@ -90,7 +90,7 @@ void expr_validator(const Alpha::Expr *e)
                 CASE_ASSERT(!has_symbol(e), has_loc(e) /* ANY_VAL */);
         case AET::CONST_NIL:
                 CASE_ASSERT(!has_symbol(e), has_loc(e), !has_index(0));
-        case AET::CONST_REAL:
+        case AET::CONST_FLOAT:
                 CASE_ASSERT(!has_symbol(e), has_loc(e) /* ANY_VAL */);
         case AET::CONST_STRING:
                 CASE_ASSERT(!has_symbol(e), has_loc(e) /* ANY_VAL */);
@@ -127,7 +127,7 @@ std::string expr_printer(const Alpha::Expr *expr)
                 return FMT::to_string(expr->const_int);
         case AET::CONST_NIL:
                 return "nil";
-        case AET::CONST_REAL:
+        case AET::CONST_FLOAT:
                 return FMT::to_string(expr->const_real);
         case AET::CONST_STRING:
                 return FMT::format("\"{}\"", expr->const_str);
@@ -273,7 +273,7 @@ void Driver::show_symbol_table() const
                         std::cout << FMT::format("{:<30} {:<20} (line {:>5}) (scope {:>4})\n",
                                                  FMT::format("\"{}\"", symbol_ptr->name),
                                                  FMT::format("[{}]", symbol_ptr->type_to_string()),
-                                                 lt_.find_symbol_line(symbol_ptr->location),
+                                                 lt_.find_symbol_line(symbol_ptr->loc),
                                                  symbol_ptr->scope);
                 std::cout << std::endl;
         }
@@ -284,14 +284,14 @@ void Driver::show_compile_errors() const
 {
         const std::string source_filename = source_filepath_.filename().string();
 
-        for(const auto &error : et_.get_compile_time_errors())
-                std::cerr << error->make_pretty_diagnostic(source_filename, lt_,
+        for(const auto &error : et_.get_compile_time_issues())
+                std::cerr << error->make_pretty_issue(source_filename, lt_,
                                                            flex_buffer_.const_buffer());
 }
 
 void Driver::show_quads() const
 {
-        // if (et_.has_errors()) // We dont show quads if there are errors.
+        // if (et_.contain_errors()) // We dont show quads if there are errors.
         //         return;
         // TODO!! UNCOMMENT!
         print_quads<true>(std::cout, parse_ctx_.quad_handler.quads(), lt_);
@@ -339,7 +339,7 @@ Driver::FlexBuffer::FlexBuffer(const std::string &input_filepath)
 Driver::FlexBuffer::~FlexBuffer()
 {
         // Class invariant: `state_` must be non-null after construction.
-        // Violations indicate a serious logic error (e.g., double-deletion or moved-from object).
+        // Violations indicate a serious logic issue (e.g., double-deletion or moved-from object).
         SMART_ASSERT(!!state_);
         state_ = nullptr;
         // We nullified our reference to YY_BUFFER_STATE
@@ -362,7 +362,7 @@ void Driver::export_symbol_table_impl() const
         {
                 outfile << FMT::format(
                         "{},{},{},{}\n", symbol_ptr->name, symbol_ptr->type_to_string(),
-                        lt_.find_symbol_line(symbol_ptr->location), symbol_ptr->scope);
+                        lt_.find_symbol_line(symbol_ptr->loc), symbol_ptr->scope);
         };
 
         const auto &symbol_per_scope_vector = st_.symbols_per_scope();
@@ -382,23 +382,23 @@ void Driver::export_within_dir(std::string_view dirname, void (Driver::*export_f
 
 void Driver::export_compile_errors_impl() const
 {
-        const std::string outfile_name = source_filepath_.filename().string() + ".error.csv";
+        const std::string outfile_name = source_filepath_.filename().string() + ".issue.csv";
         std::ofstream outfile(outfile_name);
         if(!outfile)
                 throw std::runtime_error(FMT::format(
                         "Failed opening file {} to export compile errors", outfile_name));
 
         outfile << k_error_csv_export_header; // Write CSV header.
-        auto write_diagnostic = [&](const Diagnostic &diag)
+        auto write_diagnostic = [&](const Issue &diag)
         {
                 outfile << FMT::format("{},{},{},{}\n", diag.line(lt_), diag.column(lt_),
-                                       diag.type_to_string(), diag.message);
+                                       diag.type_to_string(), diag.description);
         };
 
-        for(const auto &cte : et_.get_compile_time_errors())
+        for(const auto &cte : et_.get_compile_time_issues())
         {
                 write_diagnostic(cte->error);
-                for(const Diagnostic &note : cte->note_list)
+                for(const Issue &note : cte->note_list)
                         write_diagnostic(note);
         }
 }

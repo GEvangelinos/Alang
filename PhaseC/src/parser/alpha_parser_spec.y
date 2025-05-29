@@ -14,7 +14,7 @@
 
 %code requires
 {
-        #include "core/alpha_error.hpp"               // for ErrorTracker
+        #include "core/alpha_diagnostics.hpp"               // for ErrorTracker
         #include "core/alpha_location.hpp"            // for Location, LocationTracker
         #include "parser/alpha_semantic_manager_.hpp"  // for block__lbrace, funcArgs...
         #include "parser/alpha_semantic_builder.hpp"  // for block__lbrace, funcArgs...
@@ -69,6 +69,7 @@
 %token <const_int>      INT      "`integer-constant`"
 %token <const_real>     REAL     "`real-constant`"
 
+/********************************************************
 %type  <expr_ptr> lvalue
 %type  <expr_ptr> tableItem
 %type  <expr_ptr> member
@@ -91,10 +92,10 @@
 %type  <const_function_symbol_ptr> funcDef
 %type  <const_function_symbol_ptr> funcSignature
 
-
 %type  <location>       blockBegin 
 %type  <location>       blockEnd
 %type  <block_location> block
+*******************************************************/
 
 /* By default Bison uses the bare token names (e.g. IF, METHOD_CALL)
  * in its syntax‐error messages.  If you follow a %token with
@@ -189,14 +190,12 @@ program
 
 multiStmt
 : stmt
-  { sm.multiStmt__stmt(); }
 | stmt
-  { sm.multiStmt__stmt(); }
  multiStmt
 ;
 
 stmt
-: expr SEMICOLON {  sm.backpatch_bool_expr($expr, @expr); }
+: expr SEMICOLON
 | ifStmt
 | whileStmt
 | forStmt
@@ -212,273 +211,190 @@ stmt
 ;
 
 loopCtrlStmt
-:  BREAK    { sm.loopCtrlStmt__break(@BREAK); }
-| CONTINUE { sm.loopCtrlStmt__continue(@CONTINUE); }
+:  BREAK
+| CONTINUE
 ;
 
 expr[result]
 : assignExpr
-| expr[left] PLUS  expr[right] { $result = sb.make_arithmetic(AOP::ADD, $left, $right, @result, @left, @right); }
-| expr[left] MINUS expr[right] { $result = sb.make_arithmetic(AOP::SUB, $left, $right, @result, @left, @right); }
-| expr[left] MUL   expr[right] { $result = sb.make_arithmetic(AOP::MUL, $left, $right, @result, @left, @right); }
-| expr[left] DIV   expr[right] { $result = sb.make_arithmetic(AOP::DIV, $left, $right, @result, @left, @right); }
-| expr[left] MOD   expr[right] { $result = sb.make_arithmetic(AOP::MOD, $left, $right, @result, @left, @right); }
-| expr[left] GT    expr[right] { $result = sb.make_relational(AOP::IF_GREATER, $left, $right,@result, @left, @right); }
-| expr[left] GTE   expr[right] { $result = sb.make_relational(AOP::IF_GREATEREQ, $left, $right,@result, @left, @right); }
-| expr[left] LT    expr[right] { $result = sb.make_relational(AOP::IF_LESS, $left, $right,@result, @left, @right); }
-| expr[left] LTE   expr[right] { $result = sb.make_relational(AOP::IF_LESSEQ, $left, $right,@result, @left, @right); }
-| expr[left] EQ    expr[right] { $result = sb.make_relational(AOP::IF_EQ, $left, $right,@result, @left, @right); }
-| expr[left] NEQ   expr[right] { $result = sb.make_relational(AOP::IF_NOTEQ, $left, $right,@result, @left, @right); }
+| expr[left] PLUS  expr[right]
+| expr[left] MINUS expr[right]
+| expr[left] MUL   expr[right]
+| expr[left] DIV   expr[right]
+| expr[left] MOD   expr[right]
+| expr[left] GT    expr[right]
+| expr[left] GTE   expr[right]
+| expr[left] LT    expr[right]
+| expr[left] LTE   expr[right]
+| expr[left] EQ    expr[right]
+| expr[left] NEQ   expr[right]
 | expr[left] AND 
-  {
-     $left = sb.convert_to_boolean($left, @left); 
-  }
-  saveNextQuadHook expr[right] 
-  { 
-    $right = sb.convert_to_boolean($right, @right);   
-    $result = sb.make_logical_and($left, $right, @result, @left, @right);
-  }
-| expr[left] OR
-  {
-    $left = sb.convert_to_boolean($left, @left); 
-  } 
   saveNextQuadHook expr[right]
-  {
-    $right = sb.convert_to_boolean($right, @right);   
-    $result = sb.make_logical_or($left, $right, @result, @left, @right); 
-  }
-| term { $result = $term; }
+| expr[left] OR
+  saveNextQuadHook expr[right]
+| term
 ;
 
-saveNextQuadHook
-: { sm.saveNextQuadHook(); }  
+saveNextQuadHook:
 ;
 
 term:
-  LEFT_PAREN expr RIGHT_PAREN { $term = $expr; }
-| MINUS expr %prec UMINUS     { $term = sb.make_uminus($expr, @term, @expr); }
-| NOT expr                    { $term = sb.make_logical_not($expr, @term); }
-| INC lvalue { sm.term__inc_lvalue($term, $lvalue, @term); }
-| lvalue INC { sm.term__lvalue_inc($term, $lvalue, @term); }
-| DEC lvalue { sm.term__dec_lvalue($term, $lvalue, @term); }
-| lvalue DEC { sm.term__lvalue_dec($term, $lvalue, @term); }
-| primary { $term = $primary; }
+  LEFT_PAREN expr RIGHT_PAREN
+| MINUS expr %prec UMINUS
+| NOT expr
+| INC lvalue
+| lvalue INC
+| DEC lvalue
+| lvalue DEC
+| primary
 ;
 
 assignExpr:
   lvalue ASSIGN expr  
-  { 
-    sm.backpatch_bool_expr($expr, @expr);
-    $assignExpr = sb.resolve_assign_expr($lvalue,$expr, @ASSIGN); 
-  }
 ;
 
 primary:
-  lvalue { $primary = sb.resolve_lvalue_to_primary($lvalue); }
-| call   { $primary = sb.resolve_call_to_primary($call); }
-| objectDef { $primary = $objectDef; }
+  lvalue
+| call
+| objectDef
 | LEFT_PAREN funcDef RIGHT_PAREN
-  { $primary = sb.make_program_function($funcDef); }
-| const  { $primary = $const; }
+| const
 ;
 
 
 lvalue:
-  ID        { sm.lvalue__id($lvalue, $ID, @ID);  std::cout << "4.PARSER: ID ==  " << $ID << std::endl; }
-| LOCAL ID  { sm.lvalue__local_id($lvalue, $ID, @ID); std::cout << "5.PARSER: ID ==  " << $ID << std::endl;} 
-| GLOBAL ID { sm.lvalue__global_id($lvalue, $ID, @ID); std::cout << "6.PARSER: ID ==  " << $ID << std::endl;}
-| member { $lvalue = $member; }
+  ID
+| LOCAL ID
+| GLOBAL ID
+| member
 ;
 
 tableItem:
   lvalue DOT ID
-  { $tableItem = sb.make_table_item($lvalue, $ID, @tableItem ,@ID); } 
-| lvalue LEFT_BRACKET expr RIGHT_BRACKET 
-  {
-    sm.backpatch_bool_expr($expr, @expr);
-    /*TODO  extract sub rule to bracketed expression. an backpatch expr there. TODO2:
-    Try to centralize expr backpatching... So far everything is scatter in different rules.
-    Maybe you can make a rule with all places expressions are needed. and backpatching is also needed. */
-    $tableItem = sb.make_table_item($lvalue, $expr, @tableItem);
-  }
-| call DOT ID { $tableItem = sb.make_table_item($call, $ID, @call, @ID); }
-| call LEFT_BRACKET expr RIGHT_BRACKET 
-  {
-    sm.backpatch_bool_expr($expr, @expr);
-    $tableItem = sb.make_table_item($call, $expr, @tableItem);
-  }
+| lvalue LEFT_BRACKET expr RIGHT_BRACKET
+| call DOT ID
+| call LEFT_BRACKET expr RIGHT_BRACKET
 ;
 
 member:
-  tableItem { $member = $tableItem; /* USELESS INDIRECTION? */  /*TODO originally there where tableitem here*/}
+  tableItem
 ;
 
 methodCallId:
   METHOD_CALL ID 
-  { sm.methodCallId__methodcall_id($ID, @ID, @methodCallId);}
 ;
 
 //*TODO: ADD normal_call and Method_call and pass needed variable trhoguh a Call struct!! */
 call[invocation]:
   call[callable] LEFT_PAREN elist RIGHT_PAREN // <------------------------------------ CHAIN_CALL
-  { $invocation = sb.make_call($callable, $elist, @invocation); }
 | lvalue LEFT_PAREN elist RIGHT_PAREN // <-------------------------------------------- NORMAL_CALL
-  { $invocation = sb.make_normal_call($lvalue, $elist, @invocation); }
 | lvalue methodCallId LEFT_PAREN elist RIGHT_PAREN // <------------------------------- METHOD_CALL
-  { $invocation = sb.make_method_call($lvalue, $elist, @invocation); }
 | LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN // <---------------------IIFE_CALL
-  { $invocation = sb.make_iife_call($funcDef, $elist, @invocation); }
 ;
 
 exprList[head]:
   expr 
-  { 
-    sm.backpatch_bool_expr($expr, @expr);
-    $head = sb.make_expr_list_with($expr, @expr); 
-  }
-| expr COMMA exprList[tail] 
-  {
-    sm.backpatch_bool_expr($expr, @expr);
-    $head = sb.extend_expr_list_with($tail, $expr, @expr);
-  }
+| expr COMMA exprList[tail]
 ;
 
 elist:
-  /* (empty) */ { $elist = sb.make_empty_expr_list(); }
-| exprList      { $elist = $exprList; }
+  /* (empty) */
+| exprList
 ;
 
 tableList:
   LEFT_BRACKET elist RIGHT_BRACKET
-  { $tableList = sb.make_table_list($elist, @tableList); }
 ;
 
 tableDict:
   LEFT_BRACKET indexed RIGHT_BRACKET
-  { $tableDict = sb.make_table_dict($indexed, @tableDict); }
 ;
 
 objectDef:
-  tableList { $objectDef = $tableList; }
-| tableDict { $objectDef = $tableDict; }
+  tableList
+| tableDict
 ;
 
 indexed:
-  indexedElemList { $indexed = $indexedElemList; }
+  indexedElemList
 ;
 
 indexedElemList[head]:
   indexedElem
-  { $head = sb.make_dict_list_with($indexedElem); }
 | indexedElem COMMA indexedElemList[tail]
-  { $head = sb.extend_dict_list_with($tail, $indexedElem); }
 ;
 
 indexedElem:
   LEFT_BRACE expr[key] COLON
-  { sm.backpatch_bool_expr($key, @key); }
-  expr[value] 
+  expr[value]
   RIGHT_BRACE
-  {
-    sm.backpatch_bool_expr($value, @value); 
-    $indexedElem = sb.make_expr_pair($key, $value); 
-  }
 ;
 
 blockBegin:
   LEFT_BRACE  
-  { 
-    sm.blockBegin__lbrace();
-    $blockBegin = @LEFT_BRACE;
-  }
 ;
 
 blockEnd:
-  RIGHT_BRACE 
-  { 
-    sm.blockEnd__rbrace();
-    $blockEnd = @RIGHT_BRACE;
-  }
+  RIGHT_BRACE
 ;
+
 
 block:
   blockBegin multiStmt  blockEnd   
-  { $block = sb.make_block_location($blockBegin, $blockEnd); }
 | blockBegin blockEnd
-  { $block = sb.make_block_location($blockBegin, $blockEnd); }
 ;
 
 
 funcPrefix:
-  FUNCTION    { sm.funcPrefix__function(@FUNCTION); std::cout << "I PASSED FROM HERE 1"<< std::endl;}
-| FUNCTION ID { sm.funcPrefix__function_id($ID, @ID); std::cout << "I PASSED FROM HERE 2"<< std::endl;}
+  FUNCTION
+| FUNCTION ID
 ;
 
 funcArgs:
-  ID { sm.funcArgs__id($ID, @ID); std::cout << "I PASSED FROM HERE 3"<< std::endl;}
-| ID { sm.funcArgs__id($ID, @ID); std::cout << "I PASSED FROM HERE 4"<< std::endl;} COMMA funcArgs
+  ID
+| ID COMMA funcArgs
 ;
 
 funcArgList:
-  LEFT_PAREN /*Void*/ RIGHT_PAREN {std::cout << "I PASSED FROM HERE 5"<< std::endl;}
-| LEFT_PAREN funcArgs  RIGHT_PAREN {std::cout << "I PASSED FROM HERE 6"<< std::endl;}
+  LEFT_PAREN /*Void*/ RIGHT_PAREN
+| LEFT_PAREN funcArgs  RIGHT_PAREN
 ;
 
 funcSignature:
-  funcPrefix{  std::cout << "I PASSED FROM HERE 9"<< std::endl;} funcArgList // need funcPREFIX ID here
-  {
-    std::cout << "I PASSED FROM HERE 7"<< std::endl;
-    sm.funcSignature__funcPrefix_funcArgList($funcSignature); }
+  funcPrefix funcArgList
 ;
 
 funcDef:
   funcSignature block 
-  { 
-    std::cout << "I PASSED FROM HERE 8"<< std::endl;
-    // TODO to much inderection remove funcSignature rule and MERGE... 
-    sm.funcDef__funcSignature_block($block); 
-    $funcDef = $funcSignature;
-  }
 ;
 
 const:
-  NIL    { $const = sb.make_const_nil(@NIL); }
-| TRUE   { $const = sb.make_const_true(@TRUE); }
-| FALSE  { $const = sb.make_const_false(@FALSE); }
-| INT    { $const = sb.make_const_int($INT, @INT); }
-| REAL   { $const = sb.make_const_real($REAL, @REAL); }
-| STRING {
-
-//TODO. STOP LEXER FROM COMPYING THE STRING.. IT USESLESS and MAKES US NEED EXTRA Deaclocation bookeeping 
-
-   $const = sb.make_const_string($STRING, @STRING); delete[] $STRING; $STRING = nullptr; }
+  NIL
+| TRUE
+| FALSE
+| INT
+| REAL
+| STRING
 ;
 
 ifPrefix
 : IF LEFT_PAREN expr RIGHT_PAREN 
-  { 
-    sm.backpatch_bool_expr($expr, @expr);
-    sm.ifPrefix__if_lparen_expr_rparen($expr, @expr);
-  }
 ;
 elsePrefix
-: ELSE { sm.elsePrefix__else(@ELSE); }
+: ELSE
 ;
 
 ifStmt
-: ifPrefix stmt %prec THEN { sm.ifStmt__ifPrefix_stmt_then(); }
-| ifPrefix stmt elsePrefix stmt  { sm.ifStmt__ifPrefix_stmt_elsePrefix_stmt(); }
+: ifPrefix stmt %prec THEN
+| ifPrefix stmt elsePrefix stmt
 ;
 
 whileStart:
-WHILE { sm.whileStart__while(); }
+WHILE
 ;
 
 whileCondition:
-  LEFT_PAREN expr
-  { sm.backpatch_bool_expr($expr, @expr); }
-  RIGHT_PAREN
-  { sm.whileCondition__lparen_expr_rparen($expr, @expr, @whileCondition); }
+  LEFT_PAREN expr  RIGHT_PAREN
 ;
 
 whileHeader:
@@ -488,16 +404,18 @@ whileHeader:
 
 whileStmt:
   whileHeader
-  { sm.whileStmt__whileHeader(); }
   stmt
-  { sm.whileStmt__whileHeader_stmt(@whileStmt); }
 ;
 
-N1: { sm.N(@N1,1); };
-N2: { sm.N(@N2,2); };
-N3: { sm.N(@N3,3); };
+N1:
+;
+N2:
+;
+N3:
+;
 
-M: { sm.M(); };
+M:
+;
 
 forHeader:
   FOR
@@ -506,11 +424,7 @@ forHeader:
   SEMICOLON
   M
   expr
-  { sm.backpatch_bool_expr($expr, @expr); }
   SEMICOLON
-  {
-    sm.forHeader__for_lparen_elist_semicolon_m_expr_semicolon($expr, @expr);
-  }
   N1
   elist
   RIGHT_PAREN
@@ -519,24 +433,14 @@ forHeader:
 forStmt:
   forHeader
   N2
-  { sm.forStmt__forHeader(); } 
   stmt
   N3
-  { 
-    sm.forStmt__forHeader_stmt();
-  }
 ;
 
 
-returnStmt: //OK
-  RETURN { sm.returnStmt__return(@returnStmt, @RETURN); }
+returnStmt:
+  RETURN
 | RETURN  expr  
-{
-  // TODO: REMOVE COMMENT.. but make clear these two function must be called with this sequence..
-  // Well no reason to change them.. but funcnames. could tell a little bit more.
-  sm.backpatch_bool_expr($expr, @expr); 
-  sm.returnStmt__return_expr($expr, @returnStmt, @RETURN); 
-} 
 ;
 
 %%

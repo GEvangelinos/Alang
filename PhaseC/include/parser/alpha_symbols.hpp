@@ -10,7 +10,7 @@ namespace Alpha
 {
         // Classes defined here:
         class Symbol;   // IWYU pragma: keep
-        class Variable; // IYU pragma: keep
+        class Variable; // IWYU pragma: keep
         class Function; // IWYU pragma: keep
 
         class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
@@ -28,7 +28,7 @@ namespace Alpha
                 const std::string &name;
                 const u32 scope;
                 const Type type;
-                const SourceLocation location;
+                const SourceLocation loc;
 
                 virtual ~Symbol() = default;
 
@@ -45,7 +45,7 @@ namespace Alpha
 
         protected:
                 Symbol(const std::string &name, u32 scope, Type type, SourceLocation loc) noexcept
-                    : name(name), scope(scope), type(type), location(loc) {}
+                    : name(name), scope(scope), type(type), loc(loc) {}
 
         private:
                 bool is_active_ = true;

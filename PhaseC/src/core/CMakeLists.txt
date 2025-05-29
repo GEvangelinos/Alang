@@ -1,5 +1,5 @@
 add_library(alpha_core STATIC
-        alpha_error.cpp
+        alpha_diagnostics.cpp
         alpha_location.cpp
 )
 

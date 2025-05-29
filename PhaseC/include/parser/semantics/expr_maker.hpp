@@ -5,18 +5,17 @@
 #ifndef ALPHA_EXPR_MAKER_HPP
 #define ALPHA_EXPR_MAKER_HPP
 
-#include "expr_validator.hpp"
+#include "expr_snitch.hpp"
 #include "core/alpha_basics.hpp"
 #include "core/alpha_location.hpp"
 #include "parser/alpha_parser_context.hpp"
-#include "parser/alpha_semantic_driver.hpp"
 
 namespace Alpha
 {
 class ExprMaker : private Immobile
 {
 public:
-    explicit ExprMaker(SemanticDriver *sd);
+    explicit ExprMaker(ParseCtx *parse_ctx);
     ~ExprMaker() noexcept;
 
     /// @Note: All expr_loc(s) are the loc of the resulting expression.
@@ -25,9 +24,10 @@ public:
     [[nodiscard]] BoolExpr *make_bool_expr(SourceLocation expr_loc);
     [[nodiscard]] const ConstBoolExpr *make_const_bool_expr(
         bool bool_value, SourceLocation expr_loc);
-    [[nodiscard]] const ConstIntExpr *make_const_int_expr(i64 int_value, SourceLocation expr_loc);
+    [[nodiscard]] const ConstIntExpr *make_const_int_expr(AlphaInt int_value,
+                                                          SourceLocation expr_loc);
     [[nodiscard]] const ConstFloatExpr *make_const_float_expr(
-        f64 float_value, SourceLocation expr_loc);
+        AlphaFloat float_value, SourceLocation expr_loc);
     [[nodiscard]] const ConstStringExpr *make_const_string_expr(
         const char *str_value, SourceLocation expr_loc);
     [[nodiscard]] const ConstNilExpr *make_nil_expr(SourceLocation expr_loc);
@@ -40,15 +40,13 @@ public:
                                                          SourceLocation expr_loc);
 
 private:
-    SemanticDriver *const sd_;
-    ParseCtx *const &parse_ctx_;
+    ParseCtx *const parse_ctx_;
     std::vector<const Expr *> expr_sink_;
 };
 
 inline
-ExprMaker::ExprMaker(SemanticDriver *const sd)
-    : sd_(Utils::require_ptr(sd)),
-      parse_ctx_(Utils::require_ptr(Utils::require_ptr(sd)->parse_ctx_)) {}
+ExprMaker::ExprMaker(ParseCtx *const parse_ctx)
+    : parse_ctx_(Utils::require_ptr(parse_ctx)) {}
 
 inline ExprMaker::~ExprMaker() noexcept
 {
@@ -112,7 +110,7 @@ ExprMaker::make_const_bool_expr(const bool bool_value, const SourceLocation expr
 }
 
 inline const ConstIntExpr *
-ExprMaker::make_const_int_expr(const i64 int_value, const SourceLocation expr_loc)
+ExprMaker::make_const_int_expr(const AlphaInt int_value, const SourceLocation expr_loc)
 {
     const auto const_int_expr = new const ConstIntExpr(expr_loc, int_value);
     expr_sink_.push_back(const_int_expr);
@@ -120,7 +118,7 @@ ExprMaker::make_const_int_expr(const i64 int_value, const SourceLocation expr_lo
 }
 
 inline const ConstFloatExpr *
-ExprMaker::make_const_float_expr(const f64 float_value, const SourceLocation expr_loc)
+ExprMaker::make_const_float_expr(const AlphaFloat float_value, const SourceLocation expr_loc)
 {
     const auto const_float_expr = new const ConstFloatExpr(expr_loc, float_value);
     expr_sink_.push_back(const_float_expr);

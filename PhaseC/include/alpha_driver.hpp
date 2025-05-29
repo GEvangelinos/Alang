@@ -4,11 +4,11 @@
 #include <string>                          // for string
 #include <string_view>                     // for string_view
 #include "alpha_scanner.hpp"               // for YY_BUFFER_STATE
-#include "core/alpha_error.hpp"            // for ErrorTracker
+#include "core/alpha_diagnostics.hpp"            // for CTIssueTracker
 #include "core/alpha_location.hpp"         // for LocationTracker
 #include "parser/alpha_parser_context.hpp" // for ParseCtx
 #include "parser/alpha_semantic_builder.hpp"
-#include "parser/alpha_semantic_manager.hpp"
+#include "parser/alpha_semantic_manager_.hpp"
 #include "parser/alpha_symbol_table.hpp"     // for SymbolTable
 #include "scanner/alpha_scanner_context.hpp" // for LexerCtx
 
@@ -59,7 +59,7 @@ private:
         const std::filesystem::path source_filepath_;
         FlexBuffer flex_buffer_;
         Alpha::LocationTracker lt_;
-        Alpha::ErrorTracker et_;
+        Alpha::CTIssueTracker et_;
         Alpha::SymbolTable st_;
         Alpha::LexerCtx lexer_ctx_;
         Alpha::ParseCtx parse_ctx_;

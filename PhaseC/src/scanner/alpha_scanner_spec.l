@@ -1,7 +1,7 @@
 %{
         #include <string>                             // for basic_string, stod, stol
         #include "alpha_parser.hpp"                   // for alpha_yylloc, alpha_yyt...
-        #include "core/alpha_error.hpp"               // for CTError, ErrorTracker
+        #include "core/alpha_diagnostics.hpp"               // for CTError, ErrorTracker
         #include "core/alpha_location.hpp"            // for LocationTracker
         #include "core/alpha_shared_interface.hpp"    // for ALPHA_YYLEX_SIGNATURE
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
