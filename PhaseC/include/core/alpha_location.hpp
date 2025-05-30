@@ -2,6 +2,9 @@
 #define ALPHA_LOCATION_HPP
 
 #include <vector>               // for vector
+
+#include "alpha_basics.hpp"
+
 #include "core/alpha_numeric_types.hpp" // for u32
 #include "utils/misc.hpp"
 

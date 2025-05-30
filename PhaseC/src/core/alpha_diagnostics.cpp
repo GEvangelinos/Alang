@@ -8,6 +8,7 @@
 #include "utils/format_adapter.hpp" // for format, FMT
 #include "utils/misc.hpp"
 #include "utils/smart_assert.h" // for DEBUG_SMART_ASSERT
+#include "utils/debug_tools.hpp"
 
 namespace
 {
@@ -102,7 +103,7 @@ std::string_view Issue::pretty_color() const noexcept
     case Type::ERROR: return COLOR_ASCII_BOLD_RED;
     case Type::WARNING: return COLOR_ASCII_BOLD_MAGENTA;
     case Type::NOTE: return COLOR_ASCII_BOLD_CYAN;
-        [[unlikely]] default: UNIMPLEMENTED("Unknown Issue Type!");
+        [[unlikely]] default: UNREACHABLE("Unknown Issue Type!");
     }
 }
 
@@ -182,7 +183,7 @@ void Diagnostics::report(
     const std::string &issue_desc,
     const SourceLocation issue_loc)
 {
-    store(std::make_unique<const CTIssue>(type, issue_desc, issue_loc));
+    store(std::unique_ptr<const CTIssue>(new const CTIssue(type, issue_desc, issue_loc)));
 }
 
 void Diagnostics::report(
@@ -191,7 +192,7 @@ void Diagnostics::report(
     const SourceLocation issue_loc,
     std::list<Note> &&note_list_)
 {
-    store(std::make_unique<const CTIssue>(type, issue_desc, issue_loc, std::move(note_list_)));
+    store(std::unique_ptr<const CTIssue>(new const CTIssue(type, issue_desc, issue_loc, std::move(note_list_))));
 }
 
 void Diagnostics::store(std::unique_ptr<const CTIssue> ct_issue)

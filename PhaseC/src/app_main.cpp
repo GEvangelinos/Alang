@@ -101,7 +101,7 @@ int main(int argc, char **argv)
         if(cli_parser[flag_show_quads].is_provided())
                 driver->show_quads();
         if(!cli_parser[flag_no_show_errors].is_provided()) // Used by regression-test tool.
-                driver->show_compile_errors();
+                driver->show_compile_issues();
 
         return driver->ok() ? 0 : 1;
 }

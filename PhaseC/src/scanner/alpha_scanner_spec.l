@@ -122,12 +122,13 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacterButNewLine} { /* Just eat up any character use see. */ }
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        et.report_error(
-                Alpha::CTError::Type::LEXER,
+        diagnostics.report(
+                Alpha::Issue::Type::ERROR,
                 "unclosed comment, expected terminating `*/` character",
                 alpha_yylloc,
-                "comment starts here",
+                std::list{Alpha::Note{"comment starts here",
                 Alpha::TokenComment::getStartingLocation()
+                }}
         );
         return EOF;
 }
@@ -144,20 +145,22 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_STRING>{stringInvalidEscapeCode} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
-        et.report_error(
-                Alpha::CTError::Type::LEXER,
+        diagnostics.report(
+                Alpha::Issue::Type::ERROR,
                 FMT::format("invalid escape code {} in string", yytext),
                 alpha_yylloc
         );
         /* Do not stop scanning, but register lexer error. */
 }
 <INSIDE_STRING><<EOF>> {
-        et.report_error(
-                Alpha::CTError::Type::LEXER,
+        diagnostics.report(
+                Alpha::Issue::Type::ERROR,
                 "unclosed string literal, expected terminating `\"` character",
                 alpha_yylloc,
+                std::list{Alpha::Note{
                 "string literal starts here",
                 Alpha::TokenString::getStartingLocation()
+                }}
         );
         return EOF;
 }
@@ -168,8 +171,8 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
-        et.report_error(
-                Alpha::CTError::Type::LEXER,
+        diagnostics.report(
+                Alpha::Issue::Type::ERROR,
                 FMT::format("character {} is invalid", yytext),
                 alpha_yylloc
         );

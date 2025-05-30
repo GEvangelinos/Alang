@@ -22,26 +22,35 @@
 #define _Bool bool
 #define _Static_assert static_assert
 
+constexpr const char *base_filename(const char *path)
+{
+        const char *last_slash = path;
+        for (const char *p = path; *p != '\0'; ++p)
+                if (*p == '/' || *p == '\\')
+                        last_slash = p + 1;
+        return last_slash;
+}
+
 extern "C"
 {
 #endif /* __cplusplus*/
 
 #ifndef __FILENAME__
-#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define __FILENAME__ base_filename(__FILE__)
 #endif /* __FILENAME__ */
 
-static int _get_nth_comma_position(const char *_string, int _target_comma_count)
+static int _get_nth_comma_position(const char *string, const int target_comma_count)
 {
         int string_index = 0;
         int found_commas = 0;
-        for(; (_string)[string_index] != '\0'; string_index++)
+        for(; (string)[string_index] != '\0'; string_index++)
         {
-                if((_string)[string_index] == ',')
+                if(string[string_index] == ',')
                         found_commas++;
-                if(found_commas == (_target_comma_count))
+                if(found_commas == (target_comma_count))
                         break;
         }
-        return (found_commas == _target_comma_count) ? string_index : 0;
+        return (found_commas == target_comma_count) ? string_index : 0;
 }
 
 static int _get_leading_spaces(const char *_string)

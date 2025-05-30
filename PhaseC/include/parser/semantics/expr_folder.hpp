@@ -5,8 +5,6 @@
 #include "expr_maker.hpp"
 #include "core/alpha_core_types.hpp"
 #include "core/alpha_location.hpp"
-#include "parser/alpha_parser_context.hpp"
-#include "parser/alpha_semantic_driver.hpp"
 
 namespace Alpha
 {
@@ -17,9 +15,10 @@ public:
 
     [[nodiscard]] const Expr *fold_arithmetic(
         IOPCode iopc, const Expr *left, const Expr *right, SourceLocation result_loc);
+    [[nodiscard]] const Expr *fold_uminus(const Expr *expr, SourceLocation result_loc);
     [[nodiscard]] const Expr *fold_relational_equality(
         IOPCode iopc, const Expr *left, const Expr *right, SourceLocation result_loc);
-    [[nodiscard]] const Expr *ExprFolder::fold_relational_arithmetic(
+    [[nodiscard]] const Expr *fold_relational_arithmetic(
         IOPCode iopc, const Expr *left, const Expr *right, SourceLocation result_loc);
 
 private:
@@ -68,6 +67,19 @@ inline const Expr *ExprFolder::fold_arithmetic(
                            static_cast<const ConstIntExpr *>(right)->value)
            : fold_arith_op(extract_alpha_float(left),
                            extract_alpha_float(right));
+}
+
+inline const Expr *
+ExprFolder::fold_uminus(const Expr *const expr, const SourceLocation result_loc)
+{
+    switch (expr->type)
+    {
+    case Expr::Type::CONST_INT: return expr_maker_->make_const_int_expr(
+            -static_cast<const ConstIntExpr *>(expr)->value, result_loc);
+    case Expr::Type::CONST_FLOAT: return expr_maker_->make_const_float_expr(
+            -static_cast<const ConstFloatExpr *>(expr)->value, result_loc);
+        [[unlikely]] default: throw std::logic_error(ATTACH_CONTEXT("Needed const numeric expr."));
+    }
 }
 
 inline const Expr *

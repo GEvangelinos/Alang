@@ -9,15 +9,12 @@
         #include "parser/alpha_parser_context.hpp"    // for ParseCtx
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
         #include "alpha_parser_prologue_code.hpp" // THIS MUST STAY in parser's.cpp not parser's .hpp
-        using AOP =  Alpha::IOPCode;
 }
 
 %code requires
 {
         #include "core/alpha_diagnostics.hpp"               // for ErrorTracker
         #include "core/alpha_location.hpp"            // for Location, LocationTracker
-        #include "parser/alpha_semantic_manager_.hpp"  // for block__lbrace, funcArgs...
-        #include "parser/alpha_semantic_builder.hpp"  // for block__lbrace, funcArgs...
         #include "parser/alpha_parser_context.hpp"    // for ParseCtx
         #include "parser/alpha_symbol_table.hpp"      // for Symbol, SymbolTable
         #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
@@ -26,17 +23,15 @@
 %define api.prefix {alpha_yy}
 %define parse.lac full
 %define parse.error verbose    /* Enable verbose error messages */
-%define api.location.type {Alpha::Location}
+%define api.location.type {Alpha::SourceLocation}
 %locations
 
 %parse-param{Alpha::LocationTracker &location_tracker}
-%parse-param{Alpha::ErrorTracker &error_tracker}
+%parse-param{Alpha::Diagnostics &diagnostics}
 %parse-param{Alpha::LexerCtx &lexer_ctx}
-%parse-param{Alpha::SemanticManager &sm}
-%parse-param{Alpha::SemanticBuilder &sb}
 
 %lex-param{Alpha::LocationTracker &location_tracker}
-%lex-param{Alpha::ErrorTracker &error_tracker}
+%lex-param{Alpha::Diagnostics &diagnostics}
 %lex-param{Alpha::LexerCtx &lexer_ctx}
 
 // Here I declare the trivial types that can be used in union.
@@ -51,11 +46,6 @@
         double const_real;
         const  Alpha::Function *const_function_symbol_ptr;
         Alpha::Expr *expr_ptr;
-        Alpha::ExprList *expr_list_ptr;
-        Alpha::ExprPair *expr_pair_ptr;
-        Alpha::DictList *dict_list_ptr;
-
-        Alpha::Location location;
         Alpha::BlockLocation block_location;
 }
 
@@ -217,7 +207,7 @@ loopCtrlStmt
 
 expr[result]
 : assignExpr
-| expr[left] PLUS  expr[right]
+| expr[left] PLUS  expr[right] { std::cout << "Hello" << std::endl; }
 | expr[left] MINUS expr[right]
 | expr[left] MUL   expr[right]
 | expr[left] DIV   expr[right]

@@ -2,9 +2,9 @@
 #define ALPHA_EXPR_TYPES_HPP
 
 #include <vector>
+#include "alpha_basics.hpp"
+#include "alpha_core_types.hpp"
 #include "alpha_numeric_types.hpp"
-#include "core/alpha_basics.hpp"
-#include "core/alpha_core_types.hpp"
 #include "parser/alpha_symbols.hpp"
 
 #define IOPCODES_WITH_LABEL \
@@ -111,7 +111,7 @@ struct ExprWSymbol : public Expr
 struct ArithmeticExpr : public ExprWSymbol
 {
     ALWAYS_INLINE ArithmeticExpr(const SourceLocation loc, const Symbol *const var_symbol)
-        : ExprWSymbol(Type::ARITHMETIC_EXPR, loc, var_symbol(var_symbol))
+        : ExprWSymbol(Type::ARITHMETIC_EXPR, loc, var_symbol)
     {
         // I am not certain, but I think arithmetic expressions are produced only with temp vars.
         DEBUG_SMART_ASSERT(var_symbol->name.starts_with('_')); // TODO remove after you tested.
@@ -214,6 +214,7 @@ struct NewTableExpr : public ExprWSymbol
         : ExprWSymbol(Type::NEW_TABLE, loc, var_symbol) {}
 };
 
+// TODO: can a table item be a const? or a table item is always a temp (so it always has symbol)
 struct TableItemExpr : public ExprWSymbol
 {
     const Expr *index;
@@ -253,7 +254,7 @@ struct Quad
     ALL_IOPCODES
     #undef  X
         [[unlikely]] default: UNREACHABLE(FMT::format(
-            "BUG: Unknown IOPCode. IOPCode's int value = `{}`", static_cast<int>(iopcode)));
+        "BUG: Unknown IOPCode. IOPCode's int value = `{}`", static_cast<int>(iopcode)));
     }
 }
 

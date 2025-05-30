@@ -7,8 +7,7 @@
 #include "core/alpha_diagnostics.hpp"            // for CTIssueTracker
 #include "core/alpha_location.hpp"         // for LocationTracker
 #include "parser/alpha_parser_context.hpp" // for ParseCtx
-#include "parser/alpha_semantic_builder.hpp"
-#include "parser/alpha_semantic_manager_.hpp"
+#include "parser/alpha_semantic_driver.hpp"
 #include "parser/alpha_symbol_table.hpp"     // for SymbolTable
 #include "scanner/alpha_scanner_context.hpp" // for LexerCtx
 
@@ -32,7 +31,7 @@ public:
 
         void run_alpha_parser();
         void show_symbol_table() const;
-        void show_compile_errors() const;
+        void show_compile_issues() const;
         void show_quads() const;
         void export_symbol_table() const;
         void export_compile_errors() const;
@@ -59,12 +58,11 @@ private:
         const std::filesystem::path source_filepath_;
         FlexBuffer flex_buffer_;
         Alpha::LocationTracker lt_;
-        Alpha::CTIssueTracker et_;
+        Alpha::Diagnostics diagnostics_;
         Alpha::SymbolTable st_;
         Alpha::LexerCtx lexer_ctx_;
         Alpha::ParseCtx parse_ctx_;
-        Alpha::SemanticManager sm_;
-        Alpha::SemanticBuilder sb_;
+        Alpha::SemanticDriver semantic_driver_;
         int parser_retval_ = 0;
         bool ok_flag_ = true;
 

@@ -19,7 +19,8 @@ public:
     struct Options
     {
         const bool fold_arithmetic;
-        const bool fold_bool;
+        const bool fold_relational;
+        const bool fold_logical;
     };
 
     SemanticDriver(
@@ -27,6 +28,11 @@ public:
         ParseCtx *parse_ctx,
         SymbolTable *symbol_table,
         Diagnostics *diagnostics);
+
+    [[nodiscard]] const std::vector<Quad> &retrieve_quads() const noexcept
+    {
+        return quad_handler_.quads();
+    }
 
 private:
     // Must be initialized first -- used by subsystems during their construction.
@@ -36,15 +42,15 @@ private:
     Diagnostics *const diagnostics_ = nullptr;
 
     // Internal layer 3 subsystems
-    ExprSnitch expr_validator_;
+    ExprSnitch expr_snitch_;
     ExprMaker expr_maker_;
     ExprFolder expr_folder_;
-    QuadHandler quad_handler;
+    QuadHandler quad_handler_;
 
     // Public  layer 2 subsystems
     BasicBuilder basic_builder_;
 
-    static BasicBuilder::Options extract_basic_builder_options(const Options &options);
+    static BasicBuilder::Options get_basic_builder_options(const Options &options);
 };
 
 inline SemanticDriver::SemanticDriver(
@@ -55,25 +61,26 @@ inline SemanticDriver::SemanticDriver(
     : parse_ctx_(Utils::require_ptr(parse_ctx)),
       symbol_table_(Utils::require_ptr(symbol_table)),
       diagnostics_(Utils::require_ptr(diagnostics)),
-      expr_validator_(Utils::require_ptr(diagnostics)),
+      expr_snitch_(Utils::require_ptr(diagnostics)),
       expr_maker_(parse_ctx),
-      expr_folder_(&expr_maker_, diagnostics),
-      basic_builder_(extract_basic_builder_options(options),
-                     &expr_validator_,
+      expr_folder_(&expr_maker_, &expr_snitch_),
+      basic_builder_(get_basic_builder_options(options),
+                     &expr_snitch_,
                      &expr_maker_,
                      &expr_folder_,
-                     &quad_handler) {}
+                     &quad_handler_) {}
 
 // Options &&options,
 // ExprSnitch *expr_validator,
 // ExprMaker *expr_maker,
 // ExprFolder *expr_folder);
 inline BasicBuilder::Options
-SemanticDriver::extract_basic_builder_options(const Options &options)
+SemanticDriver::get_basic_builder_options(const Options &options)
 {
     return {
         .fold_arithmetic = options.fold_arithmetic,
-        .fold_bool = options.fold_bool
+        .fold_relational = options.fold_relational,
+        .fold_logical = options.fold_logical,
     };
 }
 } // namespace Alpha

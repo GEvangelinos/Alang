@@ -92,7 +92,7 @@ public:
                 std::list<Note> &&note_list_);
 
     [[nodiscard]] const std::vector<std::unique_ptr<const CTIssue>> &
-    get_compile_time_errors() const noexcept { return issues_; }
+    get_compile_time_issues() const noexcept { return issues_; }
 
     [[nodiscard]] bool contain_issues() const noexcept { return !issues_.empty(); }
     [[nodiscard]] bool contain_fatal_errors() const noexcept { return !fatal_errors_.empty(); }

@@ -3,6 +3,7 @@
 
 #include "expr_folder.hpp"
 #include "expr_maker.hpp"
+#include "quad_handler.hpp"
 #include "semantic_utils.hpp"
 #include "core/alpha_core_types.hpp"
 
@@ -29,7 +30,7 @@ public:
         IOPCode iopc, const Expr *left, const Expr *right,
         SourceLocation left_loc, SourceLocation right_loc, SourceLocation result_loc);
     [[nodiscard]] const Expr *build_uminus(
-        const Expr *expr, SourceLocation term_loc, SourceLocation expr_loc);
+        const Expr *expr, SourceLocation term_loc, SourceLocation result_loc);
     [[nodiscard]] const Expr *build_relational(
         IOPCode iopc, const Expr *left, const Expr *right,
         SourceLocation left_loc, SourceLocation right_loc, SourceLocation result_loc);
@@ -79,8 +80,25 @@ BasicBuilder::build_arithmetic(
         SemUtils::is_const_arithmetic_expr(right))
         return expr_folder_->fold_arithmetic(iopc, left, right, result_loc);
 
-    const auto arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
+    const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
     quad_handler_->emit_next_quad(iopc, left, right, arithmetic_expr, result_loc);
+    return arithmetic_expr;
+}
+
+inline const Expr *
+BasicBuilder::build_uminus(
+    const Expr *const expr,
+    const SourceLocation term_loc,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!expr);
+    snitch_->report_if_not_arithmetic(IOPCode::UMINUS, expr, term_loc, OperandSide::UNARY);
+
+    if (options_.fold_arithmetic && SemUtils::is_const_arithmetic_expr(expr))
+        return expr_folder_->fold_uminus(expr, result_loc);
+
+    const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(term_loc);
+    quad_handler_->emit_next_quad(IOPCode::UMINUS, expr, nullptr, arithmetic_expr, term_loc);
     return arithmetic_expr;
 }
 
@@ -117,6 +135,32 @@ BasicBuilder::build_relational(
     return result_expr;
 }
 
-
+// inline const Expr *
+// BasicBuilder::build_logical_or(
+//     const Expr *const left,
+//     const Expr *const right,
+//     const SourceLocation left_loc,
+//     const SourceLocation right_loc,
+//     const SourceLocation result_loc)
+// {
+//     // Check your solution on GitHub (latest commit on branch feature/ir-gen) (23/05/2025)
+//     UNIMPLEMENTED();
+// }
+//
+// inline const Expr *
+// BasicBuilder::build_logical_and(
+//     const Expr *left, const Expr *right,
+//     SourceLocation left_loc, SourceLocation right_loc, SourceLocation result_loc)
+// {
+//     // Check your solution on GitHub (latest commit on branch feature/ir-gen) (23/05/2025)
+//     UNIMPLEMENTED();
+// }
+//
+// inline const Expr *
+// BasicBuilder::build_logical_not(const Expr *expr, SourceLocation result_loc)
+// {
+//     // Check your solution on GitHub (latest commit on branch feature/ir-gen) (23/05/2025)
+//     UNIMPLEMENTED();
+// }
 } // namespace Alpha
 #endif // EXPR_BUILDERS_HPP

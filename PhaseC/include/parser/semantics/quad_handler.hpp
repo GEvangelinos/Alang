@@ -35,7 +35,8 @@ public:
         const Expr *result,
         SourceLocation loc);
 
-    LabelID next_quad_label() const noexcept { return next_quad_label_; }
+    [[nodiscard]] LabelID next_quad_label() const noexcept { return next_quad_label_; }
+    [[nodiscard]] const std::vector<Quad> &quads() const noexcept { return quads_; }
 
 private:
     LabelID next_quad_label_ = k_first_label;

@@ -2,19 +2,14 @@
 #define DEBUG_TOOLS_HPP
 #include "smart_assert.h"
 
-#ifndef __FILENAME__
-#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-#endif /* __FILENAME__ */
-
 #define ATTACH_CONTEXT(message) \
         FMT::format("{}:{} -> {}(): {}", __FILENAME__, __LINE__, __func__, (message))
 
-#define UNIMPLEMENTED()                                                           \
+#define UNIMPLEMENTED(message_if_reached)                                                           \
         do                                                                        \
         {                                                                         \
-                throw std::logic_error(ATTACH_CONTEXT("Unimplemented function")); \
+                throw std::logic_error(ATTACH_CONTEXT("Control flow reached unimplemented code")); \
         } while (0)
-
 
 #if defined(__GNUC__) || defined(__clang__)
         #define ALWAYS_INLINE inline __attribute__((always_inline))
@@ -28,9 +23,9 @@
         #define DEBUG_NULLIFY(pointer) ((pointer) = nullptr)
         #define REQUIRE_PTR(ptr) Utils::require_ptr(ptr)
 
-        //  Active in debug mode: evaluates and runs full SMART_ASSERT logic
+//  Active in debug mode: evaluates and runs full SMART_ASSERT logic
         #define DEBUG_SMART_ASSERT(...) SMART_ASSERT(__VA_ARGS__)
-        //  Also active in debug mode: same as above, runs full logic
+//  Also active in debug mode: same as above, runs full logic
         #define DEBUG_SMART_ASSERT_EVAL(...) SMART_ASSERT(__VA_ARGS__)
 #else
         #define DEBUG_ALWAYS_INLINE ALWAYS_INLINE
@@ -43,12 +38,12 @@
         #define DEBUG_SMART_ASSERT_EVAL(...) ((void)(__VA_ARGS__))
 #endif
 
-#define REPORT_UNREACHABLE_VIOLATION(_message_if_reached)                              \
-        do                                                                             \
-        {                                                                              \
-                std::cerr << FMT::format(ATTACH_CONTEXT(FMT::format(                   \
-                        "Unreachable Violation: {}", _message_if_reached)))            \
-                << std::endl;                                                          \
+#define REPORT_UNREACHABLE_VIOLATION(_message_if_reached)                  \
+        do                                                                 \
+        {                                                                  \
+                std::cerr << ATTACH_CONTEXT(FMT::format(                   \
+                        "Unreachable Violation: {}", _message_if_reached)) \
+                << std::endl;                                              \
         } while (0)
 
 #if defined(__GNUC__) || defined(__clang__)

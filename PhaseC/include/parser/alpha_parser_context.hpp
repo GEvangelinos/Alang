@@ -15,6 +15,7 @@
 #include <stack>
 #include <vector>
 #include "_parser_common.hpp"
+#include "core/alpha_diagnostics.hpp"
 #include "core/alpha_konstants.hpp"
 #include "core/alpha_numeric_types.hpp"
 #include "parser/alpha_symbol_table.hpp"
@@ -30,8 +31,6 @@ class FunctionCtxHandler;
 struct FunctionBackpatchInfo;
 struct FunctionDataFrame;
 class NameGenerator;
-class QuadHandler;
-class ExprHandler;
 class ParseCtx;
 
 /**
@@ -316,36 +315,36 @@ private:
 };
 
 // class QuadHandler : private Immobile
-{
-public:
-        void emit_quad(IOPCode iopc, const Expr *arg1, const Expr *arg2, const Expr *result,
-                       SourceLocation loc);
-
-        void emit_quad_w_jump_step(IOPCode iopc, const Expr *arg1, const Expr *arg2, u32 jump_step,
-                                   SourceLocation loc);
-
-        void emit_quad_labelless(IOPCode iopc, const Expr *arg1, const Expr *arg2,
-                                 const Expr *result, SourceLocation loc);
-
-        void emit_quad_w_label(IOPCode iopc, const Expr *arg1, const Expr *arg2,
-                               const Expr *result, u32 label, SourceLocation loc);
-
-        void patch_quad(u32 target_quad_label, u32 destination_label);
-
-        void patch_list(const std::vector<u32> &patch_list, u32 destination_label);
-
-        [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
-        [[nodiscard]] u32 next_quad_label() const { return next_quad_label_; }
-
-private:
-        [[nodiscard]] static bool requires_label(IOPCode iopc) noexcept;
-
-        void emit_quad_impl(IOPCode iopc, const Expr *arg1, const Expr *arg2, const Expr *result,
-                            u32 label, SourceLocation loc);
-
-        std::vector<Quad> quads_;
-        u32 next_quad_label_ = 1; // First quad_label is always 1, (0 for backpatching)
-};
+// {
+// public:
+//         void emit_quad(IOPCode iopc, const Expr *arg1, const Expr *arg2, const Expr *result,
+//                        SourceLocation loc);
+//
+//         void emit_quad_w_jump_step(IOPCode iopc, const Expr *arg1, const Expr *arg2, u32 jump_step,
+//                                    SourceLocation loc);
+//
+//         void emit_quad_labelless(IOPCode iopc, const Expr *arg1, const Expr *arg2,
+//                                  const Expr *result, SourceLocation loc);
+//
+//         void emit_quad_w_label(IOPCode iopc, const Expr *arg1, const Expr *arg2,
+//                                const Expr *result, u32 label, SourceLocation loc);
+//
+//         void patch_quad(u32 target_quad_label, u32 destination_label);
+//
+//         void patch_list(const std::vector<u32> &patch_list, u32 destination_label);
+//
+//         [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
+//         [[nodiscard]] u32 next_quad_label() const { return next_quad_label_; }
+//
+// private:
+//         [[nodiscard]] static bool requires_label(IOPCode iopc) noexcept;
+//
+//         void emit_quad_impl(IOPCode iopc, const Expr *arg1, const Expr *arg2, const Expr *result,
+//                             u32 label, SourceLocation loc);
+//
+//         std::vector<Quad> quads_;
+//         u32 next_quad_label_ = 1; // First quad_label is always 1, (0 for backpatching)
+// };
 
 class ExprHandler : private Immobile
 {
@@ -368,11 +367,9 @@ public:
     SpaceHandler space_handler;
     ScopeHandler scope_handler;
     FunctionCtxHandler function_ctx_handler;
-    QuadHandler quad_handler;
-    ExprHandler expr_handler;
     NameGenerator name_generator;
 
-    ParseCtx(SymbolTable &st, CTIssueTracker &et);
+    ParseCtx(SymbolTable &st, Diagnostics &Diagnostics);
 
     ~ParseCtx() = default;
 
@@ -380,7 +377,7 @@ public:
 
 private:
     SymbolTable &st_;
-    [[maybe_unused]] CTIssueTracker &et_; // TODO: remove if unused
+    Diagnostics &diagnostics_;
 };
 
 inline SpaceHandler::SpaceHandler()
@@ -402,7 +399,7 @@ inline void SpaceHandler::exit_space()
 
     DEBUG_SMART_ASSERT(                                         //
         variable_offset_stack_.size() > spaces_for_closure, //
-        is_odd(variable_offset_stack_.size())               //
+        Utils::is_odd(variable_offset_stack_.size())               //
     );
 
         #pragma unroll
@@ -417,7 +414,7 @@ inline Variable::Space SpaceHandler::space() const noexcept
 
     if (frame_index == k_initial_space)
         return Variable::Space::PROGRAM_VAR;
-    if (is_odd(frame_index))
+    if (Utils::is_odd(frame_index))
         return Variable::Space::FORMAL_ARGUMENT;
     return Variable::Space::FUNCTION_LOCAL;
 }
@@ -615,93 +612,48 @@ inline std::string NameGenerator::new_anonymous()
     return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
 }
 
-inline void QuadHandler::emit_quad(const IOPCode iopc, const Expr *arg1, const Expr *arg2,
-                                   const Expr *result, const SourceLocation loc)
-{
-    // TODO. IF only used by non required-IOPCs, emit requires_label check and just put
-    // k_no_label.
-    emit_quad_impl(iopc, arg1, arg2, result,
-                   requires_label(iopc) ? next_quad_label_ : k_no_label, loc);
-}
-
-inline void QuadHandler::emit_quad_w_label(const IOPCode iopc, const Expr *arg1, const Expr *arg2,
-                                           const Expr *result, u32 label, const SourceLocation loc)
-{
-    emit_quad_impl(iopc, arg1, arg2, result, label, loc);
-}
-
-inline void QuadHandler::emit_quad_w_jump_step(const IOPCode iopc, const Expr *arg1,
-                                               const Expr *arg2, const u32 jump_step,
-                                               const SourceLocation loc)
-{
-    DEBUG_SMART_ASSERT(requires_label(iopc)); // This emit_quad overload is used for JUMP IOPCs
-    emit_quad_impl(iopc, arg1, arg2, nullptr, next_quad_label_ + jump_step, loc);
-}
-
-inline void QuadHandler::emit_quad_labelless(const IOPCode iopc, const Expr *arg1, const Expr *arg2,
-                                             const Expr *result, SourceLocation loc)
-{
-    emit_quad_impl(iopc, arg1, arg2, result, k_no_label, loc);
-}
-
-inline void QuadHandler::patch_quad(u32 target_quad_label, u32 destination_label)
-{
-    const u32 quad_index =
-        target_quad_label - 1; // First quad at index 0, has quad with label 1.
-
-    DEBUG_SMART_ASSERT(target_quad_label > 0,                  //
-                       quad_index < quads_.size(),             //
-                       quads_[quad_index].label == k_no_label, //
-                       destination_label != k_no_label         //
-    );
-    quads_[quad_index].label = destination_label;
-}
-
-inline void QuadHandler::patch_list(const std::vector<u32> &patch_list, u32 destination_label)
-{
-    DEBUG_SMART_ASSERT(destination_label != k_no_label);
-    for (u32 target_quad_label : patch_list)
-        patch_quad(target_quad_label, destination_label);
-}
-
-inline void QuadHandler::emit_quad_impl(IOPCode iopc, const Expr *arg1, const Expr *arg2,
-                                        const Expr *result, u32 label, SourceLocation loc)
-{
-    DEBUG_SMART_ASSERT(quads_.size() + 1 == next_quad_label_);
-    // TODO. IF only used by non required-IOPCs, emit requires_label check and just put 0.
-    quads_.emplace_back(Quad{
-        .iopcode = iopc,
-        .arg1 = arg1,
-        .arg2 = arg2,
-        .result = result,
-        .label = label,
-        .location = loc,
-    });
-
-    ++next_quad_label_;
-}
-
-inline Expr *ExprHandler::emit_quad_if_table_item(Expr *expr)
-{
-    DEBUG_SMART_ASSERT(!!expr);
-    if (expr->type != Expr::Type::TABLE_ITEM)
-        return expr;
-
-    Expr *expr_temp_var = make_expr_variable(parse_ctx_.new_temp(), k_no_location);
-
-    parse_ctx_.quad_handler.emit_quad(
-        IOPCode::TABLEGETELEM, expr, expr->index, expr_temp_var,
-        k_no_location //
-
-        //  expr_location_founder(expr) // TODO: REMOVE (if you dont want loc here)
-    );
-
-    return expr_temp_var;
-}
-
-inline ParseCtx::ParseCtx(SymbolTable &st, CTIssueTracker &et)
-    : function_ctx_handler(*this), expr_handler(*this), st_(st), et_(et)
-{}
+// inline void QuadHandler::patch_quad(u32 target_quad_label, u32 destination_label)
+// {
+//     const u32 quad_index =
+//         target_quad_label - 1; // First quad at index 0, has quad with label 1.
+//
+//     DEBUG_SMART_ASSERT(target_quad_label > 0,                  //
+//                        quad_index < quads_.size(),             //
+//                        quads_[quad_index].label == k_no_label, //
+//                        destination_label != k_no_label         //
+//     );
+//     quads_[quad_index].label = destination_label;
+// }
+//
+// inline void QuadHandler::patch_list(const std::vector<u32> &patch_list, u32 destination_label)
+// {
+//     DEBUG_SMART_ASSERT(destination_label != k_no_label);
+//     for (u32 target_quad_label : patch_list)
+//         patch_quad(target_quad_label, destination_label);
+// }
+//
+//
+// inline Expr *ExprHandler::emit_quad_if_table_item(Expr *expr)
+// {
+//     DEBUG_SMART_ASSERT(!!expr);
+//     if (expr->type != Expr::Type::TABLE_ITEM)
+//         return expr;
+//
+//     Expr *expr_temp_var = make_expr_variable(parse_ctx_.new_temp(), k_no_location);
+//
+//     parse_ctx_.quad_handler.emit_quad(
+//         IOPCode::TABLEGETELEM, expr, expr->index, expr_temp_var,
+//         k_no_location //
+//
+//         //  expr_location_founder(expr) // TODO: REMOVE (if you dont want loc here)
+//     );
+//
+//     return expr_temp_var;
+// }
+//
+ inline ParseCtx::ParseCtx(SymbolTable &st, Diagnostics &diagnostics)
+     : function_ctx_handler(*this),  st_(st), diagnostics_(diagnostics)
+ {}
 
 inline const Variable *ParseCtx::new_temp()
 {
