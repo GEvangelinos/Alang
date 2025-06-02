@@ -17,9 +17,12 @@ public:
         IOPCode iopc, const Expr *left, const Expr *right, SourceLocation result_loc);
     [[nodiscard]] const Expr *fold_uminus(const Expr *expr, SourceLocation result_loc);
     [[nodiscard]] const Expr *fold_relational_equality(
-        IOPCode iopc, const Expr *left, const Expr *right, SourceLocation result_loc);
+        IOPCode iopc, const Expr *left, const Expr *right);
     [[nodiscard]] const Expr *fold_relational_arithmetic(
-        IOPCode iopc, const Expr *left, const Expr *right, SourceLocation result_loc);
+        IOPCode iopc, const Expr *left, const Expr *right);
+    [[nodiscard]] const Expr *fold_logical_or(const Expr *left, const Expr *right);
+    [[nodiscard]] const Expr *fold_logical_and(const Expr *left, const Expr *right);
+    [[nodiscard]] const Expr *fold_logical_not(const Expr *expr);
 
 private:
     ExprMaker *const expr_maker_;
@@ -86,20 +89,20 @@ inline const Expr *
 ExprFolder::fold_relational_equality(
     const IOPCode iopc,
     const Expr *const left,
-    const Expr *const right,
-    const SourceLocation result_loc)
+    const Expr *const right)
+
 {
     DEBUG_SMART_ASSERT(!!left, !!right,
                        SemUtils::is_rvalue_expr(left),
                        SemUtils::is_rvalue_expr(right));
 
-    const bool left_bool = SemUtils::convert_rvalue_expr_to_bool(left);
-    const bool right_bool = SemUtils::convert_rvalue_expr_to_bool(right);
+    const bool left_value = SemUtils::as_bool(left);
+    const bool right_value = SemUtils::as_bool(right);
 
     if (iopc == IOPCode::IF_EQ)
-        return expr_maker_->make_const_bool_expr(left_bool == right_bool, result_loc);
+        return left_value == right_value ? expr_maker_->premade_true : expr_maker_->premade_false;
     if (iopc == IOPCode::IF_NOTEQ)
-        return expr_maker_->make_const_bool_expr(left_bool != right_bool, result_loc);
+        return left_value != right_value ? expr_maker_->premade_true : expr_maker_->premade_false;
     throw std::logic_error(ATTACH_CONTEXT("Needed equality IOPCode"));
 }
 
@@ -107,24 +110,23 @@ inline const Expr *
 ExprFolder::fold_relational_arithmetic(
     const IOPCode iopc,
     const Expr *const left,
-    const Expr *const right,
-    const SourceLocation result_loc)
+    const Expr *const right)
 {
     DEBUG_SMART_ASSERT(!!left, !!right,
                        SemUtils::is_const_arithmetic_expr(left),
                        SemUtils::is_const_arithmetic_expr(right));
-    const auto fold_rel_op = [this, iopc, result_loc](const auto l,
-                                                      const auto r) -> const Expr *
+    const auto fold_rel_op = [this, iopc](const auto l, const auto r) -> const Expr *
     {
         switch (iopc)
         {
-        case IOPCode::IF_GREATER: return expr_maker_->make_const_bool_expr(
-                l > r, result_loc);
-        case IOPCode::IF_GREATEREQ: return expr_maker_->make_const_bool_expr(
-                l >= r, result_loc);
-        case IOPCode::IF_LESS: return expr_maker_->make_const_bool_expr(l < r, result_loc);
-        case IOPCode::IF_LESSEQ: return expr_maker_->make_const_bool_expr(
-                l <= r, result_loc);
+        case IOPCode::IF_GREATER:
+            return l > r ? expr_maker_->premade_true : expr_maker_->premade_false;
+        case IOPCode::IF_GREATEREQ:
+            return l >= r ? expr_maker_->premade_true : expr_maker_->premade_false;
+        case IOPCode::IF_LESS:
+            return l < r ? expr_maker_->premade_true : expr_maker_->premade_false;
+        case IOPCode::IF_LESSEQ:
+            return l <= r ? expr_maker_->premade_true : expr_maker_->premade_false;
             [[unlikely]] default:
             throw std::logic_error(ATTACH_CONTEXT("Needed relational arithmetic IOPC"));
         }
@@ -135,6 +137,36 @@ ExprFolder::fold_relational_arithmetic(
                          static_cast<const ConstIntExpr *>(right)->value)
            : fold_rel_op(extract_alpha_float(left),
                          extract_alpha_float(right));
+}
+
+inline const Expr *ExprFolder::fold_logical_or(const Expr *const left, const Expr *const right)
+{
+    DEBUG_SMART_ASSERT(!!left, !!right,
+                       SemUtils::is_const_bool_expr(left),
+                       SemUtils::is_const_bool_expr(right));
+    return static_cast<const ConstBoolExpr *>(left)->value ||
+           static_cast<const ConstBoolExpr *>(right)->value
+           ? expr_maker_->premade_true
+           : expr_maker_->premade_false;
+}
+
+inline const Expr *ExprFolder::fold_logical_and(const Expr *const left, const Expr *const right)
+{
+    DEBUG_SMART_ASSERT(!!left, !!right,
+                       SemUtils::is_const_bool_expr(left),
+                       SemUtils::is_const_bool_expr(right));
+    return static_cast<const ConstBoolExpr *>(left)->value &&
+           static_cast<const ConstBoolExpr *>(right)->value
+           ? expr_maker_->premade_true
+           : expr_maker_->premade_false;
+}
+
+inline const Expr *ExprFolder::fold_logical_not(const Expr *const expr)
+{
+    DEBUG_SMART_ASSERT(!!expr, SemUtils::is_const_bool_expr(expr));
+    return static_cast<const ConstBoolExpr *>(expr)->value
+           ? expr_maker_->premade_true
+           : expr_maker_->premade_false;
 }
 
 inline AlphaFloat
