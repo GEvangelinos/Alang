@@ -35,6 +35,9 @@ public:
         const Expr *result,
         SourceLocation loc);
 
+    void patch_quad(LabelID target_quad_label, LabelID destination_label);
+    void patch_list(const std::vector<LabelID> &patch_list, LabelID destination_label);
+
     [[nodiscard]] LabelID next_quad_label() const noexcept { return next_quad_label_; }
     [[nodiscard]] const std::vector<Quad> &quads() const noexcept { return quads_; }
 
@@ -43,11 +46,12 @@ private:
     std::vector<Quad> quads_;
 };
 
-inline void QuadHandler::emit_quad(
+inline void
+QuadHandler::emit_quad(
     const IOPCode iopc,
-    const Expr *arg1,
-    const Expr *arg2,
-    const Expr *result,
+    const Expr *const arg1,
+    const Expr *const arg2,
+    const Expr *const result,
     const LabelID label,
     const SourceLocation loc)
 {
@@ -62,7 +66,8 @@ inline void QuadHandler::emit_quad(
     });
 }
 
-inline void QuadHandler::emit_next_quad(
+inline void
+QuadHandler::emit_next_quad(
     const IOPCode iopc,
     const Expr *const arg1,
     const Expr *const arg2,
@@ -72,7 +77,8 @@ inline void QuadHandler::emit_next_quad(
     emit_quad(iopc, arg1, arg2, result, next_quad_label_, loc);
 }
 
-inline void QuadHandler::emit_labelless_quad(
+inline void
+QuadHandler::emit_labelless_quad(
     const IOPCode iopc,
     const Expr *const arg1,
     const Expr *const arg2,
@@ -80,6 +86,27 @@ inline void QuadHandler::emit_labelless_quad(
     const SourceLocation loc)
 {
     emit_quad(iopc, arg1, arg2, result, k_no_label, loc);
+}
+
+inline void
+QuadHandler::patch_quad(const LabelID target_quad_label, const LabelID destination_label)
+{
+    // First quad at index 0, has quad with label 1.
+    const u32 quad_index = target_quad_label - 1;
+    DEBUG_SMART_ASSERT(target_quad_label > 0, //
+                       quad_index < quads_.size(),             //
+                       quads_[quad_index].label == k_no_label, //
+                       destination_label != k_no_label         //
+    );
+    quads_[quad_index].label = destination_label;
+}
+
+inline void
+QuadHandler::patch_list(const std::vector<LabelID> &patch_list, const LabelID destination_label)
+{
+    DEBUG_SMART_ASSERT(destination_label != k_no_label);
+    for (const LabelID target_quad_label : patch_list)
+        patch_quad(target_quad_label, destination_label);
 }
 } // namespace Alpha
 #endif // QUAD_HANDLER_HPP

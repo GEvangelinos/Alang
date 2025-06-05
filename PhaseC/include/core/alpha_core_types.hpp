@@ -253,8 +253,8 @@ struct Quad
     case IOPCode::iopcode: return Utils::str_to_lower(#iopcode);
     ALL_IOPCODES
     #undef  X
-        [[unlikely]] default: UNREACHABLE(FMT::format(
-        "BUG: Unknown IOPCode. IOPCode's int value = `{}`", static_cast<int>(iopcode)));
+    default: UNREACHABLE(FMT::format(
+            "BUG: Unknown IOPCode. IOPCode's int value = `{}`", static_cast<int>(iopcode)));
     }
 }
 
@@ -276,7 +276,7 @@ inline const char *to_string(const Expr::Type type)
     case ET::PROGRAM_FUNCTION: return "program-function";
     case ET::TABLE_ITEM: return "table-item";
     case ET::VARIABLE: return "variable";
-        [[unlikely]] default: UNREACHABLE("Unknown Expr::Type");
+    default: UNREACHABLE("Unknown Expr::Type");
     }
 }
 
@@ -285,14 +285,10 @@ inline const char *to_string(const OperandSide pos)
     switch (pos)
     {
     case OperandSide::LEFT: return "left";
-    case OperandSide::RIGHT:
-        return "right";
-        [[unlikely]]
+    case OperandSide::RIGHT: return "right";
     case OperandSide::UNARY:
         throw std::logic_error(ATTACH_CONTEXT("UNARY has no string representation here"));
-        [[unlikely]]
-    default:
-        throw std::logic_error(ATTACH_CONTEXT("OperandSide unknown."));
+    default: throw std::logic_error(ATTACH_CONTEXT("OperandSide unknown."));
     }
 }
 
@@ -305,7 +301,7 @@ inline Expr::Type to_expr_type(const Symbol::Type symbol_type)
     case Symbol::Type::LOCAL_VARIABLE: return Expr::Type::VARIABLE;
     case Symbol::Type::LIBRARY_FUNCTION: return Expr::Type::LIBRARY_FUNCTION;
     case Symbol::Type::PROGRAM_FUNCTION: return Expr::Type::PROGRAM_FUNCTION;
-        [[unlikely]] default: UNREACHABLE("Unknown Symbol::Type");
+    default: UNREACHABLE("Unknown Symbol::Type");
     }
 }
 } // namespace Alpha

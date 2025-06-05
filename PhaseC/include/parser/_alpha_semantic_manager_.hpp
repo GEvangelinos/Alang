@@ -38,9 +38,7 @@ enum class Keyword
         return "break";
     case Keyword::CONTINUE:
         return "continue";
-        [[unlikely]]
-    default:
-        SMART_ASSERT(false);
+    default: UNREACHABLE("Unknown Loop::Keyword");
     }
 }
 }; // namespace Loop

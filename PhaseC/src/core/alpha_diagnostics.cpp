@@ -92,7 +92,7 @@ std::string_view Issue::type_to_string() const noexcept
     case Type::ERROR: return "issue";
     case Type::WARNING: return "warning";
     case Type::NOTE: return "note";
-        [[unlikely]] default: UNREACHABLE("Unknown Issue Type!");
+    default: UNREACHABLE("Unknown Issue Type!");
     }
 }
 
@@ -103,7 +103,7 @@ std::string_view Issue::pretty_color() const noexcept
     case Type::ERROR: return COLOR_ASCII_BOLD_RED;
     case Type::WARNING: return COLOR_ASCII_BOLD_MAGENTA;
     case Type::NOTE: return COLOR_ASCII_BOLD_CYAN;
-        [[unlikely]] default: UNREACHABLE("Unknown Issue Type!");
+    default: UNREACHABLE("Unknown Issue Type!");
     }
 }
 
@@ -192,7 +192,8 @@ void Diagnostics::report(
     const SourceLocation issue_loc,
     std::list<Note> &&note_list_)
 {
-    store(std::unique_ptr<const CTIssue>(new const CTIssue(type, issue_desc, issue_loc, std::move(note_list_))));
+    store(std::unique_ptr<const CTIssue>(
+        new const CTIssue(type, issue_desc, issue_loc, std::move(note_list_))));
 }
 
 void Diagnostics::store(std::unique_ptr<const CTIssue> ct_issue)
@@ -208,10 +209,10 @@ void Diagnostics::store(std::unique_ptr<const CTIssue> ct_issue)
     case Issue::Type::WARNING:
         warnings_.push_back(raw_ptr);
         break;
-        [[unlikely]] case Issue::Type::NOTE:
+    case Issue::Type::NOTE:
         throw std::logic_error(ATTACH_CONTEXT(
             "Issue::Type::NOTE is used to add auxiliary info. Should not be used as main Issue"));
-        [[unlikely]] default: UNREACHABLE("Unknown Issue::Type.");
+    default: UNREACHABLE("Unknown Issue::Type.");
     }
     issues_.push_back(std::move(ct_issue)); // Pass ownership to `issues_` vector.
 }

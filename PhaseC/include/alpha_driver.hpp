@@ -57,12 +57,12 @@ private:
 
         const std::filesystem::path source_filepath_;
         FlexBuffer flex_buffer_;
-        Alpha::LocationTracker lt_;
-        Alpha::Diagnostics diagnostics_;
-        Alpha::SymbolTable st_;
-        Alpha::LexerCtx lexer_ctx_;
-        Alpha::ParseCtx parse_ctx_;
-        Alpha::SemanticDriver semantic_driver_;
+        LocationTracker lt_;
+        Diagnostics diagnostics_;
+        SymbolTable st_;
+        LexerCtx lexer_ctx_;
+        ParseCtx parse_ctx_;
+        SemanticDriver semantic_driver_;
         int parser_retval_ = 0;
         bool ok_flag_ = true;
 

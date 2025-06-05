@@ -15,6 +15,11 @@ namespace Alpha
 class ExprMaker : private Immobile
 {
 public:
+    // Frequently used Const expressions.
+    const ConstBoolExpr *const premade_true;
+    const ConstBoolExpr *const premade_false;
+    const ConstIntExpr *const premade_int_1;
+
     explicit ExprMaker(ParseCtx *parse_ctx);
     ~ExprMaker() noexcept;
 
@@ -46,7 +51,10 @@ private:
 
 inline
 ExprMaker::ExprMaker(ParseCtx *const parse_ctx)
-    : parse_ctx_(Utils::require_ptr(parse_ctx)) {}
+    : premade_true(make_const_bool_expr(true, k_no_location)),
+      premade_false(make_const_bool_expr(false, k_no_location)),
+      premade_int_1(make_const_int_expr(1, k_no_location)),
+      parse_ctx_(Utils::require_ptr(parse_ctx)) {}
 
 inline ExprMaker::~ExprMaker() noexcept
 {
@@ -70,7 +78,7 @@ inline ExprMaker::~ExprMaker() noexcept
         case Expr::Type::TABLE_ITEM: delete static_cast<const TableItemExpr *>(e);       break;
         case Expr::Type::VARIABLE: delete static_cast<const VariableExpr *>(e);          break;
         // clang-format on
-            [[unlikely]] default: UNREACHABLE(FMT::format(
+        default: UNREACHABLE(FMT::format(
                 "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(e->type)));
         }
     }

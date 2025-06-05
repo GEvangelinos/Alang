@@ -27,11 +27,28 @@ inline bool is_func_expr(const Expr *const e)
     return e->type == Expr::Type::LIBRARY_FUNCTION || e->type == Expr::Type::PROGRAM_FUNCTION;
 }
 
+inline bool is_const_bool_expr(const Expr *const e)
+{
+    DEBUG_SMART_ASSERT(!!e);
+    return e->type == Expr::Type::CONST_BOOL;
+}
+
+inline bool is_const_true_expr(const Expr *const e)
+{
+    DEBUG_SMART_ASSERT(!!e);
+    return is_const_bool_expr(e) && static_cast<const ConstBoolExpr *>(e)->value == true;
+}
+
+inline bool is_const_false_expr(const Expr *const e)
+{
+    DEBUG_SMART_ASSERT(!!e);
+    return is_const_bool_expr(e) && static_cast<const ConstBoolExpr *>(e)->value == false;
+}
+
 inline bool is_const_arithmetic_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
-    return e->type == Expr::Type::CONST_INT ||
-        e->type == Expr::Type::CONST_FLOAT;
+    return e->type == Expr::Type::CONST_INT || e->type == Expr::Type::CONST_FLOAT;
 }
 
 inline bool is_const_expr(const Expr *const e)
@@ -124,12 +141,12 @@ inline bool iopcode_requires_label(const IOPCode iopc) noexcept
     #define X(iopcode) case Alpha::IOPCode::iopcode: return false;
     IOPCODES_WITHOUT_LABEL
     #undef  X
-        [[unlikely]] default: UNREACHABLE(
+    default: UNREACHABLE(
             FMT::format("Unknown IOPCode. IOPCode's int value = {}.", static_cast<int>(iopc)));
     }
 }
 
-inline bool convert_rvalue_expr_to_bool(const Expr *const e)
+inline bool as_bool(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e, is_rvalue_expr(e));
     switch (e->type)

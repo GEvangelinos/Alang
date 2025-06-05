@@ -60,8 +60,7 @@ inline const Expr *ExprFolder::fold_arithmetic(
                 std::is_same_v<decltype(r), AlphaInt>)
                 return expr_maker_->make_const_int_expr(l % r, result_loc);
             return expr_maker_->make_const_float_expr(std::fmod(l, r), result_loc);
-            [[unlikely]] default: throw std::logic_error(
-                ATTACH_CONTEXT("Needed arithmetic IOPC"));
+        default: throw std::logic_error(ATTACH_CONTEXT("Needed arithmetic IOPC"));
         }
     };
 
@@ -81,7 +80,7 @@ ExprFolder::fold_uminus(const Expr *const expr, const SourceLocation result_loc)
             -static_cast<const ConstIntExpr *>(expr)->value, result_loc);
     case Expr::Type::CONST_FLOAT: return expr_maker_->make_const_float_expr(
             -static_cast<const ConstFloatExpr *>(expr)->value, result_loc);
-        [[unlikely]] default: throw std::logic_error(ATTACH_CONTEXT("Needed const numeric expr."));
+    default: throw std::logic_error(ATTACH_CONTEXT("Needed const numeric expr."));
     }
 }
 
@@ -127,7 +126,7 @@ ExprFolder::fold_relational_arithmetic(
             return l < r ? expr_maker_->premade_true : expr_maker_->premade_false;
         case IOPCode::IF_LESSEQ:
             return l <= r ? expr_maker_->premade_true : expr_maker_->premade_false;
-            [[unlikely]] default:
+        default:
             throw std::logic_error(ATTACH_CONTEXT("Needed relational arithmetic IOPC"));
         }
     };
@@ -141,32 +140,43 @@ ExprFolder::fold_relational_arithmetic(
 
 inline const Expr *ExprFolder::fold_logical_or(const Expr *const left, const Expr *const right)
 {
-    DEBUG_SMART_ASSERT(!!left, !!right,
-                       SemUtils::is_const_bool_expr(left),
-                       SemUtils::is_const_bool_expr(right));
-    return static_cast<const ConstBoolExpr *>(left)->value ||
-           static_cast<const ConstBoolExpr *>(right)->value
-           ? expr_maker_->premade_true
-           : expr_maker_->premade_false;
+    DEBUG_SMART_ASSERT(!!left, !!right);
+    if (SemUtils::is_const_true_expr(left) || SemUtils::is_const_true_expr(right))
+        return expr_maker_->premade_true;
+    if (SemUtils::is_const_false_expr(left) && SemUtils::is_const_false_expr(right))
+        return expr_maker_->premade_false;
+    if (SemUtils::is_const_false_expr(left)) // false OR var = var
+        return right;
+    if (SemUtils::is_const_false_expr(right)) // var OR false = var
+        return left;
+    throw std::logic_error(ATTACH_CONTEXT(
+        "This function should not be used, if at least one operand is not ConstBoolExpr"));
 }
 
 inline const Expr *ExprFolder::fold_logical_and(const Expr *const left, const Expr *const right)
 {
-    DEBUG_SMART_ASSERT(!!left, !!right,
-                       SemUtils::is_const_bool_expr(left),
-                       SemUtils::is_const_bool_expr(right));
-    return static_cast<const ConstBoolExpr *>(left)->value &&
-           static_cast<const ConstBoolExpr *>(right)->value
-           ? expr_maker_->premade_true
-           : expr_maker_->premade_false;
+    DEBUG_SMART_ASSERT(!!left, !!right);
+    if (SemUtils::is_const_false_expr(left) || SemUtils::is_const_false_expr(right))
+        return expr_maker_->premade_false;
+    if (SemUtils::is_const_true_expr(left) && SemUtils::is_const_true_expr(right))
+        return expr_maker_->premade_true;
+    if (SemUtils::is_const_true_expr(left)) // true AND var = var
+        return right;
+    if (SemUtils::is_const_true_expr(right)) // var AND true = var
+        return left;
+    throw std::logic_error(ATTACH_CONTEXT(
+        "This function should not be used, if at least one operand is not ConstBoolExpr"));
 }
 
 inline const Expr *ExprFolder::fold_logical_not(const Expr *const expr)
 {
-    DEBUG_SMART_ASSERT(!!expr, SemUtils::is_const_bool_expr(expr));
-    return static_cast<const ConstBoolExpr *>(expr)->value
-           ? expr_maker_->premade_true
-           : expr_maker_->premade_false;
+    DEBUG_SMART_ASSERT(!!expr);
+    if (SemUtils::is_const_true_expr(expr))
+        return expr_maker_->premade_false;
+    if (SemUtils::is_const_false_expr(expr))
+        return expr_maker_->premade_true;
+    throw std::logic_error(ATTACH_CONTEXT(
+        "This function should not be used, if operand is not ConstBoolExpr"));
 }
 
 inline AlphaFloat

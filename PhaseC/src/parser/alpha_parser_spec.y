@@ -1,38 +1,41 @@
 %code top
 {
-         // IWYU pragma: no_include <features.h>
-         // IWYU pragma: no_include <stdio.h>
-         // IWYU pragma: no_include <stdlib.h>
-         // IWYU pragma: no_include <string.h>
-        #include <string>                             // for basic_string, string
-        #include "parser/alpha_trace_logger.hpp"            // for display_trace
-        #include "parser/alpha_parser_context.hpp"    // for ParseCtx
-        #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
-        #include "alpha_parser_prologue_code.hpp" // THIS MUST STAY in parser's.cpp not parser's .hpp
+   // IWYU pragma: no_include <features.h>
+   // IWYU pragma: no_include <stdio.h>
+   // IWYU pragma: no_include <stdlib.h>
+   // IWYU pragma: no_include <string.h>
+    #include <string>                             // for basic_string, string
+    #include "parser/alpha_trace_logger.hpp"      // for display_trace
+    #include "parser/alpha_parser_context.hpp"    // for ParseCtx
+    #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
+    #include "alpha_parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
+    using AIOP = Alpha::IOPCode;
 }
 
 %code requires
 {
-        #include "core/alpha_diagnostics.hpp"               // for ErrorTracker
-        #include "core/alpha_location.hpp"            // for Location, LocationTracker
-        #include "parser/alpha_parser_context.hpp"    // for ParseCtx
-        #include "parser/alpha_symbol_table.hpp"      // for Symbol, SymbolTable
-        #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
+    #include "core/alpha_diagnostics.hpp"         // for ErrorTracker
+    #include "core/alpha_location.hpp"            // for Location, LocationTracker
+    #include "parser/alpha_parser_context.hpp"    // for ParseCtx
+    #include "parser/alpha_symbol_table.hpp"      // for Symbol, SymbolTable
+    #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
+    #include "parser/alpha_semantic_driver.hpp"
 }
 
 %define api.prefix {alpha_yy}
 %define parse.lac full
-%define parse.error verbose    /* Enable verbose error messages */
+%define parse.error verbose /* Enables verbose error messages */
 %define api.location.type {Alpha::SourceLocation}
 %locations
 
-%parse-param{Alpha::LocationTracker &location_tracker}
-%parse-param{Alpha::Diagnostics &diagnostics}
-%parse-param{Alpha::LexerCtx &lexer_ctx}
+%parse-param {Alpha::LocationTracker &location_tracker}
+%parse-param {Alpha::Diagnostics &diagnostics}
+%parse-param {Alpha::LexerCtx &lexer_ctx}
+%parse-param {Alpha::SemanticDriver &sd}
 
-%lex-param{Alpha::LocationTracker &location_tracker}
-%lex-param{Alpha::Diagnostics &diagnostics}
-%lex-param{Alpha::LexerCtx &lexer_ctx}
+%lex-param {Alpha::LocationTracker &location_tracker}
+%lex-param {Alpha::Diagnostics &diagnostics}
+%lex-param {Alpha::LexerCtx &lexer_ctx}
 
 // Here I declare the trivial types that can be used in union.
 // More complex types are stores in ParseCache of ParseCtx.
@@ -40,38 +43,28 @@
 // semantic driver is written in C++. Bison's C++ driver is more
 // complex and appears to be problematic (erroneous).
 %union{
-        char *cstring;
-        bool const_bool;
-        long const_int;
-        double const_real;
-        const  Alpha::Function *const_function_symbol_ptr;
-        Alpha::Expr *expr_ptr;
-        Alpha::BlockLocation block_location;
+    char *cstring;
+    bool const_bool;
+    Alpha::AlphaInt const_int;
+    Alpha::AlphaFloat const_float;
+    const  Alpha::Function *const_function_symbol_ptr;
+    const Alpha::Expr *const_expr_ptr;
+    Alpha::BlockLocation block_location;
 }
 
-/*
- * You can combine a typed %token with a printable name:
- *   %token <field> NAME "display name"
- * Bison will use the quoted string in error messages instead of NAME.
- */
-%token <cstring>        STRING "`string-literal`"
-%token <cstring>        ID             "`identifier`"
-%token <const_int>      INT      "`integer-constant`"
-%token <const_real>     REAL     "`real-constant`"
-
+%type  <const_expr_ptr> const
+%type  <const_expr_ptr> primary
+%type  <const_expr_ptr> term
+%type  <const_expr_ptr> expr
 /********************************************************
 %type  <expr_ptr> lvalue
 %type  <expr_ptr> tableItem
 %type  <expr_ptr> member
-%type  <expr_ptr> primary
 %type  <expr_ptr> assignExpr
 %type  <expr_ptr> call
-%type  <expr_ptr> term
 %type  <expr_ptr> objectDef
 %type  <expr_ptr> tableList
 %type  <expr_ptr> tableDict
-%type  <expr_ptr> const
-%type  <expr_ptr> expr
 
 %type  <expr_list_ptr> exprList
 %type  <expr_list_ptr> elist
@@ -100,6 +93,11 @@
  *     syntax error, unexpected IF
  *     syntax error, unexpected GLOBAL
  */
+
+%token <cstring>        STRING "`string-literal`"
+%token <cstring>        ID             "`identifier`"
+%token <const_int>      INT      "`integer-constant`"
+%token <const_float>    FLOAT     "`float-constant`"
 
 /* Keyword tokens */
 %token IF       "keyword `if`"
@@ -207,48 +205,45 @@ loopCtrlStmt
 
 expr[result]
 : assignExpr
-| expr[left] PLUS  expr[right] { std::cout << "Hello" << std::endl; }
-| expr[left] MINUS expr[right]
-| expr[left] MUL   expr[right]
-| expr[left] DIV   expr[right]
-| expr[left] MOD   expr[right]
-| expr[left] GT    expr[right]
-| expr[left] GTE   expr[right]
-| expr[left] LT    expr[right]
-| expr[left] LTE   expr[right]
-| expr[left] EQ    expr[right]
-| expr[left] NEQ   expr[right]
-| expr[left] AND 
-  saveNextQuadHook expr[right]
-| expr[left] OR
-  saveNextQuadHook expr[right]
-| term
+| term { $result = $term; }
+| expr[lhs] PLUS  expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::ADD,          $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] MINUS expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::SUB,          $lhs, $rhs, @lhs, @rhs, @result); } 
+| expr[lhs] MUL   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::MUL,          $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] DIV   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::DIV,          $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] MOD   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::MOD,          $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] GT    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_GREATER,   $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] GTE   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_GREATEREQ, $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] LT    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_LESS,      $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] LTE   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_LESSEQ,    $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] EQ    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_EQ,        $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] NEQ   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_NEQ,       $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] AND saveNextQuadHook expr[rhs] { $result = sd.basic_builder.build_logical_and(    $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] OR  saveNextQuadHook expr[rhs] { $result = sd.basic_builder.build_logical_or(     $lhs, $rhs, @lhs, @rhs, @result); }
 ;
 
-saveNextQuadHook:
-;
+saveNextQuadHook:;
 
-term:
-  LEFT_PAREN expr RIGHT_PAREN
+term
+: primary { $term = $primary; }
+| LEFT_PAREN expr RIGHT_PAREN
 | MINUS expr %prec UMINUS
 | NOT expr
 | INC lvalue
 | lvalue INC
 | DEC lvalue
 | lvalue DEC
-| primary
 ;
 
 assignExpr:
   lvalue ASSIGN expr  
 ;
 
-primary:
-  lvalue
+primary
+: const { $primary = $const; }
+| lvalue
 | call
 | objectDef
 | LEFT_PAREN funcDef RIGHT_PAREN
-| const
 ;
 
 
@@ -346,7 +341,7 @@ funcArgs:
 ;
 
 funcArgList:
-  LEFT_PAREN /*Void*/ RIGHT_PAREN
+  LEFT_PAREN /*Void*/  RIGHT_PAREN
 | LEFT_PAREN funcArgs  RIGHT_PAREN
 ;
 
@@ -358,13 +353,13 @@ funcDef:
   funcSignature block 
 ;
 
-const:
-  NIL
-| TRUE
-| FALSE
-| INT
-| REAL
-| STRING
+const
+: TRUE      { $const = sd.const_builder.build_true_expr(@TRUE); }
+| FALSE     { $const = sd.const_builder.build_false_expr(@FALSE); }
+| INT       { $const = sd.const_builder.build_int_expr($INT, @INT); }
+| FLOAT     { $const = sd.const_builder.build_float_expr($FLOAT, @FLOAT); }
+| STRING    { $const = sd.const_builder.build_string_expr($STRING, @STRING); }
+| NIL       { $const = sd.const_builder.build_nil_expr(@NIL); }
 ;
 
 ifPrefix

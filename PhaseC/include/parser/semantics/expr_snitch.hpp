@@ -10,7 +10,7 @@ namespace Alpha
 class ExprSnitch
 {
 public:
-    ExprSnitch(Diagnostics *diagnostics);
+    explicit ExprSnitch(Diagnostics *diagnostics);
 
     void report_if_not_arithmetic(IOPCode iopc, const Expr *expr, SourceLocation expr_loc,
                                   OperandSide op_side);
@@ -46,7 +46,7 @@ ExprSnitch::report_if_not_arithmetic(
 inline void
 ExprSnitch::report_non_arithmetic_operand(
     const IOPCode iopc,
-    const Expr *expr,
+    const Expr *const expr,
     const SourceLocation expr_loc,
     const OperandSide op_side)
 {
@@ -57,9 +57,9 @@ ExprSnitch::report_non_arithmetic_operand(
                             to_string(op_side), SemUtils::relop_to_str(iopc));
     else if (op_side == OperandSide::UNARY)
         error = "operand of unary `-` is never arithmetic";
-    else [[unlikely]]
+    else
         throw std::logic_error(ATTACH_CONTEXT("Invalid arithmetic OperandSide"));
-    const std::string note = FMT::format("operand's expression type: `{}`", to_string(expr->type)); // NOLINT
+    const std::string note = FMT::format("operand's expression type: `{}`", to_string(expr->type));
     diagnostics_->report(Issue::Type::ERROR, error, expr_loc, std::list{Note{note, expr_loc}});
 }
 
@@ -79,7 +79,7 @@ inline void ExprSnitch::report_if_not_relational(
     // And operators == and != convert their operands to bool.
     if (SemUtils::is_relational_equality_iopcode(iopc))
         return;
-    // If here operator IOPCode is:  < <= > >=
+    // If here relational operator is:  < <= > >=
     if (SemUtils::is_arithmetic_convertible_expr(expr))
         return;
     report_non_relational_operand(iopc, expr, expr_loc, op_side);
@@ -91,7 +91,7 @@ inline void ExprSnitch::report_non_relational_operand(
     const SourceLocation expr_loc,
     const OperandSide op_side)
 {
-    if (op_side != OperandSide::LEFT && op_side != OperandSide::RIGHT) [[unlikely]]
+    if (op_side != OperandSide::LEFT && op_side != OperandSide::RIGHT)
         throw std::logic_error(ATTACH_CONTEXT("Invalid relational OperandSide "));
 
     const std::string error =
@@ -102,7 +102,9 @@ inline void ExprSnitch::report_non_relational_operand(
 }
 
 inline void
-ExprSnitch::report_if_int_to_float_loss(AlphaInt int_value, SourceLocation conversion_loc)
+ExprSnitch::report_if_int_to_float_loss(
+    const AlphaInt int_value,
+    const SourceLocation conversion_loc)
 {
     if (Utils::is_lossless_int_to_float<AlphaFloat>(int_value))
         return;

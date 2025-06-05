@@ -1,6 +1,5 @@
 #include "alpha_driver.hpp"
 #include <fstream> // for basic_ostream, basic_ofstream
-#include <iomanip>
 #include <iostream>  // for cout, cerr
 #include <list>      // for _List_const_iterator, list
 #include <stdexcept> // for runtime_error, invalid_argument
@@ -122,7 +121,7 @@ std::string expr_printer(const Alpha::Expr *expr)
     case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr *>(expr)->symbol->name;
     case ET::TABLE_ITEM: return static_cast<const TableItemExpr *>(expr)->symbol->name;
     case ET::VARIABLE: return static_cast<const VariableExpr *>(expr)->symbol->name;
-        [[unlikely]] default: UNREACHABLE("Unknown Expr::Type");
+    default: UNREACHABLE("Unknown Expr::Type");
     }
 }
 
@@ -233,7 +232,10 @@ Driver::Driver(const std::string &source_filepath, bool show_parser_trace)
     g_show_parser_trace = show_parser_trace;
 }
 
-void Driver::run_alpha_parser() { parser_retval_ = alpha_yyparse(lt_, diagnostics_, lexer_ctx_); }
+void Driver::run_alpha_parser()
+{
+    parser_retval_ = alpha_yyparse(lt_, diagnostics_, lexer_ctx_, semantic_driver_);
+}
 
 void Driver::show_symbol_table() const
 {

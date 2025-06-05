@@ -30,8 +30,8 @@
 /* FLex regex definitions */
 
 id              [a-zA-Z][a-zA-Z_0-9]*
-integer         (0[xX][0-9a-fA-F]+)|([0-9]+)
-real            ([0-9]*\.[0-9]+([eE][\+-]?[0-9]+)?)
+int             (0[xX][0-9a-fA-F]+)|([0-9]+)
+float           ([0-9]*\.[0-9]+([eE][\+-]?[0-9]+)?)
 lineComment     "//".*
 newline         "\n"
 space           [ \r\t\v]
@@ -104,8 +104,8 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 ".."            { return METHOD_CALL; }
 
 {id}            { alpha_yylval.cstring = Alpha::TokenID::refreshLastId(yytext); return ID; } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
-{real}          { alpha_yylval.const_real = std::stod(yytext); return REAL; }
-{integer}       { alpha_yylval.const_int = std::stol(yytext); return INT; }
+{float}         { alpha_yylval.const_float = std::stod(yytext); return FLOAT; }
+{int}           { alpha_yylval.const_int = std::stol(yytext); return INT; }
 {lineComment}   { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
 {newline}       { lt.append_line(lexer_ctx.index_); }
 {space}+        { /* Just eat up the spaces. */ }

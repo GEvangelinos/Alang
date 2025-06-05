@@ -10,7 +10,6 @@
 #ifndef ALPHA_PARSER_CONTEXT_HPP
 #define ALPHA_PARSER_CONTEXT_HPP
 
-#include <limits>
 #include <list>
 #include <stack>
 #include <vector>
@@ -24,15 +23,7 @@
 
 namespace Alpha
 {
-struct ParseCache;
-class SpaceHandler;
-class ScopeHandler;
-class FunctionCtxHandler;
-struct FunctionBackpatchInfo;
-struct FunctionDataFrame;
-class NameGenerator;
 class ParseCtx;
-
 /**
  * @brief Temporary semantic state used during parsing.
  *
@@ -55,62 +46,8 @@ class ParseCtx;
  * of parsing a single alpha source file.
  */
 struct ParseCache
-{ // TODO: all these names are ugly.. maybe technique is ugly too.. REFACTOR ASAP!
-    struct funcPrefixState
-    {
-        std::string id;
-        SourceLocation location{};
-    } func_prefix;
-
-    struct methodCallIdState
-    {
-        std::string id;
-        SourceLocation id_location;
-        SourceLocation method_call_location;
-    } method_call_id;
-
-    struct ifPrefixState
-    {
-        std::stack<u32> quads_to_patch;
-    } if_prefix;
-
-    struct elsePrefixState
-    {
-        std::stack<u32> quads_to_patch;
-    } else_prefix;
-
-    struct
-    {
-        std::stack<u32> next_quad_stack;
-    } logical_marker;
-
-    struct whileStartState
-    {
-        std::stack<u32> next_quad_stack;
-    } while_start;
-
-    struct whileConditionState
-    {
-        std::stack<u32> quads_to_patch;
-    } while_condition;
-
-    struct
-    {
-        std::stack<u32> quads_to_patch_1;
-        std::stack<u32> quads_to_patch_2;
-        std::stack<u32> quads_to_patch_3;
-    } n;
-
-    struct
-    {
-        std::stack<u32> quads_to_patch;
-    } m;
-
-    struct forHeaderState
-    {
-        std::stack<u32> test_quads_to_patch;
-        std::stack<u32> enter_quads_to_patch;
-    } for_header;
+{
+    std::stack<LabelID> short_circuit_jump_stack;
 };
 
 class SpaceHandler : private Immobile
@@ -172,7 +109,7 @@ public:
         // please rename its ugly
     };
 
-    FunctionCtxHandler(ParseCtx &parse_ctx);
+    explicit FunctionCtxHandler(ParseCtx *parse_ctx);
 
     ~FunctionCtxHandler();
 
@@ -282,13 +219,16 @@ private:
 
         u32 local_variable_count = 0;
 
-        FunctionDataFrame(std::string name, const u32 scope, const SourceLocation loc,
-                          const Function *f,
-                          const u32 label_of_jump)
+        FunctionDataFrame(
+            const std::string &name,
+            const u32 scope,
+            const SourceLocation loc,
+            const Function *const func_symbol,
+            const u32 label_of_jump)
             : name(std::move(name)),
               scope(scope),
               location(loc),
-              function_symbol(f),
+              function_symbol(func_symbol),
               label_of_jump(label_of_jump)
         {}
     };
@@ -297,7 +237,7 @@ private:
     std::list<Parameter> function_parameters_;
     u32 next_function_address_ = 0;
 
-    ParseCtx &parse_ctx_;
+    ParseCtx *const parse_ctx_;
 };
 
 class NameGenerator : private Immobile
@@ -312,52 +252,6 @@ public:
 private:
     u32 temp_name_counter_ = 0;
     u32 anonymous_counter_ = 0;
-};
-
-// class QuadHandler : private Immobile
-// {
-// public:
-//         void emit_quad(IOPCode iopc, const Expr *arg1, const Expr *arg2, const Expr *result,
-//                        SourceLocation loc);
-//
-//         void emit_quad_w_jump_step(IOPCode iopc, const Expr *arg1, const Expr *arg2, u32 jump_step,
-//                                    SourceLocation loc);
-//
-//         void emit_quad_labelless(IOPCode iopc, const Expr *arg1, const Expr *arg2,
-//                                  const Expr *result, SourceLocation loc);
-//
-//         void emit_quad_w_label(IOPCode iopc, const Expr *arg1, const Expr *arg2,
-//                                const Expr *result, u32 label, SourceLocation loc);
-//
-//         void patch_quad(u32 target_quad_label, u32 destination_label);
-//
-//         void patch_list(const std::vector<u32> &patch_list, u32 destination_label);
-//
-//         [[nodiscard]] const std::vector<Quad> &quads() const { return quads_; }
-//         [[nodiscard]] u32 next_quad_label() const { return next_quad_label_; }
-//
-// private:
-//         [[nodiscard]] static bool requires_label(IOPCode iopc) noexcept;
-//
-//         void emit_quad_impl(IOPCode iopc, const Expr *arg1, const Expr *arg2, const Expr *result,
-//                             u32 label, SourceLocation loc);
-//
-//         std::vector<Quad> quads_;
-//         u32 next_quad_label_ = 1; // First quad_label is always 1, (0 for backpatching)
-// };
-
-class ExprHandler : private Immobile
-{
-public:
-    explicit ExprHandler(ParseCtx &parse_ctx);
-
-    ~ExprHandler() noexcept;
-
-    [[nodiscard]] Expr *emit_quad_if_table_item(Expr *expr);
-
-private:
-    std::vector<const Expr *> expr_sink_;
-    ParseCtx &parse_ctx_;
 };
 
 class ParseCtx : private Immobile
@@ -402,7 +296,7 @@ inline void SpaceHandler::exit_space()
         Utils::is_odd(variable_offset_stack_.size())               //
     );
 
-        #pragma unroll
+    #pragma unroll
     for (auto i = 0; i < spaces_for_closure; ++i)
         variable_offset_stack_.pop();
 }
@@ -461,12 +355,17 @@ inline void ScopeHandler::exit_scope() noexcept
     --scope_;
 }
 
-inline FunctionCtxHandler::FunctionCtxHandler(ParseCtx &parse_ctx) : parse_ctx_(parse_ctx)
+inline FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const parse_ctx)
+    : parse_ctx_(Utils::require_ptr(parse_ctx))
 {
     // We push a stack-frame, for loops that might occur outside functions.
     // So every frame corresponds to a function except the first.
-    frame_stack_.emplace(k_global_data_frame_name, k_global_scope, k_no_location, nullptr,
-                         k_no_label);
+    frame_stack_.emplace(
+        k_global_data_frame_name,
+        k_global_scope,
+        k_no_location,
+        nullptr,
+        k_no_label);
 }
 
 inline FunctionCtxHandler::~FunctionCtxHandler()
@@ -481,47 +380,47 @@ inline FunctionCtxHandler::~FunctionCtxHandler()
 inline void FunctionCtxHandler::enter_function(const Function *function_symbol,
                                                const u32 label_of_jump)
 {
-#ifdef DEBUG_MODE
-    DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
-    if (!!function_symbol)
-        DEBUG_SMART_ASSERT(
-        function_symbol->name == parse_ctx_.cache.func_prefix.id,
-        function_symbol->scope == parse_ctx_.scope_handler.scope(),
-        function_symbol->loc == parse_ctx_.cache.func_prefix.location,
-        function_symbol->is_function(),
-        function_symbol->type == Symbol::Type::PROGRAM_FUNCTION
-        // Only library functions are defined in source code.
-    );
-#endif // DEBUG_MODE
-
-    frame_stack_.emplace(FunctionDataFrame(
-        parse_ctx_.cache.func_prefix.id, parse_ctx_.scope_handler.scope(),
-        parse_ctx_.cache.func_prefix.location, function_symbol, label_of_jump));
-
-    // Function scope is entered here.
-    // We skip the next `{` block’s scope to avoid double scoping.
-    parse_ctx_.scope_handler.enter_scope();
-    parse_ctx_.scope_handler.skip_next_scope_increment();
-}
-
-inline FunctionCtxHandler::FunctionBackpatchInfo FunctionCtxHandler::exit_function() noexcept
-{
-    // A frame always exist for loops outside functions.
-    DEBUG_SMART_ASSERT(frame_stack_.size() > k_global_data_frame_count);
-    // All loops must be closed before exiting function.
-    DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count == 0);
-
-    const FunctionDataFrame top_frame = std::move(frame_stack_.top());
-    frame_stack_.pop();
-
-    return {
-        .name = top_frame.name,
-        .scope = top_frame.scope,
-        .location = top_frame.location,
-        .local_variable_count = top_frame.local_variable_count,
-        .function_symbol = top_frame.function_symbol,
-        .label_to_jump = top_frame.label_of_jump
-    };
+// #ifdef DEBUG_MODE
+//     DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
+//     if (!!function_symbol)
+//         DEBUG_SMART_ASSERT(
+//         function_symbol->name == "NOT IMPLEMENTED", // TODO: implement
+//         function_symbol->scope == parse_ctx_->scope_handler.scope(),
+//         function_symbol->loc == k_no_location, // TODO: implement
+//         function_symbol->is_function(),
+//         function_symbol->type == Symbol::Type::PROGRAM_FUNCTION
+//         // Only library functions are defined in source code.
+//     );
+// #endif // DEBUG_MODE
+//
+//     frame_stack_.emplace(FunctionDataFrame(
+//         parse_ctx_->cache.func_prefix.id, parse_ctx_->scope_handler.scope(),
+//         parse_ctx_->cache.func_prefix.location, function_symbol, label_of_jump));
+//
+//     // Function scope is entered here.
+//     // We skip the next `{` block’s scope to avoid double scoping.
+//     parse_ctx_->scope_handler.enter_scope();
+//     parse_ctx_->scope_handler.skip_next_scope_increment();
+// }
+//
+// inline FunctionCtxHandler::FunctionBackpatchInfo FunctionCtxHandler::exit_function() noexcept
+// {
+//     // A frame always exist for loops outside functions.
+//     DEBUG_SMART_ASSERT(frame_stack_.size() > k_global_data_frame_count);
+//     // All loops must be closed before exiting function.
+//     DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count == 0);
+//
+//     const FunctionDataFrame top_frame = std::move(frame_stack_.top());
+//     frame_stack_.pop();
+//
+//     return {
+//         .name = top_frame.name,
+//         .scope = top_frame.scope,
+//         .location = top_frame.location,
+//         .local_variable_count = top_frame.local_variable_count,
+//         .function_symbol = top_frame.function_symbol,
+//         .label_to_jump = top_frame.label_of_jump
+//     };
 }
 
 inline u32 FunctionCtxHandler::function_nesting_depth() const noexcept
@@ -612,27 +511,6 @@ inline std::string NameGenerator::new_anonymous()
     return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
 }
 
-// inline void QuadHandler::patch_quad(u32 target_quad_label, u32 destination_label)
-// {
-//     const u32 quad_index =
-//         target_quad_label - 1; // First quad at index 0, has quad with label 1.
-//
-//     DEBUG_SMART_ASSERT(target_quad_label > 0,                  //
-//                        quad_index < quads_.size(),             //
-//                        quads_[quad_index].label == k_no_label, //
-//                        destination_label != k_no_label         //
-//     );
-//     quads_[quad_index].label = destination_label;
-// }
-//
-// inline void QuadHandler::patch_list(const std::vector<u32> &patch_list, u32 destination_label)
-// {
-//     DEBUG_SMART_ASSERT(destination_label != k_no_label);
-//     for (u32 target_quad_label : patch_list)
-//         patch_quad(target_quad_label, destination_label);
-// }
-//
-//
 // inline Expr *ExprHandler::emit_quad_if_table_item(Expr *expr)
 // {
 //     DEBUG_SMART_ASSERT(!!expr);
@@ -651,9 +529,9 @@ inline std::string NameGenerator::new_anonymous()
 //     return expr_temp_var;
 // }
 //
- inline ParseCtx::ParseCtx(SymbolTable &st, Diagnostics &diagnostics)
-     : function_ctx_handler(*this),  st_(st), diagnostics_(diagnostics)
- {}
+inline ParseCtx::ParseCtx(SymbolTable &st, Diagnostics &diagnostics)
+    : function_ctx_handler(this), st_(st), diagnostics_(diagnostics)
+{}
 
 inline const Variable *ParseCtx::new_temp()
 {

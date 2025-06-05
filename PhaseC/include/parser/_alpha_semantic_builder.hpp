@@ -1,85 +1,3 @@
-inline Expr *SemanticBuilder::convert_to_boolean(Expr *expr, SourceLocation expr_loc)
-{
-        DEBUG_SMART_ASSERT(!!expr);
-        if(expr->type == Expr::Type::BOOLEAN_EXPR)
-                return expr;
-
-        auto &eh = parse_ctx_.expr_handler;
-        auto &qh = parse_ctx_.quad_handler;
-
-        Expr *bool_expr = eh.make_expr_boolean(expr_loc);
-        Expr *true_expr = make_const_true(expr_loc); // TODO : Dude.. having so many make function
-        // is confusing and pointless;
-
-        bool_expr->backpatch_info->true_list.push_back(qh.next_quad_label());
-        qh.emit_quad_labelless(IOPCode::IF_EQ, expr, true_expr, nullptr, expr_loc);
-        // TODO: this would be a good place to free initial expr* as its now
-        // useless.. Also you could reuse old expr.. why make new all the time??
-        // Like all expressions get a "face-lift"
-        bool_expr->backpatch_info->false_list.push_back(qh.next_quad_label());
-        qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr_loc);
-        return bool_expr;
-}
-
-
-
-
-inline Expr *SemanticBuilder::make_logical_and(
-        Expr *left, Expr *right, SourceLocation result_loc,
-        [[maybe_unused]] SourceLocation left_loc,  // TODO: If you dont do constant folding remove
-        [[maybe_unused]] SourceLocation right_loc) // TODO: If you dont do constant folding remove
-{
-        auto &qh = parse_ctx_.quad_handler;
-        auto &eh = parse_ctx_.expr_handler;
-        Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
-
-        DEBUG_SMART_ASSERT(!!left->backpatch_info);
-
-        // TODO: Semantic Manager has a patch function.. this fucks with DRY,
-        // So make a common backpatcher class or namespace that does this function for you
-        // Maybe put it in parseCTX or in QUAD_HANDLER.
-        for(u32 quad_label : left->backpatch_info->true_list)
-        {
-                DEBUG_SMART_ASSERT(parse_ctx_.cache.logical_marker.next_quad_stack.size() > 0);
-                qh.patch_quad(quad_label, parse_ctx_.cache.logical_marker.next_quad_stack.top());
-        }
-        parse_ctx_.cache.logical_marker.next_quad_stack.pop();
-        left->backpatch_info->true_list.clear();
-
-        // TODO: MAKE A CUSTOM MERGE FUNCTION this FUCKs with DRY, as in logical or we do
-        // the same fucking thing... just in reverse... FOR FUCK SAKE
-        left->backpatch_info->false_list.insert(left->backpatch_info->false_list.end(),
-                                                right->backpatch_info->false_list.begin(),
-                                                right->backpatch_info->false_list.end());
-        bool_result_expr->backpatch_info = left->backpatch_info;
-
-        // TODO: FUCKING DO SOMETHING MORE EFFIECIENT that COPYING VECTOR. (maybe std::move or
-        // std::swap. move sounds more effiecient!!)
-        bool_result_expr->backpatch_info->true_list = right->backpatch_info->true_list;
-
-        return bool_result_expr;
-}
-
-inline Expr *SemanticBuilder::make_logical_not(Expr *expr, SourceLocation result_loc)
-{
-        // TODO: Can we check if already boolexpr and reuse that? instead of making new?
-        DEBUG_SMART_ASSERT(!!expr);
-        auto &eh = parse_ctx_.expr_handler;
-        auto &qh = parse_ctx_.quad_handler;
-
-        Expr *bool_result_expr = eh.make_expr_boolean(result_loc);
-        Expr *true_expr = make_const_true(result_loc);
-
-        bool_result_expr->backpatch_info->true_list.push_back(qh.next_quad_label());
-        qh.emit_quad_labelless(IOPCode::IF_EQ, expr, true_expr, nullptr, result_loc);
-        bool_result_expr->backpatch_info->false_list.push_back(qh.next_quad_label());
-        qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, result_loc);
-
-        std::swap(bool_result_expr->backpatch_info->true_list,
-                  bool_result_expr->backpatch_info->false_list);
-        return bool_result_expr;
-}
-
 inline ExprList *SemanticBuilder::make_empty_expr_list() { return new ExprList(); }
 
 inline void SemanticBuilder::delete_expr_list(ExprList *&elist)
@@ -148,16 +66,6 @@ inline Expr *SemanticBuilder::resolve_call_to_primary(Expr *call)
         return parse_ctx_.expr_handler.emit_quad_if_table_item(call);
 }
 
-inline Expr *SemanticBuilder::resolve_assign_expr(Expr *lvalue, Expr *expr,
-                                                  const SourceLocation assign_loc)
-{
-        DEBUG_SMART_ASSERT(!!lvalue, !!expr);
-
-        validate_lvalue_for_assignment(lvalue->symbol, assign_loc);
-        if(lvalue->type == Expr::Type::TABLE_ITEM)
-                return handle_table_item_assignment(lvalue, expr, assign_loc);
-        return handle_direct_assignment(lvalue, expr, assign_loc);
-}
 
 inline Expr *SemanticBuilder::make_table_list(ExprList *&elist, SourceLocation table_list_loc)
 {
@@ -299,35 +207,6 @@ inline BlockLocation SemanticBuilder::make_block_location(SourceLocation begin, 
                 .begin = begin,
                 .end = end,
         };
-}
-
-inline Expr *SemanticBuilder::handle_table_item_assignment(Expr *lvalue, Expr *expr,
-                                                           SourceLocation assign_loc)
-{
-        parse_ctx_.quad_handler.emit_quad(IOPCode::TABLESETELEM, lvalue, lvalue->index, expr,
-                                          assign_loc);
-
-        Expr *rvalue = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
-        return parse_ctx_.expr_handler.make_expr_assign(rvalue, assign_loc);
-}
-
-inline Expr *SemanticBuilder::handle_direct_assignment(Expr *lvalue, Expr *expr,
-                                                       SourceLocation assign_loc)
-{
-        parse_ctx_.quad_handler.emit_quad(
-                IOPCode::ASSIGN, expr, nullptr, lvalue,
-                assign_loc);
-        // TODO (NOT IMPORTANT): loc (can we construct it from expr (to catch
-        // whole assignment expression?))
-
-        Expr *assignExpr = parse_ctx_.expr_handler.make_expr_assign(parse_ctx_.new_temp(),
-                assign_loc //
-        );
-
-        parse_ctx_.quad_handler.emit_quad(IOPCode::ASSIGN, lvalue, nullptr, assignExpr,
-                                          k_no_location);
-
-        return assignExpr;
 }
 
 inline void SemanticBuilder::update_expr_location(Expr *expr, SourceLocation new_expr_loc)

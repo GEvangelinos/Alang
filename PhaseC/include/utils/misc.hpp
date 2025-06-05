@@ -2,7 +2,6 @@
 #define UTILS_MISC_HPP
 
 #include <algorithm>
-#include <array>
 #include <cstring>
 #include <iostream>
 #include <source_location>
@@ -31,7 +30,7 @@ template<typename N>
 inline char *cstrdup(const char *src)
 {
     DEBUG_SMART_ASSERT(!!src);
-    if (!src) [[unlikely]]
+    if (!src)
         return nullptr;
 
     const auto src_size = std::strlen(src) + 1; // +1 for NULL-byte

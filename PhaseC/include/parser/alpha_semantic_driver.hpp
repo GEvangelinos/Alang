@@ -31,7 +31,7 @@ public:
 
     [[nodiscard]] const std::vector<Quad> &retrieve_quads() const noexcept
     {
-        return quad_handler_.quads();
+        return quad_handler_->quads();
     }
 
 private:
@@ -42,13 +42,15 @@ private:
     Diagnostics *const diagnostics_ = nullptr;
 
     // Internal layer 3 subsystems
-    ExprSnitch expr_snitch_;
-    ExprMaker expr_maker_;
-    ExprFolder expr_folder_;
-    QuadHandler quad_handler_;
+    std::unique_ptr<ExprSnitch> expr_snitch_;
+    std::unique_ptr<ExprMaker> expr_maker_;
+    std::unique_ptr<ExprFolder> expr_folder_;
+    std::unique_ptr<QuadHandler> quad_handler_;
 
+public:
     // Public  layer 2 subsystems
-    BasicBuilder basic_builder_;
+    ConstBuilder const_builder;
+    BasicBuilder basic_builder;
 
     static BasicBuilder::Options get_basic_builder_options(const Options &options);
 };
@@ -58,22 +60,27 @@ inline SemanticDriver::SemanticDriver(
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
     Diagnostics *const diagnostics)
-    : parse_ctx_(Utils::require_ptr(parse_ctx)),
-      symbol_table_(Utils::require_ptr(symbol_table)),
-      diagnostics_(Utils::require_ptr(diagnostics)),
-      expr_snitch_(Utils::require_ptr(diagnostics)),
-      expr_maker_(parse_ctx),
-      expr_folder_(&expr_maker_, &expr_snitch_),
-      basic_builder_(get_basic_builder_options(options),
-                     &expr_snitch_,
-                     &expr_maker_,
-                     &expr_folder_,
-                     &quad_handler_) {}
+    :
+    // External resources, required to initialize class.
+    parse_ctx_(Utils::require_ptr(parse_ctx)),
+    symbol_table_(Utils::require_ptr(symbol_table)),
+    diagnostics_(Utils::require_ptr(diagnostics)),
 
-// Options &&options,
-// ExprSnitch *expr_validator,
-// ExprMaker *expr_maker,
-// ExprFolder *expr_folder);
+    // private resources, used by public servicers.
+    expr_snitch_(std::make_unique<ExprSnitch>(diagnostics_)),
+    expr_maker_(std::make_unique<ExprMaker>(parse_ctx_)),
+    expr_folder_(std::make_unique<ExprFolder>(expr_maker_.get(), expr_snitch_.get())),
+    quad_handler_(std::make_unique<QuadHandler>()),
+
+    // public servicers, used by users of semantic driver.
+    const_builder(expr_maker_.get()),
+    basic_builder(get_basic_builder_options(options),
+                  expr_snitch_.get(),
+                  expr_maker_.get(),
+                  expr_folder_.get(),
+                  quad_handler_.get(),
+                  &parse_ctx_->cache) {}
+
 inline BasicBuilder::Options
 SemanticDriver::get_basic_builder_options(const Options &options)
 {
