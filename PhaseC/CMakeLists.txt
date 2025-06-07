@@ -143,8 +143,6 @@ foreach(DIR ${AUTOGEN_DIR_LIST})
         endif()
 endforeach()
 
-add_subdirectory(src)
-
 function(add_regression_check_target target_name do_memcheck)
         set(regression_args
                 "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ALPHA_DRIVER_EXECUTABLE}"
@@ -189,3 +187,16 @@ endif()
 # Find all files stored in `${AUTOGEN_ROOT_DIR_PATH}` and delete them (but keep the directory structure intact).
 file(GLOB_RECURSE AUTOGEN_FILES ${AUTOGEN_ROOT_DIR_PATH})
 set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${AUTOGEN_FILES}")
+
+# === Core Compiler Components ===
+add_subdirectory(core)
+add_subdirectory(parser)
+add_subdirectory(scanner)
+add_subdirectory(driver)
+
+# === Utilities ===
+add_subdirectory(arguinator)
+add_subdirectory(utils)
+
+# === External Dependencies ===
+add_subdirectory(third_party)

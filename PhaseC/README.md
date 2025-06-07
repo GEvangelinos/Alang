@@ -94,7 +94,7 @@ The compiler features **rich diagnostic messages**, loosely inspired by GCC's er
 **Example output:**
 
 ```bash
-[stygian@sepermeru build]$ ./executables/alpha_driver.out --input-file ../tests/error/Error1.asc
+[stygian@sepermeru build]$ ./executables/alpha_driver.out --input-file ../.tests/error/Error1.asc
 Error1.asc:6:16: error: variable `f` is not accessible in function `g`.
        6 |                f=5;
          |                ^

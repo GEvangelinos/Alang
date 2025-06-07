@@ -1,7 +1,7 @@
 """
 alpha_regression_runner.py
 
-Runs regression tests for the Alpha compiler by:
+Runs regression .tests for the Alpha compiler by:
 - Executing .asc test files (both working and error cases)
 - Validating exported symbol tables and compile errors against predefined GOLDEN CSVs
 - Optionally running the compiler under Valgrind to check for memory issues
@@ -41,7 +41,7 @@ def parser_startup_arguments() -> argparse.Namespace:
     Parse and validate command-line arguments.
     """
     parser = argparse.ArgumentParser(
-        description="Run Alpha-compiler regression tests with optional Valgrind.",
+        description="Run Alpha-compiler regression .tests with optional Valgrind.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
             "Runs .asc test files (working + error) → compares produced exports "
@@ -55,9 +55,9 @@ def parser_startup_arguments() -> argparse.Namespace:
     parser.add_argument("--golden-compile-errors-dir", required=True, type=Path,
                         help="Directory containing GOLD_* .error.csv files.")
     parser.add_argument("--working-dir", required=True, type=Path,
-                        help="Directory with working .asc tests.")
+                        help="Directory with working .asc .tests.")
     parser.add_argument("--error-dir", required=True, type=Path,
-                        help="Directory with error .asc tests.")
+                        help="Directory with error .asc .tests.")
     parser.add_argument("--memcheck", action="store_true",
                         help="Also run each test under Valgrind.")
     return parser.parse_args()
