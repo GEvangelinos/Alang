@@ -42,7 +42,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="9278dbc2-9f3c-4a0e-944e-1e33a4e4893a" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/QUAD_EXPORTS/mine_104.asc.quads" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/bugs_to_fix/Failing_function_entry DUE to not entering function becuase we failed on arguments.png" beforeDir="false" />
     </list>
@@ -222,7 +222,7 @@
       <workItem from="1749315147638" duration="4569000" />
       <workItem from="1749325962255" duration="716000" />
       <workItem from="1749329048810" duration="2656000" />
-      <workItem from="1749337461379" duration="8445000" />
+      <workItem from="1749337461379" duration="8619000" />
     </task>
     <servers />
   </component>
