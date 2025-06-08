@@ -5,21 +5,21 @@
    // IWYU pragma: no_include <stdlib.h>
    // IWYU pragma: no_include <string.h>
     #include <string>                             // for basic_string, string
-    #include "parser/alpha_trace_logger.hpp"      // for display_trace
-    #include "parser/alpha_parser_context.hpp"    // for ParseCtx
-    #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
-    #include "alpha_parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
+    #include "parser/trace_logger.hpp"      // for display_trace
+    #include "parser/parser_context.hpp"    // for ParseCtx
+    #include "scanner/scanner_context.hpp"  // for LexerCtx
+    #include "parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
     using AIOP = Alpha::IOPCode;
 }
 
 %code requires
 {
-    #include "core/alpha_diagnostics.hpp"         // for ErrorTracker
-    #include "core/alpha_location.hpp"            // for Location, LocationTracker
-    #include "parser/alpha_parser_context.hpp"    // for ParseCtx
-    #include "parser/alpha_symbol_table.hpp"      // for Symbol, SymbolTable
-    #include "scanner/alpha_scanner_context.hpp"  // for LexerCtx
-    #include "parser/semantic_driver.hpp"
+    #include "core/diagnostics.hpp"         // for ErrorTracker
+    #include "core/source_location.hpp"            // for Location, LocationTracker
+    #include "parser/parser_context.hpp"    // for ParseCtx
+    #include "parser/symbol_table.hpp"      // for Symbol, SymbolTable
+    #include "scanner/scanner_context.hpp"  // for LexerCtx
+    #include "parser/L1_driver/semantic_driver.hpp"
 }
 
 %define api.prefix {alpha_yy}

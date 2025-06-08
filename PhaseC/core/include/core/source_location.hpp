@@ -1,11 +1,11 @@
-#ifndef ALPHA_LOCATION_HPP
-#define ALPHA_LOCATION_HPP
+#ifndef SOURCE_LOCATION_HPP
+#define SOURCE_LOCATION_HPP
 
 #include <vector>               // for vector
 
-#include "alpha_basics.hpp"
+#include "core/basics.hpp"
 
-#include "core/alpha_numeric_types.hpp" // for u32
+#include "core/numeric_types.hpp" // for u32
 #include "utils/misc.hpp"
 
 namespace Alpha
@@ -52,4 +52,4 @@ private:
         [[nodiscard]] u32 find_line(u32 index) const;
 };
 } // namespace Alpha
-#endif // ALPHA_LOCATION_HPP
+#endif // SOURCE_LOCATION_HPP

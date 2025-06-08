@@ -13,11 +13,11 @@
 #include <list>
 #include <stack>
 #include <vector>
-#include "_parser_common.hpp"
-#include "core/alpha_diagnostics.hpp"
-#include "core/alpha_konstants.hpp"
-#include "core/alpha_numeric_types.hpp"
-#include "parser/alpha_symbol_table.hpp"
+#include "core/diagnostics.hpp"
+#include "core/konstants.hpp"
+#include "core/numeric_types.hpp"
+#include "parser/symbol_table.hpp"
+#include "parser/_parser_common.hpp"
 #include "utils/misc.hpp"
 #include "utils/smart_assert.h"
 

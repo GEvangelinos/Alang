@@ -1,7 +1,3 @@
-//
-// Created by stygian on 5/25/25.
-//
-
 #ifndef ALPHA_BASICS_HPP
 #define ALPHA_BASICS_HPP
 #include "utils/debug_tools.hpp"

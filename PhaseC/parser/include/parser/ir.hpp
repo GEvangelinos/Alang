@@ -1,11 +1,10 @@
-#ifndef ALPHA_EXPR_TYPES_HPP
-#define ALPHA_EXPR_TYPES_HPP
-
+#ifndef IR_HPP
+#define IR_HPP
 #include <vector>
-#include "alpha_basics.hpp"
-#include "alpha_core_types.hpp"
-#include "alpha_numeric_types.hpp"
-#include "../parser/include/symbols.hpp"
+#include "core/basics.hpp"
+#include "core/core_types.hpp"
+#include "core/numeric_types.hpp"
+#include "parser/symbols.hpp"
 
 #define IOPCODES_WITH_LABEL \
     X(IF_EQ)                \
@@ -43,10 +42,6 @@
 
 namespace Alpha
 {
-using LabelID = u32;
-using AlphaInt = i64;
-using AlphaFloat = f64;
-
 enum class IOPCode : u8
 {
     #define X(code) code,
@@ -316,4 +311,4 @@ inline Expr::Type to_expr_type(const Symbol::Type symbol_type)
 }
 } // namespace Alpha
 #undef ALL_IOPCODES
-#endif //ALPHA_EXPR_TYPES_HPP
+#endif // IR_HPP

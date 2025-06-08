@@ -1,9 +1,8 @@
 #ifndef _PARSER_COMMON_HPP
 #define _PARSER_COMMON_HPP
 
-#include "core/alpha_location.hpp"
 #include <string>
-#include <vector>
+#include "core/source_location.hpp"
 
 namespace Alpha
 {

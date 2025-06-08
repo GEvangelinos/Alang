@@ -1,14 +1,14 @@
-#include "core/alpha_diagnostics.hpp"
+#include "core/diagnostics.hpp"
 #include <algorithm>                // for count
 #include <cstring>                  // for size_t, strchr, strlen
 #include <sstream>                  // for basic_stringstream, basic_ostream
 #include <utility>                  // for move
-#include "core/alpha_location.hpp"  // for SourceLocation, SourceLocationTracker
+#include "core/source_location.hpp"  // for SourceLocation, SourceLocationTracker
 #include "utils/cli_color.h"        // for COLOR_ASCII_BOLD_DEFAULT, SGR_RESET
+#include "utils/debug_tools.hpp"
 #include "utils/format_adapter.hpp" // for format, FMT
 #include "utils/misc.hpp"
 #include "utils/smart_assert.h" // for DEBUG_SMART_ASSERT
-#include "utils/debug_tools.hpp"
 
 namespace
 {

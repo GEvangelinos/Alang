@@ -6,8 +6,8 @@
 #include <string>                  // for string, basic_string
 #include <string_view>             // for string_view
 #include <vector>                  // for vector
-#include "alpha_basics.hpp"
-#include "core/alpha_location.hpp" // for SourceLocation, SourceLocationTracker
+#include "core/basics.hpp"
+#include "core/source_location.hpp" // for SourceLocation, SourceLocationTracker
 
 namespace Alpha
 {

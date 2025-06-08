@@ -9,7 +9,7 @@ set(ALPHA_SCANNER_OUTPUT_FILEPATH ${AUTOGEN_SRC_DIR_PATH}/${FLEX_OUTPUT_FILENAME
 set(ALPHA_SCANNER_HEADER_FILEPATH ${AUTOGEN_INCLUDE_DIR_PATH}/${FLEX_HEADER_FILENAME})
 
 FLEX_TARGET(ALPHA_SCANNER
-        ${FLEX_SPEC_FILENAME}
+        src/${FLEX_SPEC_FILENAME}
         ${ALPHA_SCANNER_OUTPUT_FILEPATH}
         COMPILE_FLAGS "--header-file=${ALPHA_SCANNER_HEADER_FILEPATH}"
 )
@@ -28,7 +28,7 @@ set_source_files_properties(
 
 add_library(alpha_scanner STATIC
         ${ALPHA_SCANNER_OUTPUT_FILEPATH}
-            src/alpha_token.cpp
+    src/scanner_token.cpp
 )
 
 add_dependencies(alpha_scanner generate_parser_scanner)

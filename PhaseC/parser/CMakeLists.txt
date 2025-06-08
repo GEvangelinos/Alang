@@ -15,8 +15,8 @@ set(LOG_INJECTED_BISON_SPEC_FILENAME "${parser_basename}${logged_file_marker}${p
 if (NOT HATE_PYTHON_MODE)
     add_custom_command(
         OUTPUT ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
-        COMMAND ${Python3_EXECUTABLE} -B scripts/log_injector/main.py # -B is used to disable .pyc (__pycache)
-        --input src/${BISON_SPEC_FILENAME}
+        COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/scripts/log_injector/main.py" # -B is used to disable .pyc (__pycache)
+        --input ${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}
         --output ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
         --log-fn display_trace
         DEPENDS ${injector_files} src/${BISON_SPEC_FILENAME}
@@ -70,11 +70,14 @@ add_library(alpha_parser STATIC
     src/semantic_driver.cpp
 )
 
-
-add_dependencies(alpha_parser generate_parser_scanner)
-
 target_include_directories(alpha_parser PRIVATE
     "${AUTOGEN_INCLUDE_DIR_PATH}"
-    "${CMAKE_SOURCE_DIR}/include"
-    "src"
+    "include"
 )
+
+target_link_libraries(alpha_parser PRIVATE
+    alpha_core
+    utils
+)
+
+add_dependencies(alpha_parser generate_parser_scanner)

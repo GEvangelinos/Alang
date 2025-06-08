@@ -1,10 +1,9 @@
 #ifndef ALPHA_SYMBOLS_HPP
 #define ALPHA_SYMBOLS_HPP
 
-#include "core/alpha_location.hpp"
-#include <string>
-#include "_parser_common.hpp"
 #include <list>
+#include <string>
+#include "core/source_location.hpp"
 
 namespace Alpha
 {
