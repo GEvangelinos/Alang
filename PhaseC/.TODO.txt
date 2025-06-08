@@ -156,3 +156,13 @@ as you only do a single dereference for parsectx and symtable instead of passing
 which means you get a bigger stack frame.!
 
 BUT CAN we put more stuff in union?
+
+52) Optimize the temporaries. Lecture 10, slide 23, video 16 (09:06) savidis expalin why
+
+x =3;
+
+produces assign x  3
+and then assign _t1 x
+
+you only need this for patterns like func_call(x=1, x=2, x=3);  your optimizer can identify only this patterns,
+else it cant remove the extra assignment to temporaries.
