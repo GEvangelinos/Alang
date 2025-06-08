@@ -13,9 +13,11 @@
 #include "L1_driver/semantic_driver.hpp"
 
 extern ALPHA_YYLEX_SIGNATURE;
-// TODO: say in your report for  the progect that ';' is not just a plain syntax requirement.
+// TODO: say in your report for  the project that ';' is not just a plain syntax requirement.
 // but also the parser's sync point, anything goes wrong, (syntax error) parser can continue parsing gracefully after ';'
 
+
+// TODO: use the static SourceLocation function to do the merge.. (both merges) (make a second static func if necessary).
 #define YYLLOC_DEFAULT(Current, Rhs, N)                                         \
         do                                                                      \
         {                                                                       \
@@ -39,7 +41,7 @@ static void alpha_yyerror(
     std::string error_message)
 {
     static constexpr char k_prefix[] = "syntax error, ";
-    if (error_message.rfind(k_prefix, 0) == 0)        // does it start with that?
+    if (error_message.rfind(k_prefix, 0) == 0) // does it start with that?
         error_message.erase(0, strlen(k_prefix)); // remove it
     extern Alpha::SourceLocation alpha_yylloc;
     diagnostics.report(

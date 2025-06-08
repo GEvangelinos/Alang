@@ -45,13 +45,17 @@ namespace Alpha
                      ExprFolder *expr_folder, QuadHandler *quad_handler, ParseCache *parse_cache);
 
         [[nodiscard]] const Expr *build_arithmetic(IOPCode iopc, const Expr *lhs, const Expr *rhs,
-                                                   SourceLocation lhs_loc, SourceLocation rhs_loc);
+                                                   SourceLocation lhs_loc, SourceLocation rhs_loc,
+                                                   SourceLocation result_loc);
         [[nodiscard]] const Expr *build_relational(IOPCode iopc, const Expr *lhs, const Expr *rhs,
-                                                   SourceLocation lhs_loc, SourceLocation rhs_loc);
+                                                   SourceLocation lhs_loc, SourceLocation rhs_loc,
+                                                   SourceLocation result_loc);
         [[nodiscard]] const Expr *build_logical_or(const Expr *lhs, const Expr *rhs,
-                                                   SourceLocation lhs_loc, SourceLocation rhs_loc);
+                                                   SourceLocation lhs_loc, SourceLocation rhs_loc,
+                                                   SourceLocation result_loc);
         [[nodiscard]] const Expr *build_logical_and(const Expr *lhs, const Expr *rhs,
-                                                    SourceLocation lhs_loc, SourceLocation rhs_loc);
+                                                    SourceLocation lhs_loc, SourceLocation rhs_loc,
+                                                    SourceLocation result_loc);
         [[nodiscard]] const Expr *build_uminus(
             const Expr *expr, SourceLocation expr_loc, SourceLocation result_loc);
         [[nodiscard]] const Expr *build_logical_not(
@@ -75,7 +79,8 @@ namespace Alpha
                       ExprMaker *expr_maker, ParseCtx *parse_ctx,
                       SemanticDriverServices *sd_services);
 
-        [[nodiscard]] const Expr *build_assign_expr(const Expr *lvalue, const Expr *rvalue);
+        [[nodiscard]] const Expr *build_assign_expr(const Expr *lvalue, const Expr *rvalue,
+                                                    SourceLocation result_loc);
 
     private:
         Diagnostics *const diagnostics_;
@@ -85,8 +90,10 @@ namespace Alpha
         SemanticDriverServices *const sd_services_;
 
         void validate_lvalue_for_assignment(const Expr *lvalue, SourceLocation assign_loc);
-        const Expr *handle_table_item_assignment(const Expr *lvalue, const Expr *rvalue);
-        const Expr *handle_direct_assignment(const Expr *lvalue, const Expr *rvalue);
+        const Expr *handle_table_item_assignment(const Expr *lvalue, const Expr *rvalue,
+                                                 SourceLocation result_loc);
+        const Expr *handle_direct_assignment(const Expr *lvalue, const Expr *rvalue,
+                                             SourceLocation result_loc);
     };
 
     inline ConstBuilder::ConstBuilder(ExprMaker *const expr_maker)
@@ -148,7 +155,8 @@ namespace Alpha
         const Expr *const lhs,
         const Expr *const rhs,
         const SourceLocation lhs_loc,
-        const SourceLocation rhs_loc)
+        const SourceLocation rhs_loc,
+        const SourceLocation result_loc)
 
     {
         DEBUG_SMART_ASSERT(!!lhs, !!rhs);
@@ -188,9 +196,9 @@ namespace Alpha
         const Expr *const lhs,
         const Expr *const rhs,
         const SourceLocation lhs_loc,
-        const SourceLocation rhs_loc)
+        const SourceLocation rhs_loc,
+        const SourceLocation result_loc)
     {
-        const SourceLocation result_loc = SourceLocation::merge(lhs_loc, rhs_loc);
         DEBUG_SMART_ASSERT(!!lhs, !!rhs);
         snitch_->report_if_not_relational(iopc, lhs, lhs_loc, OperandSide::LEFT);
         snitch_->report_if_not_relational(iopc, rhs, rhs_loc, OperandSide::RIGHT);
@@ -220,9 +228,9 @@ namespace Alpha
         const Expr *lhs,
         const Expr *rhs,
         const SourceLocation lhs_loc,
-        const SourceLocation rhs_loc)
+        const SourceLocation rhs_loc,
+        const SourceLocation result_loc)
     {
-        const SourceLocation result_loc = SourceLocation::merge(lhs_loc, rhs_loc);
         DEBUG_SMART_ASSERT(!!lhs, !!rhs);
         lhs = convert_to_bool_form(lhs, lhs_loc);
         rhs = convert_to_bool_form(rhs, rhs_loc);
@@ -235,9 +243,10 @@ namespace Alpha
         ;
 
         BoolExpr *bool_result_expr = expr_maker_->make_bool_expr(result_loc);
-
         BoolExpr *const left_bool = static_cast<BoolExpr *>(const_cast<Expr *>(lhs));
         BoolExpr *const right_bool = static_cast<BoolExpr *>(const_cast<Expr *>(rhs));
+
+        // TODO: move backpatching to backpatcher !!
 
         DEBUG_SMART_ASSERT(!parse_cache_->short_circuit_jump_stack.empty());
         for (const LabelID quad_label: left_bool->false_list)
@@ -262,9 +271,9 @@ namespace Alpha
         const Expr *const lhs,
         const Expr *const rhs,
         const SourceLocation lhs_loc,
-        const SourceLocation rhs_loc)
+        const SourceLocation rhs_loc,
+        const SourceLocation result_loc)
     {
-        const SourceLocation result_loc = SourceLocation::merge(lhs_loc, rhs_loc);
         // Check your solution on GitHub (latest commit on branch feature/ir-gen) (23/05/2025)
         UNIMPLEMENTED();
     }
@@ -310,14 +319,16 @@ namespace Alpha
           sd_services_(sd_services) {}
 
     inline const Expr *
-    AssignBuilder::build_assign_expr(const Expr *const lvalue, const Expr *const rvalue)
+    AssignBuilder::build_assign_expr(
+        const Expr *const lvalue,
+        const Expr *const rvalue,
+        const SourceLocation result_loc)
     {
         DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-
         validate_lvalue_for_assignment(lvalue, result_loc);
         if (lvalue->type == Expr::Type::TABLE_ITEM)
-            return handle_table_item_assignment(lvalue, rvalue);
-        return handle_direct_assignment(lvalue, rvalue);
+            return handle_table_item_assignment(lvalue, rvalue, result_loc);
+        return handle_direct_assignment(lvalue, rvalue, result_loc);
     }
 
     inline void
@@ -354,24 +365,29 @@ namespace Alpha
     }
 
     inline const Expr *
-    AssignBuilder::handle_table_item_assignment(const Expr *const lvalue, const Expr *const rvalue)
+    AssignBuilder::handle_table_item_assignment(
+        const Expr *const lvalue,
+        const Expr *const rvalue,
+        const SourceLocation result_loc)
     {
-        const SourceLocation result_loc = SourceLocation::merge(lvalue->loc, rvalue->loc);
         DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
         DEBUG_SMART_ASSERT(lvalue->type == Expr::Type::TABLE_ITEM);
         const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
         quad_handler_->emit_next_quad(IOPCode::TABLESETELEM, ti, ti->index, rvalue, result_loc);
-
         const Expr *ti_temp = sd_services_->emit_quad_if_table_item(lvalue);
+
         const Symbol *temp_symbol = static_cast<const TableItemExpr *>(ti_temp)->symbol;
         DEBUG_SMART_ASSERT(ti_temp->type == Expr::Type::TABLE_ITEM);
         return expr_maker_->make_assign_expr(temp_symbol, result_loc);
     }
 
     inline const Expr *
-    AssignBuilder::handle_direct_assignment(const Expr *const lvalue, const Expr *const rvalue)
+    AssignBuilder::handle_direct_assignment(
+        const Expr *const lvalue,
+        const Expr *const rvalue,
+        const SourceLocation result_loc)
     {
-        const SourceLocation result_loc = SourceLocation::merge(lvalue->loc, rvalue->loc);
+        DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
         quad_handler_->emit_next_quad(IOPCode::ASSIGN, rvalue, nullptr, lvalue, result_loc);
 
         // TODO: check todo 52 (on how to make this only when needed)
@@ -379,6 +395,7 @@ namespace Alpha
                 expr_maker_->make_assign_expr(parse_ctx_->new_temp(), result_loc);
         quad_handler_->emit_next_quad(
             IOPCode::ASSIGN, lvalue, nullptr, temp_assign_expr, result_loc);
+
         return temp_assign_expr;
     }
 } // namespace Alpha
