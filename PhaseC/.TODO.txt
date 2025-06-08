@@ -166,3 +166,48 @@ and then assign _t1 x
 
 you only need this for patterns like func_call(x=1, x=2, x=3);  your optimizer can identify only this patterns,
 else it cant remove the extra assignment to temporaries.
+
+53) Cleanup cmake include_directories and target_link_libraries() find a way to make it minimal
+
+55) do highlight on multiple lines like this:
+
+[stygian@sepermeru Playground]$ cat lli.c
+void foo()
+{
+}
+
+
+int main()
+{
+        foo
+
+
+                =
+
+
+
+                5;
+return 0;
+}
+
+[stygian@sepermeru Playground]$ g++ lli.c
+lli.c: In function ‘int main()’:
+lli.c:11:17: error: assignment of function ‘void foo()’
+    8 |         foo
+      |         ~~~
+    9 |
+      |
+   10 |
+      |
+   11 |                 =
+      |                 ^
+   12 |
+      |
+   13 |
+      |
+   14 |
+      |
+   15 |                 5;
+      |                 ~
+[stygian@sepermeru Playground]$
+

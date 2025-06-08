@@ -1,2 +1,2 @@
-add_library(utils INTERFACE)
-target_include_directories(utils INTERFACE "include")
+add_library(utils_api INTERFACE)
+target_include_directories(utils_api INTERFACE "include")

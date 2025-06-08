@@ -4,11 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="BackendCodeEditorMiscSettings">
+    <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/LiveTemplatesHousekeeping/HotspotSessionHintIsShown/@EntryValue" value="true" type="bool" />
     <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="CppFormatterOtherPage" type="string" />
   </component>
-  <component name="CMakePresetLoader"><![CDATA[{
-  "useNewFormat": true
-}]]></component>
+  <component name="CMakePresetLoader">{
+  &quot;useNewFormat&quot;: true
+}</component>
   <component name="CMakeProjectFlavorService">
     <option name="flavorId" value="CMakePlainProjectFlavor" />
   </component>
@@ -17,16 +19,17 @@
   </component>
   <component name="CMakeRunConfigurationManager">
     <generated>
-      <config projectName="Alpha" targetName="regression_check" />
-      <config projectName="Alpha" targetName="arguinator" />
-      <config projectName="Alpha" targetName="generate_parser" />
       <config projectName="Alpha" targetName="generate_scanner" />
-      <config projectName="Alpha" targetName="alpha_driver.out" />
+      <config projectName="Alpha" targetName="alpha_scanner_impl" />
       <config projectName="Alpha" targetName="generate_parser_scanner" />
-      <config projectName="Alpha" targetName="alpha_parser" />
-      <config projectName="Alpha" targetName="alpha_core" />
+      <config projectName="Alpha" targetName="alpha_driver_impl" />
+      <config projectName="Alpha" targetName="alpha_parser_impl" />
+      <config projectName="Alpha" targetName="alpha_core_impl" />
+      <config projectName="Alpha" targetName="regression_check" />
+      <config projectName="Alpha" targetName="generate_parser" />
+      <config projectName="Alpha" targetName="alpha_driver.out" />
+      <config projectName="Alpha" targetName="arguinator_impl" />
       <config projectName="Alpha" targetName="regression_check_full" />
-      <config projectName="Alpha" targetName="alpha_scanner" />
     </generated>
   </component>
   <component name="CMakeSettings">
@@ -36,17 +39,24 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7c8613d7-6f85-4b86-b1b3-9689bd67e859" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/QUAD_EXPORTS/mine_104.asc.quads" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/arguinator/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/arguinator/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bugs_to_fix/Failing_function_entry DUE to not entering function becuase we failed on arguments.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/core/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/source_location.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/source_location.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/src/source_location.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/source_location.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/driver/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/driver/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/app_main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/app_main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/old_phase_c.zip" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_builders/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_builders/expr_builders.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_maker.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_maker.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/ir.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_driver_services.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_driver_services.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scanner/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/utils/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/utils/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/include/utils/misc.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/utils/include/utils/misc.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -66,9 +76,9 @@
     <option name="minorVersion" value="1.2" />
     <option name="productBranch" value="Classic" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 7
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 7
+}</component>
   <component name="ProjectId" id="2yDqAhegcfHzydMLhZADHpqWnUe" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -93,17 +103,17 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.sourceCode.C/C++",
+    "settings.editor.selected.configurable": "preferences.sourceCode.CMake",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RunManager" selected="CMake Application.alpha_driver.out">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+    <configuration name="alpha_core_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_core_impl" CONFIG_NAME="Debug">
       <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="alpha_core" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_core" CONFIG_NAME="Debug">
+    <configuration name="alpha_driver_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_driver_impl" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -113,17 +123,17 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="alpha_parser" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_parser" CONFIG_NAME="Debug">
+    <configuration name="alpha_parser_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_parser_impl" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="alpha_scanner" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_scanner" CONFIG_NAME="Debug">
+    <configuration name="alpha_scanner_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_scanner_impl" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="arguinator" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="arguinator" CONFIG_NAME="Debug">
+    <configuration name="arguinator_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="arguinator_impl" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -156,13 +166,14 @@
     <list>
       <item itemvalue="CMake Application.regression_check" />
       <item itemvalue="CMake Application.regression_check_full" />
-      <item itemvalue="CMake Application.arguinator" />
-      <item itemvalue="CMake Application.alpha_core" />
+      <item itemvalue="CMake Application.arguinator_impl" />
+      <item itemvalue="CMake Application.alpha_core_impl" />
       <item itemvalue="CMake Application.alpha_driver.out" />
+      <item itemvalue="CMake Application.alpha_driver_impl" />
       <item itemvalue="CMake Application.generate_parser_scanner" />
-      <item itemvalue="CMake Application.alpha_parser" />
+      <item itemvalue="CMake Application.alpha_parser_impl" />
       <item itemvalue="CMake Application.generate_parser" />
-      <item itemvalue="CMake Application.alpha_scanner" />
+      <item itemvalue="CMake Application.alpha_scanner_impl" />
       <item itemvalue="CMake Application.generate_scanner" />
     </list>
   </component>
@@ -173,7 +184,8 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1749379349482</updated>
-      <workItem from="1749379350884" duration="3574000" />
+      <workItem from="1749379350884" duration="11432000" />
+      <workItem from="1749394445042" duration="3645000" />
     </task>
     <servers />
   </component>
@@ -184,5 +196,9 @@
     <isAutomaticCheckingOnLaunch value="false" />
     <isAutomaticFoundErrors value="true" />
     <isAutomaticReloadCMake value="true" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>

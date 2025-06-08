@@ -10,7 +10,7 @@
 #include "utils/format_adapter.hpp"
 #include "utils/smart_assert.h"
 
-namespace Alpha::Utils
+namespace Utils
 {
 [[nodiscard]] inline std::string str_to_lower(std::string str)
 {

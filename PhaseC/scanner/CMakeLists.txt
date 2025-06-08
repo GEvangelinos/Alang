@@ -25,18 +25,23 @@ set_source_files_properties(
     PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough"
 )
 
-add_library(alpha_scanner STATIC
-    ${ALPHA_SCANNER_OUTPUT_FILEPATH}
-    src/scanner_token.cpp
-)
-
-target_include_directories(alpha_scanner PUBLIC
+add_library(alpha_scanner_api INTERFACE)
+target_include_directories(alpha_scanner_api INTERFACE
     "${AUTOGEN_INCLUDE_DIR_PATH}"
     "include"
 )
 
-target_link_libraries(alpha_scanner PUBLIC alpha_parser)
+add_library(alpha_scanner_impl STATIC
+    ${ALPHA_SCANNER_OUTPUT_FILEPATH}
+    src/scanner_token.cpp
+)
+target_compile_options(alpha_scanner_impl PRIVATE
+    -Wno-unused-function
+)
+target_link_libraries(alpha_scanner_impl PRIVATE
+    alpha_scanner_api
+    alpha_parser_api
+    alpha_core_api
+)
 
-target_compile_options(alpha_scanner PRIVATE -Wno-unused-function)
-
-add_dependencies(alpha_scanner generate_parser_scanner)
+add_dependencies(alpha_scanner_impl generate_parser_scanner)

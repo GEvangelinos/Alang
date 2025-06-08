@@ -21,7 +21,7 @@ public:
 
     /// @Note: All expr_loc(s) are the loc of the resulting expression.
     [[nodiscard]] const ArithmeticExpr *make_arithmetic_expr(SourceLocation expr_loc);
-    [[nodiscard]] const AssignExpr *make_assign_expr(const Expr *rvalue, SourceLocation expr_loc);
+    [[nodiscard]] const AssignExpr *make_assign_expr(const Symbol *symbol, SourceLocation expr_loc);
     [[nodiscard]] BoolExpr *make_bool_expr(SourceLocation expr_loc);
     [[nodiscard]] const ConstBoolExpr *make_const_bool_expr(
         bool bool_value, SourceLocation expr_loc);
@@ -90,10 +90,10 @@ ExprMaker::make_arithmetic_expr(const SourceLocation expr_loc)
 }
 
 inline const AssignExpr *
-ExprMaker::make_assign_expr(const Expr *const rvalue, const SourceLocation expr_loc)
+ExprMaker::make_assign_expr(const Symbol *const symbol, const SourceLocation expr_loc)
 {
-    DEBUG_SMART_ASSERT(!!rvalue);
-    const auto *const assign_expr = new const AssignExpr(expr_loc, rvalue);
+    DEBUG_SMART_ASSERT(!!symbol);
+    const auto *const assign_expr = new const AssignExpr(expr_loc, symbol);
     expr_sink_.push_back(assign_expr);
     return assign_expr;
 }
