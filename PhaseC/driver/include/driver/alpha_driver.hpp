@@ -13,10 +13,6 @@
 
 namespace Alpha
 {
-// Classes defined here:
-class Driver; // IWYU pragma: keep
-// class Driver::FlexBuffer; // IWYU pragma: keep
-
 static constexpr char k_symbol_table_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
 static constexpr char k_compile_error_exports_dirname[] = "COMPILE_ERROR_EXPORTS";
 static constexpr char k_quad_exports_dirname[] = "QUAD_EXPORTS";
@@ -27,7 +23,7 @@ class Driver : private Immobile
 {
 public:
         explicit Driver(const std::string &source_filepath, bool show_parser_trace);
-        ~Driver() { alpha_yylex_destroy(); }
+        ~Driver();
 
         void run_alpha_parser();
         void show_symbol_table() const;

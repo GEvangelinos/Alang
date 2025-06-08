@@ -6,23 +6,24 @@ add_custom_target(generate_parser_scanner ALL DEPENDS
     generate_scanner
 )
 
-add_executable(${ALPHA_DRIVER_EXECUTABLE}
-    src/alpha_driver.cpp
-    src/app_main.cpp
-)
-
-target_include_directories(${ALPHA_DRIVER_EXECUTABLE} PUBLIC
-    "${AUTOGEN_INCLUDE_DIR_PATH}"
-    "include"
-)
-
-target_link_libraries(${ALPHA_DRIVER_EXECUTABLE} PUBLIC
-    arguinator
+add_library(alpha_driver STATIC src/alpha_driver.cpp)
+target_include_directories(alpha_driver PUBLIC "include")
+target_link_libraries(alpha_driver PRIVATE
     alpha_core
     alpha_parser
     alpha_scanner
 )
 
+add_executable(${ALPHA_DRIVER_EXECUTABLE} src/app_main.cpp)
+target_include_directories(${ALPHA_DRIVER_EXECUTABLE} PRIVATE
+    "${AUTOGEN_INCLUDE_DIR_PATH}"
+    "include"
+)
+target_link_libraries(${ALPHA_DRIVER_EXECUTABLE} PRIVATE
+    arguinator_api
+    arguinator_impl
+    alpha_driver
+)
 add_dependencies(${ALPHA_DRIVER_EXECUTABLE}
     generate_scanner
     generate_parser

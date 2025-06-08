@@ -1,7 +1,6 @@
 #include <string>                    // for basic_string, string
 #include "driver/alpha_driver.hpp"
 #include "arguinator/arguinator.hpp" // for Flag, Parser
-#include "utils/cli_color.h"
 
 static constexpr char alpha_driver_description[] =
         "A tool for syntactical analysis on programming language Alpha";
