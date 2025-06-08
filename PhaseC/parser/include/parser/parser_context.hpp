@@ -7,14 +7,15 @@
 //          is included in multiple translation units.
 //       2) To hint to the compiler to inline calls for better performance.
 
-#ifndef ALPHA_PARSER_CONTEXT_HPP
-#define ALPHA_PARSER_CONTEXT_HPP
+#ifndef PARSER_CONTEXT_HPP
+#define PARSER_CONTEXT_HPP
 
 #include <list>
 #include <stack>
 #include <vector>
 #include "core/diagnostics.hpp"
 #include "core/konstants.hpp"
+#include "parser/konstants.hpp"
 #include "core/numeric_types.hpp"
 #include "parser/symbol_table.hpp"
 #include "parser/_parser_common.hpp"
@@ -542,4 +543,4 @@ inline const Variable *ParseCtx::new_temp()
     return static_cast<const Variable *>(symbol);
 }
 } // namespace Alpha
-#endif // ALPHA_PARSER_CONTEXT_HPP
+#endif // PARSER_CONTEXT_HPP

@@ -1,11 +1,12 @@
 #ifndef EXPR_BUILDERS_HPP
 #define EXPR_BUILDERS_HPP
 
-#include "../L3_ir_infra/expr_folder.hpp"
-#include "../semantics/expr_maker.hpp"
-#include "../L3_ir_infra/quad_handler.hpp"
-#include "../semantic_utils.hpp"
-#include "core/alpha_core_types.hpp"
+#include "L3_ir_infra/expr_folder.hpp"
+#include "L3_ir_infra/expr_maker.hpp"
+#include "L3_ir_infra/quad_handler.hpp"
+#include "parser/semantic_utils.hpp"
+#include "parser/ir.hpp"
+#include "L1_driver/semantic_driver_services.hpp"
 
 namespace Alpha
 {
@@ -68,13 +69,18 @@ private:
 class AssignBuilder
 {
 public:
+    AssignBuilder(Diagnostics *diagnostics, QuadHandler *quad_handler,
+ ExprMaker*expr_maker, SemanticDriverServices *sd_services);
+
     [[nodiscard]] const Expr *build_assign_expr(
         const Expr *lvalue, const Expr *rvalue,
         SourceLocation assign_loc, SourceLocation result_loc);
 
 private:
-    Diagnostics diagnostics_;
+    Diagnostics *const diagnostics_;
     QuadHandler *const quad_handler_;
+ExprMaker *const expr_maker_;
+SemanticDriverServices *const sd_services_;
 
     void validate_lvalue_for_assignment(const Expr *lvalue, SourceLocation assign_loc);
 
@@ -304,6 +310,15 @@ BasicBuilder::convert_to_bool_form(const Expr *const expr, const SourceLocation 
     return bool_expr;
 }
 
+inline AssignBuilder::AssignBuilder(
+Diagnostics *diagnostics,
+ QuadHandler *quad_handler,
+ExprMaker* expr_maker,
+ SemanticDriverServices *sd_services)
+: diagnostics_(diagnostics), quad_handler_(quad_handler),expr_maker_(expr_maker), sd_services_(sd_services)
+{
+}
+
 inline const Expr *
 AssignBuilder::build_assign_expr(
     const Expr *const lvalue,
@@ -316,7 +331,7 @@ AssignBuilder::build_assign_expr(
     validate_lvalue_for_assignment(lvalue, assign_loc);
     if (lvalue->type == Expr::Type::TABLE_ITEM)
         return handle_table_item_assignment(lvalue, rvalue, assign_loc);
-    return handle_direct_assignment(lvalue, rvalue, assign_loc);
+    //return handle_direct_assignment(lvalue, rvalue, assign_loc);
 }
 
 inline void
@@ -329,8 +344,8 @@ AssignBuilder::validate_lvalue_for_assignment(
     {
         const std::string error = FMT::format(
             "lvalue required as left operand of assignment."
-            "Left operand's expression type is `{}` ", lvalue->type);
-        diagnostics_.report(Issue::Type::ERROR, error, lvalue->loc);
+"Left operand's expression type is `{}` ", to_string(lvalue->type));
+        diagnostics_->report(Issue::Type::ERROR, error, lvalue->loc);
         return;
     }
     DEBUG_SMART_ASSERT(lvalue->has_symbol); // If here. Its Lvalue and all lvalues have symbols.
@@ -339,14 +354,14 @@ AssignBuilder::validate_lvalue_for_assignment(
     {
         const std::string error =
             FMT::format("assignment of library function `{}`", lvalue_symbol->name);
-        diagnostics_.report(Issue::Type::ERROR, error, assign_loc);
+        diagnostics_->report(Issue::Type::ERROR, error, assign_loc);
         return;
     }
     if (lvalue_symbol->type == Symbol::Type::PROGRAM_FUNCTION)
     {
         const std::string error = FMT::format("assignment of function `{}`", lvalue_symbol->name);
         const std::string note = FMT::format("function {} declared here", lvalue_symbol->name);
-        diagnostics_.report(Issue::Type::ERROR, error, assign_loc,
+        diagnostics_->report(Issue::Type::ERROR, error, assign_loc,
                             std::list{Note{note, lvalue_symbol->loc}});
         return;
     }
@@ -363,8 +378,10 @@ AssignBuilder::handle_table_item_assignment(
     const TableItemExpr *const ti = static_cast<const TableItemExpr *>(lvalue);
     quad_handler_->emit_next_quad(IOPCode::TABLESETELEM, ti, ti->index, rvalue, result_loc);
 
-    Expr *rvalue = parse_ctx_.expr_handler.emit_quad_if_table_item(lvalue);
-    return parse_ctx_.expr_handler.make_expr_assign(rvalue, assign_loc);
+const     Expr *ti_temp = sd_services_->emit_quad_if_table_item(lvalue);
+DEBUG_SMART_ASSERT(ti_temp->type == Expr::Type::TABLE_ITEM);
+DEBUG_SMART_ASSERT(SemUtils::is_expr_with_symbol(ti_temp));
+    return expr_maker_->make_assign_expr(static_cast<const ExprWSymbol*>(ti_temp), result_loc);
 }
 } // namespace Alpha
 #endif // EXPR_BUILDERS_HPP

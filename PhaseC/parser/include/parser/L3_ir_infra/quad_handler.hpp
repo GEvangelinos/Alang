@@ -2,8 +2,8 @@
 #define QUAD_HANDLER_HPP
 
 #include <vector>
-#include "core/alpha_core_types.hpp"
-#include "core/alpha_konstants.hpp"
+#include "parser/ir.hpp"
+#include "parser/konstants.hpp"
 
 namespace Alpha
 {

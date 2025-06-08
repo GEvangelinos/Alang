@@ -2,9 +2,9 @@
 #define SCANNER_CONTEXT_HPP
 
 #include <string>
-#include "core/alpha_location.hpp"
-#include "core/alpha_numeric_types.hpp"
-#include "scanner/alpha_token.hpp"
+#include "core/source_location.hpp"
+#include "core/numeric_types.hpp"
+#include "scanner/scanner_token.hpp"
 #include "utils/misc.hpp"
 
 namespace Alpha

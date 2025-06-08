@@ -11,12 +11,12 @@ add_executable(${ALPHA_DRIVER_EXECUTABLE}
     src/app_main.cpp
 )
 
-target_include_directories(${ALPHA_DRIVER_EXECUTABLE} PRIVATE
+target_include_directories(${ALPHA_DRIVER_EXECUTABLE} PUBLIC
     "${AUTOGEN_INCLUDE_DIR_PATH}"
     "include"
 )
 
-target_link_libraries(${ALPHA_DRIVER_EXECUTABLE} PRIVATE
+target_link_libraries(${ALPHA_DRIVER_EXECUTABLE} PUBLIC
     arguinator
     alpha_core
     alpha_parser

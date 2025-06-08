@@ -1,10 +1,10 @@
-#ifndef ALPHA_SEMANTIC_DRIVER_HPP
-#define ALPHA_SEMANTIC_DRIVER_HPP
+#ifndef SEMANTIC_DRIVER_HPP
+#define SEMANTIC_DRIVER_HPP
 
-#include "alpha_parser_context.hpp"
-#include "alpha_symbol_table.hpp"
-#include "core/alpha_basics.hpp"
-#include "core/alpha_diagnostics.hpp"
+#include "parser/parser_context.hpp"
+#include "parser/symbol_table.hpp"
+#include "core/basics.hpp"
+#include "core/diagnostics.hpp"
 #include "L2_builders/expr_builders.hpp"
 #include "L3_ir_infra/expr_folder.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
@@ -16,7 +16,7 @@ namespace Alpha
 // Order of initialization is intentional.
 // As the subsystems of semantic driver utilize its internal state,
 // for their own initialization.
-class SemanticDriver : private Alpha::Immobile
+class SemanticDriver : private Immobile
 {
 public:
     struct Options
@@ -28,7 +28,7 @@ public:
 
     SemanticDriver(
         Options options,
-        Alpha::ParseCtx *parse_ctx,
+        ParseCtx *parse_ctx,
         SymbolTable *symbol_table,
         Diagnostics *diagnostics);
 
@@ -60,4 +60,4 @@ public:
     static BasicBuilder::Options get_basic_builder_options(const Options &options);
 };
 } // namespace Alpha
-#endif // ALPHA_SEMANTIC_DRIVER_HPP
+#endif // SEMANTIC_DRIVER_HPP

@@ -66,18 +66,21 @@ endif ()
 add_library(alpha_parser STATIC
     ${ALPHA_PARSER_OUTPUT_FILEPATH}
     src/symbol_table.cpp
-    src/backpatcher.cpp
-    src/semantic_driver.cpp
+    src/RELOCATE_backpatcher.cpp
+    src/L1_driver/semantic_driver.cpp
+    src/L1_driver/semantic_driver_services.cpp
 )
 
-target_include_directories(alpha_parser PRIVATE
+target_include_directories(alpha_parser PUBLIC
     "${AUTOGEN_INCLUDE_DIR_PATH}"
     "include"
+    "include/parser"
+    PRIVATE
+    "src"
 )
 
-target_link_libraries(alpha_parser PRIVATE
+target_link_libraries(alpha_parser PUBLIC
     alpha_core
+    alpha_scanner
     utils
 )
-
-add_dependencies(alpha_parser generate_parser_scanner)

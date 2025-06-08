@@ -1,6 +1,6 @@
 #ifndef ALPHA_BACKPATCHER_HPP
 #define ALPHA_BACKPATCHER_HPP
-#include "alpha_symbol_table.hpp"
+#include "parser/symbol_table.hpp"
 
 // TODO: remove file (too little use)
 namespace Alpha::Backpatcher

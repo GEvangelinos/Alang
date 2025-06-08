@@ -2,9 +2,9 @@
 #define SYMBOL_TABLE_HPP
 
 #include "_parser_common.hpp"
-#include "core/alpha_location.hpp" // for Location
+#include "core/source_location.hpp" // for Location
 #include "utils/misc.hpp"          // for DEBUG_ALWAYS_INLINE
-#include "core/alpha_numeric_types.hpp"    // for u32
+#include "core/numeric_types.hpp"    // for u32
 #include "utils/smart_assert.h"    //
 #include "utils/misc.hpp"
 #include <initializer_list> // for initializer_list
@@ -17,7 +17,7 @@
 #include <vector>           // for vector
 #include <array>
 #include <memory>
-#include "parser/alpha_symbols.hpp"
+#include "parser/symbols.hpp"
 
 namespace Alpha
 {

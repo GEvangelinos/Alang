@@ -4,12 +4,12 @@
 #include <string>                          // for string
 #include <string_view>                     // for string_view
 #include "alpha_scanner.hpp"               // for YY_BUFFER_STATE
-#include "core/alpha_diagnostics.hpp"            // for CTIssueTracker
-#include "core/alpha_location.hpp"         // for LocationTracker
-#include "parser/include/alpha_parser_context.hpp"
+#include "core/diagnostics.hpp"            // for CTIssueTracker
+#include "core/source_location.hpp"         // for LocationTracker
+#include "parser/parser_context.hpp"
 #include "parser/L1_driver/semantic_driver.hpp"
-#include "parser/alpha_symbol_table.hpp"     // for SymbolTable
-#include "scanner/alpha_scanner_context.hpp" // for LexerCtx
+#include "parser/symbol_table.hpp"     // for SymbolTable
+#include "scanner/scanner_context.hpp" // for LexerCtx
 
 namespace Alpha
 {

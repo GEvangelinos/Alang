@@ -1,5 +1,5 @@
 #include <string>                    // for basic_string, string
-#include "../include/alpha_driver.hpp"
+#include "driver/alpha_driver.hpp"
 #include "arguinator/arguinator.hpp" // for Flag, Parser
 #include "utils/cli_color.h"
 

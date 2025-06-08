@@ -2,9 +2,9 @@
 #define ALPHA_EXPR_MAKER_HPP
 
 #include "expr_snitch.hpp"
-#include "core/alpha_basics.hpp"
-#include "core/alpha_location.hpp"
-#include "parser/alpha_parser_context.hpp"
+#include "core/basics.hpp"
+#include "core/source_location.hpp"
+#include "parser/parser_context.hpp"
 
 namespace Alpha
 {

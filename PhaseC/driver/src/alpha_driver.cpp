@@ -6,12 +6,12 @@
 #include <string>
 #include <vector>                   // for vector
 #include "alpha_parser.hpp"         // for alpha_yyparse
-#include "core/alpha_konstants.hpp" // for k_global_scope
-#include "core/alpha_numeric_types.hpp"     // for u32
+#include "core/konstants.hpp" // for k_global_scope
+#include "core/numeric_types.hpp"     // for u32
 #include "utils/cli_color.h"        // for COLOR_ASCII_BLUE, SGR_RESET
 #include "utils/format_adapter.hpp" // for format, FMT
 #include "utils/smart_assert.h"     // for SMART_ASSERT
-#include "core/alpha_core_types.hpp"
+#include "parser/ir.hpp"
 
 static constexpr unsigned k_flex_eof_padding = 2;
 

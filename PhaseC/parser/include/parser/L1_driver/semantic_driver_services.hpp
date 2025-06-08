@@ -1,6 +1,3 @@
-#ifndef SEMANTIC_DRIVER_SERVICES_HPP
-#define SEMANTIC_DRIVER_SERVICES_HPP
-
 /// ─────────────────────────────────────────────────────────────────────────────
 /// SemanticDriverServices:
 /// A deliberately minimal interface exposing selected semantic functionality from
@@ -25,12 +22,21 @@
 /// Only expand it with intent — never collapse it back into the driver.
 /// ─────────────────────────────────────────────────────────────────────────────
 
+#ifndef SEMANTIC_DRIVER_SERVICES_HPP
+#define SEMANTIC_DRIVER_SERVICES_HPP
+
+#include "parser/parser_context.hpp"
+#include "parser/ir.hpp"
+#include "L3_ir_infra/expr_maker.hpp"
+#include "L3_ir_infra/quad_handler.hpp"
+
 namespace Alpha
 {
 class SemanticDriverServices
 {
 public:
     SemanticDriverServices(ParseCtx *parse_ctx, ExprMaker *expr_maker, QuadHandler *quad_handler);
+
     const Expr *emit_quad_if_table_item(const Expr *expr);
 
 private:
@@ -38,6 +44,7 @@ private:
     ExprMaker *const expr_maker_;
     QuadHandler *const quad_handler_;
 };
+} // namespace Alpha
 
 
 #endif //SEMANTIC_DRIVER_SERVICES_HPP

@@ -3,8 +3,8 @@
 
 #include <cmath>
 #include "expr_maker.hpp"
-#include "core/alpha_core_types.hpp"
-#include "core/alpha_location.hpp"
+#include "parser/ir.hpp"
+#include "core/source_location.hpp"
 
 namespace Alpha
 {

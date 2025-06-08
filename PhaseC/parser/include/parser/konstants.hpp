@@ -1,6 +1,6 @@
 #ifndef KONSTANTS_HPP
 #define KONSTANTS_HPP
-#include "core/nume"
+#include "core/numeric_types.hpp"
 
 namespace Alpha
 {

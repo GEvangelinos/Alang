@@ -10,4 +10,4 @@ namespace Alpha
         using ExprPair = std::pair<Expr *, Expr *>;
         using DictList = std::vector<ExprPair *>;
 }
-#endif //_PARSER_TYPE_ALIASES_HPP
+#endif // _PARSER_TYPE_ALIASES_HPP

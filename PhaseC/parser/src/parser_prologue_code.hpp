@@ -3,14 +3,14 @@
 
 #include <string>
 
-#include "core/alpha_diagnostics.hpp"
-#include "core/alpha_shared_interface.hpp" // for ALPHA_YYLEX_SIGNATURE
-#include "scanner/alpha_scanner_context.hpp"
-#include "parser/alpha_parser_context.hpp"
-#include "parser/alpha_symbol_table.hpp"
-#include "core/alpha_location.hpp"
+#include "core/diagnostics.hpp"
+#include "core/shared_interface.hpp" // for ALPHA_YYLEX_SIGNATURE
+#include "scanner/scanner_context.hpp"
+#include "parser/parser_context.hpp"
+#include "parser/symbol_table.hpp"
+#include "core/source_location.hpp"
 
-#include "../../include/parser/L1_semantics/alpha_semantic_driver.hpp"
+#include "L1_driver/semantic_driver.hpp"
 
 extern ALPHA_YYLEX_SIGNATURE;
 // TODO: say in your report for  the progect that ';' is not just a plain syntax requirement.

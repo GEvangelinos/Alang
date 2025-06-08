@@ -2,7 +2,6 @@
 #define IR_HPP
 #include <vector>
 #include "core/basics.hpp"
-#include "core/core_types.hpp"
 #include "core/numeric_types.hpp"
 #include "parser/symbols.hpp"
 

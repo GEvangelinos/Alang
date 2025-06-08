@@ -1,8 +1,8 @@
 #ifndef SEMANTIC_UTILS_HPP
 #define SEMANTIC_UTILS_HPP
 
-#include "core/alpha_core_types.hpp"
-#include "utils/smart_assert.hpp"
+#include "parser/ir.hpp"
+#include "utils/smart_assert.h"
 
 namespace Alpha::SemUtils
 {

@@ -1,4 +1,4 @@
-#include "scanner/alpha_token.hpp"
+#include "scanner/scanner_token.hpp"
 #include <algorithm> // for transform
 #include <cctype>    // for toupper
 #include <cstring>   // for strcpy, strlen, size_t

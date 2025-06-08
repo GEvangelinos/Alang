@@ -1,9 +1,9 @@
 #ifndef EXPR_SNITCH_HPP
 #define EXPR_SNITCH_HPP
 
-#include "../semantic_utils.hpp"
-#include "core/alpha_core_types.hpp"
-#include "core/alpha_diagnostics.hpp"
+#include "parser/semantic_utils.hpp"
+#include "parser/ir.hpp"
+#include "core/diagnostics.hpp"
 
 namespace Alpha
 {

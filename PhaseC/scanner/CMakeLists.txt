@@ -1,17 +1,17 @@
 find_package(FLEX QUIET)
-if(FLEX_FOUND)
-        message(STATUS "Found FLEX: ${FLEX_EXECUTABLE} (found version ${FLEX_VERSION})")
-else()
-        message(FATAL_ERROR "Could not find FLEX. Please install `flex`.")
-endif()
+if (FLEX_FOUND)
+    message(STATUS "Found FLEX: ${FLEX_EXECUTABLE} (found version ${FLEX_VERSION})")
+else ()
+    message(FATAL_ERROR "Could not find FLEX. Please install `flex`.")
+endif ()
 
 set(ALPHA_SCANNER_OUTPUT_FILEPATH ${AUTOGEN_SRC_DIR_PATH}/${FLEX_OUTPUT_FILENAME})
 set(ALPHA_SCANNER_HEADER_FILEPATH ${AUTOGEN_INCLUDE_DIR_PATH}/${FLEX_HEADER_FILENAME})
 
 FLEX_TARGET(ALPHA_SCANNER
-        src/${FLEX_SPEC_FILENAME}
-        ${ALPHA_SCANNER_OUTPUT_FILEPATH}
-        COMPILE_FLAGS "--header-file=${ALPHA_SCANNER_HEADER_FILEPATH}"
+    src/${FLEX_SPEC_FILENAME}
+    ${ALPHA_SCANNER_OUTPUT_FILEPATH}
+    COMPILE_FLAGS "--header-file=${ALPHA_SCANNER_HEADER_FILEPATH}"
 )
 # Opposed to bison, flex doesn't have a way to track its produced header file, so we track it manually.
 set_source_files_properties(${ALPHA_SCANNER_HEADER_FILEPATH} PROPERTIES GENERATED TRUE)
@@ -22,20 +22,22 @@ set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${ALPHA_SCANNER_HEAD
 add_custom_target(generate_scanner ALL DEPENDS "${FLEX_ALPHA_SCANNER_OUTPUTS}")
 
 set_source_files_properties(
-        ${ALPHA_SCANNER_OUTPUT_FILEPATH}
-        PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough"
+    ${ALPHA_SCANNER_OUTPUT_FILEPATH}
+    PROPERTIES COMPILE_FLAGS "-Wno-implicit-fallthrough"
 )
 
 add_library(alpha_scanner STATIC
-        ${ALPHA_SCANNER_OUTPUT_FILEPATH}
+    ${ALPHA_SCANNER_OUTPUT_FILEPATH}
     src/scanner_token.cpp
 )
 
-add_dependencies(alpha_scanner generate_parser_scanner)
-
-target_include_directories(alpha_scanner PRIVATE
-        "${AUTOGEN_INCLUDE_DIR_PATH}"
-        "${CMAKE_SOURCE_DIR}/include"
+target_include_directories(alpha_scanner PUBLIC
+    "${AUTOGEN_INCLUDE_DIR_PATH}"
+    "include"
 )
 
+target_link_libraries(alpha_scanner PUBLIC alpha_parser)
+
 target_compile_options(alpha_scanner PRIVATE -Wno-unused-function)
+
+add_dependencies(alpha_scanner generate_parser_scanner)

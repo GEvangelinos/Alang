@@ -15,7 +15,7 @@
 %code requires
 {
     #include "core/diagnostics.hpp"         // for ErrorTracker
-    #include "core/source_location.hpp"            // for Location, LocationTracker
+    #include "core/source_location.hpp"     // for Location, LocationTracker
     #include "parser/parser_context.hpp"    // for ParseCtx
     #include "parser/symbol_table.hpp"      // for Symbol, SymbolTable
     #include "scanner/scanner_context.hpp"  // for LexerCtx
@@ -47,7 +47,7 @@
     bool const_bool;
     Alpha::AlphaInt const_int;
     Alpha::AlphaFloat const_float;
-    const  Alpha::Function *const_function_symbol_ptr;
+    const Alpha::Function *const_function_symbol_ptr;
     const Alpha::Expr *const_expr_ptr;
     Alpha::BlockLocation block_location;
 }
@@ -235,7 +235,7 @@ term
 ;
 
 assignExpr:
-  expr[lhs] ASSIGN expr[rhs] { $assignExpr = }
+  expr[lhs] ASSIGN expr[rhs]
 ;
 
 primary
