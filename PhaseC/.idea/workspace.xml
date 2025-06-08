@@ -42,21 +42,9 @@
       <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/QUAD_EXPORTS/mine_104.asc.quads" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/arguinator/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/arguinator/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bugs_to_fix/Failing_function_entry DUE to not entering function becuase we failed on arguments.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/core/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/source_location.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/source_location.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/src/source_location.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/source_location.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/driver/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/old_phase_c.zip" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_builders/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_builders/expr_builders.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_maker.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_maker.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/ir.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_driver_services.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_driver_services.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/utils/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/utils/include/utils/misc.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/utils/include/utils/misc.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -103,11 +91,16 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.sourceCode.CMake",
+    "settings.editor.selected.configurable": "preferences.keymap",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RunManager" selected="CMake Application.alpha_driver.out">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="alpha_core_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_core_impl" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -185,7 +178,7 @@
       <option name="presentableId" value="Default" />
       <updated>1749379349482</updated>
       <workItem from="1749379350884" duration="11432000" />
-      <workItem from="1749394445042" duration="3645000" />
+      <workItem from="1749394445042" duration="6834000" />
     </task>
     <servers />
   </component>

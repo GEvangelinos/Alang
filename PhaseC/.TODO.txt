@@ -167,6 +167,16 @@ and then assign _t1 x
 you only need this for patterns like func_call(x=1, x=2, x=3);  your optimizer can identify only this patterns,
 else it cant remove the extra assignment to temporaries.
 
+hmm ADDED NOTE (2 days after I initially wrote this).
+
+At random I thought... you could check if you are inside any function call.. if you are ..
+it means the assignments are passed as parameters. then and only you should reassign to temps.
+So maybe you can even do it while you build the expression by passing a boolean. Or at optimization
+pass. Which ever seems easier to implement.
+
+VERY IMPORTANT!! : IF you implement this.. REMEMBER TO put this into your report/ readme  or whatever you make
+else they will "cut your ass"...
+
 53) Cleanup cmake include_directories and target_link_libraries() find a way to make it minimal
 
 55) do highlight on multiple lines like this:
