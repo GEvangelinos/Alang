@@ -1,4 +1,4 @@
-#include "../include/driver/alpha_driver.hpp"
+#include "driver/alpha_driver.hpp"
 #include <fstream> // for basic_ostream, basic_ofstream
 #include <iostream>  // for cout, cerr
 #include <list>      // for _List_const_iterator, list
@@ -57,7 +57,10 @@ namespace // (Anonymous)
         std::filesystem::create_directories(dirname);
     }
 
-    void enter_export_directory(std::string_view dirname) { std::filesystem::current_path(dirname); }
+    void enter_export_directory(std::string_view dirname)
+    {
+        std::filesystem::current_path(dirname);
+    }
 
     void exit_export_directory(const std::filesystem::path &original_path)
     {
@@ -107,13 +110,18 @@ namespace // (Anonymous)
         using ET = Expr::Type;
         switch (expr->type)
         {
-            case ET::CONST_BOOL: return static_cast<const ConstBoolExpr *>(expr)->value ? "true" : "false";
-            case ET::CONST_INT: return FMT::to_string(static_cast<const ConstIntExpr *>(expr)->value);
-            case ET::CONST_FLOAT: return FMT::to_string(static_cast<const ConstFloatExpr *>(expr)->value);
+            case ET::CONST_BOOL: return static_cast<const ConstBoolExpr *>(expr)->value
+                                            ? "true"
+                                            : "false";
+            case ET::CONST_INT: return FMT::to_string(
+                    static_cast<const ConstIntExpr *>(expr)->value);
+            case ET::CONST_FLOAT: return FMT::to_string(
+                    static_cast<const ConstFloatExpr *>(expr)->value);
             case ET::CONST_STRING:
                 return FMT::format("\"{}\"", static_cast<const ConstStringExpr *>(expr)->value);
             case ET::CONST_NIL: return "nil";
-            case ET::ARITHMETIC_EXPR: return static_cast<const ArithmeticExpr *>(expr)->symbol->name;
+            case ET::ARITHMETIC_EXPR: return static_cast<const ArithmeticExpr *>(expr)->symbol->
+                        name;
             case ET::ASSIGN_EXPR: return static_cast<const AssignExpr *>(expr)->symbol->name;
             case ET::BOOL_EXPR: return static_cast<const BoolExpr *>(expr)->symbol->name;
             case ET::LIBRARY_FUNCTION: return static_cast<const LibFuncExpr *>(expr)->symbol->name;
@@ -222,11 +230,12 @@ namespace Alpha
           // Convert std::string to std::filesystem::path implicitly
           flex_buffer_(source_filepath),
           lt_(flex_buffer_.size() - k_flex_eof_padding),
-          diagnostics_(),
+          diagnostic_engine_(),
           st_(),
           lexer_ctx_(source_filepath),
-          parse_ctx_(st_, diagnostics_),
-          semantic_driver_(SemanticDriver::Options{true, true, true}, &parse_ctx_, &st_, &diagnostics_)
+          parse_ctx_(st_, diagnostic_engine_),
+          semantic_driver_(SemanticDriver::Options{true, true, true}, &parse_ctx_, &st_,
+                           &diagnostic_engine_)
     {
         // TODO INITIALIZE SEMANTIC OPTS CORRECTLY.
         g_show_parser_trace = show_parser_trace;
@@ -239,7 +248,7 @@ namespace Alpha
 
     void Driver::run_alpha_parser()
     {
-        parser_retval_ = alpha_yyparse(lt_, diagnostics_, lexer_ctx_, semantic_driver_);
+        parser_retval_ = alpha_yyparse(lt_, diagnostic_engine_, lexer_ctx_, semantic_driver_);
     }
 
     void Driver::show_symbol_table() const
@@ -268,7 +277,7 @@ namespace Alpha
     {
         const std::string source_filename = source_filepath_.filename().string();
 
-        for (const auto &cti: diagnostics_.get_compile_time_issues())
+        for (const auto &cti: diagnostic_engine_.get_compile_time_issues())
             std::cerr << cti->make_pretty_diagnostic(source_filename, lt_,
                                                      flex_buffer_.const_buffer());
     }
@@ -293,7 +302,7 @@ namespace Alpha
 
     void Driver::export_quads() const
     {
-        if (diagnostics_.contain_fatal_errors() || diagnostics_.contain_errors())
+        if (diagnostic_engine_.contain_fatal_errors() || diagnostic_engine_.contain_errors())
             return;
         export_within_dir(k_quad_exports_dirname, &Driver::export_quads_impl);
     }
@@ -355,7 +364,8 @@ namespace Alpha
                 write_symbol(symbol_ptr);
     }
 
-    void Driver::export_within_dir(std::string_view dirname, void (Driver::*export_func)() const) const
+    void Driver::export_within_dir(std::string_view dirname,
+                                   void (Driver::*export_func)() const) const
     {
         const auto original_path = std::filesystem::current_path();
         create_export_directory(dirname);
@@ -379,7 +389,7 @@ namespace Alpha
                                    diag.type_to_string(), diag.description);
         };
 
-        for (const auto &cti: diagnostics_.get_compile_time_issues())
+        for (const auto &cti: diagnostic_engine_.get_compile_time_issues())
         {
             write_diagnostic(cti->issue);
             for (const Issue &note: cti->note_list)

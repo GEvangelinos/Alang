@@ -1,6 +1,7 @@
 #ifndef DEBUG_TOOLS_HPP
 #define DEBUG_TOOLS_HPP
 #include "utils/smart_assert.h"
+#include "utils/format_adapter.hpp"
 
 #define ATTACH_CONTEXT(message) \
         FMT::format("{}:{} -> {}(): {}", __FILENAME__, __LINE__, __func__, (message))

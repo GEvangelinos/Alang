@@ -221,3 +221,14 @@ lli.c:11:17: error: assignment of function ‘void foo()’
       |                 ~
 [stygian@sepermeru Playground]$
 
+
+
+56) Todo report unused variable : Warning unused x.
+
+for example we do
+ x = 5;
+
+but we never use it.
+
+57) Added extra code generation step to generate the diagnostics from YAML file.
+TODO: !! Dont forget to mention this in your report! (its very clever... Extra credit points)

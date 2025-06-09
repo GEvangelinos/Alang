@@ -1,4 +1,4 @@
-#include "../include/diagnostics/diagnostics.hpp"
+#include "diagnostics/diagnostics.hpp"
 #include <algorithm>                // for count
 #include <cstring>                  // for size_t, strchr, strlen
 #include <sstream>                  // for basic_stringstream, basic_ostream
@@ -70,12 +70,6 @@ int compute_visual_caret_offset(const std::string_view line, const Alpha::uf64 r
 }
 } // namespace
 
-// Issue(Stage stage, Type type, const std::string &description, SourceLocation loc);
-//
-// [[nodiscard]] u32 line(const LocationTracker &lt) const;
-// [[nodiscard]] u32 column(const LocationTracker &lt) const;
-// [[nodiscard]] std::string_view type_to_string() const noexcept;
-// [[nodiscard]] std::string_view pretty_color() const noexcept;
 namespace Alpha
 {
 Issue::Issue(const Type type, const std::string &description, const SourceLocation loc)
@@ -176,44 +170,5 @@ std::string CTIssue::make_pretty_issue_impl(const std::string &source_filename,
     }
 
     return ss.str();
-}
-
-void Diagnostics::report(
-    const Issue::Type type,
-    const std::string &issue_desc,
-    const SourceLocation issue_loc)
-{
-    store(std::unique_ptr<const CTIssue>(new const CTIssue(type, issue_desc, issue_loc)));
-}
-
-void Diagnostics::report(
-    const Issue::Type type,
-    const std::string &issue_desc,
-    const SourceLocation issue_loc,
-    std::list<Note> &&note_list_)
-{
-    store(std::unique_ptr<const CTIssue>(
-        new const CTIssue(type, issue_desc, issue_loc, std::move(note_list_))));
-}
-
-void Diagnostics::store(std::unique_ptr<const CTIssue> ct_issue)
-{
-    switch (const auto raw_ptr = ct_issue.get(); raw_ptr->issue.type)
-    {
-    case Issue::Type::FATAL_ERROR:
-        fatal_errors_.push_back(raw_ptr);
-        break;
-    case Issue::Type::ERROR:
-        errors_.push_back(raw_ptr);
-        break;
-    case Issue::Type::WARNING:
-        warnings_.push_back(raw_ptr);
-        break;
-    case Issue::Type::NOTE:
-        throw std::logic_error(ATTACH_CONTEXT(
-            "Issue::Type::NOTE is used to add auxiliary info. Should not be used as main Issue"));
-    default: UNREACHABLE("Unknown Issue::Type.");
-    }
-    issues_.push_back(std::move(ct_issue)); // Pass ownership to `issues_` vector.
 }
 } // namespace Alpha

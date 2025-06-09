@@ -35,7 +35,7 @@ extern ALPHA_YYLEX_SIGNATURE;
 
 static void alpha_yyerror(
     [[maybe_unused]] Alpha::LocationTracker &lt,
-    Alpha::Diagnostics &diagnostics,
+    Alpha::DiagnosticEngine &diagnostic_engine,
     [[maybe_unused]] Alpha::LexerCtx &lexer_ctx,
     [[maybe_unused]] Alpha::SemanticDriver &sd,
     std::string error_message)
@@ -44,14 +44,15 @@ static void alpha_yyerror(
     if (error_message.rfind(k_prefix, 0) == 0) // does it start with that?
         error_message.erase(0, strlen(k_prefix)); // remove it
     extern Alpha::SourceLocation alpha_yylloc;
-    diagnostics.report(
-        Alpha::Issue::Type::ERROR,
-        error_message,
-        Alpha::SourceLocation{
-            .first_index = alpha_yylloc.first_index,
-            .last_index = alpha_yylloc.last_index
-        }
-    );
+    // TODO: uncomment and adjust it to new DiagnosticEngine.
+    // diagnostic_engine.report(
+    //     Alpha::Issue::Type::ERROR,
+    //     error_message,
+    //     Alpha::SourceLocation{
+    //         .first_index = alpha_yylloc.first_index,
+    //         .last_index = alpha_yylloc.last_index
+    //     }
+    // );
 }
 
 #endif // ALPHA_PARSER_PROLOGUE_CODE_HPP

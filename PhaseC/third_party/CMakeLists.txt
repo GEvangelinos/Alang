@@ -1,5 +1,2 @@
-add_library(fmt INTERFACE)
-
-target_include_directories(fmt INTERFACE
-    "include"
-)
+add_library(fmt_api INTERFACE)
+target_include_directories(fmt_api INTERFACE fmt/include)

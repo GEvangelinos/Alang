@@ -13,7 +13,7 @@
 #include <list>
 #include <stack>
 #include <vector>
-#include "../../../diagnostics/include/diagnostics/diagnostics.hpp"
+#include "diagnostics/diagnostic_engine.hpp"
 #include "core/konstants.hpp"
 #include "parser/konstants.hpp"
 #include "core/numeric_types.hpp"
@@ -264,7 +264,7 @@ public:
     FunctionCtxHandler function_ctx_handler;
     NameGenerator name_generator;
 
-    ParseCtx(SymbolTable &st, Diagnostics &Diagnostics);
+    ParseCtx(SymbolTable &st, DiagnosticEngine &diagnostic_engine);
 
     ~ParseCtx() = default;
 
@@ -272,7 +272,7 @@ public:
 
 private:
     SymbolTable &st_;
-    Diagnostics &diagnostics_;
+    DiagnosticEngine &diagnostic_engine_;
 };
 
 inline SpaceHandler::SpaceHandler()
@@ -512,9 +512,8 @@ inline std::string NameGenerator::new_anonymous()
     return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
 }
 
-inline ParseCtx::ParseCtx(SymbolTable &st, Diagnostics &diagnostics)
-    : function_ctx_handler(this), st_(st), diagnostics_(diagnostics)
-{}
+inline ParseCtx::ParseCtx(SymbolTable &st, DiagnosticEngine &diagnostic_engine)
+    : function_ctx_handler(this), st_(st), diagnostic_engine_(diagnostic_engine) {}
 
 inline const Variable *ParseCtx::new_temp()
 {

@@ -75,7 +75,7 @@ namespace Alpha
     class AssignBuilder
     {
     public:
-        explicit AssignBuilder(const BuilderInitPack & init_pack);
+        explicit AssignBuilder(const BuilderInitPack &init_pack);
 
         [[nodiscard]] const Expr *build_assignment(const Expr *lvalue, const Expr *rvalue,
                                                    SourceLocation result_loc);
@@ -214,8 +214,7 @@ namespace Alpha
             if (SemUtils::is_const_bool_expr(lhs) || SemUtils::is_const_bool_expr(rhs))
                 return expr_folder_->fold_logical_or(lhs, rhs);
 
-        DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR)
-        ;
+        DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
 
         BoolExpr *bool_result_expr = expr_maker_->make_bool_expr(result_loc);
         BoolExpr *const left_bool = static_cast<BoolExpr *>(const_cast<Expr *>(lhs));
@@ -224,7 +223,7 @@ namespace Alpha
         // TODO: move backpatching to backpatcher !!
 
         DEBUG_SMART_ASSERT(!parse_cache_->short_circuit_jump_stack.empty());
-        for (const LabelID quad_label: left_bool->false_list)
+        for (const LabelID quad_label : left_bool->false_list)
             quad_handler_->patch_quad(quad_label, parse_cache_->short_circuit_jump_stack.top());
         parse_cache_->short_circuit_jump_stack.pop();
         left_bool->false_list.clear();
@@ -302,12 +301,12 @@ namespace Alpha
      *
      * @param init_pack
      */
-    inline AssignBuilder::AssignBuilder(const BuilderInitPack & init_pack)
+    inline AssignBuilder::AssignBuilder(const BuilderInitPack &init_pack)
         : parse_ctx_(init_pack.parse_ctx),
           expr_maker_(init_pack.expr_maker),
           expr_snitch_(init_pack.expr_snitch),
           quad_handler_(init_pack.quad_handler),
-          sd_bridge_((init_pack).sd_bridge) {}
+          sd_bridge_(init_pack.sd_bridge) {}
 
     inline const Expr *
     AssignBuilder::build_assignment(
@@ -322,6 +321,7 @@ namespace Alpha
         return handle_direct_assignment(lvalue, rvalue, result_loc);
     }
 
+
     inline void
     AssignBuilder::validate_lvalue_for_assignment(
         const Expr *const lvalue,
@@ -332,7 +332,8 @@ namespace Alpha
         {
             const std::string error = FMT::format(
                 "lvalue required as left operand of assignment."
-                "Left operand's expression type is `{}` ", to_string(lvalue->type));
+                "Left operand's expression type is `{}` ",
+                to_string(lvalue->type));
             // diagnostics_->report(Issue::Type::ERROR, error, lvalue->loc);
             return;
         }
@@ -341,7 +342,7 @@ namespace Alpha
         if (lv_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
         {
             const std::string error =
-                    FMT::format("assignment of library function `{}`", lv_symbol->name);
+                FMT::format("assignment of library function `{}`", lv_symbol->name);
             // diagnostics_->report(Issue::Type::ERROR, error, assign_loc);
             return;
         }
@@ -350,7 +351,7 @@ namespace Alpha
             const std::string error = FMT::format("assignment of function `{}`", lv_symbol->name);
             const std::string note = FMT::format("function {} declared here", lv_symbol->name);
             // diagnostics_->report(
-            // Issue::Type::ERROR, error, assign_loc, std::list{Note{note, lv_symbol->loc}});
+            //     Issue::Type::ERROR, error, assign_loc, std::list{Note{note, lv_symbol->loc}});
             return;
         }
     }
@@ -383,7 +384,7 @@ namespace Alpha
 
         // TODO: check todo 52 (on how to make this only when needed)
         const Expr *const temp_assign_expr =
-                expr_maker_->make_assign_expr(parse_ctx_->new_temp(), result_loc);
+            expr_maker_->make_assign_expr(parse_ctx_->new_temp(), result_loc);
         quad_handler_->emit_next_quad(
             IOPCode::ASSIGN, lvalue, nullptr, temp_assign_expr, result_loc);
 

@@ -1,7 +1,7 @@
 %{
         #include <string>                             // for basic_string, stod, stol
         #include "alpha_parser.hpp"                   // for alpha_yylloc, alpha_yyt...
-        #include "core/diagnostics.hpp"               // for CTError, ErrorTracker
+        #include "diagnostics/diagnostic_engine.hpp"               // for CTError, ErrorTracker
         #include "core/source_location.hpp"            // for LocationTracker
         #include "core/shared_interface.hpp"    // for ALPHA_YYLEX_SIGNATURE
         #include "scanner/scanner_context.hpp"  // for LexerCtx
@@ -122,14 +122,15 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacterButNewLine} { /* Just eat up any character use see. */ }
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        diagnostics.report(
-                Alpha::Issue::Type::ERROR,
-                "unclosed comment, expected terminating `*/` character",
-                alpha_yylloc,
-                std::list{Alpha::Note{"comment starts here",
-                Alpha::TokenComment::getStartingLocation()
-                }}
-        );
+      // TODO: uncomment and adjust to nw diagnostic engine
+      //  diagnostics.report(
+        //        Alpha::Issue::Type::ERROR,
+          //      "unclosed comment, expected terminating `*/` character",
+            //    alpha_yylloc,
+              //  std::list{Alpha::Note{"comment starts here",
+                //Alpha::TokenComment::getStartingLocation()
+         //       }}
+        //);
         return EOF;
 }
 
@@ -145,23 +146,25 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_STRING>{stringInvalidEscapeCode} {
         Alpha::TokenString::appendToAssemblingBuffer(yytext);
-        diagnostics.report(
-                Alpha::Issue::Type::ERROR,
-                FMT::format("invalid escape code {} in string", yytext),
-                alpha_yylloc
-        );
+      // TODO: uncomment and adjust to nw diagnostic engine
+      //  diagnostics.report(
+        //        Alpha::Issue::Type::ERROR,
+          //      FMT::format("invalid escape code {} in string", yytext),
+            //    alpha_yylloc
+        //);
         /* Do not stop scanning, but register lexer error. */
 }
 <INSIDE_STRING><<EOF>> {
-        diagnostics.report(
-                Alpha::Issue::Type::ERROR,
-                "unclosed string literal, expected terminating `\"` character",
-                alpha_yylloc,
-                std::list{Alpha::Note{
-                "string literal starts here",
-                Alpha::TokenString::getStartingLocation()
-                }}
-        );
+      // TODO: uncomment and adjust to nw diagnostic engine
+      //  diagnostics.report(
+        //        Alpha::Issue::Type::ERROR,
+          //      "unclosed string literal, expected terminating `\"` character",
+            //    alpha_yylloc,
+              //  std::list{Alpha::Note{
+                //"string literal starts here",
+               // Alpha::TokenString::getStartingLocation()
+                //}}
+        //);
         return EOF;
 }
 <INSIDE_STRING>{stringEndRule} {
@@ -171,11 +174,12 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
-        diagnostics.report(
-                Alpha::Issue::Type::ERROR,
-                FMT::format("character {} is invalid", yytext),
-                alpha_yylloc
-        );
+      // TODO: uncomment and adjust to nw diagnostic engine
+      //  diagnostics.report(
+        //        Alpha::Issue::Type::ERROR,
+          //      FMT::format("character {} is invalid", yytext),
+            //    alpha_yylloc
+       // );
 }
 
 <<EOF>>          {return ALPHA_YYEOF;}

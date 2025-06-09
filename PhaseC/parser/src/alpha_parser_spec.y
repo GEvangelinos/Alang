@@ -14,7 +14,7 @@
 
 %code requires
 {
-    #include "diagnostics/diagnostics.hpp"         // for ErrorTracker
+    #include "diagnostics/diagnostic_engine.hpp"         // for ErrorTracker
     #include "core/source_location.hpp"     // for Location, LocationTracker
     #include "parser/parser_context.hpp"    // for ParseCtx
     #include "parser/symbol_table.hpp"      // for Symbol, SymbolTable
@@ -29,12 +29,12 @@
 %locations
 
 %parse-param {Alpha::LocationTracker &location_tracker}
-%parse-param {Alpha::Diagnostics &diagnostics}
+%parse-param {Alpha::DiagnosticEngine &diagnostic_engine}
 %parse-param {Alpha::LexerCtx &lexer_ctx}
 %parse-param {Alpha::SemanticDriver &sd}
 
 %lex-param {Alpha::LocationTracker &location_tracker}
-%lex-param {Alpha::Diagnostics &diagnostics}
+%lex-param {Alpha::DiagnosticEngine &diagnostic_engine}
 %lex-param {Alpha::LexerCtx &lexer_ctx}
 
 // Here I declare the trivial types that can be used in union.
@@ -249,7 +249,7 @@ primary
 
 
 lvalue:
-  ID
+  ID {}
 | LOCAL ID
 | GLOBAL ID
 | member

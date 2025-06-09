@@ -3,14 +3,14 @@
 
 #include "parser/semantic_utils.hpp"
 #include "parser/ir.hpp"
-#include "../../../../diagnostics/include/diagnostics/diagnostics.hpp"
+#include "diagnostics/diagnostic_engine.hpp"
 
 namespace Alpha
 {
 class ExprSnitch
 {
 public:
-    explicit ExprSnitch(Diagnostics *diagnostics);
+    explicit ExprSnitch(DiagnosticEngine *diagnostic_engine);
 
     void report_if_not_arithmetic(IOPCode iopc, const Expr *expr, SourceLocation expr_loc,
                                   OperandSide op_side);
@@ -19,7 +19,7 @@ public:
     void report_if_int_to_float_loss(AlphaInt int_value, SourceLocation conversion_loc);
 
 private:
-    Diagnostics *const diagnostics_;
+    DiagnosticEngine *const diagnostic_engine_;
 
     void report_non_arithmetic_operand(IOPCode iopc, const Expr *expr, SourceLocation expr_loc,
                                        OperandSide op_side);
@@ -28,8 +28,8 @@ private:
 };
 
 inline
-ExprSnitch::ExprSnitch(Diagnostics *const diagnostics)
-    : diagnostics_(Utils::require_ptr(diagnostics)) {}
+ExprSnitch::ExprSnitch(DiagnosticEngine *const diagnostic_engine)
+    : diagnostic_engine_(Utils::require_ptr(diagnostic_engine)) {}
 
 inline void
 ExprSnitch::report_if_not_arithmetic(
@@ -60,7 +60,7 @@ ExprSnitch::report_non_arithmetic_operand(
     else
         throw std::logic_error(ATTACH_CONTEXT("Invalid arithmetic OperandSide"));
     const std::string note = FMT::format("operand's expression type: `{}`", to_string(expr->type));
-    diagnostics_->report(Issue::Type::ERROR, error, expr_loc, std::list{Note{note, expr_loc}});
+    // diagnostics_->report(Issue::Type::ERROR, error, expr_loc, std::list{Note{note, expr_loc}});
 }
 
 inline void ExprSnitch::report_if_not_relational(
@@ -98,7 +98,7 @@ inline void ExprSnitch::report_non_relational_operand(
         FMT::format("`{}` operand of relational operator `{}` is never arithmetic",
                     to_string(op_side), SemUtils::relop_to_str(iopc));
     const std::string note = FMT::format("operand's expression type: `{}`", to_string(expr->type));
-    diagnostics_->report(Issue::Type::ERROR, error, expr_loc, std::list{Note{note, expr_loc}});
+    // diagnostics_->report(Issue::Type::ERROR, error, expr_loc, std::list{Note{note, expr_loc}});
 }
 
 inline void
@@ -108,10 +108,10 @@ ExprSnitch::report_if_int_to_float_loss(
 {
     if (Utils::is_lossless_int_to_float<AlphaFloat>(int_value))
         return;
-    diagnostics_->report(
-        Issue::Type::WARNING,
-        "integer to floating-point implicit conversion results in integral precision loss",
-        conversion_loc);
+    // diagnostics_->report(
+        // Issue::Type::WARNING,
+        // "integer to floating-point implicit conversion results in integral precision loss",
+        // conversion_loc);
 }
 } // namespace Alpha
 #endif // EXPR_SNITCH_HPP

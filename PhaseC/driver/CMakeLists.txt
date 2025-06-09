@@ -7,6 +7,7 @@ target_link_libraries(alpha_driver_api INTERFACE
     alpha_core_api
     alpha_parser_api
     alpha_scanner_api
+    alpha_diagnostics_api
 )
 
 # === alpha_driver_impl: Implementation (compiled source) ===
@@ -32,6 +33,7 @@ target_link_libraries("${ALPHA_DRIVER_EXECUTABLE}" PRIVATE
     arguinator_impl
     alpha_driver_impl
     alpha_core_impl
+    alpha_diagnostics_impl
     alpha_parser_impl
     alpha_scanner_impl
 )

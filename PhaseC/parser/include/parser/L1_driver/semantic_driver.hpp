@@ -4,7 +4,7 @@
 #include "parser/parser_context.hpp"
 #include "parser/symbol_table.hpp"
 #include "core/basics.hpp"
-#include "../../../../diagnostics/include/diagnostics/diagnostics.hpp"
+#include "diagnostics/diagnostic_engine.hpp"
 #include "L2_builders/expr_builders.hpp"
 #include "L3_ir_infra/expr_folder.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
@@ -30,7 +30,7 @@ namespace Alpha
             Options options,
             ParseCtx *parse_ctx,
             SymbolTable *symbol_table,
-            Diagnostics *diagnostics);
+            DiagnosticEngine *diagnostic_engine);
 
         // TODO make a function that user calls before destructor call that basically extracts all this
         // alpha drivers would want (like the generated quads).
@@ -44,7 +44,7 @@ namespace Alpha
         // Defaulted to nullptr to trigger safe asserts if construction order is violated.
         ParseCtx *const parse_ctx_ = nullptr;
         SymbolTable *const symbol_table_ = nullptr;
-        Diagnostics *const diagnostics_ = nullptr;
+        DiagnosticEngine *const diagnostic_engine_ = nullptr;
 
         // -- Layer 3 subsystems --
         std::unique_ptr<ExprSnitch> expr_snitch_;
