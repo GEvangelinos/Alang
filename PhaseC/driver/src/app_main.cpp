@@ -72,7 +72,7 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
         return parser; // NRVO
 }
 
-int main(int argc, char **argv)
+int main(const int argc, char **argv)
 {
         const Arguinator::Parser cli_parser = launch_cli_parser(argc, argv);
         std::unique_ptr<Alpha::Driver> driver;

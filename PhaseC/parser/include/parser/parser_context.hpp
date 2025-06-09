@@ -13,7 +13,7 @@
 #include <list>
 #include <stack>
 #include <vector>
-#include "core/diagnostics.hpp"
+#include "../../../diagnostics/include/diagnostics/diagnostics.hpp"
 #include "core/konstants.hpp"
 #include "parser/konstants.hpp"
 #include "core/numeric_types.hpp"

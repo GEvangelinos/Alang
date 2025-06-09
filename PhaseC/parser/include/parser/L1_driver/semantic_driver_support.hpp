@@ -27,23 +27,35 @@
 
 #include "parser/parser_context.hpp"
 #include "parser/ir.hpp"
+#include  "L3_ir_infra/expr_folder.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
 
 namespace Alpha
 {
-class SemanticDriverServices
-{
-public:
-    SemanticDriverServices(ParseCtx *parse_ctx, ExprMaker *expr_maker, QuadHandler *quad_handler);
+    class SemanticDriverBridge
+    {
+    public:
+        SemanticDriverBridge(ParseCtx *parse_ctx, ExprMaker *expr_maker,
+                               QuadHandler *quad_handler);
 
-    const Expr *emit_quad_if_table_item(const Expr *expr);
+        const Expr *emit_quad_if_table_item(const Expr *expr);
 
-private:
-    ParseCtx *const parse_ctx_;
-    ExprMaker *const expr_maker_;
-    QuadHandler *const quad_handler_;
-};
+    private:
+        ParseCtx *const parse_ctx_;
+        ExprMaker *const expr_maker_;
+        QuadHandler *const quad_handler_;
+    };
+
+    struct BuilderInitPack
+    {
+        ParseCtx *const parse_ctx;
+        ExprMaker *const expr_maker;
+        ExprFolder *const expr_folder;
+        ExprSnitch *const expr_snitch;
+        QuadHandler *const quad_handler;
+        SemanticDriverBridge *const sd_bridge;
+    };
 } // namespace Alpha
 
 

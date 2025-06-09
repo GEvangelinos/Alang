@@ -3,7 +3,7 @@
 
 #include "parser/semantic_utils.hpp"
 #include "parser/ir.hpp"
-#include "core/diagnostics.hpp"
+#include "../../../../diagnostics/include/diagnostics/diagnostics.hpp"
 
 namespace Alpha
 {

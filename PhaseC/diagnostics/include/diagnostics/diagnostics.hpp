@@ -11,10 +11,6 @@
 
 namespace Alpha
 {
-// Classes defined here:
-class Issue;   // IWYU pragma: keep
-class CTIssue;      // IWYU pragma: keep
-class Diagnostics; // IWYU pragma: keep
 class Issue
 {
 public:

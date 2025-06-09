@@ -1,4 +1,4 @@
-#include "core/diagnostics.hpp"
+#include "../include/diagnostics/diagnostics.hpp"
 #include <algorithm>                // for count
 #include <cstring>                  // for size_t, strchr, strlen
 #include <sstream>                  // for basic_stringstream, basic_ostream

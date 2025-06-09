@@ -190,6 +190,7 @@ set_directory_properties(PROPERTIES ADDITIONAL_CLEAN_FILES "${AUTOGEN_FILES}")
 
 # === Core Compiler Components ===
 add_subdirectory(core)
+add_subdirectory(diagnostics)
 add_subdirectory(parser)
 add_subdirectory(scanner)
 add_subdirectory(driver)

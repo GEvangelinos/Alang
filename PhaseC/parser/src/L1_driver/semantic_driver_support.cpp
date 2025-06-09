@@ -1,9 +1,9 @@
-#include "L1_driver/semantic_driver_services.hpp"
+#include "L1_driver/semantic_driver_support.hpp"
 
 namespace Alpha{
 
 
-SemanticDriverServices::SemanticDriverServices(
+SemanticDriverBridge::SemanticDriverBridge(
 ParseCtx *const parse_ctx,
  ExprMaker *const expr_maker,
  QuadHandler *const quad_handler)
@@ -11,7 +11,7 @@ ParseCtx *const parse_ctx,
 
 
 const Expr *
-SemanticDriverServices::emit_quad_if_table_item(const Expr *const expr)
+SemanticDriverBridge::emit_quad_if_table_item(const Expr *const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
     if (expr->type != Expr::Type::TABLE_ITEM)

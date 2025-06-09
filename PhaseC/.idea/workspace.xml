@@ -19,17 +19,17 @@
   </component>
   <component name="CMakeRunConfigurationManager">
     <generated>
-      <config projectName="Alpha" targetName="generate_scanner" />
-      <config projectName="Alpha" targetName="alpha_scanner_impl" />
-      <config projectName="Alpha" targetName="generate_parser_scanner" />
-      <config projectName="Alpha" targetName="alpha_driver_impl" />
-      <config projectName="Alpha" targetName="alpha_parser_impl" />
       <config projectName="Alpha" targetName="alpha_core_impl" />
       <config projectName="Alpha" targetName="regression_check" />
+      <config projectName="Alpha" targetName="generate_scanner" />
+      <config projectName="Alpha" targetName="alpha_scanner_impl" />
       <config projectName="Alpha" targetName="generate_parser" />
+      <config projectName="Alpha" targetName="generate_parser_scanner" />
       <config projectName="Alpha" targetName="alpha_driver.out" />
+      <config projectName="Alpha" targetName="alpha_driver_impl" />
       <config projectName="Alpha" targetName="arguinator_impl" />
       <config projectName="Alpha" targetName="regression_check_full" />
+      <config projectName="Alpha" targetName="alpha_parser_impl" />
     </generated>
   </component>
   <component name="CMakeSettings">
@@ -39,11 +39,29 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7c8613d7-6f85-4b86-b1b3-9689bd67e859" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.cached_files/OLD_semantic_builder.hpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/diagnostics/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/test.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/test.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/QUAD_EXPORTS/mine_104.asc.quads" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/bugs_to_fix/Failing_function_entry DUE to not entering function becuase we failed on arguments.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/core/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/diagnostics.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostics.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/src/diagnostics.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/diagnostics.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/app_main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/app_main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/old_phase_c.zip" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_driver.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_driver_services.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_driver_support.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_builders/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_builders/expr_builders.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_folder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_folder.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_snitch.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_snitch.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_driver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_driver_services.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_driver_support.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -55,8 +73,39 @@
     <option name="formatViaClangd" value="false" />
   </component>
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="CMakeLists.txt" />
+      </list>
+    </option>
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="ProjectApplicationVersion">
     <option name="ide" value="CLion" />
@@ -75,6 +124,7 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
+    "CMake Application.alpha_driver.out.executor": "Debug",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.RadMigrateCodeStyle": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
@@ -95,6 +145,12 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/diagnostics/src" />
+      <recent name="$PROJECT_DIR$/diagnostics/include/diagnostics" />
+    </key>
+  </component>
   <component name="RunManager" selected="CMake Application.alpha_driver.out">
     <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
@@ -111,7 +167,7 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="alpha_driver.out" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_driver.out" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alpha_driver.out">
+    <configuration name="alpha_driver.out" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--show-quads --input-file .tests/test.asc" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_driver.out" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alpha_driver.out">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -178,7 +234,7 @@
       <option name="presentableId" value="Default" />
       <updated>1749379349482</updated>
       <workItem from="1749379350884" duration="11432000" />
-      <workItem from="1749394445042" duration="7879000" />
+      <workItem from="1749394445042" duration="22145000" />
     </task>
     <servers />
   </component>

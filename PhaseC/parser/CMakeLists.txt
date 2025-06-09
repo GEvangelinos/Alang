@@ -78,7 +78,7 @@ add_library(alpha_parser_impl STATIC
     src/symbol_table.cpp
     src/RELOCATE_backpatcher.cpp
     src/L1_driver/semantic_driver.cpp
-    src/L1_driver/semantic_driver_services.cpp
+    src/L1_driver/semantic_driver_support.cpp
 )
 target_include_directories(alpha_parser_impl PRIVATE
     "src"
@@ -86,5 +86,6 @@ target_include_directories(alpha_parser_impl PRIVATE
 target_link_libraries(alpha_parser_impl PRIVATE
     alpha_parser_api
     alpha_core_api
+    alpha_diagnostics_api
     alpha_scanner_api
 )

@@ -14,7 +14,7 @@
 
 %code requires
 {
-    #include "core/diagnostics.hpp"         // for ErrorTracker
+    #include "diagnostics/diagnostics.hpp"         // for ErrorTracker
     #include "core/source_location.hpp"     // for Location, LocationTracker
     #include "parser/parser_context.hpp"    // for ParseCtx
     #include "parser/symbol_table.hpp"      // for Symbol, SymbolTable
@@ -55,10 +55,10 @@
 %type  <const_expr_ptr> const
 %type  <const_expr_ptr> primary
 %type  <const_expr_ptr> term
+%type  <const_expr_ptr> lvalue
 %type  <const_expr_ptr> expr
 %type  <const_expr_ptr> assignExpr
 /********************************************************
-%type  <expr_ptr> lvalue
 %type  <expr_ptr> tableItem
 %type  <expr_ptr> member
 %type  <expr_ptr> call
@@ -205,7 +205,8 @@ loopCtrlStmt
 
 expr[result]
 : assignExpr {/* TODO: do we thread here?  */}
-| term { $result = $term; }
+| term   { $result = $term; }
+| lvalue { $result = $lvalue; }
 | expr[lhs] PLUS  expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::ADD,          $lhs, $rhs, @lhs, @rhs, @result); }
 | expr[lhs] MINUS expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::SUB,          $lhs, $rhs, @lhs, @rhs, @result); } 
 | expr[lhs] MUL   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::MUL,          $lhs, $rhs, @lhs, @rhs, @result); }
@@ -226,7 +227,7 @@ saveNextQuadHook:;
 term
 : primary { $term = $primary; }
 | LEFT_PAREN expr RIGHT_PAREN
-| MINUS expr %prec UMINUS
+| MINUS expr %prec UMINUS { $term = sd.basic_builder.build_uminus($expr, @expr, @term); }
 | NOT expr
 | INC lvalue
 | lvalue INC
@@ -235,7 +236,7 @@ term
 ;
 
 assignExpr:
-  expr[lhs] ASSIGN expr[rhs]
+  expr[lhs] ASSIGN expr[rhs] { $assignExpr = sd.assign_builder.build_assignment($lhs, $rhs, @assignExpr); }
 ;
 
 primary
