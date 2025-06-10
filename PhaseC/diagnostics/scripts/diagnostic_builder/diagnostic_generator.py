@@ -1,7 +1,7 @@
 import argparse
 import os
 from typing import NamedTuple
-from diagnostic_fsm_parsers import DiagnosticFSM
+from diagnostic_fsm_parsers import Diagnostic, DiagnosticFSM, LineTracker
 
 
 class StartupArguments(NamedTuple):
@@ -32,15 +32,27 @@ def load_diagnostics_file(input_filename) -> list[str]:
         return fin.readlines()
 
 
-def load_diagnostics(yaml_lines: list[str]):
-    fsm = DiagnosticFSM()
-    fsm.parse_diagnostic_fsm(yaml_lines, 1)
+def load_diagnostics(yaml_lines: list[str]) -> list[Diagnostic]:
+    line_tracker = LineTracker(yaml_lines)
+    diagnostics = []
+    while not line_tracker.at_end():
+        while line_tracker.line().isspace():  # Ignore and skip empty lines
+            line_tracker.advance()
+        diagnostics.append(DiagnosticFSM().parse_diagnostic_fsm(line_tracker))
+    return diagnostics
+
 
 
 def main():
-    startup_args = parse_startup_arguments()
-    yaml_lines = load_diagnostics_file(startup_args.input_filename)
-    load_diagnostics(yaml_lines)
+    try:
+        startup_args = parse_startup_arguments()
+        yaml_lines = load_diagnostics_file(startup_args.input_filename)
+        diagnostics = load_diagnostics(yaml_lines)
+        for diag in diagnostics:
+            print(f"Name: {diag.name}")
+    except Exception as e:
+        print(e)
+
 
 if __name__ == "__main__":
     main()
