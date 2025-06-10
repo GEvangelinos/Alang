@@ -21,10 +21,8 @@ class LineTracker:
         return self._line_index >= len(self.lines)
 
     def skip_empty_lines(self) -> None:
-        while not self.at_end():
-            if not self.line() or self.line().isspace():
-                self.advance()
-
+        while not self.at_end() and not self.line().strip():
+            self.advance()
 
 
 class DiagnosticEntry:
@@ -148,11 +146,9 @@ class DiagnosticEntryFSM:
 
         self.state = self.State.EXPECT_MESSAGE  # Initial FSM state
         while self.state != self.state.DONE:
+            self.line_tracker.skip_empty_lines()
             if self.line_tracker.at_end():
                 raise RuntimeError(f"In line {self.line_tracker.linenum()} EOF reached. But EntryFSM was not DONE")
-            if self.line_tracker.line().isspace():  # Ignore and skip empty lines
-                self.line_tracker.advance()
-                continue
 
             if self.state == self.State.EXPECT_MESSAGE:
                 self.state = self.handle_expect_message()
@@ -220,8 +216,7 @@ class DiagnosticFSM:
     def handle_expect_notes(self) -> State:
         if self.line_tracker.line().startswith("  Notes:"):
             self.line_tracker.advance()
-            while not self.line_tracker.at_end() and self.line_tracker.line().isspace():  # Skip empty lines.
-                self.line_tracker.advance()
+            self.line_tracker.skip_empty_lines()
             if self.line_tracker.at_end() or not self.line_tracker.line().startswith("    - Message: "):
                 raise RuntimeError(f"In line {self.line_tracker.linenum()}, expected `Message` definition for `Notes`")
             while not self.line_tracker.at_end() and self.line_tracker.line().startswith("    - Message: "):
@@ -234,13 +229,11 @@ class DiagnosticFSM:
 
         self.state = self.State.EXPECT_DIAGNOSTIC  # Initial FSM state
         while self.state != self.State.DONE:
+            self.line_tracker.skip_empty_lines()
             if self.line_tracker.at_end() and self.state == self.State.EXPECT_NOTES:
                 break
             if self.line_tracker.at_end() and self.state != self.State.EXPECT_NOTES:
                 raise RuntimeError(f"In line {self.line_tracker.linenum()} EOF reached. But DiagnosticFSM was not DONE")
-            if self.line_tracker.line().isspace():  # Ignore and skip empty lines
-                self.line_tracker.advance()
-                continue
 
             if self.state == self.State.EXPECT_DIAGNOSTIC:
                 self.state = self.handle_expect_diagnostic()

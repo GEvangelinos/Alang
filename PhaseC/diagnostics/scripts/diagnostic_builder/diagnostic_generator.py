@@ -36,8 +36,7 @@ def load_diagnostics(yaml_lines: list[str]) -> list[Diagnostic]:
     line_tracker = LineTracker(yaml_lines)
     diagnostics = []
     while not line_tracker.at_end():
-        while line_tracker.line().isspace():  # Ignore and skip empty lines
-            line_tracker.advance()
+        line_tracker.skip_empty_lines()
         diagnostics.append(DiagnosticFSM().parse_diagnostic_fsm(line_tracker))
     return diagnostics
 
