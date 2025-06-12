@@ -1,24 +1,24 @@
 - Diagnostic: ASSIGNMENT_LHS_NOT_LVALUE
-  Type: "ERROR"
+  Type: ERROR
   Primary:
-    - Message: "Lvalue required as left operand of assignment.{4} Left operand's expression type is `{0}` {1}"
-      Args: [ "lhs_type", "1" , "2", "3", "4" ]
-      Location: "lhs_loc"
+    - Message: "Lvalue required as left operand of assignment. Left operand's expression type is `{0}`"
+      Args: [ lhs_type ]
+      Location: lhs_loc
 
-- Diagnostic: ASSIGNMENT_LHS_IS_FUNC
-  Type: "ERROR"
+- Diagnostic: ASSIGNMENT_OF_FUNC
+  Type: ERROR
   Primary:
     - Message: "Assignment of function `{0}`"
-      Args: [ "func_name" ]
-      Location: "assign_loc"
+      Args: [ func_name ]
+      Location: assign_loc
   Notes:
-    - Message: "Function `{0}` declared here"
-      Args: [ "func_name" ]
-      Location: "func_decl_loc"
+    - Message: "Function `{0}` defined here"
+      Args: [ func_name ]
+      Location: func_def_loc
 
-- Diagnostic: ASSIGNMENT_LHS_IS_LIB_FUNC
-  Type: "ERROR"
+- Diagnostic: ASSIGNMENT_OF_LIBFUNC
+  Type: ERROR
   Primary:
     - Message: "Assignment of library function `{0}`"
-      Args: [ "func_name" ]
-      Location: "assign_loc"
+      Args: [ func_name ]
+      Location: assign_loc

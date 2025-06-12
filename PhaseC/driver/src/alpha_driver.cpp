@@ -386,13 +386,13 @@ namespace Alpha
         auto write_diagnostic = [&](const Issue &diag)
         {
             outfile << FMT::format("{},{},{},{}\n", diag.line(lt_), diag.column(lt_),
-                                   diag.type_to_string(), diag.description);
+                                   diag.type_to_string(), diag.desc);
         };
 
         for (const auto &cti: diagnostic_engine_.get_compile_time_issues())
         {
-            write_diagnostic(cti->issue);
-            for (const Issue &note: cti->note_list)
+            write_diagnostic(cti->primary);
+            for (const Issue &note: cti->notes)
                 write_diagnostic(note);
         }
     }

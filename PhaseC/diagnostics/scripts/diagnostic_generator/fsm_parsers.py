@@ -1,69 +1,8 @@
-from enum import Enum, auto
 import re
 import utils
-
-
-class LineTracker:
-    def __init__(self, lines: list[str]):
-        self.lines = lines
-        self._line_index = 0
-
-    def linenum(self) -> int:
-        return self._line_index + 1
-
-    def line(self) -> str:
-        return self.lines[self._line_index]
-
-    def advance(self) -> None:
-        self._line_index += 1
-
-    def at_end(self) -> bool:
-        return self._line_index >= len(self.lines)
-
-    def skip_empty_lines(self) -> None:
-        while not self.at_end() and not self.line().strip():
-            self.advance()
-
-
-class DiagnosticEntry:
-    def __init__(self, message: str, args: list[str], location: str):
-        self.message = message
-        self.args = args
-        self.location = location
-
-
-class Diagnostic:
-    class Type(Enum):
-        WARNING = auto()
-        ERROR = auto()
-        FATAL = auto()
-
-        def __str__(self):
-            return f"{self.name}"
-
-    @staticmethod
-    def to_diag_type(diag_type: str):
-        match diag_type:
-            case "WARNING":
-                return Diagnostic.Type.WARNING
-            case "ERROR":
-                return Diagnostic.Type.ERROR
-            case "FATAL":
-                return Diagnostic.Type.FATAL
-            case _:
-                raise ValueError("Unknown diagnostic type")
-
-    def __init__(
-        self,
-        name: str,
-        dtype: Type,
-        primary: DiagnosticEntry,
-        notes: list[DiagnosticEntry]
-    ):
-        self.name = name
-        self.type = dtype
-        self.primary = primary
-        self.notes = notes
+from enum import Enum, auto
+from line_tracker import LineTracker
+from models import DiagnosticEntry, Diagnostic
 
 
 class DiagnosticEntryFSM:
@@ -94,15 +33,16 @@ class DiagnosticEntryFSM:
         linenum = self.line_tracker.linenum()
         line = self.line_tracker.line()
         if not line.startswith("    - Message: "):
-            raise RuntimeError(f"In `Primary`, line {linenum}: expected to start with `    - Message: `")
+            raise RuntimeError(f"In line {linenum}: expected to start with `    - Message: `")
         message_string = line.split(':', 1)[1].strip()  # We strip prefix and suffix spaces.
         if not utils.is_in_double_quotes(message_string):
-            raise RuntimeError(f"In `Primary`, line {linenum}, message not enclosed in double quotes")
+            raise RuntimeError(f"In line {linenum}:, message not enclosed in double quotes")
         self.message = message_string[1:-1]  # We strip message from double quotes.
         self.expected_args = DiagnosticEntryFSM.count_expected_args(self.message)
         self.line_tracker.advance()
         return self.State.EXPECT_ARGS
 
+    # noinspection RegExpRedundantEscape
     def handle_expect_args(self) -> State:
         if self.expected_args == 0:
             return self.State.EXPECT_LOCATION
@@ -110,21 +50,23 @@ class DiagnosticEntryFSM:
         linenum = self.line_tracker.linenum()
         line = self.line_tracker.line()
         if not line.startswith("      Args: "):
-            raise RuntimeError(f"In `Primary`, line {linenum} expected to start with `      Args: `")
+            raise RuntimeError(f"In line {linenum}: expected to start with `      Args: `")
         arg_list_line = line.split(':', 1)[1].strip()  # We strip prefix and suffix spaces.
         if not utils.is_in_brackets(arg_list_line):
-            raise RuntimeError(f"In `Primary`, line {linenum} expected `Args` enclosed in [] (brackets)")
+            raise RuntimeError(f"In line {linenum}: expected `Args` enclosed in [] (brackets)")
         arg_list_line = utils.strip_brackets(arg_list_line)
+
         for arg in arg_list_line.split(','):
             arg = arg.strip()  # We strip surrounding spaces.
-            if not utils.is_in_double_quotes(arg):
-                raise RuntimeError(f"In `Primary`, line {linenum}, "
-                                   f"`{utils.strip_double_quotes(arg)}` not enclosed in double quotes")
-            arg = arg[1:-1]  # We strip arg from double quotes.
+            if not utils.is_valid_cpp_identifier(arg):
+                raise RuntimeError(f"In line {linenum}: argument `{arg}` is not a valid C++ identifier")
             self.args.append(arg)
+
         if self.expected_args != len(self.args):
-            raise RuntimeError(f"In `Primary`, line {linenum}, "
-                               f"message expects {self.expected_args}, but args were {len(self.args)}")
+            raise RuntimeError(
+                f"In line {linenum}: argument count mismatch "
+                f"— expected {self.expected_args} values in `Args`, but got {len(self.args)}."
+            )
         self.line_tracker.advance()
         return self.State.EXPECT_LOCATION
 
@@ -132,11 +74,8 @@ class DiagnosticEntryFSM:
         linenum = self.line_tracker.linenum()
         line = self.line_tracker.line()
         if not line.startswith("      Location: "):
-            raise RuntimeError(f"In `Primary`, line {linenum} expected to start with `      Location: `")
-        location_string = line.split(':', 1)[1].strip()  # We strip prefix and suffix spaces.
-        if not utils.is_in_double_quotes(location_string):
-            raise RuntimeError(f"In `Primary`, line {linenum}, location not enclosed in double quotes")
-        self.location = location_string[1:-1]  # We strip arg from double quotes.
+            raise RuntimeError(f"In line {linenum}: expected to start with `      Location: `")
+        self.location = line.split(':', 1)[1].strip()  # We strip prefix and suffix spaces.
         self.line_tracker.advance()
         return self.State.DONE
 
@@ -148,7 +87,7 @@ class DiagnosticEntryFSM:
         while self.state != self.state.DONE:
             self.line_tracker.skip_empty_lines()
             if self.line_tracker.at_end():
-                raise RuntimeError(f"In line {self.line_tracker.linenum()} EOF reached. But EntryFSM was not DONE")
+                raise RuntimeError(f"In line {self.line_tracker.linenum()}: EOF reached, but EntryFSM was not DONE")
 
             if self.state == self.State.EXPECT_MESSAGE:
                 self.state = self.handle_expect_message()
@@ -185,7 +124,7 @@ class DiagnosticFSM:
     def handle_expect_diagnostic(self) -> State:
         line = self.line_tracker.line()
         if not line.startswith("- Diagnostic: "):
-            raise RuntimeError(f"In line {self.line_tracker.linenum()}, expected line to start with  `- Diagnostic: ` ")
+            raise RuntimeError(f"In line {self.line_tracker.linenum()}:, expected line to start with  `- Diagnostic: ` ")
         self.diag_name = line.split(':', 1)[1].strip()
         self.line_tracker.advance()
         return self.State.EXPECT_TYPE
@@ -194,13 +133,10 @@ class DiagnosticFSM:
         linenum = self.line_tracker.linenum()
         line = self.line_tracker.line()
         if not line.startswith("  Type: "):
-            raise RuntimeError(f"In line {linenum}, expected line to start with `  Type: `")
+            raise RuntimeError(f"In line {linenum}:, expected line to start with `  Type: `")
         line = line.split(':', 1)[1].strip()  # We extract type and we strip spaces around it.
-        if not utils.is_in_double_quotes(line):
-            raise RuntimeError(f"In line {linenum}, expected `Type` enclosed in double quotes")
-        line = line[1:-1]
         try:
-            self.diag_type = Diagnostic.to_diag_type(line)
+            self.diag_type = Diagnostic.to_type(line)
         except ValueError as e:
             raise ValueError(f"In line {linenum}: {e}")
         self.line_tracker.advance()
@@ -208,7 +144,7 @@ class DiagnosticFSM:
 
     def handle_expect_primary(self) -> State:
         if not self.line_tracker.line().startswith("  Primary:"):
-            raise RuntimeError(f"In line {self.line_tracker.linenum()}, expected line to start with `  Primary:`")
+            raise RuntimeError(f"In line {self.line_tracker.linenum()}:, expected line to start with `  Primary:`")
         self.line_tracker.advance()  # We advance to "enter" primary
         self.diag_primary = self.entry_fsm.parse_entry_fsm(self.line_tracker)
         return self.State.EXPECT_NOTES
@@ -218,7 +154,7 @@ class DiagnosticFSM:
             self.line_tracker.advance()
             self.line_tracker.skip_empty_lines()
             if self.line_tracker.at_end() or not self.line_tracker.line().startswith("    - Message: "):
-                raise RuntimeError(f"In line {self.line_tracker.linenum()}, expected `Message` definition for `Notes`")
+                raise RuntimeError(f"In line {self.line_tracker.linenum()}:, expected `Message` definition for `Notes`")
             while not self.line_tracker.at_end() and self.line_tracker.line().startswith("    - Message: "):
                 self.diag_notes.append(self.entry_fsm.parse_entry_fsm(self.line_tracker))
         return self.State.DONE
@@ -233,7 +169,7 @@ class DiagnosticFSM:
             if self.line_tracker.at_end() and self.state == self.State.EXPECT_NOTES:
                 break
             if self.line_tracker.at_end() and self.state != self.State.EXPECT_NOTES:
-                raise RuntimeError(f"In line {self.line_tracker.linenum()} EOF reached. But DiagnosticFSM was not DONE")
+                raise RuntimeError(f"In line {self.line_tracker.linenum()}: EOF reached, but DiagnosticFSM was not DONE")
 
             if self.state == self.State.EXPECT_DIAGNOSTIC:
                 self.state = self.handle_expect_diagnostic()
@@ -248,7 +184,7 @@ class DiagnosticFSM:
 
         return Diagnostic(
             name=self.diag_name,
-            dtype=self.diag_type,
+            type_=self.diag_type,
             primary=self.diag_primary,
             notes=self.diag_notes
         )
