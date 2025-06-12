@@ -114,8 +114,9 @@ set(SCRIPTS_DIR "${CMAKE_SOURCE_DIR}/scripts")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/executables" CACHE PATH "Directory where compiled executables will be placed")
 ###############################################################################################################
 
-set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l") # <-- Modifying .l filename requires manual change.
-set(BISON_SPEC_FILENAME "alpha_parser_spec.y") # <-- Modifying .y filename requires manual change.
+set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l") # <-- Modifying filename requires manual change.
+set(BISON_SPEC_FILENAME "alpha_parser_spec.y") # <-- Modifying filename requires manual change.
+set(DIAGNOSTICS_SPEC_FILENAME "diagnostics_spec.yaml") # <-- Modifying filename requires manual change.
 
 
 ##########################################--==>> TESTS <<==--###########################################
@@ -125,7 +126,7 @@ set(GOLDEN_SYMBOL_TABLES_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_SYMBOL_TABLES")
 set(GOLDEN_COMPILE_ERRORS_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_COMPILE_ERRORS")
 
 # Create directory that hosts code from flex and bison
-set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/autogen" CACHE PATH "Path to the root directory for auto-generated files")
+set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/autogen" CACHE PATH "Path to the root directory for auto-generated components")
 set(AUTOGEN_SRC_DIR_PATH "${AUTOGEN_ROOT_DIR_PATH}/src" CACHE PATH "Path to the directory for auto-generated source files")
 set(AUTOGEN_INCLUDE_DIR_PATH "${AUTOGEN_ROOT_DIR_PATH}/include" CACHE PATH "Path to the directory for auto-generated header files")
 set(AUTOGEN_DIR_LIST

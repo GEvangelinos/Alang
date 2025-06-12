@@ -15,7 +15,7 @@ set(LOG_INJECTED_BISON_SPEC_FILENAME "${parser_basename}${logged_file_marker}${p
 if (NOT HATE_PYTHON_MODE)
     add_custom_command(
         OUTPUT ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
-        COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/scripts/log_injector/main.py" # -B is used to disable .pyc (__pycache)
+        COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/scripts/log_injector/main.py" # -B is used to disable .pyc (__pycache__)
         --input ${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}
         --output ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
         --log-fn display_trace
@@ -54,7 +54,7 @@ endif ()
 if (NOT HATE_PYTHON_MODE)
     add_custom_target(generate_parser ALL DEPENDS
         ${BISON_ALPHA_PARSER_OUTPUTS}
-        ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
+        "${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
     )
 else () # This is the case exists for when python is not allowed
     add_custom_target(generate_parser ALL DEPENDS
@@ -66,8 +66,8 @@ endif ()
 add_library(alpha_parser_api INTERFACE)
 target_include_directories(alpha_parser_api INTERFACE
     "${AUTOGEN_INCLUDE_DIR_PATH}"
-    "include"
-    "include/parser"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/parser"
 )
 target_link_libraries(alpha_parser_api INTERFACE
     utils_api
@@ -81,7 +81,7 @@ add_library(alpha_parser_impl STATIC
     src/L1_driver/semantic_driver_support.cpp
 )
 target_include_directories(alpha_parser_impl PRIVATE
-    "src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 target_link_libraries(alpha_parser_impl PRIVATE
     alpha_parser_api

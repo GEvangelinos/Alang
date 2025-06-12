@@ -232,3 +232,8 @@ but we never use it.
 
 57) Added extra code generation step to generate the diagnostics from YAML file.
 TODO: !! Dont forget to mention this in your report! (its very clever... Extra credit points)
+
+
+58) TODO read all emails on compiler on (hy342-list) (there maybe be bugs and stuff other have found.. also read the responses from the TAs)
+
+59) If they hate python.. (hate_python_mode ON) then include some cached generated files.. so diagnostic system doesnt FAIL. (BE INVINCIBLE!)

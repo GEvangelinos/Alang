@@ -1,5 +1,7 @@
 import argparse
 import os
+import sys
+from dataclasses import dataclass
 from typing import NamedTuple
 from fsm_parsers import Diagnostic, DiagnosticFSM, LineTracker
 from cpp_generator import CppGenerator
@@ -58,11 +60,11 @@ def main():
         cli_args = parse_cli_args()
         yaml_lines = load_diagnostics_file(cli_args.input_filename)
         diagnostics = load_diagnostics(yaml_lines)
-        cpp_generator = CppGenerator(cli_args.outfile_prefix, diagnostics)
+        cpp_generator = CppGenerator(cli_args, diagnostics)
         cpp_generator.generate_all_files()
-
-    except Exception as e:
+    except(RuntimeError, ValueError) as e:
         print(e)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
