@@ -6,9 +6,12 @@
   <component name="BackendCodeEditorMiscSettings">
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
   </component>
-  <component name="CMakePresetLoader"><![CDATA[{
-  "useNewFormat": true
-}]]></component>
+  <component name="CMakePresetLoader">{
+  &quot;useNewFormat&quot;: true
+}</component>
+  <component name="CMakeProjectFlavorService">
+    <option name="flavorId" value="CMakePlainProjectFlavor" />
+  </component>
   <component name="CMakeReloadState">
     <option name="reloaded" value="true" />
   </component>
@@ -36,20 +39,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/QUAD_EXPORTS/mine_104.asc.quads" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/bugs_to_fix/Failing_function_entry DUE to not entering function becuase we failed on arguments.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/diagnostics/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/cpp_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/cpp_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/old_phase_c.zip" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_builders/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_builders/expr_builders.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -63,6 +59,11 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 7
+}]]></component>
+  <component name="ProjectId" id="2yQBIeVsOM6zkRUZivNYUMOiV4E" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -73,6 +74,7 @@
     "RunOnceActivity.RadMigrateCodeStyle": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "RunOnceActivity.west.config.association.type.startup.service": "true",
     "cf.first.check.clang-format": "false",
@@ -88,9 +90,9 @@
   }
 }]]></component>
   <component name="RunManager" selected="CMake Application.alpha_driver.out">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="alpha_core_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_core_impl" CONFIG_NAME="Debug">
@@ -181,7 +183,8 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1749744780369</updated>
-      <workItem from="1749744783239" duration="2733000" />
+      <workItem from="1749744783239" duration="3132000" />
+      <workItem from="1749756842650" duration="2174000" />
     </task>
     <servers />
   </component>

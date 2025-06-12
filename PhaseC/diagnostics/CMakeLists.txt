@@ -29,19 +29,31 @@ make_dir_verbose("${GENERATED_SRC_DIR}")
 # ---------------------------------------------------------------------------
 # Configure diagnostics generator script
 # ---------------------------------------------------------------------------
-set(DIAGNOSTIC_GENERATOR "${CMAKE_CURRENT_SOURCE_DIR}/scripts/diagnostic_generator/main.py")
-set(DIAGNOSTICS_CONFIG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/config")
+set(DIAGNOSTIC_GENERATOR      "${CMAKE_CURRENT_SOURCE_DIR}/scripts/diagnostic_generator/main.py")
+set(DIAGNOSTICS_CONFIG_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/config")
+set(DIAGNOSTICS_SPEC_FILEPATH "${DIAGNOSTICS_CONFIG_DIR}/${DIAGNOSTICS_SPEC_FILENAME}")
 
-add_custom_target(generate_diagnostics
-    COMMAND          "${Python3_EXECUTABLE}" -B "${DIAGNOSTIC_GENERATOR}"
-    --input          "${DIAGNOSTICS_CONFIG_DIR}/${DIAGNOSTICS_SPEC_FILENAME}"
-    --out-include    "${GENERATED_INCLUDE_COMPONENT_DIR}"
-    --out-src        "${GENERATED_SRC_DIR}"
-    --outfile-prefix "diagnostics"
+# Because Diagnostic generator outputs many file (and possible more in future)
+# I avoid listing all files in output (or just 1 of them). Instead I produce a
+# dummy "stamp" file, so that the script doesnt rerun if there isn't a change
+# in generator dependencies.
+set(DIAGNOSTICS_STAMP_FILE    "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/.diagnostics.stamp")
+
+add_custom_command(
+    OUTPUT            "${DIAGNOSTICS_STAMP_FILE}"
+    COMMAND           "${Python3_EXECUTABLE}" -B "${DIAGNOSTIC_GENERATOR}"
+    --spec-filepath   "${DIAGNOSTICS_CONFIG_DIR}/${DIAGNOSTICS_SPEC_FILENAME}"
+    --out-include-dir "${GENERATED_INCLUDE_COMPONENT_DIR}"
+    --out-src-dir     "${GENERATED_SRC_DIR}"
+    --file-prefix     "diagnostics"
+    --stamp-filepath  "${DIAGNOSTICS_STAMP_FILE}"
+    DEPENDS
+        "${DIAGNOSTIC_GENERATOR}"
+        "${DIAGNOSTICS_SPEC_FILEPATH}"
     COMMENT "[PYTHON][DIAGNOSTICS] Generating diagnostic headers and source files"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
-
+add_custom_target(generate_diagnostics DEPENDS "${DIAGNOSTICS_STAMP_FILE}")
 # ---------------------------------------------------------------------------
 # Diagnostics API (header interface)
 # ---------------------------------------------------------------------------

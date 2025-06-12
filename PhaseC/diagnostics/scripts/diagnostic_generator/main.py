@@ -1,17 +1,18 @@
 import argparse
 import os
 import sys
-from dataclasses import dataclass
 from typing import NamedTuple
 from fsm_parsers import Diagnostic, DiagnosticFSM, LineTracker
 from cpp_generator import CppGenerator
+from pathlib import Path
 
 
 class CliArgs(NamedTuple):
-    input_filename: str
-    out_include: str
-    out_src: str
-    outfile_prefix: str
+    spec_filepath: str
+    out_include_dir: str
+    out_src_dir: str
+    file_prefix: str
+    stamp_filepath: str
 
 
 def assert_is_yaml_file(input_file: str):
@@ -24,20 +25,22 @@ def assert_is_yaml_file(input_file: str):
 
 
 def parse_cli_args() -> CliArgs:
-    parser = argparse.ArgumentParser(description="Inject logging hooks into grammar files.")
-    parser.add_argument("--input", required=True, help="Path to the input diagnostics .yaml file")
-    parser.add_argument("--out-include", required=True, help="Path to directory for generated header files")
-    parser.add_argument("--out-src", required=True, help="Path to directory for generated source files")
-    parser.add_argument("--outfile-prefix", required=True, help="Name prefix that will be prepended in generated files")
+    parser = argparse.ArgumentParser(description="Generate diagnostic source and header files.")
+    parser.add_argument("--spec-filepath", required=True, help="Path to the diagnostics YAML specification file")
+    parser.add_argument("--out-include-dir", required=True, help="Path to directory for generated header files")
+    parser.add_argument("--out-src-dir", required=True, help="Path to directory for generated source files")
+    parser.add_argument("--file-prefix", required=True, help="Prefix for all generated filenames")
+    parser.add_argument("--stamp-filepath", required=True, help="Path to stamp file used by CMake to track rebuilds")
     args = parser.parse_args()
 
-    assert_is_yaml_file(args.input)
+    assert_is_yaml_file(args.spec_filepath)
 
     return CliArgs(
-        input_filename=args.input,
-        out_include=args.out_include,
-        out_src=args.out_src,
-        outfile_prefix=args.outfile_prefix
+        spec_filepath=args.spec_filepath,
+        out_include_dir=args.out_include_dir,
+        out_src_dir=args.out_src_dir,
+        file_prefix=args.file_prefix,
+        stamp_filepath=args.stamp_filepath
     )
 
 
@@ -55,13 +58,18 @@ def load_diagnostics(yaml_lines: list[str]) -> list[Diagnostic]:
     return diagnostics
 
 
+def renew_stamp(cli_args: CliArgs) -> None:
+    Path(cli_args.stamp_filepath).touch()
+
+
 def main():
     try:
         cli_args = parse_cli_args()
-        yaml_lines = load_diagnostics_file(cli_args.input_filename)
+        yaml_lines = load_diagnostics_file(cli_args.spec_filepath)
         diagnostics = load_diagnostics(yaml_lines)
         cpp_generator = CppGenerator(cli_args, diagnostics)
         cpp_generator.generate_all_files()
+        renew_stamp(cli_args)
     except(RuntimeError, ValueError) as e:
         print(e)
         sys.exit(1)

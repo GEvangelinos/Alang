@@ -24,9 +24,9 @@ class CppGenerator:
     def __init__(self, cli_args, diagnostics: list[Diagnostic]):
         self.diagnostics = diagnostics
         self.cli_args = cli_args
-        self.codes_header_filename = f"{cli_args.outfile_prefix}_codes.gen.hpp"
-        self.reporter_header_filename = f"{cli_args.outfile_prefix}_reporter.gen.hpp"
-        self.reporter_source_filename = f"{cli_args.outfile_prefix}_reporter.gen.cpp"
+        self.codes_header_filename = f"{cli_args.file_prefix}_codes.gen.hpp"
+        self.reporter_header_filename = f"{cli_args.file_prefix}_reporter.gen.hpp"
+        self.reporter_source_filename = f"{cli_args.file_prefix}_reporter.gen.cpp"
         self.source_location_header_path = r"core/source_location.hpp"
 
     @staticmethod
@@ -173,11 +173,11 @@ class CppGenerator:
     def generate_all_files(self):
         original_path = os.getcwd()
 
-        os.chdir(self.cli_args.out_include)
+        os.chdir(self.cli_args.out_include_dir)
         self.generate_codes_header_file()
         self.generate_reporter_header_file()
 
-        os.chdir(self.cli_args.out_src)
+        os.chdir(self.cli_args.out_src_dir)
         self.generate_reporter_source_file()
 
         os.chdir(original_path)
