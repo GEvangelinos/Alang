@@ -3,9 +3,9 @@
 #include <memory>                          // for unique_ptr
 #include <string>                          // for string
 #include <string_view>                     // for string_view
-#include "alpha_scanner.hpp"               // for YY_BUFFER_STATE
+#include <scanner/alpha_scanner.hpp>               // for YY_BUFFER_STATE
 #include "diagnostics/diagnostic_engine.hpp"
-#include "diagnostics/diagnostics.hpp"
+#include "diagnostics/diagnostic_engine.hpp"
 #include "core/source_location.hpp"         // for LocationTracker
 #include "parser/parser_context.hpp"
 #include "parser/L1_driver/semantic_driver.hpp"

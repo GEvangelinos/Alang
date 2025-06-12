@@ -5,7 +5,7 @@
 #include <stdexcept> // for runtime_error, invalid_argument
 #include <string>
 #include <vector>                   // for vector
-#include "alpha_parser.hpp"         // for alpha_yyparse
+#include "parser/alpha_parser.hpp"         // for alpha_yyparse
 #include "core/konstants.hpp" // for k_global_scope
 #include "core/numeric_types.hpp"     // for u32
 #include "utils/cli_color.h"        // for COLOR_ASCII_BLUE, SGR_RESET

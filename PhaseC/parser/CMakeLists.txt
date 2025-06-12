@@ -11,9 +11,6 @@ make_dir_verbose("${GENERATED_INCLUDE_DIR}")
 make_dir_verbose("${GENERATED_INCLUDE_COMPONENT_DIR}")
 make_dir_verbose("${GENERATED_SRC_DIR}")
 
-
-file(GLOB injector_files scripts/log_injector/*.py)
-
 # Extract Parser's basename and extension (typically .y):
 get_filename_component(parser_basename ${BISON_SPEC_FILENAME} NAME_WE)
 get_filename_component(parser_extension ${BISON_SPEC_FILENAME} EXT)
@@ -23,6 +20,7 @@ set(logged_file_marker "_LOGGED_")
 set(LOG_INJECTED_BISON_SPEC_FILENAME "${parser_basename}${logged_file_marker}${parser_extension}")
 
 if (NOT HATE_PYTHON_MODE)
+    file(GLOB injector_files scripts/log_injector/*.py)
     add_custom_command(
         OUTPUT ${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}
         COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/scripts/log_injector/main.py" # -B is used to disable .pyc (__pycache__)
@@ -47,13 +45,13 @@ set(ALPHA_PARSER_OUTPUT_FILEPATH "${GENERATED_SRC_DIR}/${BISON_OUTPUT_FILENAME}"
 set(ALPHA_PARSER_HEADER_FILEPATH "${GENERATED_INCLUDE_COMPONENT_DIR}/${BISON_HEADER_FILENAME}")
 
 if (NOT HATE_PYTHON_MODE)
-    BISON_TARGET(ALPHA_PARSER
+    bison_target(ALPHA_PARSER
         "${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
         "${ALPHA_PARSER_OUTPUT_FILEPATH}"
         DEFINES_FILE ${ALPHA_PARSER_HEADER_FILEPATH}
     )
 else () # This is the case exists for when python is not allowed
-    BISON_TARGET(ALPHA_PARSER
+    bison_target(ALPHA_PARSER
         "${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}"
         "${ALPHA_PARSER_OUTPUT_FILEPATH}"
         DEFINES_FILE "${ALPHA_PARSER_HEADER_FILEPATH}"
@@ -75,7 +73,7 @@ endif ()
 
 add_library(alpha_parser_api INTERFACE)
 target_include_directories(alpha_parser_api INTERFACE
-    "${AUTOGEN_INCLUDE_DIR_PATH}"
+    "${GENERATED_INCLUDE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/parser"
 )
@@ -92,6 +90,7 @@ add_library(alpha_parser_impl STATIC
 )
 target_include_directories(alpha_parser_impl PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${GENERATED_INCLUDE_COMPONENT_DIR}"  # For Bison-generated .cpp to find its corresponding header
 )
 target_link_libraries(alpha_parser_impl PRIVATE
     alpha_parser_api

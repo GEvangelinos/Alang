@@ -20,7 +20,10 @@ project(Alpha VERSION 1.2 LANGUAGES CXX)
 find_package(Python3 QUIET)
 if (Python3_FOUND)
     message(STATUS "Found Python3: ${Python3_EXECUTABLE} (found version ${Python3_VERSION})")
+else ()
+    message(SEND_ERROR "PYTHON NOT FOUND!")
 endif ()
+
 
 find_program(VALGRIND_PATH NAMES valgrind)
 if (VALGRIND_PATH)

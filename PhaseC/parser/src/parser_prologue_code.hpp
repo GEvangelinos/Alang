@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include "../../diagnostics/include/diagnostics/diagnostics.hpp"
+#include "diagnostics/diagnostic_engine.hpp"
 #include "core/shared_interface.hpp" // for ALPHA_YYLEX_SIGNATURE
 #include "scanner/scanner_context.hpp"
 #include "parser/parser_context.hpp"

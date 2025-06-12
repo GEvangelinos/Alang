@@ -1,3 +1,6 @@
+# ---------------------------------------------------------------------------
+# Check Flex dependency for generating scanner
+# ---------------------------------------------------------------------------
 find_package(FLEX QUIET)
 if (FLEX_FOUND)
     message(STATUS "Found FLEX: ${FLEX_EXECUTABLE} (found version ${FLEX_VERSION})")
@@ -5,11 +8,27 @@ else ()
     message(FATAL_ERROR "Could not find FLEX. Please install `flex`.")
 endif ()
 
-set(ALPHA_SCANNER_OUTPUT_FILEPATH ${AUTOGEN_SRC_DIR_PATH}/${FLEX_OUTPUT_FILENAME})
-set(ALPHA_SCANNER_HEADER_FILEPATH ${AUTOGEN_INCLUDE_DIR_PATH}/${FLEX_HEADER_FILENAME})
-FLEX_TARGET(ALPHA_SCANNER
-    src/${FLEX_SPEC_FILENAME}
-    ${ALPHA_SCANNER_OUTPUT_FILEPATH}
+# ---------------------------------------------------------------------------
+# Setup paths for generated scanner (headers + source)
+# ---------------------------------------------------------------------------
+get_filename_component(CURRENT_COMPONENT_NAME "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
+set(GENERATED_INCLUDE_DIR "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/include")
+set(GENERATED_INCLUDE_COMPONENT_DIR "${GENERATED_INCLUDE_DIR}/${CURRENT_COMPONENT_NAME}")
+set(GENERATED_SRC_DIR "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/src")
+
+make_dir_verbose("${GENERATED_INCLUDE_DIR}")
+make_dir_verbose("${GENERATED_INCLUDE_COMPONENT_DIR}")
+make_dir_verbose("${GENERATED_SRC_DIR}")
+
+# ---------------------------------------------------------------------------
+# Configure lexical scanner (Flex) and output paths
+# ---------------------------------------------------------------------------
+set(ALPHA_SCANNER_OUTPUT_FILEPATH "${GENERATED_SRC_DIR}/${FLEX_OUTPUT_FILENAME}")
+set(ALPHA_SCANNER_HEADER_FILEPATH "${GENERATED_INCLUDE_COMPONENT_DIR}/${FLEX_HEADER_FILENAME}")
+
+flex_target(ALPHA_SCANNER
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/${FLEX_SPEC_FILENAME}"
+    "${ALPHA_SCANNER_OUTPUT_FILEPATH}"
     COMPILE_FLAGS "--header-file=${ALPHA_SCANNER_HEADER_FILEPATH}"
 )
 # Opposed to bison, flex doesn't have a way to track its produced header file, so we track it manually.
@@ -27,8 +46,8 @@ set_source_files_properties(
 
 add_library(alpha_scanner_api INTERFACE)
 target_include_directories(alpha_scanner_api INTERFACE
-    "${AUTOGEN_INCLUDE_DIR_PATH}"
-    "include"
+    "${GENERATED_INCLUDE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
 add_library(alpha_scanner_impl STATIC

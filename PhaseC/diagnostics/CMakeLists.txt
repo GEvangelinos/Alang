@@ -38,7 +38,7 @@ add_custom_target(generate_diagnostics
     --out-include    "${GENERATED_INCLUDE_COMPONENT_DIR}"
     --out-src        "${GENERATED_SRC_DIR}"
     --outfile-prefix "diagnostics"
-    COMMENT "[Python] Generating diagnostic headers and source files"
+    COMMENT "[PYTHON][DIAGNOSTICS] Generating diagnostic headers and source files"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 

@@ -7,7 +7,7 @@
 #include "parser/semantic_utils.hpp"
 #include "parser/ir.hpp"
 #include "L1_driver/semantic_driver_support.hpp"
-#include "diagnostics/diagnostics.hpp"
+#include "diagnostics/diagnostic_engine.hpp"
 
 namespace Alpha
 {
