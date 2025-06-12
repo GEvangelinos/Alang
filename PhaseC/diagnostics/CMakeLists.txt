@@ -7,11 +7,13 @@ endif ()
 
 # Define generated diagnostics paths
 get_filename_component(CURRENT_COMPONENT_NAME "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
-set(GENERATED_INCLUDE_DIR "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/include/${CURRENT_COMPONENT_NAME}")
+set(GENERATED_INCLUDE_DIR "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/include")
+set(GENERATED_INCLUDE_COMPONENT_DIR "${GENERATED_INCLUDE_DIR}/${CURRENT_COMPONENT_NAME}")
 set(GENERATED_SRC_DIR "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/src")
 
 # Creating directories that will host the auto-generated files.
 make_dir_verbose("${GENERATED_INCLUDE_DIR}")
+make_dir_verbose("${GENERATED_INCLUDE_COMPONENT_DIR}")
 make_dir_verbose("${GENERATED_SRC_DIR}")
 
 # Define path to the diagnostic generator script and config directory
@@ -22,7 +24,7 @@ set(DIAGNOSTICS_CONFIG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/config")
 add_custom_target(generate_diagnostics
     COMMAND "${Python3_EXECUTABLE}" "-B" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/diagnostic_generator/main.py" # -B is used to disable .pyc (__pycache__)
     "--input" "${DIAGNOSTICS_CONFIG_DIR}/${DIAGNOSTICS_SPEC_FILENAME}"
-    "--out-include" "${GENERATED_INCLUDE_DIR}"
+    "--out-include" "${GENERATED_INCLUDE_COMPONENT_DIR}"
     "--out-src" "${GENERATED_SRC_DIR}"
     "--outfile-prefix" "diagnostics"
     COMMENT "[PYTHON][DIAGNOSTIC_GENERATOR] Generating diagnostic: {code, reporter}"
