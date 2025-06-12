@@ -41,18 +41,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="7c8613d7-6f85-4b86-b1b3-9689bd67e859" name="Changes" comment="added utils.py in my diagnostic_generator.py">
-      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/QUAD_EXPORTS/mine_104.asc.quads" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/bugs_to_fix/Failing_function_entry DUE to not entering function becuase we failed on arguments.png" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/diagnostics/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/config/diagnostics.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/diagnostic_codes.gen.hpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/diagnostic_reporter.gen.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/diagnostic_reporter.gen.hpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/cpp_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/cpp_generator.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/old_phase_c.zip" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
     </list>
@@ -300,7 +293,7 @@
       <updated>1749379349482</updated>
       <workItem from="1749379350884" duration="11432000" />
       <workItem from="1749394445042" duration="101821000" />
-      <workItem from="1749649059888" duration="47054000" />
+      <workItem from="1749649059888" duration="50270000" />
     </task>
     <task id="LOCAL-00001" summary="added utils.py in my diagnostic_generator.py">
       <option name="closed" value="true" />

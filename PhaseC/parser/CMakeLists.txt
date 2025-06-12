@@ -2,6 +2,14 @@ if (NOT Python3_FOUND)
     message(WARNING "Could not find Python3. Please install `Python3`.")
 endif ()
 
+# Define generated diagnostics paths
+get_filename_component(CURRENT_COMPONENT_NAME "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
+set(GENERATED_INCLUDE_DIR "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/include/${CURRENT_COMPONENT_NAME}")
+set(GENERATED_SRC_DIR "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/src")
+make_dir_verbose("${GENERATED_INCLUDE_DIR}")
+make_dir_verbose("${GENERATED_SRC_DIR}")
+
+
 file(GLOB injector_files scripts/log_injector/*.py)
 
 # Extract Parser's basename and extension (typically .y):
@@ -14,10 +22,10 @@ set(LOG_INJECTED_BISON_SPEC_FILENAME "${parser_basename}${logged_file_marker}${p
 
 if (NOT HATE_PYTHON_MODE)
     add_custom_command(
-        OUTPUT ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
+        OUTPUT ${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}
         COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/scripts/log_injector/main.py" # -B is used to disable .pyc (__pycache__)
         --input ${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}
-        --output ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
+        --output ${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}
         --log-fn display_trace
         DEPENDS ${injector_files} src/${BISON_SPEC_FILENAME}
         COMMENT "[PYTHON][LOG_INJECTOR] Generating log injected parser file"
@@ -33,33 +41,33 @@ else ()
     message(FATAL_ERROR "Could not find BISON. Please install `bison`.")
 endif ()
 
-set(ALPHA_PARSER_OUTPUT_FILEPATH ${AUTOGEN_SRC_DIR_PATH}/${BISON_OUTPUT_FILENAME})
-set(ALPHA_PARSER_HEADER_FILEPATH ${AUTOGEN_INCLUDE_DIR_PATH}/${BISON_HEADER_FILENAME})
+set(ALPHA_PARSER_OUTPUT_FILEPATH "${GENERATED_SRC_DIR}/${BISON_OUTPUT_FILENAME}")
+set(ALPHA_PARSER_HEADER_FILEPATH "${GENERATED_INCLUDE_DIR}/${BISON_HEADER_FILENAME}")
 
 if (NOT HATE_PYTHON_MODE)
     BISON_TARGET(ALPHA_PARSER
-        ${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}
-        ${ALPHA_PARSER_OUTPUT_FILEPATH}
+        "${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
+        "${ALPHA_PARSER_OUTPUT_FILEPATH}"
         DEFINES_FILE ${ALPHA_PARSER_HEADER_FILEPATH}
     )
 else () # This is the case exists for when python is not allowed
     BISON_TARGET(ALPHA_PARSER
-        src/${BISON_SPEC_FILENAME}
-        ${ALPHA_PARSER_OUTPUT_FILEPATH}
-        DEFINES_FILE ${ALPHA_PARSER_HEADER_FILEPATH}
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}"
+        "${ALPHA_PARSER_OUTPUT_FILEPATH}"
+        DEFINES_FILE "${ALPHA_PARSER_HEADER_FILEPATH}"
     )
 endif ()
 
 # We create a phony target so we force BISON files to be generated before compilation.
 if (NOT HATE_PYTHON_MODE)
     add_custom_target(generate_parser ALL DEPENDS
-        ${BISON_ALPHA_PARSER_OUTPUTS}
-        "${AUTOGEN_SRC_DIR_PATH}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
+        "${BISON_ALPHA_PARSER_OUTPUTS}"
+        "${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
     )
 else () # This is the case exists for when python is not allowed
     add_custom_target(generate_parser ALL DEPENDS
-        ${BISON_ALPHA_PARSER_OUTPUTS}
-        src/${BISON_SPEC_FILENAME}
+        "${BISON_ALPHA_PARSER_OUTPUTS}"
+        "src/${BISON_SPEC_FILENAME}"
     )
 endif ()
 
