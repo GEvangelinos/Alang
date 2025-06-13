@@ -1,4 +1,4 @@
-# Blackhole Project — Concept, Motivation, and Design (Full Spec)
+# Blackhole Project — Concept, Motivation, and Design (Full Spec) (Github project name : PROJECT-BLACKHOLE)
 
 ## 📛 Project Name: **Blackhole**
 
@@ -167,7 +167,7 @@ blackhole/
 
 > *"If they won’t raise the file limit, collapse the universe instead."*
  
-> "If you wish to make an apple pie from scratch, you must first invent the universe."
+> "If you wish to make an apple pie from scratch, you must first invent the universe." https://www.youtube.com/watch?v=7s664NsLeFM
 
 ---
 
