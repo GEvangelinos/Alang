@@ -56,6 +56,8 @@ This is not about compression or archiving. This is about:
 
 Instead of a boring loading bar, Blackhole prints a **7-line wide ASCII graphic** (Blackhole name/banner) that is gradually revealed from left to right using terminal cursor control (ANSI escape sequences).
 
+Also put this kind of ascii (variable-coloured) art in both packer (project to file) and unpacker (file to project)
+
 
 
 This becomes a terminal animation as the unpacking progresses.
