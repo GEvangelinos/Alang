@@ -249,3 +249,5 @@ then you can check if a diagnostic code is in "DO not show list" and dont show i
 60) Implement HINTS/suggestions: in your diagnostic.yaml file.. you can add another field (optional) for hint:
 
 for example in a c
+
+61) Add auto-complete with bash scripts for CLI arguments.
