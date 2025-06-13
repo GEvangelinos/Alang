@@ -4,6 +4,7 @@
 #include <list>
 #include <string>
 #include "core/source_location.hpp"
+#include "_parser_common.hpp"
 
 namespace Alpha
 {

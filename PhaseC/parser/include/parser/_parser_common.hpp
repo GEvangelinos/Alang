@@ -6,9 +6,6 @@
 
 namespace Alpha
 {
-        // Classes defined here:
-        class Parameter;
-
         class Parameter
         {
         public:

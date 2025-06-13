@@ -39,7 +39,7 @@ set(DIAGNOSTICS_SPEC_FILEPATH "${DIAGNOSTICS_CONFIG_DIR}/${DIAGNOSTICS_SPEC_FILE
 # and avoid re-running the script unless something actually changes.
 set(DIAGNOSTICS_STAMP_FILE    "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/.gen.stamp")
 
-file(GLOB_RECURSE diagnostic_generator_files "${CMAKE_CURRENT_SOURCE_DIR}/scripts/*")
+file(GLOB_RECURSE diagnostic_generator_files "${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.py")
 add_custom_command(
     OUTPUT            "${DIAGNOSTICS_STAMP_FILE}"
     COMMAND           "${Python3_EXECUTABLE}" -B "${DIAGNOSTIC_GENERATOR}"
@@ -71,10 +71,20 @@ target_link_libraries(alpha_diagnostics_api INTERFACE alpha_core_api)
 # ---------------------------------------------------------------------------
 # Diagnostics Implementation (source + engine)
 # ---------------------------------------------------------------------------
+file(GLOB_RECURSE generated_src_files "${GENERATED_SRC_DIR}/*.cpp")
+foreach ( gfile ${generated_src_files})
+    message("FILE: ${gfile}")
+endforeach ()
+
 add_library(alpha_diagnostics_impl STATIC
-    "src/diagnostic_engine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/diagnostic_engine.cpp"
+     ${generated_src_files}
 )
 target_link_libraries(alpha_diagnostics_impl PRIVATE
     alpha_diagnostics_api
     alpha_core_api
 )
+
+# The alpha_diagnostics_api also contains the templated diagnostic method from DiagnosticReporter.
+# Because we call the _impl methods of that class in the templates, we must link the api lib with the impl lib.
+target_link_libraries(alpha_diagnostics_api INTERFACE alpha_diagnostics_impl)

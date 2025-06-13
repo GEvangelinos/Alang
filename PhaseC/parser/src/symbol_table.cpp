@@ -12,37 +12,37 @@ static const std::list<Parameter> k_empty_parameter_list;
 
 namespace // (Anonymous)
 {
-template<typename Key, typename Value>
-[[maybe_unused]] const Key &get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
-{
-    auto [item_it, inserted] = umap.try_emplace(key);
-    DEBUG_SMART_ASSERT(!inserted);       // This function is meant to be used for existing keys.
-    const Key &key_ref = item_it->first; // First item part of item is Key, second is Value.
-    return key_ref;
-}
-
-template<typename SynonymContainer>
-DEBUG_ALWAYS_INLINE typename SynonymContainer::const_iterator
-find_insert_position(const SynonymContainer &synonym_symbols, u32 scope)
-{
-    auto symbol_it = synonym_symbols.begin();
-    for (; symbol_it != synonym_symbols.end(); ++symbol_it)
+    template<typename Key, typename Value>
+    [[maybe_unused]] const Key &get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
     {
-        // Same scope and active symbol before insert is error
-        // User of `insert_FUNCTION` should do lookup_first.
-        DEBUG_SMART_ASSERT((*symbol_it)->scope != scope || !(*symbol_it)->is_active());
-        if ((*symbol_it)->scope >= scope) // A bug with a bugged, bug patch lived here :D.
-            break;                    // This comments pays its respects to
-        // Savvidis for teaching defensive programming.
+        auto [item_it, inserted] = umap.try_emplace(key);
+        DEBUG_SMART_ASSERT(!inserted); // This function is meant to be used for existing keys.
+        const Key &key_ref = item_it->first; // First item part of item is Key, second is Value.
+        return key_ref;
     }
-    return symbol_it;
-}
 
-void ensure_scope_slot(auto &symbols_per_scope, u32 scope)
-{
-    if (scope >= symbols_per_scope.size())
-        symbols_per_scope.resize(scope + 1);
-}
+    template<typename SynonymContainer>
+    DEBUG_ALWAYS_INLINE typename SynonymContainer::const_iterator
+    find_insert_position(const SynonymContainer &synonym_symbols, u32 scope)
+    {
+        auto symbol_it = synonym_symbols.begin();
+        for (; symbol_it != synonym_symbols.end(); ++symbol_it)
+        {
+            // Same scope and active symbol before insert is error
+            // User of `insert_FUNCTION` should do lookup_first.
+            DEBUG_SMART_ASSERT((*symbol_it)->scope != scope || !(*symbol_it)->is_active());
+            if ((*symbol_it)->scope >= scope) // A bug with a bugged, bug patch lived here :D.
+                break;
+            // This comments pays its respects to Savvidis for teaching defensive programming.
+        }
+        return symbol_it;
+    }
+
+    void ensure_scope_slot(auto &symbols_per_scope, u32 scope)
+    {
+        if (scope >= symbols_per_scope.size())
+            symbols_per_scope.resize(scope + 1);
+    }
 } // namespace
 
 std::string_view Symbol::type_to_string() const noexcept
@@ -62,7 +62,7 @@ std::string_view Symbol::type_to_string() const noexcept
 
 template<typename SymbolKind, typename... Args>
     requires std::is_same_v<SymbolKind, Variable> ||
-    std::is_same_v<SymbolKind, Function>
+             std::is_same_v<SymbolKind, Function>
 DEBUG_ALWAYS_INLINE const SymbolKind *SymbolTable::insert_symbol(
     const std::string &name,
     u32 scope,
@@ -176,7 +176,7 @@ const Symbol *SymbolTable::lookup_local(const std::string &symbol_name, u32 scop
         return nullptr;
 
     auto &scope_list = it->second;
-    for (auto &symbol_ptr : scope_list)
+    for (auto &symbol_ptr: scope_list)
     {
         if (symbol_ptr->scope < scope)
             continue;
@@ -197,7 +197,7 @@ void SymbolTable::hide_scope_symbols(u32 scope) noexcept
 
     std::vector<Symbol *> &actives_in_scope = actives_per_scope_[scope];
 
-    for (Symbol *symbol_ptr : actives_in_scope)
+    for (Symbol *symbol_ptr: actives_in_scope)
     {
         DEBUG_SMART_ASSERT(!!symbol_ptr);
         symbol_ptr->deactivate();

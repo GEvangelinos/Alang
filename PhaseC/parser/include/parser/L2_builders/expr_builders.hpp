@@ -336,7 +336,7 @@ AssignBuilder::validate_lvalue_for_assignment(
     DEBUG_SMART_ASSERT(!!lvalue);
     if (!SemUtils::is_lvalue_expr(lvalue))
     {
-        dr_->report_assign_lhs_not_lvalue(to_string(lvalue->type), lvalue->loc);
+        dr_->report_assign_lhs_not_lvalue(lvalue->type, lvalue->loc);
         return;
     }
     DEBUG_SMART_ASSERT(lvalue->has_symbol); // If here. Its Lvalue and all lvalues have symbols.

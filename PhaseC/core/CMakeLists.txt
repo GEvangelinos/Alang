@@ -1,7 +1,6 @@
 add_library(alpha_core_api INTERFACE)
-target_include_directories(alpha_core_api INTERFACE "include")
-target_link_libraries(alpha_core_api INTERFACE utils_api)
-
+target_include_directories(alpha_core_api INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(alpha_core_api INTERFACE utils_api alpha_parser_api)
 
 add_library(alpha_core_impl STATIC
     src/source_location.cpp
