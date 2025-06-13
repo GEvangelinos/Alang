@@ -33,12 +33,13 @@ set(DIAGNOSTIC_GENERATOR      "${CMAKE_CURRENT_SOURCE_DIR}/scripts/diagnostic_ge
 set(DIAGNOSTICS_CONFIG_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/config")
 set(DIAGNOSTICS_SPEC_FILEPATH "${DIAGNOSTICS_CONFIG_DIR}/${DIAGNOSTICS_SPEC_FILENAME}")
 
-# Because Diagnostic generator outputs many file (and possible more in future)
-# I avoid listing all files in output (or just 1 of them). Instead I produce a
-# dummy "stamp" file, so that the script doesnt rerun if there isn't a change
-# in generator dependencies.
-set(DIAGNOSTICS_STAMP_FILE    "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/.diagnostics.stamp")
+# The diagnostics generator produces many output files, and more may be added in the future.
+# To avoid listing them individually (or relying on just one), we use a dummy "stamp" file
+# as the declared output. This allows CMake to track the generator dependencies accurately
+# and avoid re-running the script unless something actually changes.
+set(DIAGNOSTICS_STAMP_FILE    "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/.gen.stamp")
 
+file(GLOB_RECURSE diagnostic_generator_files "${CMAKE_CURRENT_SOURCE_DIR}/scripts/*")
 add_custom_command(
     OUTPUT            "${DIAGNOSTICS_STAMP_FILE}"
     COMMAND           "${Python3_EXECUTABLE}" -B "${DIAGNOSTIC_GENERATOR}"
@@ -48,12 +49,13 @@ add_custom_command(
     --file-prefix     "diagnostics"
     --stamp-filepath  "${DIAGNOSTICS_STAMP_FILE}"
     DEPENDS
-        "${DIAGNOSTIC_GENERATOR}"
+         ${diagnostic_generator_files}
         "${DIAGNOSTICS_SPEC_FILEPATH}"
     COMMENT "[PYTHON][DIAGNOSTICS] Generating diagnostic headers and source files"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 add_custom_target(generate_diagnostics DEPENDS "${DIAGNOSTICS_STAMP_FILE}")
+
 # ---------------------------------------------------------------------------
 # Diagnostics API (header interface)
 # ---------------------------------------------------------------------------

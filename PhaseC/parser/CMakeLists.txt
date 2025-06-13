@@ -27,7 +27,9 @@ if (NOT HATE_PYTHON_MODE)
         --input ${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}
         --output ${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}
         --log-fn display_trace
-        DEPENDS ${injector_files} src/${BISON_SPEC_FILENAME}
+        DEPENDS
+            ${injector_files}
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}"
         COMMENT "[PYTHON][LOG_INJECTOR] Generating log injected parser file"
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         VERBATIM

@@ -45,6 +45,8 @@ namespace Alpha
         ParseCtx *const parse_ctx_ = nullptr;
         SymbolTable *const symbol_table_ = nullptr;
         DiagnosticEngine *const diagnostic_engine_ = nullptr;
+        DiagnosticReporter*const dr_ = nullptr;
+
 
         // -- Layer 3 subsystems --
         std::unique_ptr<ExprSnitch> expr_snitch_;

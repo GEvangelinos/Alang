@@ -49,6 +49,7 @@ namespace Alpha
 
     struct BuilderInitPack
     {
+        DiagnosticReporter *const dr;
         ParseCtx *const parse_ctx;
         ExprMaker *const expr_maker;
         ExprFolder *const expr_folder;

@@ -59,7 +59,8 @@ def load_diagnostics(yaml_lines: list[str]) -> list[Diagnostic]:
 
 
 def renew_stamp(cli_args: CliArgs) -> None:
-    Path(cli_args.stamp_filepath).touch()
+    with open(cli_args.stamp_filepath, 'w') as fout:
+        fout.write("This file is used by CMake to detect diagnostic generator changes")
 
 
 def main():

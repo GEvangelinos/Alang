@@ -74,7 +74,7 @@ class DiagnosticEntryFSM:
         linenum = self.line_tracker.linenum()
         line = self.line_tracker.line()
         if not line.startswith("      Location: "):
-            raise RuntimeError(f"In line {linenum}: expected to start with `      Location: `")
+            raise RuntimeError(f"In line {linenum}: expected to start with `      Location: `(Are placeholders index?)")
         self.location = line.split(':', 1)[1].strip()  # We strip prefix and suffix spaces.
         self.line_tracker.advance()
         return self.State.DONE
@@ -124,7 +124,8 @@ class DiagnosticFSM:
     def handle_expect_diagnostic(self) -> State:
         line = self.line_tracker.line()
         if not line.startswith("- Diagnostic: "):
-            raise RuntimeError(f"In line {self.line_tracker.linenum()}:, expected line to start with  `- Diagnostic: ` ")
+            raise RuntimeError(
+                f"In line {self.line_tracker.linenum()}:, expected line to start with  `- Diagnostic: ` ")
         self.diag_name = line.split(':', 1)[1].strip()
         self.line_tracker.advance()
         return self.State.EXPECT_TYPE
@@ -169,7 +170,8 @@ class DiagnosticFSM:
             if self.line_tracker.at_end() and self.state == self.State.EXPECT_NOTES:
                 break
             if self.line_tracker.at_end() and self.state != self.State.EXPECT_NOTES:
-                raise RuntimeError(f"In line {self.line_tracker.linenum()}: EOF reached, but DiagnosticFSM was not DONE")
+                raise RuntimeError(
+                    f"In line {self.line_tracker.linenum()}: EOF reached, but DiagnosticFSM was not DONE")
 
             if self.state == self.State.EXPECT_DIAGNOSTIC:
                 self.state = self.handle_expect_diagnostic()

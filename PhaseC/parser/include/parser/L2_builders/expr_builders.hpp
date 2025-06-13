@@ -11,389 +11,381 @@
 
 namespace Alpha
 {
-    class ConstBuilder
+class ConstBuilder
+{
+public:
+    explicit ConstBuilder(const BuilderInitPack &init_pack);
+
+    [[nodiscard]] const Expr *build_true_expr(SourceLocation loc);
+
+    [[nodiscard]] const Expr *build_false_expr(SourceLocation loc);
+
+    [[nodiscard]] const Expr *build_int_expr(AlphaInt value, SourceLocation loc);
+
+    [[nodiscard]] const Expr *build_float_expr(AlphaFloat value, SourceLocation loc);
+
+    [[nodiscard]] const Expr *build_string_expr(const char *value, SourceLocation loc);
+
+    [[nodiscard]] const Expr *build_nil_expr(SourceLocation loc);
+
+private:
+    DiagnosticReporter *const dr_;
+    ExprMaker *const expr_maker_;
+};
+
+class BasicBuilder
+{
+public:
+    struct Options
     {
-    public:
-        explicit ConstBuilder(const BuilderInitPack &init_pack);
-
-        [[nodiscard]] const Expr *build_true_expr(SourceLocation loc);
-
-        [[nodiscard]] const Expr *build_false_expr(SourceLocation loc);
-
-        [[nodiscard]] const Expr *build_int_expr(AlphaInt value, SourceLocation loc);
-
-        [[nodiscard]] const Expr *build_float_expr(AlphaFloat value, SourceLocation loc);
-
-        [[nodiscard]] const Expr *build_string_expr(const char *value, SourceLocation loc);
-
-        [[nodiscard]] const Expr *build_nil_expr(SourceLocation loc);
-
-    private:
-        ExprMaker *const expr_maker_;
+        bool fold_arithmetic;
+        bool fold_relational;
+        bool fold_logical;
     };
 
-    class BasicBuilder
+    BasicBuilder(Options &&options, const BuilderInitPack &init_pack);
+
+    [[nodiscard]] const Expr *build_arithmetic(IOPCode iopc, const Expr *lhs, const Expr *rhs,
+                                               SourceLocation lhs_loc, SourceLocation rhs_loc,
+                                               SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_relational(IOPCode iopc, const Expr *lhs, const Expr *rhs,
+                                               SourceLocation lhs_loc, SourceLocation rhs_loc,
+                                               SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_logical_or(const Expr *lhs, const Expr *rhs,
+                                               SourceLocation lhs_loc, SourceLocation rhs_loc,
+                                               SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_logical_and(const Expr *lhs, const Expr *rhs,
+                                                SourceLocation lhs_loc, SourceLocation rhs_loc,
+                                                SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_uminus(
+        const Expr *expr, SourceLocation expr_loc, SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_logical_not(
+        const Expr *expr, SourceLocation expr_loc, SourceLocation result_loc);
+
+private:
+    const Options options_;
+    DiagnosticReporter *const dr_;
+    ExprMaker *const expr_maker_;
+    ExprFolder *const expr_folder_;
+    ExprSnitch *const snitch_;
+    QuadHandler *const quad_handler_;
+    ParseCache *const parse_cache_;
+
+    [[nodiscard]] const Expr *convert_to_bool_form(const Expr *expr, SourceLocation expr_loc);
+};
+
+class AssignBuilder
+{
+public:
+    explicit AssignBuilder(const BuilderInitPack &init_pack);
+
+    [[nodiscard]] const Expr *build_assignment(const Expr *lvalue, const Expr *rvalue,
+                                               SourceLocation result_loc);
+
+private:
+    DiagnosticReporter *const dr_;
+    ParseCtx *const parse_ctx_;
+    ExprMaker *const expr_maker_;
+    ExprSnitch *const expr_snitch_;
+    QuadHandler *const quad_handler_;
+    SemanticDriverBridge *const sd_bridge_;
+
+    void validate_lvalue_for_assignment(const Expr *lvalue, SourceLocation assign_loc);
+    [[nodiscard]] const Expr *handle_table_item_assignment(
+        const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
+    [[nodiscard]] const Expr *handle_direct_assignment(
+        const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
+};
+
+inline ConstBuilder::ConstBuilder(const BuilderInitPack &init_pack)
+    : dr_(init_pack.dr),
+      expr_maker_(init_pack.expr_maker) {}
+
+inline const Expr *
+ConstBuilder::build_true_expr(const SourceLocation loc)
+{
+    return expr_maker_->make_const_bool_expr(true, loc);
+}
+
+inline const Expr *
+ConstBuilder::build_false_expr(const SourceLocation loc)
+{
+    return expr_maker_->make_const_bool_expr(false, loc);
+}
+
+inline const Expr *
+ConstBuilder::build_int_expr(const AlphaInt value, const SourceLocation loc)
+{
+    return expr_maker_->make_const_int_expr(value, loc);
+}
+
+inline const Expr *
+ConstBuilder::build_float_expr(const AlphaFloat value, const SourceLocation loc)
+{
+    return expr_maker_->make_const_float_expr(value, loc);
+}
+
+inline const Expr *
+ConstBuilder::build_string_expr(const char *const value, const SourceLocation loc)
+{
+    return expr_maker_->make_const_string_expr(value, loc);
+}
+
+inline const Expr *
+ConstBuilder::build_nil_expr(const SourceLocation loc)
+{
+    return expr_maker_->make_nil_expr(loc);
+}
+
+inline BasicBuilder::BasicBuilder(Options &&options, const BuilderInitPack &init_pack)
+    : options_(options),
+      dr_(init_pack.dr),
+      expr_maker_(init_pack.expr_maker),
+      expr_folder_(init_pack.expr_folder),
+      snitch_(init_pack.expr_snitch),
+      quad_handler_(init_pack.quad_handler),
+      parse_cache_(&init_pack.parse_ctx->cache) {}
+
+inline const Expr *
+BasicBuilder::build_arithmetic(
+    const IOPCode iopc,
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation lhs_loc,
+    const SourceLocation rhs_loc,
+    const SourceLocation result_loc)
+
+{
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    snitch_->report_if_not_arithmetic(iopc, lhs, lhs_loc, OperandSide::LEFT);
+    snitch_->report_if_not_arithmetic(iopc, rhs, rhs_loc, OperandSide::RIGHT);
+
+    if (options_.fold_arithmetic &&
+        SemUtils::is_const_arithmetic_expr(lhs) &&
+        SemUtils::is_const_arithmetic_expr(rhs))
+        return expr_folder_->fold_arithmetic(iopc, lhs, rhs, result_loc);
+
+    const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
+    quad_handler_->emit_next_quad(iopc, lhs, rhs, arithmetic_expr, result_loc);
+    return arithmetic_expr;
+}
+
+inline const Expr *
+BasicBuilder::build_relational(
+    const IOPCode iopc,
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation lhs_loc,
+    const SourceLocation rhs_loc,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    snitch_->report_if_not_relational(iopc, lhs, lhs_loc, OperandSide::LEFT);
+    snitch_->report_if_not_relational(iopc, rhs, rhs_loc, OperandSide::RIGHT);
+
+    if (options_.fold_relational &&
+        SemUtils::is_relational_equality_iopcode(iopc) &&
+        SemUtils::is_static_expr(lhs) &&
+        SemUtils::is_static_expr(rhs))
+        return expr_folder_->fold_relational_equality(iopc, lhs, rhs);
+    if (options_.fold_relational &&
+        SemUtils::is_relational_arithmetic_iopcode(iopc) &&
+        SemUtils::is_const_arithmetic_expr(lhs) &&
+        SemUtils::is_const_arithmetic_expr(rhs))
+        return expr_folder_->fold_relational_arithmetic(iopc, lhs, rhs);
+
+    BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
+
+    result_expr->true_list.push_back(quad_handler_->next_quad_label());
+    quad_handler_->emit_labelless_quad(iopc, lhs, rhs, nullptr, result_loc);
+    result_expr->false_list.push_back(quad_handler_->next_quad_label());
+    quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, result_loc);
+    return result_expr;
+}
+
+inline const Expr *
+BasicBuilder::build_logical_or(
+    const Expr *lhs,
+    const Expr *rhs,
+    const SourceLocation lhs_loc,
+    const SourceLocation rhs_loc,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    lhs = convert_to_bool_form(lhs, lhs_loc);
+    rhs = convert_to_bool_form(rhs, rhs_loc);
+
+    if (options_.fold_logical)
+        if (SemUtils::is_const_bool_expr(lhs) || SemUtils::is_const_bool_expr(rhs))
+            return expr_folder_->fold_logical_or(lhs, rhs);
+
+    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
+
+    BoolExpr *bool_result_expr = expr_maker_->make_bool_expr(result_loc);
+    BoolExpr *const left_bool = static_cast<BoolExpr *>(const_cast<Expr *>(lhs));
+    BoolExpr *const right_bool = static_cast<BoolExpr *>(const_cast<Expr *>(rhs));
+
+    // TODO: move backpatching to backpatcher !!
+
+    DEBUG_SMART_ASSERT(!parse_cache_->short_circuit_jump_stack.empty());
+    for (const LabelID quad_label: left_bool->false_list)
+        quad_handler_->patch_quad(quad_label, parse_cache_->short_circuit_jump_stack.top());
+    parse_cache_->short_circuit_jump_stack.pop();
+    left_bool->false_list.clear();
+
+    bool_result_expr->true_list.reserve(
+        left_bool->true_list.size() + right_bool->true_list.size());
+    bool_result_expr->true_list.insert(bool_result_expr->true_list.end(),
+                                       left_bool->true_list.begin(),
+                                       left_bool->true_list.end());
+    bool_result_expr->true_list.insert(bool_result_expr->true_list.end(),
+                                       right_bool->true_list.begin(),
+                                       right_bool->true_list.end());
+    bool_result_expr->false_list = right_bool->false_list;
+    return bool_result_expr;
+}
+
+inline const Expr *
+BasicBuilder::build_logical_and(
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation lhs_loc,
+    const SourceLocation rhs_loc,
+    const SourceLocation result_loc)
+{
+    // Check your solution on GitHub (latest commit on branch feature/ir-gen) (23/05/2025)
+    UNIMPLEMENTED();
+}
+
+inline const Expr *
+BasicBuilder::build_uminus(
+    const Expr *const expr,
+    const SourceLocation expr_loc,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!expr);
+    snitch_->report_if_not_arithmetic(IOPCode::UMINUS, expr, expr_loc, OperandSide::UNARY);
+
+    if (options_.fold_arithmetic && SemUtils::is_const_arithmetic_expr(expr))
+        return expr_folder_->fold_uminus(expr, result_loc);
+
+    const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
+    quad_handler_->emit_next_quad(IOPCode::UMINUS, expr, nullptr, arithmetic_expr, result_loc);
+    return arithmetic_expr;
+}
+
+inline const Expr *
+BasicBuilder::build_logical_not(
+    const Expr *const expr,
+    const SourceLocation expr_loc,
+    const SourceLocation result_loc)
+{
+    // Check your solution on GitHub (latest commit on branch feature/ir-gen) (23/05/2025)
+    UNIMPLEMENTED();
+}
+
+inline const Expr *
+BasicBuilder::convert_to_bool_form(const Expr *const expr, const SourceLocation expr_loc)
+{
+    DEBUG_SMART_ASSERT(!!expr);
+    if (expr->type == Expr::Type::BOOL_EXPR)
+        return expr;
+    if (SemUtils::is_static_expr(expr))
+        return SemUtils::as_bool(expr) ? expr_maker_->premade_true : expr_maker_->premade_false;
+
+    BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr_loc);
+    bool_expr->true_list.push_back(quad_handler_->next_quad_label());
+    quad_handler_->emit_labelless_quad(
+        IOPCode::IF_EQ, expr, expr_maker_->premade_true, nullptr, expr_loc);
+    bool_expr->false_list.push_back(quad_handler_->next_quad_label());
+    quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, expr_loc);
+    return bool_expr;
+}
+
+/**
+ *
+ * @param init_pack
+ */
+inline AssignBuilder::AssignBuilder(const BuilderInitPack &init_pack)
+    : dr_(init_pack.dr),
+      parse_ctx_(init_pack.parse_ctx),
+      expr_maker_(init_pack.expr_maker),
+      expr_snitch_(init_pack.expr_snitch),
+      quad_handler_(init_pack.quad_handler),
+      sd_bridge_(init_pack.sd_bridge) {}
+
+inline const Expr *
+AssignBuilder::build_assignment(
+    const Expr *const lvalue,
+    const Expr *const rvalue,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
+    validate_lvalue_for_assignment(lvalue, result_loc);
+    if (lvalue->type == Expr::Type::TABLE_ITEM)
+        return handle_table_item_assignment(lvalue, rvalue, result_loc);
+    return handle_direct_assignment(lvalue, rvalue, result_loc);
+}
+
+
+inline void
+AssignBuilder::validate_lvalue_for_assignment(
+    const Expr *const lvalue,
+    const SourceLocation assign_loc)
+{
+    DEBUG_SMART_ASSERT(!!lvalue);
+    if (!SemUtils::is_lvalue_expr(lvalue))
     {
-    public:
-        struct Options
-        {
-            bool fold_arithmetic;
-            bool fold_relational;
-            bool fold_logical;
-        };
-
-        BasicBuilder(Options &&options, const BuilderInitPack &init_pack);
-
-        [[nodiscard]] const Expr *build_arithmetic(IOPCode iopc, const Expr *lhs, const Expr *rhs,
-                                                   SourceLocation lhs_loc, SourceLocation rhs_loc,
-                                                   SourceLocation result_loc);
-        [[nodiscard]] const Expr *build_relational(IOPCode iopc, const Expr *lhs, const Expr *rhs,
-                                                   SourceLocation lhs_loc, SourceLocation rhs_loc,
-                                                   SourceLocation result_loc);
-        [[nodiscard]] const Expr *build_logical_or(const Expr *lhs, const Expr *rhs,
-                                                   SourceLocation lhs_loc, SourceLocation rhs_loc,
-                                                   SourceLocation result_loc);
-        [[nodiscard]] const Expr *build_logical_and(const Expr *lhs, const Expr *rhs,
-                                                    SourceLocation lhs_loc, SourceLocation rhs_loc,
-                                                    SourceLocation result_loc);
-        [[nodiscard]] const Expr *build_uminus(
-            const Expr *expr, SourceLocation expr_loc, SourceLocation result_loc);
-        [[nodiscard]] const Expr *build_logical_not(
-            const Expr *expr, SourceLocation expr_loc, SourceLocation result_loc);
-
-    private:
-        const Options options_;
-        ExprMaker *const expr_maker_;
-        ExprFolder *const expr_folder_;
-        ExprSnitch *const snitch_;
-        QuadHandler *const quad_handler_;
-        ParseCache *const parse_cache_;
-
-        [[nodiscard]] const Expr *convert_to_bool_form(const Expr *expr, SourceLocation expr_loc);
-    };
-
-    class AssignBuilder
-    {
-    public:
-        explicit AssignBuilder(const BuilderInitPack &init_pack);
-
-        [[nodiscard]] const Expr *build_assignment(const Expr *lvalue, const Expr *rvalue,
-                                                   SourceLocation result_loc);
-
-    private:
-        ParseCtx *const parse_ctx_;
-        ExprMaker *const expr_maker_;
-        ExprSnitch *const expr_snitch_;
-        QuadHandler *const quad_handler_;
-        SemanticDriverBridge *const sd_bridge_;
-
-        void validate_lvalue_for_assignment(const Expr *lvalue, SourceLocation assign_loc);
-        [[nodiscard]] const Expr *handle_table_item_assignment(
-            const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
-        [[nodiscard]] const Expr *handle_direct_assignment(
-            const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
-    };
-
-    inline ConstBuilder::ConstBuilder(const BuilderInitPack &init_pack)
-        : expr_maker_(init_pack.expr_maker) {}
-
-    inline const Expr *
-    ConstBuilder::build_true_expr(const SourceLocation loc)
-    {
-        return expr_maker_->make_const_bool_expr(true, loc);
+        dr_->report_assign_lhs_not_lvalue(to_string(lvalue->type), lvalue->loc);
+        return;
     }
-
-    inline const Expr *
-    ConstBuilder::build_false_expr(const SourceLocation loc)
+    DEBUG_SMART_ASSERT(lvalue->has_symbol); // If here. Its Lvalue and all lvalues have symbols.
+    const Symbol *const lv_symbol = static_cast<const ExprWSymbol *>(lvalue)->symbol;
+    if (lv_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
     {
-        return expr_maker_->make_const_bool_expr(false, loc);
+        dr_->report_assign_to_libfunc(lv_symbol->name, assign_loc);
+        return;
     }
-
-    inline const Expr *
-    ConstBuilder::build_int_expr(const AlphaInt value, const SourceLocation loc)
+    if (lv_symbol->type == Symbol::Type::PROGRAM_FUNCTION)
     {
-        return expr_maker_->make_const_int_expr(value, loc);
+        dr_->report_assign_to_func(lv_symbol->name, assign_loc, lv_symbol->loc);
+        return;
     }
+}
 
-    inline const Expr *
-    ConstBuilder::build_float_expr(const AlphaFloat value, const SourceLocation loc)
-    {
-        return expr_maker_->make_const_float_expr(value, loc);
-    }
+inline const Expr *
+AssignBuilder::handle_table_item_assignment(
+    const Expr *const lvalue,
+    const Expr *const rvalue,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
+    DEBUG_SMART_ASSERT(lvalue->type == Expr::Type::TABLE_ITEM);
+    const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
+    quad_handler_->emit_next_quad(IOPCode::TABLESETELEM, ti, ti->index, rvalue, result_loc);
+    const Expr *ti_temp = sd_bridge_->emit_quad_if_table_item(lvalue);
 
-    inline const Expr *
-    ConstBuilder::build_string_expr(const char *const value, const SourceLocation loc)
-    {
-        return expr_maker_->make_const_string_expr(value, loc);
-    }
+    const Symbol *temp_symbol = static_cast<const TableItemExpr *>(ti_temp)->symbol;
+    DEBUG_SMART_ASSERT(ti_temp->type == Expr::Type::TABLE_ITEM);
+    return expr_maker_->make_assign_expr(temp_symbol, result_loc);
+}
 
-    inline const Expr *
-    ConstBuilder::build_nil_expr(const SourceLocation loc)
-    {
-        return expr_maker_->make_nil_expr(loc);
-    }
+inline const Expr *
+AssignBuilder::handle_direct_assignment(
+    const Expr *const lvalue,
+    const Expr *const rvalue,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
+    quad_handler_->emit_next_quad(IOPCode::ASSIGN, rvalue, nullptr, lvalue, result_loc);
 
-    inline BasicBuilder::BasicBuilder(Options &&options, const BuilderInitPack &init_pack)
-        : options_(std::move(options)),
-          expr_maker_(init_pack.expr_maker),
-          expr_folder_(init_pack.expr_folder),
-          snitch_(init_pack.expr_snitch),
-          quad_handler_(init_pack.quad_handler),
-          parse_cache_(&init_pack.parse_ctx->cache) {}
-
-    inline const Expr *
-    BasicBuilder::build_arithmetic(
-        const IOPCode iopc,
-        const Expr *const lhs,
-        const Expr *const rhs,
-        const SourceLocation lhs_loc,
-        const SourceLocation rhs_loc,
-        const SourceLocation result_loc)
-
-    {
-        DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-        snitch_->report_if_not_arithmetic(iopc, lhs, lhs_loc, OperandSide::LEFT);
-        snitch_->report_if_not_arithmetic(iopc, rhs, rhs_loc, OperandSide::RIGHT);
-
-        if (options_.fold_arithmetic &&
-            SemUtils::is_const_arithmetic_expr(lhs) &&
-            SemUtils::is_const_arithmetic_expr(rhs))
-            return expr_folder_->fold_arithmetic(iopc, lhs, rhs, result_loc);
-
-        const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
-        quad_handler_->emit_next_quad(iopc, lhs, rhs, arithmetic_expr, result_loc);
-        return arithmetic_expr;
-    }
-
-    inline const Expr *
-    BasicBuilder::build_relational(
-        const IOPCode iopc,
-        const Expr *const lhs,
-        const Expr *const rhs,
-        const SourceLocation lhs_loc,
-        const SourceLocation rhs_loc,
-        const SourceLocation result_loc)
-    {
-        DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-        snitch_->report_if_not_relational(iopc, lhs, lhs_loc, OperandSide::LEFT);
-        snitch_->report_if_not_relational(iopc, rhs, rhs_loc, OperandSide::RIGHT);
-
-        if (options_.fold_relational &&
-            SemUtils::is_relational_equality_iopcode(iopc) &&
-            SemUtils::is_static_expr(lhs) &&
-            SemUtils::is_static_expr(rhs))
-            return expr_folder_->fold_relational_equality(iopc, lhs, rhs);
-        if (options_.fold_relational &&
-            SemUtils::is_relational_arithmetic_iopcode(iopc) &&
-            SemUtils::is_const_arithmetic_expr(lhs) &&
-            SemUtils::is_const_arithmetic_expr(rhs))
-            return expr_folder_->fold_relational_arithmetic(iopc, lhs, rhs);
-
-        BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
-
-        result_expr->true_list.push_back(quad_handler_->next_quad_label());
-        quad_handler_->emit_labelless_quad(iopc, lhs, rhs, nullptr, result_loc);
-        result_expr->false_list.push_back(quad_handler_->next_quad_label());
-        quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, result_loc);
-        return result_expr;
-    }
-
-    inline const Expr *
-    BasicBuilder::build_logical_or(
-        const Expr *lhs,
-        const Expr *rhs,
-        const SourceLocation lhs_loc,
-        const SourceLocation rhs_loc,
-        const SourceLocation result_loc)
-    {
-        DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-        lhs = convert_to_bool_form(lhs, lhs_loc);
-        rhs = convert_to_bool_form(rhs, rhs_loc);
-
-        if (options_.fold_logical)
-            if (SemUtils::is_const_bool_expr(lhs) || SemUtils::is_const_bool_expr(rhs))
-                return expr_folder_->fold_logical_or(lhs, rhs);
-
-        DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
-
-        BoolExpr *bool_result_expr = expr_maker_->make_bool_expr(result_loc);
-        BoolExpr *const left_bool = static_cast<BoolExpr *>(const_cast<Expr *>(lhs));
-        BoolExpr *const right_bool = static_cast<BoolExpr *>(const_cast<Expr *>(rhs));
-
-        // TODO: move backpatching to backpatcher !!
-
-        DEBUG_SMART_ASSERT(!parse_cache_->short_circuit_jump_stack.empty());
-        for (const LabelID quad_label : left_bool->false_list)
-            quad_handler_->patch_quad(quad_label, parse_cache_->short_circuit_jump_stack.top());
-        parse_cache_->short_circuit_jump_stack.pop();
-        left_bool->false_list.clear();
-
-        bool_result_expr->true_list.reserve(
-            left_bool->true_list.size() + right_bool->true_list.size());
-        bool_result_expr->true_list.insert(bool_result_expr->true_list.end(),
-                                           left_bool->true_list.begin(),
-                                           left_bool->true_list.end());
-        bool_result_expr->true_list.insert(bool_result_expr->true_list.end(),
-                                           right_bool->true_list.begin(),
-                                           right_bool->true_list.end());
-        bool_result_expr->false_list = right_bool->false_list;
-        return bool_result_expr;
-    }
-
-    inline const Expr *
-    BasicBuilder::build_logical_and(
-        const Expr *const lhs,
-        const Expr *const rhs,
-        const SourceLocation lhs_loc,
-        const SourceLocation rhs_loc,
-        const SourceLocation result_loc)
-    {
-        // Check your solution on GitHub (latest commit on branch feature/ir-gen) (23/05/2025)
-        UNIMPLEMENTED();
-    }
-
-    inline const Expr *
-    BasicBuilder::build_uminus(
-        const Expr *const expr,
-        const SourceLocation expr_loc,
-        const SourceLocation result_loc)
-    {
-        DEBUG_SMART_ASSERT(!!expr);
-        snitch_->report_if_not_arithmetic(IOPCode::UMINUS, expr, expr_loc, OperandSide::UNARY);
-
-        if (options_.fold_arithmetic && SemUtils::is_const_arithmetic_expr(expr))
-            return expr_folder_->fold_uminus(expr, result_loc);
-
-        const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
-        quad_handler_->emit_next_quad(IOPCode::UMINUS, expr, nullptr, arithmetic_expr, result_loc);
-        return arithmetic_expr;
-    }
-
-    inline const Expr *
-    BasicBuilder::build_logical_not(
-        const Expr *const expr,
-        const SourceLocation expr_loc,
-        const SourceLocation result_loc)
-    {
-        // Check your solution on GitHub (latest commit on branch feature/ir-gen) (23/05/2025)
-        UNIMPLEMENTED();
-    }
-
-    inline const Expr *
-    BasicBuilder::convert_to_bool_form(const Expr *const expr, const SourceLocation expr_loc)
-    {
-        DEBUG_SMART_ASSERT(!!expr);
-        if (expr->type == Expr::Type::BOOL_EXPR)
-            return expr;
-        if (SemUtils::is_static_expr(expr))
-            return SemUtils::as_bool(expr) ? expr_maker_->premade_true : expr_maker_->premade_false;
-
-        BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr_loc);
-        bool_expr->true_list.push_back(quad_handler_->next_quad_label());
-        quad_handler_->emit_labelless_quad(
-            IOPCode::IF_EQ, expr, expr_maker_->premade_true, nullptr, expr_loc);
-        bool_expr->false_list.push_back(quad_handler_->next_quad_label());
-        quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, expr_loc);
-        return bool_expr;
-    }
-
-    /**
-     *
-     * @param init_pack
-     */
-    inline AssignBuilder::AssignBuilder(const BuilderInitPack &init_pack)
-        : parse_ctx_(init_pack.parse_ctx),
-          expr_maker_(init_pack.expr_maker),
-          expr_snitch_(init_pack.expr_snitch),
-          quad_handler_(init_pack.quad_handler),
-          sd_bridge_(init_pack.sd_bridge) {}
-
-    inline const Expr *
-    AssignBuilder::build_assignment(
-        const Expr *const lvalue,
-        const Expr *const rvalue,
-        const SourceLocation result_loc)
-    {
-        DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-        validate_lvalue_for_assignment(lvalue, result_loc);
-        if (lvalue->type == Expr::Type::TABLE_ITEM)
-            return handle_table_item_assignment(lvalue, rvalue, result_loc);
-        return handle_direct_assignment(lvalue, rvalue, result_loc);
-    }
-
-
-
-
-
-    
-
-    inline void
-    AssignBuilder::validate_lvalue_for_assignment(
-        const Expr *const lvalue,
-        const SourceLocation assign_loc)
-    {
-        DEBUG_SMART_ASSERT(!!lvalue);
-        if (!SemUtils::is_lvalue_expr(lvalue))
-        {
-            const std::string error = FMT::format(
-                "lvalue required as left operand of assignment."
-                "Left operand's expression type is `{}` ",
-                to_string(lvalue->type));
-            // diagnostics_->report(Issue::Type::ERROR, error, lvalue->loc);
-            return;
-        }
-        DEBUG_SMART_ASSERT(lvalue->has_symbol); // If here. Its Lvalue and all lvalues have symbols.
-        const Symbol *const lv_symbol = static_cast<const ExprWSymbol *>(lvalue)->symbol;
-        if (lv_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
-        {
-            const std::string error =
-                FMT::format("assignment of library function `{}`", lv_symbol->name);
-            // diagnostics_->report(Issue::Type::ERROR, error, assign_loc);
-            return;
-        }
-        if (lv_symbol->type == Symbol::Type::PROGRAM_FUNCTION)
-        {
-            const std::string error = FMT::format("assignment of function `{}`", lv_symbol->name);
-            const std::string note = FMT::format("function {} declared here", lv_symbol->name);
-            // diagnostics_->report(
-            //     Issue::Type::ERROR, error, assign_loc, std::list{Note{note, lv_symbol->loc}});
-            return;
-        }
-    }
-
-    inline const Expr *
-    AssignBuilder::handle_table_item_assignment(
-        const Expr *const lvalue,
-        const Expr *const rvalue,
-        const SourceLocation result_loc)
-    {
-        DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-        DEBUG_SMART_ASSERT(lvalue->type == Expr::Type::TABLE_ITEM);
-        const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
-        quad_handler_->emit_next_quad(IOPCode::TABLESETELEM, ti, ti->index, rvalue, result_loc);
-        const Expr *ti_temp = sd_bridge_->emit_quad_if_table_item(lvalue);
-
-        const Symbol *temp_symbol = static_cast<const TableItemExpr *>(ti_temp)->symbol;
-        DEBUG_SMART_ASSERT(ti_temp->type == Expr::Type::TABLE_ITEM);
-        return expr_maker_->make_assign_expr(temp_symbol, result_loc);
-    }
-
-    inline const Expr *
-    AssignBuilder::handle_direct_assignment(
-        const Expr *const lvalue,
-        const Expr *const rvalue,
-        const SourceLocation result_loc)
-    {
-        DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-        quad_handler_->emit_next_quad(IOPCode::ASSIGN, rvalue, nullptr, lvalue, result_loc);
-
-        // TODO: check todo 52 (on how to make this only when needed)
-        const Expr *const temp_assign_expr =
+    // TODO: check todo 52 (on how to make this only when needed)
+    const Expr *const temp_assign_expr =
             expr_maker_->make_assign_expr(parse_ctx_->new_temp(), result_loc);
-        quad_handler_->emit_next_quad(
-            IOPCode::ASSIGN, lvalue, nullptr, temp_assign_expr, result_loc);
+    quad_handler_->emit_next_quad(
+        IOPCode::ASSIGN, lvalue, nullptr, temp_assign_expr, result_loc);
 
-        return temp_assign_expr;
-    }
+    return temp_assign_expr;
+}
 } // namespace Alpha
 #endif // EXPR_BUILDERS_HPP

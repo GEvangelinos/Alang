@@ -7,6 +7,7 @@
 #include <string>                  // for string, basic_string
 #include <string_view>             // for string_view
 #include "core/source_location.hpp" // for SourceLocation, SourceLocationTracker
+#include <diagnostics/diagnostics_reporter.gen.hpp>
 
 namespace Alpha
 {
@@ -76,6 +77,11 @@ private:
 class DiagnosticEngine : private Immobile
 {
 public:
+    DiagnosticReporter dr;
+
+    DiagnosticEngine()
+        : dr(this) {}
+
     [[nodiscard]] const std::vector<std::unique_ptr<const Diagnostic> > &
     get_compile_time_issues() const noexcept { return diagnostics_; }
 

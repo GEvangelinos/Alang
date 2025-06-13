@@ -1,11 +1,11 @@
-- Diagnostic: ASSIGNMENT_LHS_NOT_LVALUE
+- Diagnostic: ASSIGN_LHS_NOT_LVALUE
   Type: ERROR
   Primary:
-    - Message: "Lvalue required as left operand of assignment. Left operand's expression type is `{0}`"
+    - Message: "Lvalue required as left operand of assignment (found type  {0})"
       Args: [ lhs_type ]
       Location: lhs_loc
 
-- Diagnostic: ASSIGNMENT_OF_FUNC
+- Diagnostic: ASSIGN_TO_FUNC
   Type: ERROR
   Primary:
     - Message: "Assignment of function `{0}`"
@@ -16,9 +16,49 @@
       Args: [ func_name ]
       Location: func_def_loc
 
-- Diagnostic: ASSIGNMENT_OF_LIBFUNC
+- Diagnostic: ASSIGN_TO_LIBFUNC
   Type: ERROR
   Primary:
     - Message: "Assignment of library function `{0}`"
       Args: [ func_name ]
       Location: assign_loc
+
+- Diagnostic: ARITH_OP_NONARITH_OPERAND
+  Type: ERROR
+  Primary:
+    - Message: "`{0}` operand of arithmetic operator `{1}` is never arithmetic"
+      Args: [ operand_side, operator_symbol ]
+      Location: operand_loc
+  Notes:
+    - Message: "operand's expression type: `{0}`"
+      Args: [ operand_expr_type ]
+      Location: operand_loc
+
+- Diagnostic: REL_OP_NONARITH_OPERAND
+  Type: ERROR
+  Primary:
+    - Message: "`{0}` operand of relational operator `{1}` is never arithmetic"
+      Args: [ operand_side, operator_symbol ]
+      Location: operand_loc
+  Notes:
+    - Message: "operand's expression type: `{0}`"
+      Args: [ operand_expr_type ]
+      Location: operand_loc
+
+- Diagnostic: UMINUS_NONARITH_OPERAND
+  Type: ERROR
+  Primary:
+    - Message: "operand of unary `-` is never arithmetic"
+      Location: operand_loc
+  Notes:
+    - Message: "operand's expression type: `{0}`"
+      Args: [ operand_expr_type ]
+      Location: operand_loc
+
+- Diagnostic: IMPLICIT_INT_TO_FLOAT_LOSS
+  Type: WARNING
+  Primary:
+    - Message: "integer to floating-point implicit conversion results in integral precision loss"
+      Location: conversion_loc
+
+
