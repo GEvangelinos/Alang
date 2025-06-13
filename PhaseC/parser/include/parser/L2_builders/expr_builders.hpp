@@ -1,13 +1,13 @@
 #ifndef EXPR_BUILDERS_HPP
 #define EXPR_BUILDERS_HPP
 
+#include "diagnostics/diagnostic_engine.hpp"
+#include "L1_driver/semantic_driver_support.hpp"
 #include "L3_ir_infra/expr_folder.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
-#include "parser/semantic_utils.hpp"
 #include "parser/ir.hpp"
-#include "L1_driver/semantic_driver_support.hpp"
-#include "diagnostics/diagnostic_engine.hpp"
+#include "parser/semantic_utils.hpp"
 
 namespace Alpha
 {
@@ -46,21 +46,15 @@ public:
     BasicBuilder(Options &&options, const BuilderInitPack &init_pack);
 
     [[nodiscard]] const Expr *build_arithmetic(IOPCode iopc, const Expr *lhs, const Expr *rhs,
-                                               SourceLocation lhs_loc, SourceLocation rhs_loc,
                                                SourceLocation result_loc);
     [[nodiscard]] const Expr *build_relational(IOPCode iopc, const Expr *lhs, const Expr *rhs,
-                                               SourceLocation lhs_loc, SourceLocation rhs_loc,
                                                SourceLocation result_loc);
     [[nodiscard]] const Expr *build_logical_or(const Expr *lhs, const Expr *rhs,
-                                               SourceLocation lhs_loc, SourceLocation rhs_loc,
                                                SourceLocation result_loc);
     [[nodiscard]] const Expr *build_logical_and(const Expr *lhs, const Expr *rhs,
-                                                SourceLocation lhs_loc, SourceLocation rhs_loc,
                                                 SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_uminus(
-        const Expr *expr, SourceLocation expr_loc, SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_logical_not(
-        const Expr *expr, SourceLocation expr_loc, SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_uminus(const Expr *expr, SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_logical_not(const Expr *expr, SourceLocation result_loc);
 
 private:
     const Options options_;
@@ -71,7 +65,7 @@ private:
     QuadHandler *const quad_handler_;
     ParseCache *const parse_cache_;
 
-    [[nodiscard]] const Expr *convert_to_bool_form(const Expr *expr, SourceLocation expr_loc);
+    [[nodiscard]] const Expr *convert_to_bool_form(const Expr *expr);
 };
 
 class AssignBuilder
@@ -151,14 +145,12 @@ BasicBuilder::build_arithmetic(
     const IOPCode iopc,
     const Expr *const lhs,
     const Expr *const rhs,
-    const SourceLocation lhs_loc,
-    const SourceLocation rhs_loc,
     const SourceLocation result_loc)
 
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    snitch_->report_if_not_arithmetic(iopc, lhs, lhs_loc, OperandSide::LEFT);
-    snitch_->report_if_not_arithmetic(iopc, rhs, rhs_loc, OperandSide::RIGHT);
+    snitch_->report_if_not_arithmetic_expr(iopc, lhs, OperandSide::LEFT);
+    snitch_->report_if_not_arithmetic_expr(iopc, rhs, OperandSide::RIGHT);
 
     if (options_.fold_arithmetic &&
         SemUtils::is_const_arithmetic_expr(lhs) &&
@@ -175,13 +167,11 @@ BasicBuilder::build_relational(
     const IOPCode iopc,
     const Expr *const lhs,
     const Expr *const rhs,
-    const SourceLocation lhs_loc,
-    const SourceLocation rhs_loc,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    snitch_->report_if_not_relational(iopc, lhs, lhs_loc, OperandSide::LEFT);
-    snitch_->report_if_not_relational(iopc, rhs, rhs_loc, OperandSide::RIGHT);
+    snitch_->report_if_not_relational(iopc, lhs, OperandSide::LEFT);
+    snitch_->report_if_not_relational(iopc, rhs, OperandSide::RIGHT);
 
     if (options_.fold_relational &&
         SemUtils::is_relational_equality_iopcode(iopc) &&
@@ -207,13 +197,11 @@ inline const Expr *
 BasicBuilder::build_logical_or(
     const Expr *lhs,
     const Expr *rhs,
-    const SourceLocation lhs_loc,
-    const SourceLocation rhs_loc,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    lhs = convert_to_bool_form(lhs, lhs_loc);
-    rhs = convert_to_bool_form(rhs, rhs_loc);
+    lhs = convert_to_bool_form(lhs);
+    rhs = convert_to_bool_form(rhs);
 
     if (options_.fold_logical)
         if (SemUtils::is_const_bool_expr(lhs) || SemUtils::is_const_bool_expr(rhs))
@@ -249,8 +237,6 @@ inline const Expr *
 BasicBuilder::build_logical_and(
     const Expr *const lhs,
     const Expr *const rhs,
-    const SourceLocation lhs_loc,
-    const SourceLocation rhs_loc,
     const SourceLocation result_loc)
 {
     // Check your solution on GitHub (latest commit on branch feature/ir-gen) (23/05/2025)
@@ -260,11 +246,10 @@ BasicBuilder::build_logical_and(
 inline const Expr *
 BasicBuilder::build_uminus(
     const Expr *const expr,
-    const SourceLocation expr_loc,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
-    snitch_->report_if_not_arithmetic(IOPCode::UMINUS, expr, expr_loc, OperandSide::UNARY);
+    snitch_->report_if_not_arithmetic_expr(IOPCode::UMINUS, expr, OperandSide::UNARY);
 
     if (options_.fold_arithmetic && SemUtils::is_const_arithmetic_expr(expr))
         return expr_folder_->fold_uminus(expr, result_loc);
@@ -277,7 +262,6 @@ BasicBuilder::build_uminus(
 inline const Expr *
 BasicBuilder::build_logical_not(
     const Expr *const expr,
-    const SourceLocation expr_loc,
     const SourceLocation result_loc)
 {
     // Check your solution on GitHub (latest commit on branch feature/ir-gen) (23/05/2025)
@@ -285,7 +269,7 @@ BasicBuilder::build_logical_not(
 }
 
 inline const Expr *
-BasicBuilder::convert_to_bool_form(const Expr *const expr, const SourceLocation expr_loc)
+BasicBuilder::convert_to_bool_form(const Expr *const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
     if (expr->type == Expr::Type::BOOL_EXPR)
@@ -293,19 +277,15 @@ BasicBuilder::convert_to_bool_form(const Expr *const expr, const SourceLocation 
     if (SemUtils::is_static_expr(expr))
         return SemUtils::as_bool(expr) ? expr_maker_->premade_true : expr_maker_->premade_false;
 
-    BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr_loc);
+    BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
     bool_expr->true_list.push_back(quad_handler_->next_quad_label());
     quad_handler_->emit_labelless_quad(
-        IOPCode::IF_EQ, expr, expr_maker_->premade_true, nullptr, expr_loc);
+        IOPCode::IF_EQ, expr, expr_maker_->premade_true, nullptr, expr->loc);
     bool_expr->false_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, expr_loc);
+    quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
     return bool_expr;
 }
 
-/**
- *
- * @param init_pack
- */
 inline AssignBuilder::AssignBuilder(const BuilderInitPack &init_pack)
     : dr_(init_pack.dr),
       parse_ctx_(init_pack.parse_ctx),

@@ -207,19 +207,19 @@ expr[result]
 : assignExpr {/* TODO: do we thread here?  */}
 | term   { $result = $term; }
 | lvalue { $result = $lvalue; }
-| expr[lhs] PLUS  expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::ADD,          $lhs, $rhs, @lhs, @rhs, @result); }
-| expr[lhs] MINUS expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::SUB,          $lhs, $rhs, @lhs, @rhs, @result); } 
-| expr[lhs] MUL   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::MUL,          $lhs, $rhs, @lhs, @rhs, @result); }
-| expr[lhs] DIV   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::DIV,          $lhs, $rhs, @lhs, @rhs, @result); }
-| expr[lhs] MOD   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::MOD,          $lhs, $rhs, @lhs, @rhs, @result); }
-| expr[lhs] GT    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_GREATER,   $lhs, $rhs, @lhs, @rhs, @result); }
-| expr[lhs] GTE   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_GREATEREQ, $lhs, $rhs, @lhs, @rhs, @result); }
-| expr[lhs] LT    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_LESS,      $lhs, $rhs, @lhs, @rhs, @result); }
-| expr[lhs] LTE   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_LESSEQ,    $lhs, $rhs, @lhs, @rhs, @result); }
-| expr[lhs] EQ    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_EQ,        $lhs, $rhs, @lhs, @rhs, @result); }
-| expr[lhs] NEQ   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_NOTEQ,     $lhs, $rhs, @lhs, @rhs, @result); }
-| expr[lhs] AND saveNextQuadHook expr[rhs] { $result = sd.basic_builder.build_logical_and(    $lhs, $rhs, @lhs, @rhs, @result); }
-| expr[lhs] OR  saveNextQuadHook expr[rhs] { $result = sd.basic_builder.build_logical_or(     $lhs, $rhs, @lhs, @rhs, @result); }
+| expr[lhs] PLUS  expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::ADD,          $lhs, $rhs, @result); }
+| expr[lhs] MINUS expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::SUB,          $lhs, $rhs, @result); }
+| expr[lhs] MUL   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::MUL,          $lhs, $rhs, @result); }
+| expr[lhs] DIV   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::DIV,          $lhs, $rhs, @result); }
+| expr[lhs] MOD   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::MOD,          $lhs, $rhs, @result); }
+| expr[lhs] GT    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_GREATER,   $lhs, $rhs, @result); }
+| expr[lhs] GTE   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_GREATEREQ, $lhs, $rhs, @result); }
+| expr[lhs] LT    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_LESS,      $lhs, $rhs, @result); }
+| expr[lhs] LTE   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_LESSEQ,    $lhs, $rhs, @result); }
+| expr[lhs] EQ    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_EQ,        $lhs, $rhs, @result); }
+| expr[lhs] NEQ   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_NOTEQ,     $lhs, $rhs, @result); }
+| expr[lhs] AND saveNextQuadHook expr[rhs] { $result = sd.basic_builder.build_logical_and(    $lhs, $rhs, @result); }
+| expr[lhs] OR  saveNextQuadHook expr[rhs] { $result = sd.basic_builder.build_logical_or(     $lhs, $rhs, @result); }
 ;
 
 saveNextQuadHook:;
@@ -227,7 +227,7 @@ saveNextQuadHook:;
 term
 : primary { $term = $primary; }
 | LEFT_PAREN expr RIGHT_PAREN
-| MINUS expr %prec UMINUS { $term = sd.basic_builder.build_uminus($expr, @expr, @term); }
+| MINUS expr %prec UMINUS { $term = sd.basic_builder.build_uminus($expr, @term); }
 | NOT expr
 | INC lvalue
 | lvalue INC

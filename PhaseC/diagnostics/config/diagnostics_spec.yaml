@@ -1,3 +1,9 @@
+- Diagnostic: IMPLICIT_INT_TO_FLOAT_LOSS
+  Type: WARNING
+  Primary:
+    - Message: "integer to floating-point implicit conversion results in integral precision loss"
+      Location: conversion_loc
+
 - Diagnostic: ASSIGN_LHS_NOT_LVALUE
   Type: ERROR
   Primary:
@@ -54,11 +60,3 @@
     - Message: "operand's expression type: `{0}`"
       Args: [ operand_expr_type ]
       Location: operand_loc
-
-- Diagnostic: IMPLICIT_INT_TO_FLOAT_LOSS
-  Type: WARNING
-  Primary:
-    - Message: "integer to floating-point implicit conversion results in integral precision loss"
-      Location: conversion_loc
-
-

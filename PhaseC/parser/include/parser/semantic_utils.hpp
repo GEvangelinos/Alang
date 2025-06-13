@@ -139,26 +139,36 @@ inline bool is_relational_arithmetic_iopcode(const IOPCode iopc)
     return is_relational_iopcode(iopc) && !is_relational_equality_iopcode(iopc);
 }
 
-constexpr const char *relop_to_str(const IOPCode iopc)
+constexpr const char *rel_op_to_str(const IOPCode iopc)
 {
     DEBUG_SMART_ASSERT(is_relational_iopcode(iopc));
     switch (iopc)
     {
-    case IOPCode::IF_LESS:
-        return "<";
-    case IOPCode::IF_GREATER:
-        return ">";
-    case IOPCode::IF_LESSEQ:
-        return "<=";
-    case IOPCode::IF_GREATEREQ:
-        return ">=";
-    case IOPCode::IF_EQ:
-        return "==";
-    case IOPCode::IF_NOTEQ:
-        return "!=";
+    case IOPCode::IF_LESS: return "<";
+    case IOPCode::IF_GREATER: return ">";
+    case IOPCode::IF_LESSEQ: return "<=";
+    case IOPCode::IF_GREATEREQ: return ">=";
+    case IOPCode::IF_EQ: return "==";
+    case IOPCode::IF_NOTEQ: return "!=";
     default:
         throw std::logic_error(ATTACH_CONTEXT(
             "Expected strictly an IOPCode corresponding to a relational operator"));
+    }
+}
+
+constexpr const char *arith_op_to_str(const IOPCode iopc)
+{
+    DEBUG_SMART_ASSERT(is_relational_iopcode(iopc));
+    switch (iopc)
+    {
+    case IOPCode::ADD: return "+";
+    case IOPCode::SUB: return "-";
+    case IOPCode::MUL: return "*";
+    case IOPCode::DIV: return "/";
+    case IOPCode::MOD: return "%";
+    default:
+        throw std::logic_error(ATTACH_CONTEXT(
+            "Expected strictly an IOPCode corresponding to an arithmetic operator"));
     }
 }
 
@@ -187,22 +197,15 @@ inline bool as_bool(const Expr *const e)
     DEBUG_SMART_ASSERT(!!e, is_static_expr(e));
     switch (e->type)
     {
-    case Expr::Type::CONST_BOOL:
-        return static_cast<const ConstBoolExpr *>(e)->value;
-    case Expr::Type::CONST_INT:
-        return static_cast<const ConstIntExpr *>(e)->value != 0;
-    case Expr::Type::CONST_FLOAT:
-        return static_cast<const ConstFloatExpr *>(e)->value != 0;
+    case Expr::Type::CONST_BOOL: return static_cast<const ConstBoolExpr *>(e)->value;
+    case Expr::Type::CONST_INT: return static_cast<const ConstIntExpr *>(e)->value != 0;
+    case Expr::Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(e)->value != 0;
     case Expr::Type::CONST_STRING:
         return std::strlen(static_cast<const ConstStringExpr *>(e)->value) != 0;
-    case Expr::Type::CONST_NIL:
-        return false;
-    case Expr::Type::LIBRARY_FUNCTION:
-        return true;
-    case Expr::Type::PROGRAM_FUNCTION:
-        return true;
-    default:
-        throw std::logic_error(ATTACH_CONTEXT("Expected rvalue expr."));
+    case Expr::Type::CONST_NIL: return false;
+    case Expr::Type::LIBRARY_FUNCTION: return true;
+    case Expr::Type::PROGRAM_FUNCTION: return true;
+    default: throw std::logic_error(ATTACH_CONTEXT("Expected rvalue expr."));
     }
 }
 } // namespace Alpha::SemanticUtils

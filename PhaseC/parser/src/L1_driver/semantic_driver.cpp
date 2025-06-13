@@ -16,7 +16,7 @@ SemanticDriver::SemanticDriver(
     diagnostic_engine_(Utils::require_ptr(diagnostic_engine)),
 
     // private resources, used by public servicers.
-    expr_snitch_(std::make_unique<ExprSnitch>(diagnostic_engine)),
+    expr_snitch_(std::make_unique<ExprSnitch>(dr_)),
     expr_maker_(std::make_unique<ExprMaker>(parse_ctx_)),
     expr_folder_(std::make_unique<ExprFolder>(expr_maker_.get(), expr_snitch_.get())),
     quad_handler_(std::make_unique<QuadHandler>()),
