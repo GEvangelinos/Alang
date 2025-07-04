@@ -33,28 +33,28 @@ set(DIAGNOSTIC_GENERATOR      "${CMAKE_CURRENT_SOURCE_DIR}/scripts/diagnostic_ge
 set(DIAGNOSTICS_CONFIG_DIR    "${CMAKE_CURRENT_SOURCE_DIR}/config")
 set(DIAGNOSTICS_SPEC_FILEPATH "${DIAGNOSTICS_CONFIG_DIR}/${DIAGNOSTICS_SPEC_FILENAME}")
 
-# The diagnostics generator produces many output files, and more may be added in the future.
-# To avoid listing them individually (or relying on just one), we use a dummy "stamp" file
-# as the declared output. This allows CMake to track the generator dependencies accurately
-# and avoid re-running the script unless something actually changes.
-set(DIAGNOSTICS_STAMP_FILE    "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/.gen.stamp")
-
 file(GLOB_RECURSE diagnostic_generator_files "${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.py")
+
+set(generated_diagnostic_files
+    "${GENERATED_SRC_DIR}/diagnostic_reporter.gen.cpp"
+    "${GENERATED_SRC_DIR}/diagnostic_reporter.gen.hpp"
+    "${GENERATED_SRC_DIR}/diagnostic_codes.gen.hpp"
+)
+
 add_custom_command(
-    OUTPUT            "${DIAGNOSTICS_STAMP_FILE}"
+    OUTPUT ${generated_diagnostic_files}
     COMMAND           "${Python3_EXECUTABLE}" -B "${DIAGNOSTIC_GENERATOR}"
     --spec-filepath   "${DIAGNOSTICS_CONFIG_DIR}/${DIAGNOSTICS_SPEC_FILENAME}"
     --out-include-dir "${GENERATED_INCLUDE_COMPONENT_DIR}"
     --out-src-dir     "${GENERATED_SRC_DIR}"
-    --file-prefix     "diagnostics"
-    --stamp-filepath  "${DIAGNOSTICS_STAMP_FILE}"
+    --file-prefix     "diagnostic"
     DEPENDS
          ${diagnostic_generator_files}
         "${DIAGNOSTICS_SPEC_FILEPATH}"
     COMMENT "[PYTHON][DIAGNOSTICS] Generating diagnostic headers and source files"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
-add_custom_target(generate_diagnostics DEPENDS "${DIAGNOSTICS_STAMP_FILE}")
+add_custom_target(generate_diagnostics DEPENDS ${generated_diagnostic_files})
 
 # ---------------------------------------------------------------------------
 # Diagnostics API (header interface)
@@ -78,8 +78,9 @@ endforeach ()
 
 add_library(alpha_diagnostics_impl STATIC
     "${CMAKE_CURRENT_SOURCE_DIR}/src/diagnostic_engine.cpp"
-     ${generated_src_files}
+     ${generated_diagnostic_files}
 )
+
 target_link_libraries(alpha_diagnostics_impl PRIVATE
     alpha_diagnostics_api
     alpha_core_api

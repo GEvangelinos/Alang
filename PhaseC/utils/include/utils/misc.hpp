@@ -48,6 +48,7 @@ template<typename T>
     if (ptr) [[likely]]
         return ptr;
     std::cerr << FMT::format(
+            "ERROR: nullptr caught (expected valid pointer)\n"
             "{}:{}:{} -> {}: ",
             loc.file_name(),
             loc.line(),

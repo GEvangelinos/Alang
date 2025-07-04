@@ -6,7 +6,7 @@
 
 namespace Alpha::SemUtils
 {
-inline bool is_arithmetic_convertible_expr(const Expr *const e)
+[[nodiscard]] inline bool is_arithmetic_convertible_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     using ET = Expr::Type;
@@ -24,37 +24,37 @@ inline bool is_arithmetic_convertible_expr(const Expr *const e)
     }
 }
 
-inline bool is_func_expr(const Expr *const e)
+[[nodiscard]] inline bool is_func_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     return e->type == Expr::Type::LIBRARY_FUNCTION || e->type == Expr::Type::PROGRAM_FUNCTION;
 }
 
-inline bool is_const_bool_expr(const Expr *const e)
+[[nodiscard]] inline bool is_const_bool_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     return e->type == Expr::Type::CONST_BOOL;
 }
 
-inline bool is_const_true_expr(const Expr *const e)
+[[nodiscard]] inline bool is_const_true_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     return is_const_bool_expr(e) && static_cast<const ConstBoolExpr *>(e)->value == true;
 }
 
-inline bool is_const_false_expr(const Expr *const e)
+[[nodiscard]] inline bool is_const_false_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     return is_const_bool_expr(e) && static_cast<const ConstBoolExpr *>(e)->value == false;
 }
 
-inline bool is_const_arithmetic_expr(const Expr *const e)
+[[nodiscard]] inline bool is_const_arithmetic_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     return e->type == Expr::Type::CONST_INT || e->type == Expr::Type::CONST_FLOAT;
 }
 
-inline bool is_const_expr(const Expr *const e)
+[[nodiscard]] inline bool is_const_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     switch (e->type)
@@ -68,7 +68,7 @@ inline bool is_const_expr(const Expr *const e)
     }
 }
 
-inline bool is_lvalue_expr(const Expr *const e)
+[[nodiscard]] inline bool is_lvalue_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     switch (e->type)
@@ -80,25 +80,25 @@ inline bool is_lvalue_expr(const Expr *const e)
     }
 }
 
-inline bool is_rvalue_expr(const Expr *const e)
+[[nodiscard]] inline bool is_rvalue_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     return !is_lvalue_expr(e);
 }
 
-inline bool is_static_expr(const Expr *const e)
+[[nodiscard]] inline bool is_static_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     return is_const_expr(e) || is_func_expr(e);
 }
 
-inline bool is_expr_with_symbol(const Expr *const e)
+[[nodiscard]] inline bool is_expr_with_symbol(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     return !is_const_expr(e);
 }
 
-inline bool is_binary_arithmetic_iopcode(const IOPCode iopc)
+[[nodiscard]] inline bool is_binary_arithmetic_iopcode(const IOPCode iopc)
 {
     switch (iopc)
     {
@@ -113,7 +113,7 @@ inline bool is_binary_arithmetic_iopcode(const IOPCode iopc)
     }
 }
 
-inline bool is_relational_iopcode(const IOPCode iopc)
+[[nodiscard]] inline bool is_relational_iopcode(const IOPCode iopc)
 {
     switch (iopc)
     {
@@ -129,17 +129,17 @@ inline bool is_relational_iopcode(const IOPCode iopc)
     }
 }
 
-inline bool is_relational_equality_iopcode(const IOPCode iopc)
+[[nodiscard]] inline bool is_relational_equality_iopcode(const IOPCode iopc)
 {
     return iopc == IOPCode::IF_EQ || iopc == IOPCode::IF_NOTEQ;
 }
 
-inline bool is_relational_arithmetic_iopcode(const IOPCode iopc)
+[[nodiscard]] inline bool is_relational_arithmetic_iopcode(const IOPCode iopc)
 {
     return is_relational_iopcode(iopc) && !is_relational_equality_iopcode(iopc);
 }
 
-constexpr const char *rel_op_to_str(const IOPCode iopc)
+[[nodiscard]] constexpr const char *rel_op_to_str(const IOPCode iopc)
 {
     DEBUG_SMART_ASSERT(is_relational_iopcode(iopc));
     switch (iopc)
@@ -156,9 +156,9 @@ constexpr const char *rel_op_to_str(const IOPCode iopc)
     }
 }
 
-constexpr const char *arith_op_to_str(const IOPCode iopc)
+[[nodiscard]] constexpr const char *arith_op_to_str(const IOPCode iopc)
 {
-    DEBUG_SMART_ASSERT(is_relational_iopcode(iopc));
+    DEBUG_SMART_ASSERT(is_binary_arithmetic_iopcode(iopc));
     switch (iopc)
     {
     case IOPCode::ADD: return "+";
@@ -172,7 +172,7 @@ constexpr const char *arith_op_to_str(const IOPCode iopc)
     }
 }
 
-inline bool iopcode_requires_label(const IOPCode iopc) noexcept
+[[nodiscard]] inline bool iopcode_requires_label(const IOPCode iopc) noexcept
 {
     switch (iopc)
     {
@@ -192,7 +192,7 @@ inline bool iopcode_requires_label(const IOPCode iopc) noexcept
     }
 }
 
-inline bool as_bool(const Expr *const e)
+[[nodiscard]] inline bool as_bool(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e, is_static_expr(e));
     switch (e->type)

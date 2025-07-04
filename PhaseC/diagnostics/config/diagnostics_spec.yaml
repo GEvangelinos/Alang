@@ -60,3 +60,17 @@
     - Message: "operand's expression type: `{0}`"
       Args: [ operand_expr_type ]
       Location: operand_loc
+
+- Diagnostic: INACCESSIBLE_VARIABLE_IN_FUNC
+  Type: ERROR
+  Primary:
+    - Message: "variable `{0}` is not accessible in function `{1}`"
+      Args: [ id_name, curr_func_name ]
+      Location: id_loc
+  Notes:
+    - Message: "function `{0}` declared here"
+      Args: [ curr_func_name ]
+      Location: curr_func_loc
+    - Message: "variable `{0}` declared here"
+      Args: [id_name]
+      Location: var_decl_loc

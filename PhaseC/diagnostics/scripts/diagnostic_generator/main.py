@@ -12,7 +12,6 @@ class CliArgs(NamedTuple):
     out_include_dir: str
     out_src_dir: str
     file_prefix: str
-    stamp_filepath: str
 
 
 def assert_is_yaml_file(input_file: str):
@@ -30,7 +29,6 @@ def parse_cli_args() -> CliArgs:
     parser.add_argument("--out-include-dir", required=True, help="Path to directory for generated header files")
     parser.add_argument("--out-src-dir", required=True, help="Path to directory for generated source files")
     parser.add_argument("--file-prefix", required=True, help="Prefix for all generated filenames")
-    parser.add_argument("--stamp-filepath", required=True, help="Path to stamp file used by CMake to track rebuilds")
     args = parser.parse_args()
 
     assert_is_yaml_file(args.spec_filepath)
@@ -40,7 +38,6 @@ def parse_cli_args() -> CliArgs:
         out_include_dir=args.out_include_dir,
         out_src_dir=args.out_src_dir,
         file_prefix=args.file_prefix,
-        stamp_filepath=args.stamp_filepath
     )
 
 
@@ -58,11 +55,6 @@ def load_diagnostics(yaml_lines: list[str]) -> list[Diagnostic]:
     return diagnostics
 
 
-def renew_stamp(cli_args: CliArgs) -> None:
-    with open(cli_args.stamp_filepath, 'w') as fout:
-        fout.write("This file is used by CMake to detect diagnostic generator changes")
-
-
 def main():
     try:
         cli_args = parse_cli_args()
@@ -70,7 +62,6 @@ def main():
         diagnostics = load_diagnostics(yaml_lines)
         cpp_generator = CppGenerator(cli_args, diagnostics)
         cpp_generator.generate_all_files()
-        renew_stamp(cli_args)
     except(RuntimeError, ValueError) as e:
         print(e)
         sys.exit(1)

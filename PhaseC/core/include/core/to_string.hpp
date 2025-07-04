@@ -14,7 +14,7 @@ template<typename T>
 std::string to_string(const T &) = delete;
 
 [[nodiscard]] inline const std::string &to_string(const std::string &s) { return s; }
-[[nodiscard]] inline const std::string &to_string(const char *const s) { return s; }
+[[nodiscard]] inline const char *to_string(const char *const s) { return s; }
 [[nodiscard]] std::string to_string(IOPCode iopcode);
 [[nodiscard]] const char *to_string(Expr::Type type);
 [[nodiscard]] const char *to_string(OperandSide pos);

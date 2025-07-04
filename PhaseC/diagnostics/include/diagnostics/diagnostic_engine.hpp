@@ -7,7 +7,7 @@
 #include <string>                  // for string, basic_string
 #include <string_view>             // for string_view
 #include "core/source_location.hpp" // for SourceLocation, SourceLocationTracker
-#include <diagnostics/diagnostics_reporter.gen.hpp>
+#include <diagnostics/diagnostic_reporter.gen.hpp>
 
 namespace Alpha
 {

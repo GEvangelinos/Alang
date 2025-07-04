@@ -204,9 +204,8 @@ loopCtrlStmt
 ;
 
 expr[result]
-: assignExpr {/* TODO: do we thread here?  */}
-| term   { $result = $term; }
-| lvalue { $result = $lvalue; }
+: assignExpr { $result = $assignExpr; }
+| term       { $result = $term; }
 | expr[lhs] PLUS  expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::ADD,          $lhs, $rhs, @result); }
 | expr[lhs] MINUS expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::SUB,          $lhs, $rhs, @result); }
 | expr[lhs] MUL   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::MUL,          $lhs, $rhs, @result); }
@@ -226,7 +225,7 @@ saveNextQuadHook:;
 
 term
 : primary { $term = $primary; }
-| LEFT_PAREN expr RIGHT_PAREN
+| LEFT_PAREN expr RIGHT_PAREN { $term = $expr; }
 | MINUS expr %prec UMINUS { $term = sd.basic_builder.build_uminus($expr, @term); }
 | NOT expr
 | INC lvalue
@@ -240,19 +239,18 @@ assignExpr:
 ;
 
 primary
-: const { $primary = $const; }
-| lvalue
+: const  { $primary = $const; }
+| lvalue { $primary = $lvalue; }
 | call
 | objectDef
 | LEFT_PAREN funcDef RIGHT_PAREN
 ;
 
-
 lvalue:
-  ID {}
+  ID { $lvalue = sd.lvalue_resolver.resolve_id($ID, @ID); }
 | LOCAL ID
 | GLOBAL ID
-| member
+| tableItem
 ;
 
 tableItem:
@@ -260,10 +258,6 @@ tableItem:
 | lvalue LEFT_BRACKET expr RIGHT_BRACKET
 | call DOT ID
 | call LEFT_BRACKET expr RIGHT_BRACKET
-;
-
-member:
-  tableItem
 ;
 
 methodCallId:

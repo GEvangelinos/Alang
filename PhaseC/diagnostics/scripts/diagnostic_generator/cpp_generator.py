@@ -116,8 +116,15 @@ class CppGenerator:
             for i, note in enumerate(d.notes):
                 definition += f'\tconst std::string note{i} = FMT::format("{note.message}"{", " if note.args else ''}{", ".join(note.args)});\n'
             definition += f"\tdiagnostic_engine_->report(Issue::Type::{d.type}, primary, {d.primary.location}"
+
+            if d.notes:
+                definition += f", std::list{{"
             for i, note in enumerate(d.notes):
-                definition += f", std::list{{Note{{note{i}, {note.location}}}}}"
+                if i != 0:
+                    definition += ", "
+                definition += f"Note{{note{i}, {note.location}}}"
+            if d.notes:
+                definition += f"}}"
             definition += f");\n"
             definition += f"}}\n"
             definitions.append(definition)

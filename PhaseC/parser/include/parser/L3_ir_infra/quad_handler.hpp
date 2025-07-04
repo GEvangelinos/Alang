@@ -13,14 +13,6 @@ public:
     QuadHandler() = default;
     ~QuadHandler() = default;
 
-    void emit_quad(
-        IOPCode iopc,
-        const Expr *arg1,
-        const Expr *arg2,
-        const Expr *result,
-        LabelID label,
-        SourceLocation loc);
-
     void emit_next_quad(
         IOPCode iopc,
         const Expr *arg1,
@@ -44,6 +36,15 @@ public:
 private:
     LabelID next_quad_label_ = k_first_label;
     std::vector<Quad> quads_;
+
+    void emit_quad(
+        IOPCode iopc,
+        const Expr *arg1,
+        const Expr *arg2,
+        const Expr *result,
+        LabelID label,
+        SourceLocation loc);
+
 };
 
 inline void
@@ -64,6 +65,7 @@ QuadHandler::emit_quad(
         .label = label,
         .location = loc,
     });
+    ++next_quad_label_;
 }
 
 inline void
@@ -105,7 +107,7 @@ inline void
 QuadHandler::patch_list(const std::vector<LabelID> &patch_list, const LabelID destination_label)
 {
     DEBUG_SMART_ASSERT(destination_label != k_no_label);
-    for (const LabelID target_quad_label : patch_list)
+    for (const LabelID target_quad_label: patch_list)
         patch_quad(target_quad_label, destination_label);
 }
 } // namespace Alpha

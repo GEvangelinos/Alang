@@ -14,7 +14,7 @@ namespace Alpha
 class ConstBuilder
 {
 public:
-    explicit ConstBuilder(const BuilderInitPack &init_pack);
+    explicit ConstBuilder(const DriverInitPack &init_pack);
 
     [[nodiscard]] const Expr *build_true_expr(SourceLocation loc);
 
@@ -43,7 +43,7 @@ public:
         bool fold_logical;
     };
 
-    BasicBuilder(Options &&options, const BuilderInitPack &init_pack);
+    BasicBuilder(Options &&options, const DriverInitPack &init_pack);
 
     [[nodiscard]] const Expr *build_arithmetic(IOPCode iopc, const Expr *lhs, const Expr *rhs,
                                                SourceLocation result_loc);
@@ -71,7 +71,7 @@ private:
 class AssignBuilder
 {
 public:
-    explicit AssignBuilder(const BuilderInitPack &init_pack);
+    explicit AssignBuilder(const DriverInitPack &init_pack);
 
     [[nodiscard]] const Expr *build_assignment(const Expr *lvalue, const Expr *rvalue,
                                                SourceLocation result_loc);
@@ -91,7 +91,7 @@ private:
         const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
 };
 
-inline ConstBuilder::ConstBuilder(const BuilderInitPack &init_pack)
+inline ConstBuilder::ConstBuilder(const DriverInitPack &init_pack)
     : dr_(init_pack.dr),
       expr_maker_(init_pack.expr_maker) {}
 
@@ -131,7 +131,7 @@ ConstBuilder::build_nil_expr(const SourceLocation loc)
     return expr_maker_->make_nil_expr(loc);
 }
 
-inline BasicBuilder::BasicBuilder(Options &&options, const BuilderInitPack &init_pack)
+inline BasicBuilder::BasicBuilder(Options &&options, const DriverInitPack &init_pack)
     : options_(options),
       dr_(init_pack.dr),
       expr_maker_(init_pack.expr_maker),
@@ -286,7 +286,7 @@ BasicBuilder::convert_to_bool_form(const Expr *const expr)
     return bool_expr;
 }
 
-inline AssignBuilder::AssignBuilder(const BuilderInitPack &init_pack)
+inline AssignBuilder::AssignBuilder(const DriverInitPack &init_pack)
     : dr_(init_pack.dr),
       parse_ctx_(init_pack.parse_ctx),
       expr_maker_(init_pack.expr_maker),

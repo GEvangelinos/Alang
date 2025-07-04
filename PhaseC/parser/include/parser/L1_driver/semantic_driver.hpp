@@ -6,6 +6,7 @@
 #include "core/basics.hpp"
 #include "diagnostics/diagnostic_engine.hpp"
 #include "L2_builders/expr_builders.hpp"
+#include "L2_builders/lvalue_resolver.hpp"
 #include "L3_ir_infra/expr_folder.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
 #include "L3_ir_infra/expr_snitch.hpp"
@@ -13,60 +14,60 @@
 
 namespace Alpha
 {
-    // Order of initialization is intentional.
-    // As the subsystems of semantic driver utilize its internal state,
-    // for their own initialization.
-    class SemanticDriver : private Immobile
+// Order of initialization is intentional.
+// As the subsystems of semantic driver utilize its internal state,
+// for their own initialization.
+class SemanticDriver : private Immobile
+{
+public:
+    struct Options
     {
-    public:
-        struct Options
-        {
-            const bool fold_arithmetic;
-            const bool fold_relational;
-            const bool fold_logical;
-        };
-
-        SemanticDriver(
-            Options options,
-            ParseCtx *parse_ctx,
-            SymbolTable *symbol_table,
-            DiagnosticEngine *diagnostic_engine);
-
-        // TODO make a function that user calls before destructor call that basically extracts all this
-        // alpha drivers would want (like the generated quads).
-        [[nodiscard]] const std::vector<Quad> &retrieve_quads() const noexcept
-        {
-            return quad_handler_->quads();
-        }
-
-    private:
-        // Must be initialized first -- used by subsystems during their construction.
-        // Defaulted to nullptr to trigger safe asserts if construction order is violated.
-        ParseCtx *const parse_ctx_ = nullptr;
-        SymbolTable *const symbol_table_ = nullptr;
-        DiagnosticEngine *const diagnostic_engine_ = nullptr;
-        DiagnosticReporter*const dr_ = nullptr;
-
-
-        // -- Layer 3 subsystems --
-        std::unique_ptr<ExprSnitch> expr_snitch_;
-        std::unique_ptr<ExprMaker> expr_maker_;
-        std::unique_ptr<ExprFolder> expr_folder_;
-        std::unique_ptr<QuadHandler> quad_handler_;
-
-        SemanticDriverBridge sd_bridge_;
-
-        BuilderInitPack make_builder_init_pack();
-
-        static BasicBuilder::Options get_basic_builder_options(const Options &options);
-
-        friend class SemanticDriverBridge;
-
-    public:
-        // --Layer 2 subsystems --
-        ConstBuilder const_builder;
-        BasicBuilder basic_builder;
-        AssignBuilder assign_builder;
+        const bool fold_arithmetic;
+        const bool fold_relational;
+        const bool fold_logical;
     };
+
+    SemanticDriver(
+        Options options,
+        ParseCtx *parse_ctx,
+        SymbolTable *symbol_table,
+        DiagnosticEngine *diagnostic_engine);
+
+    // TODO make a function that user calls before destructor call that basically extracts all this
+    // alpha drivers would want (like the generated quads).
+    [[nodiscard]] const std::vector<Quad> &retrieve_quads() const noexcept
+    {
+        return quad_handler_->quads();
+    }
+
+private:
+    // Must be initialized first -- used by subsystems during their construction.
+    // Defaulted to nullptr to trigger safe asserts if construction order is violated.
+    ParseCtx *const parse_ctx_ = nullptr;
+    SymbolTable *const symbol_table_ = nullptr;
+    DiagnosticEngine *const diagnostic_engine_ = nullptr;
+
+
+    // -- Layer 3 subsystems --
+    std::unique_ptr<ExprSnitch> expr_snitch_;
+    std::unique_ptr<ExprMaker> expr_maker_;
+    std::unique_ptr<ExprFolder> expr_folder_;
+    std::unique_ptr<QuadHandler> quad_handler_;
+
+    SemanticDriverBridge sd_bridge_;
+
+    DriverInitPack make_builder_init_pack();
+
+    static BasicBuilder::Options get_basic_builder_options(const Options &options);
+
+    friend class SemanticDriverBridge;
+
+public:
+    // --Layer 2 subsystems --
+    ConstBuilder const_builder;
+    BasicBuilder basic_builder;
+    AssignBuilder assign_builder;
+    LvalueResolver lvalue_resolver;
+};
 } // namespace Alpha
 #endif // SEMANTIC_DRIVER_HPP

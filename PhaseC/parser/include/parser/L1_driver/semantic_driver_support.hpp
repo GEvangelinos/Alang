@@ -33,30 +33,33 @@
 
 namespace Alpha
 {
-    class SemanticDriverBridge
-    {
-    public:
-        SemanticDriverBridge(ParseCtx *parse_ctx, ExprMaker *expr_maker,
-                               QuadHandler *quad_handler);
+// TODO: maybe replace with the INIT pack.. or remove this class from initpack it contains duplciate fields
+class SemanticDriverBridge
+{
+public:
+    SemanticDriverBridge(ParseCtx *parse_ctx, ExprMaker *expr_maker,
+                         QuadHandler *quad_handler);
 
-        const Expr *emit_quad_if_table_item(const Expr *expr);
+    const Expr *emit_quad_if_table_item(const Expr *expr);
 
-    private:
-        ParseCtx *const parse_ctx_;
-        ExprMaker *const expr_maker_;
-        QuadHandler *const quad_handler_;
-    };
+private:
+    ParseCtx *const parse_ctx_;
+    ExprMaker *const expr_maker_;
+    QuadHandler *const quad_handler_;
+};
 
-    struct BuilderInitPack
-    {
-        DiagnosticReporter *const dr;
-        ParseCtx *const parse_ctx;
-        ExprMaker *const expr_maker;
-        ExprFolder *const expr_folder;
-        ExprSnitch *const expr_snitch;
-        QuadHandler *const quad_handler;
-        SemanticDriverBridge *const sd_bridge;
-    };
+
+struct DriverInitPack
+{
+    ParseCtx *const parse_ctx;
+    SymbolTable *const symbol_table;
+    DiagnosticReporter *const dr;
+    ExprMaker *const expr_maker;
+    ExprFolder *const expr_folder;
+    ExprSnitch *const expr_snitch;
+    QuadHandler *const quad_handler;
+    SemanticDriverBridge *const sd_bridge;
+};
 } // namespace Alpha
 
 
