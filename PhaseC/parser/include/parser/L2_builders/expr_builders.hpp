@@ -208,10 +208,9 @@ BasicBuilder::build_logical_or(
             return expr_folder_->fold_logical_or(lhs, rhs);
 
     DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
-
-    BoolExpr *bool_result_expr = expr_maker_->make_bool_expr(result_loc);
     BoolExpr *const left_bool = static_cast<BoolExpr *>(const_cast<Expr *>(lhs));
     BoolExpr *const right_bool = static_cast<BoolExpr *>(const_cast<Expr *>(rhs));
+    BoolExpr *bool_result_expr = expr_maker_->make_bool_expr(result_loc);
 
     // TODO: move backpatching to backpatcher !!
 
@@ -221,8 +220,7 @@ BasicBuilder::build_logical_or(
     parse_cache_->short_circuit_jump_stack.pop();
     left_bool->false_list.clear();
 
-    bool_result_expr->true_list.reserve(
-        left_bool->true_list.size() + right_bool->true_list.size());
+    bool_result_expr->true_list.reserve(left_bool->true_list.size() + right_bool->true_list.size());
     bool_result_expr->true_list.insert(bool_result_expr->true_list.end(),
                                        left_bool->true_list.begin(),
                                        left_bool->true_list.end());
@@ -235,12 +233,42 @@ BasicBuilder::build_logical_or(
 
 inline const Expr *
 BasicBuilder::build_logical_and(
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr *lhs,
+    const Expr *rhs,
     const SourceLocation result_loc)
 {
-    // Check your solution on GitHub (latest commit on branch feature/ir-gen) (23/05/2025)
-    UNIMPLEMENTED();
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    lhs = convert_to_bool_form(lhs);
+    rhs = convert_to_bool_form(rhs);
+
+    if (options_.fold_logical)
+        if (SemUtils::is_const_bool_expr(lhs) || SemUtils::is_const_bool_expr(rhs))
+            return expr_folder_->fold_logical_and(lhs, rhs);
+
+    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
+    BoolExpr *const left_bool = static_cast<BoolExpr *>(const_cast<Expr *>(lhs));
+    BoolExpr *const right_bool = static_cast<BoolExpr *>(const_cast<Expr *>(rhs));
+    BoolExpr *bool_result_expr = expr_maker_->make_bool_expr(result_loc);
+
+
+    DEBUG_SMART_ASSERT(!parse_cache_->short_circuit_jump_stack.empty());
+    for (const LabelID quad_label: left_bool->true_list)
+        quad_handler_->patch_quad(quad_label, parse_cache_->short_circuit_jump_stack.top());
+    parse_cache_->short_circuit_jump_stack.pop();
+    left_bool->true_list.clear();
+
+    bool_result_expr->false_list.reserve(
+        left_bool->false_list.size() + right_bool->false_list.size());
+
+    bool_result_expr->false_list.insert(bool_result_expr->false_list.end(),
+                                       left_bool->false_list.begin(),
+                                       left_bool->false_list.end());
+    bool_result_expr->false_list.insert(bool_result_expr->false_list.end(),
+                                       right_bool->false_list.begin(),
+                                       right_bool->false_list.end());
+
+    bool_result_expr->true_list = right_bool->true_list;
+    return bool_result_expr;
 }
 
 inline const Expr *

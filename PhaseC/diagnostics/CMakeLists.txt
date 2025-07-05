@@ -37,8 +37,8 @@ file(GLOB_RECURSE diagnostic_generator_files "${CMAKE_CURRENT_SOURCE_DIR}/script
 
 set(generated_diagnostic_files
     "${GENERATED_SRC_DIR}/diagnostic_reporter.gen.cpp"
-    "${GENERATED_SRC_DIR}/diagnostic_reporter.gen.hpp"
-    "${GENERATED_SRC_DIR}/diagnostic_codes.gen.hpp"
+    "${GENERATED_INCLUDE_DIR}/diagnostic_reporter.gen.hpp"
+    "${GENERATED_INCLUDE_DIR}/diagnostic_codes.gen.hpp"
 )
 
 add_custom_command(
@@ -54,6 +54,7 @@ add_custom_command(
     COMMENT "[PYTHON][DIAGNOSTICS] Generating diagnostic headers and source files"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
+
 add_custom_target(generate_diagnostics DEPENDS ${generated_diagnostic_files})
 
 # ---------------------------------------------------------------------------
