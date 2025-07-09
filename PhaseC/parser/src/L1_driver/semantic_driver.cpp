@@ -28,7 +28,8 @@ SemanticDriver::SemanticDriver(
     assign_builder(make_builder_init_pack()),
     lvalue_resolver(make_builder_init_pack()) {}
 
-DriverInitPack SemanticDriver::make_builder_init_pack()
+DriverInitPack
+SemanticDriver::make_builder_init_pack()
 {
     return DriverInitPack{
         .parse_ctx = REQUIRE_PTR(parse_ctx_),
@@ -51,4 +52,5 @@ SemanticDriver::get_basic_builder_options(const Options &options)
         .fold_logical = options.fold_logical,
     };
 }
+
 } // namespace Alpha

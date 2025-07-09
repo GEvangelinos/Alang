@@ -11,6 +11,75 @@
 
 namespace Alpha
 {
+class Backpatcher
+{
+private:
+    ExprMaker *const expr_maker_ = nullptr;
+    ParseCache *const parse_cache_ = nullptr;
+    QuadHandler *const quad_handler_ = nullptr;
+
+public:
+    struct OrStrategy
+    {
+        static std::vector<LabelID> &backpatch_list(BoolExpr *expr) { return expr->false_list; }
+        static std::vector<LabelID> &merge_lhs_list(BoolExpr *expr) { return expr->true_list; }
+        static std::vector<LabelID> &merge_rhs_list(BoolExpr *expr) { return expr->true_list; }
+        static std::vector<LabelID> &assign_list(BoolExpr *expr) { return expr->false_list; }
+    };
+
+    struct AndStrategy
+    {
+        static std::vector<LabelID> &backpatch_list(BoolExpr *expr) { return expr->true_list; }
+        static std::vector<LabelID> &merge_lhs_list(BoolExpr *expr) { return expr->false_list; }
+        static std::vector<LabelID> &merge_rhs_list(BoolExpr *expr) { return expr->false_list; }
+        static std::vector<LabelID> &assign_list(BoolExpr *expr) { return expr->true_list; }
+    };
+
+    Backpatcher(ExprMaker *expr_maker, ParseCache *parse_cache, QuadHandler *quad_handler);
+
+    template<typename Strategy>
+    [[nodiscard]] const Expr *
+    backpatch(const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+};
+
+inline Backpatcher::Backpatcher(
+    ExprMaker *const expr_maker,
+    ParseCache *const parse_cache,
+    QuadHandler *const quad_handler)
+    : expr_maker_(REQUIRE_PTR(expr_maker)),
+      parse_cache_(REQUIRE_PTR(parse_cache)),
+      quad_handler_(REQUIRE_PTR(quad_handler)) {}
+
+template<typename Strategy>
+[[nodiscard]] const Expr *
+Backpatcher::backpatch(
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR)
+    ;
+    BoolExpr *const left_bool = static_cast<BoolExpr *>(const_cast<Expr *>(lhs));
+    BoolExpr *const right_bool = static_cast<BoolExpr *>(const_cast<Expr *>(rhs));
+    BoolExpr *bool_result_expr = expr_maker_->make_bool_expr(result_loc);
+
+    DEBUG_SMART_ASSERT(!parse_cache_->short_circuit_jump_stack.empty());
+    for (const LabelID quad_label: Strategy::backpatch_list(left_bool))
+        quad_handler_->patch_quad(quad_label, parse_cache_->short_circuit_jump_stack.top());
+    parse_cache_->short_circuit_jump_stack.pop();
+    Strategy::backpatch_list(left_bool).clear();
+
+    auto &lhs_merge = Strategy::merge_lhs_list(left_bool);
+    auto &rhs_merge = Strategy::merge_rhs_list(right_bool);
+    auto &result_merge = Strategy::merge_lhs_list(bool_result_expr); // We could use merge_rhs too
+    result_merge.reserve(lhs_merge.size() + rhs_merge.size());
+    result_merge.insert(result_merge.end(), lhs_merge.begin(), lhs_merge.end());
+    result_merge.insert(result_merge.end(), rhs_merge.begin(), rhs_merge.end());
+
+    Strategy::assign_list(bool_result_expr) = Strategy::assign_list(right_bool);
+    return bool_result_expr;
+}
+
 class ConstBuilder
 {
 public:
@@ -63,9 +132,7 @@ private:
     ExprFolder *const expr_folder_;
     ExprSnitch *const snitch_;
     QuadHandler *const quad_handler_;
-    ParseCache *const parse_cache_;
-
-    [[nodiscard]] const Expr *convert_to_bool_form(const Expr *expr);
+    Backpatcher backpatcher_;
 };
 
 class AssignBuilder
@@ -138,7 +205,7 @@ inline BasicBuilder::BasicBuilder(Options &&options, const DriverInitPack &init_
       expr_folder_(init_pack.expr_folder),
       snitch_(init_pack.expr_snitch),
       quad_handler_(init_pack.quad_handler),
-      parse_cache_(&init_pack.parse_ctx->cache) {}
+      backpatcher_(expr_maker_, &init_pack.parse_ctx->cache, quad_handler_) {}
 
 inline const Expr *
 BasicBuilder::build_arithmetic(
@@ -199,36 +266,15 @@ BasicBuilder::build_logical_or(
     const Expr *rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    lhs = convert_to_bool_form(lhs);
-    rhs = convert_to_bool_form(rhs);
-
+    DEBUG_SMART_ASSERT(
+        !!lhs, !!rhs,
+        SemUtils::is_in_bool_form(lhs),
+        SemUtils::is_in_bool_form(rhs)
+    );
     if (options_.fold_logical)
         if (SemUtils::is_const_bool_expr(lhs) || SemUtils::is_const_bool_expr(rhs))
             return expr_folder_->fold_logical_or(lhs, rhs);
-
-    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
-    BoolExpr *const left_bool = static_cast<BoolExpr *>(const_cast<Expr *>(lhs));
-    BoolExpr *const right_bool = static_cast<BoolExpr *>(const_cast<Expr *>(rhs));
-    BoolExpr *bool_result_expr = expr_maker_->make_bool_expr(result_loc);
-
-    // TODO: move backpatching to backpatcher !!
-
-    DEBUG_SMART_ASSERT(!parse_cache_->short_circuit_jump_stack.empty());
-    for (const LabelID quad_label: left_bool->false_list)
-        quad_handler_->patch_quad(quad_label, parse_cache_->short_circuit_jump_stack.top());
-    parse_cache_->short_circuit_jump_stack.pop();
-    left_bool->false_list.clear();
-
-    bool_result_expr->true_list.reserve(left_bool->true_list.size() + right_bool->true_list.size());
-    bool_result_expr->true_list.insert(bool_result_expr->true_list.end(),
-                                       left_bool->true_list.begin(),
-                                       left_bool->true_list.end());
-    bool_result_expr->true_list.insert(bool_result_expr->true_list.end(),
-                                       right_bool->true_list.begin(),
-                                       right_bool->true_list.end());
-    bool_result_expr->false_list = right_bool->false_list;
-    return bool_result_expr;
+    return backpatcher_.backpatch<Backpatcher::OrStrategy>(lhs, rhs, result_loc);
 }
 
 inline const Expr *
@@ -237,38 +283,16 @@ BasicBuilder::build_logical_and(
     const Expr *rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    lhs = convert_to_bool_form(lhs);
-    rhs = convert_to_bool_form(rhs);
+    DEBUG_SMART_ASSERT(
+        !!lhs, !!rhs,
+        SemUtils::is_in_bool_form(lhs),
+        SemUtils::is_in_bool_form(rhs)
+    );
 
     if (options_.fold_logical)
         if (SemUtils::is_const_bool_expr(lhs) || SemUtils::is_const_bool_expr(rhs))
             return expr_folder_->fold_logical_and(lhs, rhs);
-
-    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
-    BoolExpr *const left_bool = static_cast<BoolExpr *>(const_cast<Expr *>(lhs));
-    BoolExpr *const right_bool = static_cast<BoolExpr *>(const_cast<Expr *>(rhs));
-    BoolExpr *bool_result_expr = expr_maker_->make_bool_expr(result_loc);
-
-
-    DEBUG_SMART_ASSERT(!parse_cache_->short_circuit_jump_stack.empty());
-    for (const LabelID quad_label: left_bool->true_list)
-        quad_handler_->patch_quad(quad_label, parse_cache_->short_circuit_jump_stack.top());
-    parse_cache_->short_circuit_jump_stack.pop();
-    left_bool->true_list.clear();
-
-    bool_result_expr->false_list.reserve(
-        left_bool->false_list.size() + right_bool->false_list.size());
-
-    bool_result_expr->false_list.insert(bool_result_expr->false_list.end(),
-                                       left_bool->false_list.begin(),
-                                       left_bool->false_list.end());
-    bool_result_expr->false_list.insert(bool_result_expr->false_list.end(),
-                                       right_bool->false_list.begin(),
-                                       right_bool->false_list.end());
-
-    bool_result_expr->true_list = right_bool->true_list;
-    return bool_result_expr;
+    return backpatcher_.backpatch<Backpatcher::AndStrategy>(lhs, rhs, result_loc);
 }
 
 inline const Expr *
@@ -296,23 +320,6 @@ BasicBuilder::build_logical_not(
     UNIMPLEMENTED();
 }
 
-inline const Expr *
-BasicBuilder::convert_to_bool_form(const Expr *const expr)
-{
-    DEBUG_SMART_ASSERT(!!expr);
-    if (expr->type == Expr::Type::BOOL_EXPR)
-        return expr;
-    if (SemUtils::is_static_expr(expr))
-        return SemUtils::as_bool(expr) ? expr_maker_->premade_true : expr_maker_->premade_false;
-
-    BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
-    bool_expr->true_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless_quad(
-        IOPCode::IF_EQ, expr, expr_maker_->premade_true, nullptr, expr->loc);
-    bool_expr->false_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
-    return bool_expr;
-}
 
 inline AssignBuilder::AssignBuilder(const DriverInitPack &init_pack)
     : dr_(init_pack.dr),

@@ -57,6 +57,8 @@
 %type  <const_expr_ptr> term
 %type  <const_expr_ptr> lvalue
 %type  <const_expr_ptr> expr
+%type  <const_expr_ptr> and_op
+%type  <const_expr_ptr> or_op
 %type  <const_expr_ptr> assignExpr
 /********************************************************
 %type  <expr_ptr> tableItem
@@ -171,19 +173,19 @@
 %start program /* Entry rule. */
 
 %%
-program
-: // (empty)
+program:
+  // (empty)
 | multiStmt
 ;
 
-multiStmt
-: stmt
+multiStmt:
+  stmt
 | stmt
  multiStmt
 ;
 
-stmt
-: expr SEMICOLON
+stmt:
+  expr SEMICOLON
 | ifStmt
 | whileStmt
 | forStmt
@@ -198,13 +200,13 @@ stmt
 | error RIGHT_BRACE   { yyerrok; } // Syntax error recovery hook.
 ;
 
-loopCtrlStmt
-:  BREAK
+loopCtrlStmt:
+  BREAK
 | CONTINUE
 ;
 
-expr[result]
-: assignExpr { $result = $assignExpr; }
+expr[result]:
+  assignExpr { $result = $assignExpr; }
 | term       { $result = $term; }
 | expr[lhs] PLUS  expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::ADD,          $lhs, $rhs, @result); }
 | expr[lhs] MINUS expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::SUB,          $lhs, $rhs, @result); }
@@ -217,11 +219,37 @@ expr[result]
 | expr[lhs] LTE   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_LESSEQ,    $lhs, $rhs, @result); }
 | expr[lhs] EQ    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_EQ,        $lhs, $rhs, @result); }
 | expr[lhs] NEQ   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_NOTEQ,     $lhs, $rhs, @result); }
-| expr[lhs] AND saveNextQuadHook expr[rhs] { $result = sd.basic_builder.build_logical_and(    $lhs, $rhs, @result); }
-| expr[lhs] OR  saveNextQuadHook expr[rhs] { $result = sd.basic_builder.build_logical_or(     $lhs, $rhs, @result); }
+| and_op { $result = $and_op; }
+| or_op  { $result = $or_op; }
 ;
 
-saveNextQuadHook:;
+and_op:
+  expr[lhs]
+  AND
+  {
+    sd.mark_short_circuit_jump_point();
+    $lhs = sd.convert_to_bool_expr($lhs);
+  }
+  expr[rhs]
+  {
+    $rhs = sd.convert_to_bool_expr($rhs);
+    $and_op = sd.basic_builder.build_logical_and($lhs, $rhs, @and_op);
+  }
+;
+
+or_op:
+  expr[lhs]
+  OR
+  {
+    sd.mark_short_circuit_jump_point();
+    $lhs = sd.convert_to_bool_expr($lhs);
+  }
+  expr[rhs]
+  {
+    $rhs = sd.convert_to_bool_expr($rhs);
+    $or_op = sd.basic_builder.build_logical_or($lhs, $rhs, @or_op);
+  }
+;
 
 term
 : primary { $term = $primary; }

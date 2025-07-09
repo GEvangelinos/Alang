@@ -5,7 +5,7 @@
 #include "parser/symbol_table.hpp"
 #include "core/basics.hpp"
 #include "diagnostics/diagnostic_engine.hpp"
-#include "L2_builders/expr_builders.hpp"
+#include "L2_builders/expr_builders_RENAME_CONTEXT_CHANGED.hpp"
 #include "L2_builders/lvalue_resolver.hpp"
 #include "L3_ir_infra/expr_folder.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
@@ -68,6 +68,33 @@ public:
     BasicBuilder basic_builder;
     AssignBuilder assign_builder;
     LvalueResolver lvalue_resolver;
+
+    void mark_short_circuit_jump_point();
+    const Expr *convert_to_bool_expr(const Expr *expr);
 };
+
+inline void
+SemanticDriver::mark_short_circuit_jump_point()
+{
+    parse_ctx_->cache.short_circuit_jump_stack.push(quad_handler_->next_quad_label());
+}
+
+inline const Expr *
+SemanticDriver::convert_to_bool_expr(const Expr *const expr)
+{
+    DEBUG_SMART_ASSERT(!!expr);
+    if (expr->type == Expr::Type::BOOL_EXPR)
+        return expr;
+    if (SemUtils::is_static_expr(expr))
+        return SemUtils::as_bool(expr) ? expr_maker_->premade_true : expr_maker_->premade_false;
+
+    BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
+    bool_expr->true_list.push_back(quad_handler_->next_quad_label());
+    quad_handler_->emit_labelless_quad(
+        IOPCode::IF_EQ, expr, expr_maker_->premade_true, nullptr, expr->loc);
+    bool_expr->false_list.push_back(quad_handler_->next_quad_label());
+    quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
+    return bool_expr;
+}
 } // namespace Alpha
 #endif // SEMANTIC_DRIVER_HPP

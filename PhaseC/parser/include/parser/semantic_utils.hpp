@@ -30,6 +30,12 @@ namespace Alpha::SemUtils
     return e->type == Expr::Type::LIBRARY_FUNCTION || e->type == Expr::Type::PROGRAM_FUNCTION;
 }
 
+[[nodiscard]] inline bool is_in_bool_form(const Expr *const e)
+{
+    DEBUG_SMART_ASSERT(!!e);
+    return e->type == Expr::Type::BOOL_EXPR || e->type == Expr::Type::CONST_BOOL;
+}
+
 [[nodiscard]] inline bool is_const_bool_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
