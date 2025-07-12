@@ -24,6 +24,7 @@
         #define ALWAYS_INLINE inline
 #endif
 #ifdef DEBUG_MODE
+        #define DEBUG(...) __VA_ARGS__
         #define DEBUG_ALWAYS_INLINE // Disable inlining to ensure that a function visible debug symbols.
         #define DEBUG_NULLIFY(pointer) ((pointer) = nullptr)
         #define REQUIRE_PTR(ptr) Utils::require_ptr(ptr)
@@ -33,6 +34,7 @@
 //  Also active in debug mode: same as above, runs full logic
         #define DEBUG_SMART_ASSERT_EVAL(...) SMART_ASSERT(__VA_ARGS__)
 #else
+        #define DEBUG(...) // Ignore input!
         #define DEBUG_ALWAYS_INLINE ALWAYS_INLINE
         #define DEBUG_NULLIFY(pointer) ((void)0)
         #define REQUIRE_PTR(ptr) Utils::require_ptr_fast(ptr)

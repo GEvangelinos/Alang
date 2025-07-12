@@ -3,120 +3,170 @@
 
 #include <list>
 #include <string>
-#include "core/source_location.hpp"
+
 #include "_parser_common.hpp"
+#include "core/source_location.hpp"
 
 namespace Alpha
 {
-        // Classes defined here:
-        class Symbol;   // IWYU pragma: keep
-        class Variable; // IWYU pragma: keep
-        class Function; // IWYU pragma: keep
+struct ConstExpr; // FWD declared
+// Classes defined here:
+class Symbol;   // IWYU pragma: keep
+class Variable; // IWYU pragma: keep
+class Function; // IWYU pragma: keep
 
-        class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
-        {
-        public:
-                enum class Type : u8
-                {
-                        LIBRARY_FUNCTION,
-                        PROGRAM_FUNCTION,
-                        FORMAL_ARGUMENT,
-                        GLOBAL_VARIABLE,
-                        LOCAL_VARIABLE,
-                };
+class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
+{
+public:
+    enum class Type : u8
+    {
+        LIBRARY_FUNCTION,
+        PROGRAM_FUNCTION,
+        FORMAL_ARGUMENT,
+        GLOBAL_VARIABLE,
+        LOCAL_VARIABLE,
+    };
 
-                const std::string &name;
-                const u32 scope;
-                const Type type;
-                const SourceLocation loc;
+    const std::string &name;
+    const u32 scope;
+    const Type type;
+    const SourceLocation loc;
 
-                virtual ~Symbol() = default;
+    virtual ~Symbol() = default;
 
-                [[nodiscard]] std::string_view type_to_string() const noexcept;
-                // TODO REMOVE // [[nodiscard]] bool is_variable() const noexcept { return type == Type::VARIABLE; }
-                [[nodiscard]] bool is_variable() const noexcept { return !is_function(); }
-                [[nodiscard]] bool is_function() const noexcept
-                {
-                        return type == Type::LIBRARY_FUNCTION ||
-                               type == Type::PROGRAM_FUNCTION;
-                }
-                [[nodiscard]] bool is_active() const noexcept { return is_active_; }
-                [[nodiscard]] static bool is_modifiable_symbol(const Symbol *symbol);
+    [[nodiscard]] std::string_view type_to_string() const noexcept;
+    [[nodiscard]] bool is_variable() const noexcept { return !is_function(); }
 
-        protected:
-                Symbol(const std::string &name, u32 scope, Type type, SourceLocation loc) noexcept
-                    : name(name), scope(scope), type(type), loc(loc) {}
+    [[nodiscard]] bool is_function() const noexcept
+    {
+        return type == Type::LIBRARY_FUNCTION || type == Type::PROGRAM_FUNCTION;
+    }
 
-        private:
-                bool is_active_ = true;
+    [[nodiscard]] bool is_active() const noexcept { return is_active_; }
+    [[nodiscard]] static bool is_modifiable_symbol(const Symbol *symbol);
 
-                DEBUG_ALWAYS_INLINE void activate() noexcept { is_active_ = true; }
-                DEBUG_ALWAYS_INLINE void deactivate() noexcept { is_active_ = false; }
+protected:
+    Symbol(const std::string &name, u32 scope, Type type, SourceLocation loc) noexcept;
 
-                friend class SymbolTable;
-        };
+private:
+    bool is_active_ = true;
 
-        class Variable : public Symbol
-        {
-        public:
-                enum class Space
-                {
-                        PROGRAM_VAR,
-                        FUNCTION_LOCAL,
-                        FORMAL_ARGUMENT,
-                };
+    DEBUG_ALWAYS_INLINE void activate() noexcept { is_active_ = true; }
+    DEBUG_ALWAYS_INLINE void deactivate() noexcept { is_active_ = false; }
 
-                const Space space;
-                const u32 offset;
+    friend class SymbolTable;
+};
 
-                Variable(
-                    const std::string &name,
-                    u32 scope,
-                    Type type,
-                    Space space,
-                    u32 offset,
-                    SourceLocation loc)
-                    : Symbol(name, scope, type, loc),
-                      space(space),
-                      offset(offset) {}
-                ~Variable() override = default;
-        };
+class Variable final : public Symbol
+{
+public:
+    enum class Space
+    {
+        PROGRAM_VAR,
+        FUNCTION_LOCAL,
+        FORMAL_ARGUMENT,
+    };
 
-        class Function : public Symbol
-        {
-        public:
-                const u32 address;
-                const std::list<Parameter> parameter_list; // TODO: change to vector (cache friendly...)
-                Once<u32> local_variable_count;
+    const Space space;
+    const u32 offset;
 
-                Function(
-                    const std::string &name,
-                    const u32 scope,
-                    const Symbol::Type type,
-                    const u32 address,
-                    const std::list<Parameter> &parameter_list,
-                    const SourceLocation location)
-                    : Symbol(name, scope, type, location),
-                      address(address),
-                      parameter_list(parameter_list)
-                {
-                        DEBUG_SMART_ASSERT(
-                            type == Symbol::Type::LIBRARY_FUNCTION ||
-                            type == Symbol::Type::PROGRAM_FUNCTION //
-                        );
-                }
+    Variable(
+        const std::string &name,
+        u32 scope,
+        Type type,
+        Space space,
+        u32 offset,
+        SourceLocation loc) noexcept;
+    ~Variable() override = default;
 
-                ~Function() override = default;
-        };
+    const ConstExpr *get_const_value() const noexcept { return const_expr_; }
+    bool has_const_value() const noexcept { return const_expr_; }
 
-        inline bool
-        Symbol::is_modifiable_symbol(const Symbol *symbol)
-        {
-                // TODO: remove (deprecated part from phase 2)
-                // if (!symbol) // nullptr implies runtime-evaluated lvalue (e.g. member access)
-                // 	return true;
-                return symbol->is_variable();
-        }
+private:
+    // Used to reference the const_expr in order to extract its const_value for constant_propagation
+    const ConstExpr *const_expr_ = nullptr; // Only modified through friend class SymbolTable!
 
+    friend class SymbolTable;
+};
+
+class Function final : public Symbol
+{
+public:
+    const u32 address;
+    const std::list<Parameter> parameter_list; // TODO: change to vector (cache friendly...)
+    Once<u32> local_variable_count;
+
+
+    Function(
+        const std::string &name,
+        u32 scope,
+        Type type,
+        u32 address,
+        const std::list<Parameter> &parameter_list,
+        SourceLocation location);
+    ~Function() override = default;
+
+private:
+    friend class SymbolTable;
+};
+
+inline
+Symbol::Symbol(
+    const std::string &name,
+    const u32 scope,
+    const Type type,
+    const SourceLocation loc) noexcept
+    : name(name), scope(scope), type(type), loc(loc) {}
+
+inline std::string_view
+Symbol::type_to_string() const noexcept
+{
+    switch (type)
+    {
+    case Type::LIBRARY_FUNCTION: return "LIBRARY_FUNCTION";
+    case Type::PROGRAM_FUNCTION: return "PROGRAM_FUNCTION";
+    case Type::GLOBAL_VARIABLE: return "GLOBAL_VARIABLE";
+    case Type::FORMAL_ARGUMENT: return "FORMAL_ARGUMENT";
+    case Type::LOCAL_VARIABLE: return "LOCAL_VARIABLE";
+    default: UNREACHABLE("Unexpected Symbol Type.");
+    }
+}
+
+inline bool
+Symbol::is_modifiable_symbol(const Symbol *symbol)
+{
+    return symbol->is_variable();
+}
+
+inline
+Variable::Variable(
+    const std::string &name,
+    const u32 scope,
+    const Type type,
+    const Space space,
+    const u32 offset,
+    const SourceLocation loc) noexcept
+    : Symbol(name, scope, type, loc),
+      space(space),
+      offset(offset) {}
+
+
+inline
+Function::Function(
+    const std::string &name,
+    const u32 scope,
+    const Type type,
+    const u32 address,
+    const std::list<Parameter> &parameter_list,
+    const SourceLocation location)
+    : Symbol(name, scope, type, location),
+      address(address),
+      parameter_list(parameter_list)
+{
+    DEBUG_SMART_ASSERT(
+        type == Symbol::Type::LIBRARY_FUNCTION ||
+        type == Symbol::Type::PROGRAM_FUNCTION //
+    );
+}
 } // namespace Alpha
 #endif // ALPHA_SYMBOLS_HPP

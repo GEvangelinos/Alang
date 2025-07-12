@@ -5,6 +5,7 @@
 #include "utils/smart_assert.h"      // for DEBUG_SMART_ASSERT
 #include <utility>                   // for move, pair, forward
 #include "parser/RELOCATE_backpatcher.hpp"
+#include "parser/semantic_utils.hpp"
 
 namespace Alpha
 {
@@ -16,7 +17,7 @@ namespace // (Anonymous)
     [[maybe_unused]] const Key &get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
     {
         auto [item_it, inserted] = umap.try_emplace(key);
-        DEBUG_SMART_ASSERT(!inserted); // This function is meant to be used for existing keys.
+        DEBUG_SMART_ASSERT(!inserted);       // This function is meant to be used for existing keys.
         const Key &key_ref = item_it->first; // First item part of item is Key, second is Value.
         return key_ref;
     }
@@ -45,35 +46,20 @@ namespace // (Anonymous)
     }
 } // namespace
 
-std::string_view Symbol::type_to_string() const noexcept
-{
-                // clang-format off
-                switch (type)
-                {
-                case Symbol::Type::LIBRARY_FUNCTION: return "LIBRARY_FUNCTION";
-                case Symbol::Type::PROGRAM_FUNCTION: return "PROGRAM_FUNCTION";
-                case Symbol::Type::GLOBAL_VARIABLE:  return "GLOBAL_VARIABLE";
-                case Symbol::Type::FORMAL_ARGUMENT:  return "FORMAL_ARGUMENT";
-                case Symbol::Type::LOCAL_VARIABLE:   return "LOCAL_VARIABLE";
-                default: UNREACHABLE("Unexpected Symbol Type.");
-                }
-    // clang-format on
-}
-
 template<typename SymbolKind, typename... Args>
-    requires std::is_same_v<SymbolKind, Variable> ||
-             std::is_same_v<SymbolKind, Function>
-DEBUG_ALWAYS_INLINE const SymbolKind *SymbolTable::insert_symbol(
+    requires std::is_same_v<SymbolKind, Variable> || std::is_same_v<SymbolKind, Function>
+DEBUG_ALWAYS_INLINE const SymbolKind *
+SymbolTable::insert_symbol(
     const std::string &name,
     u32 scope,
     Args &&... args)
 {
     DEBUG_SMART_ASSERT(name.size() > 0);
 
-    auto symbol_map_it = symbol_map_.try_emplace(name).first;
-    auto &symbol_name_ref = symbol_map_it->first;
+    const auto symbol_map_it = symbol_map_.try_emplace(name).first;
+    const auto &symbol_name_ref = symbol_map_it->first;
     auto &synonym_symbols = symbol_map_it->second;
-    auto symbol_it = find_insert_position(synonym_symbols, scope);
+    const auto symbol_it = find_insert_position(synonym_symbols, scope);
     SymbolPtr symbol_ptr = std::make_unique<SymbolKind>(
         symbol_name_ref, scope, std::forward<Args>(args)...);
 
@@ -87,11 +73,13 @@ DEBUG_ALWAYS_INLINE const SymbolKind *SymbolTable::insert_symbol(
 }
 
 // Explicit instantiations for insert_symbol()
-template const Function *SymbolTable::insert_symbol<Function>(
+template const Function *
+SymbolTable::insert_symbol<Function>(
     const std::string &, u32, Function::Type &&, u32 &&, const std::list<Parameter> &,
     SourceLocation &&);
 
-template const Variable *SymbolTable::insert_symbol<Variable>(
+template const Variable *
+SymbolTable::insert_symbol<Variable>(
     const std::string &, u32, Variable::Type &&, Variable::Space &&, u32 &&, SourceLocation &&);
 
 SymbolTable::SymbolTable()
@@ -118,32 +106,35 @@ SymbolTable::SymbolTable()
 }
 
 // Used for inserting PROGRAM_FUNCTIONS (USER FUNCTIONS)
-const Function *SymbolTable::insert_function(
+const Function *
+SymbolTable::insert_function(
     const std::string &name,
-    u32 scope,
-    u32 address,
+    const u32 scope,
+    const u32 address,
     const std::list<Parameter> &parameter_list,
-    SourceLocation location)
+    const SourceLocation location)
 {
     return insert_symbol<Function>(
         name, scope, Symbol::Type::PROGRAM_FUNCTION, address, parameter_list, location);
 }
 
-const Variable *SymbolTable::insert_variable(
+const Variable *
+SymbolTable::insert_variable(
     const std::string &name,
-    u32 scope,
-    Variable::Type type,
-    Variable::Space space,
-    u32 offset,
-    SourceLocation location)
+    const u32 scope,
+    const Variable::Type type,
+    const Variable::Space space,
+    const u32 offset,
+    const SourceLocation location)
 {
     return insert_symbol<Variable>(name, scope, type, space, offset, location);
 }
 
-const Symbol *SymbolTable::lookup_global(const std::string &symbol_name) const
+const Symbol *
+SymbolTable::lookup_global(const std::string &name) const
 {
     // Does `symbol_name` exist ?
-    const auto it = symbol_map_.find(symbol_name);
+    const auto it = symbol_map_.find(name);
     if (it == symbol_map_.end())
         return nullptr;
 
@@ -154,10 +145,11 @@ const Symbol *SymbolTable::lookup_global(const std::string &symbol_name) const
     return nullptr;
 }
 
-const Symbol *SymbolTable::lookup_chain(const std::string &symbol_name, u32 scope) const
+const Symbol *
+SymbolTable::lookup_chain(const std::string &name, const u32 scope) const
 {
     // Does `symbol_name` exist ?
-    const auto it = symbol_map_.find(symbol_name);
+    const auto it = symbol_map_.find(name);
     if (it == symbol_map_.end())
         return nullptr;
 
@@ -169,13 +161,14 @@ const Symbol *SymbolTable::lookup_chain(const std::string &symbol_name, u32 scop
     return nullptr;
 }
 
-const Symbol *SymbolTable::lookup_local(const std::string &symbol_name, u32 scope) const
+const Symbol *
+SymbolTable::lookup_local(const std::string &symbol_name, const u32 scope) const
 {
-    auto it = symbol_map_.find(symbol_name);
+    const auto it = symbol_map_.find(symbol_name);
     if (it == symbol_map_.end())
         return nullptr;
 
-    auto &scope_list = it->second;
+    const auto &scope_list = it->second;
     for (auto &symbol_ptr: scope_list)
     {
         if (symbol_ptr->scope < scope)
@@ -188,7 +181,8 @@ const Symbol *SymbolTable::lookup_local(const std::string &symbol_name, u32 scop
     return nullptr;
 }
 
-void SymbolTable::hide_scope_symbols(u32 scope) noexcept
+void
+SymbolTable::hide_scope_symbols(const u32 scope) noexcept
 {
     DEBUG_SMART_ASSERT(scope > k_global_scope);
 
@@ -209,8 +203,44 @@ void SymbolTable::hide_scope_symbols(u32 scope) noexcept
     actives_in_scope.clear();
 }
 
-bool SymbolTable::is_lib_function(const std::string &symbol_name) const
+bool
+SymbolTable::is_lib_function(const std::string &name) const
 {
-    return library_function_set_.contains(symbol_name);
+    return library_function_set_.contains(name);
+}
+
+/// Note: This method is deliberately implemented as a static method of SymbolTable
+/// rather than a member of Symbol or Variable.
+///
+/// Rationale:
+/// - The SymbolTable is the sole authority that creates and owns all Symbol instances.
+/// - While symbols are accessed externally via const pointers (for safety),
+///   this method provides narrow, explicit mutation access for constant propagation.
+/// - We intentionally *do not* provide a general mutator or "get mutable symbol" interface.
+/// - This function encodes a very specific semantic operation: assigning a const_value
+///   to a Variable — and only that.
+/// - It is placed here to clearly associate all forms of symbol *construction* and
+///   *mutation* within the same logical unit (SymbolTable), ensuring the cost
+///   of unsafe behavior stays *close to the code that enables it*.
+///
+/// Mental Model:
+/// - If a user constructs Symbols through SymbolTable, it makes sense for
+///   *this same unit* to handle their rare, controlled mutation points.
+/// - This tight coupling avoids scattered mutability, const_casts, or unsafe side channels.
+/// - We accept that if the user breaks this contract (e.g., passes a symbol from elsewhere),
+///   it's *their bug*. This method trusts that the pipeline is well-formed.
+
+void
+SymbolTable::override_clear_const_value(const Variable *var)
+{
+    const_cast<Variable *>(var)->const_expr_ = nullptr;
+}
+
+// Related method — refer to rationale above
+void
+SymbolTable::override_set_const_value(const Variable *var, const ConstExpr *const const_expr)
+{
+    DEBUG_SMART_ASSERT(!!const_expr, SemUtils::is_const_expr(const_expr));
+    const_cast<Variable *>(var)->const_expr_ = const_expr;
 }
 } // namespace Alpha

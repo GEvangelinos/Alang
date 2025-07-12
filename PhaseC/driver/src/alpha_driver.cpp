@@ -241,7 +241,7 @@ Driver::Driver(const std::string &source_filepath, bool show_parser_trace)
       st_(),
       lexer_ctx_(source_filepath),
       parse_ctx_(st_, diagnostic_engine_),
-      semantic_system_(SemanticSystem::Options{true, true, true}, &parse_ctx_, &st_,
+      semantic_system_(SemanticSystem::Options{true, true, true, true, true}, &parse_ctx_, &st_,
                        &diagnostic_engine_)
 {
     // TODO INITIALIZE SEMANTIC OPTS CORRECTLY.

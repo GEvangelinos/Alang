@@ -61,6 +61,7 @@ private:
 
     SemanticSystemServices export_semantic_system_services();
 
+    static AssignBuilder::Options get_assign_builder_options(const Options &options);
     static BasicBuilder::Options get_basic_builder_options(const Options &options);
 
     friend class SemanticSystemBridge;
@@ -68,8 +69,8 @@ private:
 public:
     // --Layer 2 subsystems --
     ConstBuilder const_builder;
-    BasicBuilder basic_builder;
     AssignBuilder assign_builder;
+    BasicBuilder basic_builder;
     LvalueResolver lvalue_resolver;
     Backpatcher backpatcher;
 

@@ -3,14 +3,9 @@
 
 #include "_parser_common.hpp"
 #include "core/source_location.hpp" // for Location
-#include "utils/misc.hpp"          // for DEBUG_ALWAYS_INLINE
 #include "core/numeric_types.hpp"    // for u32
-#include "utils/smart_assert.h"    //
-#include "utils/misc.hpp"
-#include <initializer_list> // for initializer_list
 #include <list>             // for list
 #include <string>           // for basic_string, string, hash, opera...
-#include <string_view>      // for string_view
 #include <type_traits>      // for is_same_v
 #include <unordered_map>    // for unordered_map
 #include <unordered_set>    // for unordered_set
@@ -18,72 +13,78 @@
 #include <array>
 #include <memory>
 #include "parser/symbols.hpp"
+#include "parser/ir.hpp"
 
 namespace Alpha
 {
-        // Classes defined here:
-        class SymbolTable; // IWYU pragma: keep
+// Classes defined here:
+class SymbolTable; // IWYU pragma: keep
 
-        const std::array<std::string, 12> k_library_function_names = {
-            "print",
-            "input",
-            "objectmemberkeys",
-            "objecttotalmembers",
-            "objectcopy",
-            "totalarguments",
-            "argument",
-            "typeof",
-            "strtonum",
-            "sqrt",
-            "cos",
-            "sin" //
-        };
+const std::array<std::string, 12> k_library_function_names = {
+    "print",
+    "input",
+    "objectmemberkeys",
+    "objecttotalmembers",
+    "objectcopy",
+    "totalarguments",
+    "argument",
+    "typeof",
+    "strtonum",
+    "sqrt",
+    "cos",
+    "sin" //
+};
 
-        class SymbolTable : private Immobile
-        {
-        public:
-                using SymbolName = std::string;
-                using SymbolPtr = std::unique_ptr<Symbol>;
-                using SymbolMap = std::unordered_map<SymbolName, std::list<SymbolPtr>>;
+class SymbolTable : private Immobile
+{
+public:
+    using SymbolName = std::string;
+    using SymbolPtr = std::unique_ptr<Symbol>;
+    using SymbolMap = std::unordered_map<SymbolName, std::list<SymbolPtr> >;
 
-                SymbolTable();
-                ~SymbolTable() = default;
+    SymbolTable();
+    ~SymbolTable() = default;
 
-                const Function *insert_function(
-                    const std::string &name,
-                    u32 scope,
-                    u32 address,
-                    const std::list<Parameter> &parameter_list,
-                    SourceLocation location);
+    const Function *insert_function(
+        const std::string &name,
+        u32 scope,
+        u32 address,
+        const std::list<Parameter> &parameter_list,
+        SourceLocation location);
 
-                const Variable *insert_variable(
-                    const std::string &name,
-                    u32 scope,
-                    Variable::Type type,
-                    Variable::Space space,
-                    u32 offset,
-                    SourceLocation location);
+    const Variable *insert_variable(
+        const std::string &name,
+        u32 scope,
+        Variable::Type type,
+        Variable::Space space,
+        u32 offset,
+        SourceLocation location);
 
-                [[nodiscard]] const Symbol *lookup_global(const std::string &name) const;
-                [[nodiscard]] const Symbol *lookup_chain(const std::string &name, u32 scope) const;
-                [[nodiscard]] const Symbol *lookup_local(const std::string &name, u32 scope) const;
+    [[nodiscard]] const Symbol *lookup_global(const std::string &name) const;
+    [[nodiscard]] const Symbol *lookup_chain(const std::string &name, u32 scope) const;
+    [[nodiscard]] const Symbol *lookup_local(const std::string &name, u32 scope) const;
 
-                void hide_scope_symbols(u32 scope) noexcept;
-                [[nodiscard]] bool is_lib_function(const std::string &name) const;
-                [[nodiscard]] const auto &symbols_per_scope() const { return symbols_per_scope_; }
+    void hide_scope_symbols(u32 scope) noexcept;
+    [[nodiscard]] bool is_lib_function(const std::string &name) const;
+    [[nodiscard]] const auto &symbols_per_scope() const { return symbols_per_scope_; }
 
-        private:
-                SymbolMap symbol_map_;
-                // Are inserted in sorted order based on symbol insertion.
-                std::vector<std::vector<const Symbol *>> symbols_per_scope_;
-                // Are inserted in sorted order based on symbol insertion.
-                std::vector<std::vector<Symbol *>> actives_per_scope_;
-                std::unordered_set<SymbolName> library_function_set_;
+    /// The following two methods provide controlled overrides for `const_expr_` assignment
+    /// during constant propagation. See SymbolTable.cpp for detailed rationale.
+    static void override_clear_const_value(const Variable *var);
+    static void override_set_const_value(const Variable *var, const ConstExpr *const_expr);
 
-                template <typename SymbolKind, typename... Args>
-                        requires std::is_same_v<SymbolKind, Variable> || std::is_same_v<SymbolKind, Function>
-                [[nodiscard]] const SymbolKind *
-                insert_symbol(const std::string &name, u32 scope, Args &&...args);
-        };
+private:
+    SymbolMap symbol_map_;
+    // Are inserted in sorted order based on symbol insertion.
+    std::vector<std::vector<const Symbol *> > symbols_per_scope_;
+    // Are inserted in sorted order based on symbol insertion.
+    std::vector<std::vector<Symbol *> > actives_per_scope_;
+    std::unordered_set<SymbolName> library_function_set_;
+
+    template<typename SymbolKind, typename... Args>
+        requires std::is_same_v<SymbolKind, Variable> || std::is_same_v<SymbolKind, Function>
+    [[nodiscard]] const SymbolKind *insert_symbol(
+        const std::string &name, u32 scope, Args &&... args);
+};
 } // namespace Alpha
 #endif // SYMBOL_TABLE_HPP

@@ -47,12 +47,18 @@ public:
 class AssignBuilder
 {
 public:
-    explicit AssignBuilder(const SemanticSystemServices &services);
+    struct Options
+    {
+        bool propagate_const_assignment;
+    };
+
+    AssignBuilder(Options &&options, const SemanticSystemServices &services);
 
     [[nodiscard]] const Expr *build_assignment(
         const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
 
 private:
+    const Options options_;
     DiagnosticReporter *const dr_;
     ParseCtx *const parse_ctx_;
     ExprMaker *const expr_maker_;
@@ -65,6 +71,7 @@ private:
         const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
     [[nodiscard]] const Expr *handle_direct_assignment(
         const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
+    [[nodiscard]] bool propagated_assignment(const Expr *lvalue, const Expr *rvalue);
 };
 
 class BasicBuilder
@@ -174,8 +181,9 @@ Backpatcher::finalize_bool_expr(const Expr *const expr)
 }
 
 inline
-AssignBuilder::AssignBuilder(const SemanticSystemServices &services)
-    : dr_(REQUIRE_PTR(services.dr)),
+AssignBuilder::AssignBuilder(Options &&options, const SemanticSystemServices &services)
+    : options_(options),
+      dr_(REQUIRE_PTR(services.dr)),
       parse_ctx_(REQUIRE_PTR(services.parse_ctx)),
       expr_maker_(REQUIRE_PTR(services.expr_maker)),
       expr_snitch_(REQUIRE_PTR(services.expr_snitch)),
@@ -245,14 +253,33 @@ AssignBuilder::handle_direct_assignment(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-    quad_handler_->emit_next_quad(IOPCode::ASSIGN, rvalue, nullptr, lvalue, result_loc);
 
+    quad_handler_->emit_next_quad(IOPCode::ASSIGN, rvalue, nullptr, lvalue, result_loc);
     // TODO: check todo 52 (on how to make this only when needed)
     const Expr *const temp_assign_expr =
             expr_maker_->make_assign_expr(parse_ctx_->new_temp(), result_loc);
     quad_handler_->emit_next_quad(IOPCode::ASSIGN, lvalue, nullptr, temp_assign_expr, result_loc);
 
     return temp_assign_expr;
+}
+
+inline bool
+AssignBuilder::propagated_assignment(const Expr *const lvalue, const Expr *const rvalue)
+{
+    DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
+
+    if (!SemUtils::is_const_expr(rvalue))
+        return false;
+    if (lvalue->type != Expr::Type::VARIABLE)
+        return false;
+
+    const VariableExpr *const var_expr = static_cast<const VariableExpr *>(lvalue);
+    if (!var_expr->symbol->is_variable())
+        return false;
+
+    const Variable *const var_symbol = static_cast<const Variable *>(var_expr->symbol);
+    SymbolTable::override_set_const_value(var_symbol, static_cast<const ConstExpr *>(rvalue));
+    return true;
 }
 
 inline

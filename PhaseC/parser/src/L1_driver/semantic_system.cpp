@@ -22,8 +22,8 @@ SemanticSystem::SemanticSystem(
 
     // public servicers, used by users of semantic driver.
     const_builder(export_semantic_system_services()),
+    assign_builder(get_assign_builder_options(options), export_semantic_system_services()),
     basic_builder(get_basic_builder_options(options), export_semantic_system_services()),
-    assign_builder(export_semantic_system_services()),
     lvalue_resolver(export_semantic_system_services()),
     backpatcher(export_semantic_system_services()) {}
 
@@ -41,6 +41,14 @@ SemanticSystem::export_semantic_system_services()
         .quad_handler = REQUIRE_PTR(quad_handler_.get()),
         .backpatcher = &backpatcher,
         .sd_bridge = &sd_bridge_,
+    };
+}
+
+AssignBuilder::Options
+SemanticSystem::get_assign_builder_options(const Options &options)
+{
+    return {
+        .propagate_const_assignment = options.propagate_const_assignment,
     };
 }
 

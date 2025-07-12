@@ -2,6 +2,8 @@
 
 namespace Alpha::Backpatcher
 {
+
+    //TODO reallocate? Am I even needed?
         void set_function_local_variable_count(
             const Function *function_symbol,
             u32 local_variable_count)
