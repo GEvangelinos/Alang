@@ -79,7 +79,7 @@ public:
         SourceLocation loc) noexcept;
     ~Variable() override = default;
 
-    const ConstExpr *get_const_value() const noexcept { return const_expr_; }
+    const ConstExpr *get_const_expr() const noexcept { return const_expr_; }
     bool has_const_value() const noexcept { return const_expr_; }
 
 private:

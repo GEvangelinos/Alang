@@ -59,7 +59,8 @@ LvalueResolver::resolve_id(const char *id_name, const SourceLocation id_loc)
             symbol->loc);
     }
 
-    return expr_maker_->make_variable_expr(symbol, symbol->loc);
+    // Here symbol is either a found or a new variable.
+    return expr_maker_->make_variable_expr(static_cast<const Variable*>(symbol), symbol->loc);
 }
 } // namespace Alpha
 #endif // LVALUE_RESOLVER_HPP

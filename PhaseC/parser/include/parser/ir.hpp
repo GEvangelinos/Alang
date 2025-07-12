@@ -221,8 +221,11 @@ struct TableItemExpr : public ExprWSymbol
 
 struct VariableExpr : public ExprWSymbol
 {
-    VariableExpr(const SourceLocation loc, const Symbol *const var_symbol)
-        : ExprWSymbol(Type::VARIABLE, loc, var_symbol) {}
+    VariableExpr(const SourceLocation loc, const Variable *const var)
+        : ExprWSymbol(Type::VARIABLE, loc, var)
+    {
+        DEBUG_SMART_ASSERT(var->is_variable());
+    }
 };
 
 struct Quad

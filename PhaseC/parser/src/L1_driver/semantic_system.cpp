@@ -48,7 +48,7 @@ AssignBuilder::Options
 SemanticSystem::get_assign_builder_options(const Options &options)
 {
     return {
-        .propagate_const_assignment = options.propagate_const_assignment,
+        .record_constant_variables = options.propagate_constants
     };
 }
 
@@ -59,6 +59,7 @@ SemanticSystem::get_basic_builder_options(const Options &options)
         .fold_arithmetic = options.fold_arithmetic,
         .fold_relational = options.fold_relational,
         .fold_logical = options.fold_logical,
+        .propagate_constant_variable = options.propagate_constants
     };
 }
 } // namespace Alpha

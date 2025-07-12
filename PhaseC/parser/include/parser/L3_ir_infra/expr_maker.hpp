@@ -25,8 +25,8 @@ public:
     [[nodiscard]] BoolExpr *make_bool_expr(SourceLocation expr_loc);
     [[nodiscard]] const ConstBoolExpr *make_const_bool_expr(
         bool bool_value, SourceLocation expr_loc);
-    [[nodiscard]] const ConstIntExpr *make_const_int_expr(AlphaInt int_value,
-                                                          SourceLocation expr_loc);
+    [[nodiscard]] const ConstIntExpr *make_const_int_expr(
+        AlphaInt int_value, SourceLocation expr_loc);
     [[nodiscard]] const ConstFloatExpr *make_const_float_expr(
         AlphaFloat float_value, SourceLocation expr_loc);
     [[nodiscard]] const ConstStringExpr *make_const_string_expr(
@@ -35,10 +35,10 @@ public:
     [[nodiscard]] const NewTableExpr *make_new_table_expr(SourceLocation expr_loc);
     [[nodiscard]] const ProgFuncExpr *make_program_function_expr(
         SourceLocation expr_loc, const Function *function_symbol);
-    [[nodiscard]] const TableItemExpr *make_table_item_expr(const Expr *lvalue, const Expr *index,
-                                                            SourceLocation expr_loc);
-    [[nodiscard]] const VariableExpr *make_variable_expr(const Symbol *symbol,
-                                                         SourceLocation expr_loc);
+    [[nodiscard]] const TableItemExpr *make_table_item_expr(
+        const Expr *lvalue, const Expr *index, SourceLocation expr_loc);
+    [[nodiscard]] const VariableExpr *make_variable_expr(
+        const Variable *var, SourceLocation expr_loc);
 
 private:
     ParseCtx *const parse_ctx_;
@@ -54,7 +54,7 @@ ExprMaker::ExprMaker(ParseCtx *const parse_ctx)
 
 inline ExprMaker::~ExprMaker() noexcept
 {
-    for (const Expr *e : expr_sink_)
+    for (const Expr *e: expr_sink_)
     {
         DEBUG_SMART_ASSERT(!!e);
         switch (e->type)
@@ -187,10 +187,10 @@ ExprMaker::make_table_item_expr(
 }
 
 inline const VariableExpr *
-ExprMaker::make_variable_expr(const Symbol *const symbol, const SourceLocation expr_loc)
+ExprMaker::make_variable_expr(const Variable *const var, const SourceLocation expr_loc)
 {
-    DEBUG_SMART_ASSERT(!!symbol);
-    const auto *const variable_expr = new const VariableExpr(expr_loc, symbol);
+    DEBUG_SMART_ASSERT(!!var);
+    const auto *const variable_expr = new const VariableExpr(expr_loc, var);
     expr_sink_.push_back(variable_expr);
     return variable_expr;
 }

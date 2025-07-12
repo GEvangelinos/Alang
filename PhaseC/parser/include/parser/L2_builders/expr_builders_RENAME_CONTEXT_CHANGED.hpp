@@ -49,7 +49,7 @@ class AssignBuilder
 public:
     struct Options
     {
-        bool propagate_const_assignment;
+        bool record_constant_variables;
     };
 
     AssignBuilder(Options &&options, const SemanticSystemServices &services);
@@ -64,14 +64,14 @@ private:
     ExprMaker *const expr_maker_;
     ExprSnitch *const expr_snitch_;
     QuadHandler *const quad_handler_;
-    SemanticSystemBridge *const sd_bridge_;
+    SemanticSystemBridge *const ss_bridge_;
 
     void validate_lvalue_for_assignment(const Expr *lvalue, SourceLocation assign_loc);
     [[nodiscard]] const Expr *handle_table_item_assignment(
         const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
     [[nodiscard]] const Expr *handle_direct_assignment(
         const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
-    [[nodiscard]] bool propagated_assignment(const Expr *lvalue, const Expr *rvalue);
+    [[nodiscard]] static bool try_record_const_value(const Expr *lvalue, const Expr *rvalue);
 };
 
 class BasicBuilder
@@ -82,6 +82,7 @@ public:
         bool fold_arithmetic;
         bool fold_relational;
         bool fold_logical;
+        bool propagate_constant_variable;
     };
 
     BasicBuilder(Options &&options, const SemanticSystemServices &services);
@@ -188,7 +189,7 @@ AssignBuilder::AssignBuilder(Options &&options, const SemanticSystemServices &se
       expr_maker_(REQUIRE_PTR(services.expr_maker)),
       expr_snitch_(REQUIRE_PTR(services.expr_snitch)),
       quad_handler_(REQUIRE_PTR(services.quad_handler)),
-      sd_bridge_(REQUIRE_PTR(services.sd_bridge)) {}
+      ss_bridge_(REQUIRE_PTR(services.sd_bridge)) {}
 
 inline const Expr *
 AssignBuilder::build_assignment(
@@ -239,7 +240,7 @@ AssignBuilder::handle_table_item_assignment(
     DEBUG_SMART_ASSERT(lvalue->type == Expr::Type::TABLE_ITEM);
     const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
     quad_handler_->emit_next_quad(IOPCode::TABLESETELEM, ti, ti->index, rvalue, result_loc);
-    const Expr *ti_temp = sd_bridge_->emit_quad_if_table_item(lvalue);
+    const Expr *ti_temp = ss_bridge_->emit_quad_if_table_item(lvalue);
 
     const Symbol *temp_symbol = static_cast<const TableItemExpr *>(ti_temp)->symbol;
     DEBUG_SMART_ASSERT(ti_temp->type == Expr::Type::TABLE_ITEM);
@@ -254,17 +255,18 @@ AssignBuilder::handle_direct_assignment(
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
 
-    quad_handler_->emit_next_quad(IOPCode::ASSIGN, rvalue, nullptr, lvalue, result_loc);
-    // TODO: check todo 52 (on how to make this only when needed)
-    const Expr *const temp_assign_expr =
-            expr_maker_->make_assign_expr(parse_ctx_->new_temp(), result_loc);
-    quad_handler_->emit_next_quad(IOPCode::ASSIGN, lvalue, nullptr, temp_assign_expr, result_loc);
+    if (options_.record_constant_variables && try_record_const_value(lvalue, rvalue))
+        return lvalue;
 
-    return temp_assign_expr;
+    // TODO: check todo 52 (on how to make this only when needed)
+    const Expr *const temp = expr_maker_->make_assign_expr(parse_ctx_->new_temp(), result_loc);
+    quad_handler_->emit_next_quad(IOPCode::ASSIGN, rvalue, nullptr, lvalue, result_loc);
+    quad_handler_->emit_next_quad(IOPCode::ASSIGN, lvalue, nullptr, temp, result_loc);
+    return temp;
 }
 
 inline bool
-AssignBuilder::propagated_assignment(const Expr *const lvalue, const Expr *const rvalue)
+AssignBuilder::try_record_const_value(const Expr *const lvalue, const Expr *const rvalue)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
 
@@ -294,11 +296,21 @@ BasicBuilder::BasicBuilder(Options &&options, const SemanticSystemServices &serv
 
 inline const Expr *
 BasicBuilder::build_uminus(
-    const Expr *const expr,
+    const Expr *expr,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
     snitch_->report_if_not_arithmetic_expr(IOPCode::UMINUS, expr, OperandSide::UNARY);
+
+    if (options_.propagate_constant_variable && expr->type == Expr::Type::VARIABLE)
+    {
+        const Variable *const var_symbol =
+                static_cast<const Variable *>(
+                    static_cast<const VariableExpr *>(expr)->symbol);
+        DEBUG_SMART_ASSERT(!!var_symbol);
+        if (var_symbol->has_const_value())
+            expr = var_symbol->get_const_expr();
+    }
 
     if (options_.fold_arithmetic && SemUtils::is_const_arithmetic_expr(expr))
         return expr_folder_->fold_uminus(expr, result_loc);

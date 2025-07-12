@@ -25,8 +25,7 @@ public:
         const bool fold_arithmetic;
         const bool fold_relational;
         const bool fold_logical;
-        const bool propagate_const_assignment;
-        const bool propagate_const_return;
+        const bool propagate_constants;
     };
 
     SemanticSystem(
