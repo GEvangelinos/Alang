@@ -5,7 +5,8 @@
   </component>
   <component name="BackendCodeEditorMiscSettings">
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
-    <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="CppAggregateHintsOptions" type="string" />
+    <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="CppFormatterOtherPage" type="string" />
+    <option name="/Default/Housekeeping/RefactoringsMru/RenameRefactoring/DoQuickRename/@EntryValue" value="true" type="bool" />
   </component>
   <component name="CMakePresetLoader">{
   &quot;useNewFormat&quot;: true
@@ -40,12 +41,36 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/compiler.lore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PhaseB/.playground/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PhaseB/.playground/.idea/.playground.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PhaseB/.playground/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PhaseB/.playground/.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PhaseB/.playground/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/settings.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/tasks.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.TODO_BLACKWHOLE.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/test.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/test.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/QUAD_EXPORTS/mine_104.asc.quads" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/bugs_to_fix/Failing_function_entry DUE to not entering function becuase we failed on arguments.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/old_phase_c.zip" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_driver_support.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_support.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_builders/expr_builders_RENAME_CONTEXT_CHANGED.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_builders/expr_builders_RENAME_CONTEXT_CHANGED.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_builders/lvalue_resolver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_builders/lvalue_resolver.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/quad_handler.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/quad_handler.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/ir.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_driver_support.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system_support.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/include/utils/debug_tools.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/utils/include/utils/debug_tools.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -59,6 +84,33 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/cmake-build-debug/AUTOGEN/diagnostics/src/diagnostics_reporter.gen.cpp" root0="SKIP_HIGHLIGHTING" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;customColor&quot;: &quot;&quot;,
   &quot;associatedIndex&quot;: 7
@@ -70,6 +122,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "CMake Application.alpha_driver.out.executor": "Debug",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.main.executor": "Run",
     "RunOnceActivity.RadMigrateCodeStyle": "true",
@@ -81,13 +134,13 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "refactor/ir-gen",
-    "last_opened_file_path": "/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC",
+    "last_opened_file_path": "/home/stygian/Documents/Projects/Project_Blackhole",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.sourceCode",
+    "settings.editor.selected.configurable": "preferences.keymap",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -97,9 +150,9 @@
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.alpha_driver.out">
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
       </method>
     </configuration>
     <configuration name="alpha_core_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_core_impl" CONFIG_NAME="Debug">
@@ -117,7 +170,7 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="alpha_driver.out" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_driver.out" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alpha_driver.out">
+    <configuration name="alpha_driver.out" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--input-file .tests/test.asc --show-quads" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_driver.out" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alpha_driver.out">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -190,19 +243,19 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="CMake Application.regression_check" />
-      <item itemvalue="CMake Application.regression_check_full" />
-      <item itemvalue="CMake Application.arguinator_impl" />
       <item itemvalue="CMake Application.alpha_core_impl" />
       <item itemvalue="CMake Application.alpha_diagnostics_impl" />
-      <item itemvalue="CMake Application.generate_diagnostics" />
-      <item itemvalue="CMake Application.alpha_driver.out" />
       <item itemvalue="CMake Application.alpha_driver_impl" />
-      <item itemvalue="CMake Application.generate_parser_scanner" />
+      <item itemvalue="CMake Application.alpha_driver.out" />
       <item itemvalue="CMake Application.alpha_parser_impl" />
-      <item itemvalue="CMake Application.generate_parser" />
       <item itemvalue="CMake Application.alpha_scanner_impl" />
+      <item itemvalue="CMake Application.arguinator_impl" />
+      <item itemvalue="CMake Application.generate_diagnostics" />
+      <item itemvalue="CMake Application.generate_parser" />
+      <item itemvalue="CMake Application.generate_parser_scanner" />
       <item itemvalue="CMake Application.generate_scanner" />
+      <item itemvalue="CMake Application.regression_check" />
+      <item itemvalue="CMake Application.regression_check_full" />
       <item itemvalue="Python.main" />
     </list>
     <recent_temporary>
@@ -221,7 +274,19 @@
       <workItem from="1749744783239" duration="3132000" />
       <workItem from="1749756842650" duration="19611000" />
       <workItem from="1749809971829" duration="7021000" />
-      <workItem from="1749817360512" duration="5113000" />
+      <workItem from="1749817360512" duration="5372000" />
+      <workItem from="1749831077797" duration="112000" />
+      <workItem from="1749831318868" duration="772000" />
+      <workItem from="1749835661497" duration="23000" />
+      <workItem from="1749901447413" duration="48000" />
+      <workItem from="1749904739804" duration="5000" />
+      <workItem from="1749939722882" duration="20000" />
+      <workItem from="1749985751649" duration="148000" />
+      <workItem from="1749988589365" duration="19000" />
+      <workItem from="1751400581848" duration="49271000" />
+      <workItem from="1751911590565" duration="13518000" />
+      <workItem from="1752085378128" duration="21245000" />
+      <workItem from="1752244324184" duration="29964000" />
     </task>
     <servers />
   </component>
@@ -240,6 +305,11 @@
           <url>file://$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/fsm_parsers.py</url>
           <line>82</line>
           <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/include/parser/L2_builders/expr_builders_RENAME_CONTEXT_CHANGED.hpp</url>
+          <line>337</line>
+          <option name="timeStamp" value="12" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

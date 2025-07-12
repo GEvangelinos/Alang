@@ -23,9 +23,6 @@
     X(DIV)                     \
     X(MOD)                     \
     X(UMINUS)                  \
-    X(AND)                     \
-    X(OR)                      \
-    X(NOT)                     \
     X(CALL)                    \
     X(PARAM)                   \
     X(RETURN)                  \

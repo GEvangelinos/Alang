@@ -18,7 +18,8 @@ public:
         const Expr *arg1,
         const Expr *arg2,
         const Expr *result,
-        SourceLocation loc);
+        SourceLocation loc,
+        LabelID label_offset = 0);
 
     void emit_labelless_quad(
         IOPCode iopc,
@@ -74,9 +75,10 @@ QuadHandler::emit_next_quad(
     const Expr *const arg1,
     const Expr *const arg2,
     const Expr *const result,
-    const SourceLocation loc)
+    const SourceLocation loc,
+    const LabelID label_offset)
 {
-    emit_quad(iopc, arg1, arg2, result, next_quad_label_, loc);
+    emit_quad(iopc, arg1, arg2, result, next_quad_label_ + label_offset, loc);
 }
 
 inline void

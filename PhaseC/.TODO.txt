@@ -251,3 +251,152 @@ then you can check if a diagnostic code is in "DO not show list" and dont show i
 for example in a c
 
 61) Add auto-complete with bash scripts for CLI arguments.
+
+62)
+
+EDIT: Check todo 63, I created it after lots of thought on todo 62...
+
+In post quads-generation phase, probably in optimization-phase.. We should be able to optimize the assignments:
+
+quad#      opcode          result               arg1                 arg2                 label      line
+---------------------------------------------------------------------------------------------------------------
+1          if_eq                                x                    true                 3          185
+2          jump                                                                           9          185
+3          if_eq                                y                    true                 5          185
+4          jump                                                                           9          185
+5          if_eq                                z                    true                 7          185
+6          jump                                                                           9          185
+7          assign          _t4                  true                                      -          185
+8          jump                                                                           10         185
+9          assign          _t4                  false                                     -          185
+10         assign          var                  _t4                                       -          185
+11         assign          _t5                  var                                       -          185
+
+Here.. we assign to _t4 false and then that to var..  we could do it immediately to var.
+
+Also if var is never used after.. can never assign it.. which means we should never calc (x and y and z)
+
+basically an optimization would be to track command and see if they lead to any output.. if not.. why keep them..
+
+basically a file with:
+
+var = x and y;
+
+does not produce anything.. so why even run it
+(
+    maybe we go to far.. but maybe not... it could just be a compiler option
+    like --no-unused-code (or something..)
+)
+
+63)
+
+
+In the future, I should implement a fixpoint-style optimization framework for my compiler.
+The idea is to run multiple optimization passes repeatedly, not just once.
+This is important because one optimization can unlock new opportunities for another (or even for itself).
+For example, a dead code elimination pass might expose redundant jumps,
+or constant folding might simplify expressions enough for branch simplification to kick in.
+So rather than relying on a single pass-through,
+I should loop over all optimization passes and re-run them until no further changes are made to the IR.
+This ensures that the IR is fully simplified and optimized.
+It also aligns with how real-world compilers (like LLVM and GCC) perform multi-pass
+optimizations using a fixed-point approach.
+This isn't a priority now, but it will be necessary when the IR and optimizer become more complex.
+
+example of an optimization pass loop:
+
+bool changed;
+do {
+    changed = false;
+
+    changed |= run_const_folding(ir);
+    changed |= run_copy_propagation(ir);
+    changed |= run_dead_code_elim(ir);
+    changed |= run_branch_simplification(ir);
+    changed |= run_jump_threading(ir);
+
+} while (changed);
+
+
+
+64) Mental-state for a future todo (nicely written by chatgpt, basically a summary from ideas told it...)
+
+TODO: Compiler Feature Planning
+===============================
+
+1. Constant Folding
+-------------------
+- [ ] Fold arithmetic expressions (e.g. 1 + 2)
+- [ ] Fold relational expressions (e.g. 5 > 3)
+- [ ] Fold logical expressions (e.g. true or false)
+- [ ] Fold within expressions only (already implemented)
+- [ ] (Optional) Allow folding with propagated values
+
+2. Constant Propagation
+------------------------
+- [ ] Propagate constants from simple assignments (x = 5)
+- [ ] Propagate constants from folded expressions (x = 1 + 2)
+- [ ] Propagate constants from function returns (only if constant-returning)
+- [ ] Propagate constants into expressions (x + 3 => 5 + 3)
+- [ ] Do not propagate from mutable structures (lists, dicts)
+- [ ] Do not replace function calls with constants (unless known safe)
+- [ ] Track known constant values in variables (e.g. in symbol table)
+
+3. Propagation Safety Rules
+----------------------------
+- [ ] Only substitute values if primitive and non-aliased
+- [ ] Never propagate structured/mutable objects
+- [ ] Leave function calls in IR but track their result if safe
+- [ ] Allow marking/tagging functions as constant-returning
+
+4. Optimization Flags
+----------------------
+- [ ] Define flags for:
+      - fold_arithmetic
+      - fold_logical
+      - fold_relational
+      - propagate_const_assignment
+      - propagate_const_returns
+      - substitute_known_consts
+- [ ] Group flags into a ConstantOptimizationFlags struct
+- [ ] Wrap in a SemanticOptions config object
+
+5. Config System
+----------------
+- [ ] Support optimization levels:
+      - none
+      - debug
+      - safe
+      - aggressive
+- [ ] Allow CLI override of individual options
+- [ ] Add `--ui-select` to open a visual selector
+- [ ] (Later) Add config file support (`--config config.json`)
+- [ ] (Optional) Support "save as default" or remember last used config
+
+6. UI Tool (for later)
+-----------------------
+- [ ] Simple GUI with checkboxes for all optimization flags
+- [ ] Preset selector dropdown (None, Debug, Safe, Aggressive)
+- [ ] "Export CLI flags" and "Save config" options
+- [ ] Launchable via `--ui-select`
+- [ ] May use C++ (ImGui, Qt) or external tool (Python tkinter)
+
+7. Internal Constant Tracking
+------------------------------
+- [ ] Optionally store `known_constant` in symbol table
+- [ ] Use a ConstValue struct for primitive types
+- [ ] Add API helpers:
+      - is_known_const(var)
+      - get_const_value(var)
+
+8. Future Ideas (low priority)
+-------------------------------
+- [ ] Analyze function purity for return value propagation
+- [ ] Support frozen/immutable structures
+- [ ] Add escape analysis to detect safe constant flow
+- [ ] Clean up unused constants in IR (after DCE)
+- [ ] Link propagated/folded constants to debug info
+
+64) Add --show-lore in Arguinator :D And print this very message
+
+

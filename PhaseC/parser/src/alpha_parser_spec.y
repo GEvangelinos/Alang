@@ -19,7 +19,7 @@
     #include "parser/parser_context.hpp"    // for ParseCtx
     #include "parser/symbol_table.hpp"      // for Symbol, SymbolTable
     #include "scanner/scanner_context.hpp"  // for LexerCtx
-    #include "parser/L1_driver/semantic_driver.hpp"
+    #include "parser/L1_driver/semantic_system.hpp"
 }
 
 %define api.prefix {alpha_yy}
@@ -31,7 +31,7 @@
 %parse-param {Alpha::LocationTracker &location_tracker}
 %parse-param {Alpha::DiagnosticEngine &diagnostic_engine}
 %parse-param {Alpha::LexerCtx &lexer_ctx}
-%parse-param {Alpha::SemanticDriver &sd}
+%parse-param {Alpha::SemanticSystem &ss}
 
 %lex-param {Alpha::LocationTracker &location_tracker}
 %lex-param {Alpha::DiagnosticEngine &diagnostic_engine}
@@ -57,6 +57,7 @@
 %type  <const_expr_ptr> term
 %type  <const_expr_ptr> lvalue
 %type  <const_expr_ptr> expr
+%type  <const_expr_ptr> not_op
 %type  <const_expr_ptr> and_op
 %type  <const_expr_ptr> or_op
 %type  <const_expr_ptr> assignExpr
@@ -185,7 +186,7 @@ multiStmt:
 ;
 
 stmt:
-  expr SEMICOLON
+  expr SEMICOLON { ss.backpatcher.finalize_bool_expr($expr); }
 | ifStmt
 | whileStmt
 | forStmt
@@ -195,7 +196,7 @@ stmt:
 | funcDef
 | SEMICOLON
 | error SEMICOLON     { yyerrok; } // Syntax error recovery hook.
-| error RIGHT_PAREN   { yyerrok; std::cout << "RPAREN ERRORED" << std::endl; } // Syntax error recovery hook.
+| error RIGHT_PAREN   { yyerrok; } // Syntax error recovery hook.
 | error RIGHT_BRACKET { yyerrok; } // Syntax error recovery hook.
 | error RIGHT_BRACE   { yyerrok; } // Syntax error recovery hook.
 ;
@@ -205,35 +206,25 @@ loopCtrlStmt:
 | CONTINUE
 ;
 
-expr[result]:
-  assignExpr { $result = $assignExpr; }
-| term       { $result = $term; }
-| expr[lhs] PLUS  expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::ADD,          $lhs, $rhs, @result); }
-| expr[lhs] MINUS expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::SUB,          $lhs, $rhs, @result); }
-| expr[lhs] MUL   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::MUL,          $lhs, $rhs, @result); }
-| expr[lhs] DIV   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::DIV,          $lhs, $rhs, @result); }
-| expr[lhs] MOD   expr[rhs] { $result = sd.basic_builder.build_arithmetic(AIOP::MOD,          $lhs, $rhs, @result); }
-| expr[lhs] GT    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_GREATER,   $lhs, $rhs, @result); }
-| expr[lhs] GTE   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_GREATEREQ, $lhs, $rhs, @result); }
-| expr[lhs] LT    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_LESS,      $lhs, $rhs, @result); }
-| expr[lhs] LTE   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_LESSEQ,    $lhs, $rhs, @result); }
-| expr[lhs] EQ    expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_EQ,        $lhs, $rhs, @result); }
-| expr[lhs] NEQ   expr[rhs] { $result = sd.basic_builder.build_relational(AIOP::IF_NOTEQ,     $lhs, $rhs, @result); }
-| and_op { $result = $and_op; }
-| or_op  { $result = $or_op; }
+not_op:
+  NOT expr
+  {
+    $expr = ss.convert_to_bool_expr($expr);
+    $not_op = ss.basic_builder.build_logical_not($expr, @not_op);
+  }
 ;
 
 and_op:
   expr[lhs]
   AND
   {
-    sd.mark_short_circuit_jump_point();
-    $lhs = sd.convert_to_bool_expr($lhs);
+    $lhs = ss.convert_to_bool_expr($lhs);
+    ss.mark_short_circuit_jump_point();
   }
   expr[rhs]
   {
-    $rhs = sd.convert_to_bool_expr($rhs);
-    $and_op = sd.basic_builder.build_logical_and($lhs, $rhs, @and_op);
+    $rhs = ss.convert_to_bool_expr($rhs);
+    $and_op = ss.basic_builder.build_logical_and($lhs, $rhs, @and_op);
   }
 ;
 
@@ -241,21 +232,39 @@ or_op:
   expr[lhs]
   OR
   {
-    sd.mark_short_circuit_jump_point();
-    $lhs = sd.convert_to_bool_expr($lhs);
+    $lhs = ss.convert_to_bool_expr($lhs);
+    ss.mark_short_circuit_jump_point();
   }
   expr[rhs]
   {
-    $rhs = sd.convert_to_bool_expr($rhs);
-    $or_op = sd.basic_builder.build_logical_or($lhs, $rhs, @or_op);
+    $rhs = ss.convert_to_bool_expr($rhs);
+    $or_op = ss.basic_builder.build_logical_or($lhs, $rhs, @or_op);
   }
+;
+
+expr[result]:
+  assignExpr { $result = $assignExpr; }
+| term       { $result = $term; }
+| expr[lhs] PLUS  expr[rhs] { $result = ss.basic_builder.build_arithmetic(AIOP::ADD,          $lhs, $rhs, @result); }
+| expr[lhs] MINUS expr[rhs] { $result = ss.basic_builder.build_arithmetic(AIOP::SUB,          $lhs, $rhs, @result); }
+| expr[lhs] MUL   expr[rhs] { $result = ss.basic_builder.build_arithmetic(AIOP::MUL,          $lhs, $rhs, @result); }
+| expr[lhs] DIV   expr[rhs] { $result = ss.basic_builder.build_arithmetic(AIOP::DIV,          $lhs, $rhs, @result); }
+| expr[lhs] MOD   expr[rhs] { $result = ss.basic_builder.build_arithmetic(AIOP::MOD,          $lhs, $rhs, @result); }
+| expr[lhs] GT    expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_GREATER,   $lhs, $rhs, @result); }
+| expr[lhs] GTE   expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_GREATEREQ, $lhs, $rhs, @result); }
+| expr[lhs] LT    expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_LESS,      $lhs, $rhs, @result); }
+| expr[lhs] LTE   expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_LESSEQ,    $lhs, $rhs, @result); }
+| expr[lhs] EQ    expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_EQ,        $lhs, $rhs, @result); }
+| expr[lhs] NEQ   expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_NOTEQ,     $lhs, $rhs, @result); }
+| and_op { $result = $and_op; }
+| or_op  { $result = $or_op; }
 ;
 
 term
 : primary { $term = $primary; }
 | LEFT_PAREN expr RIGHT_PAREN { $term = $expr; }
-| MINUS expr %prec UMINUS { $term = sd.basic_builder.build_uminus($expr, @term); }
-| NOT expr
+| MINUS expr %prec UMINUS { $term = ss.basic_builder.build_uminus($expr, @term); }
+| not_op { $term = $not_op; }
 | INC lvalue
 | lvalue INC
 | DEC lvalue
@@ -263,7 +272,12 @@ term
 ;
 
 assignExpr:
-  expr[lhs] ASSIGN expr[rhs] { $assignExpr = sd.assign_builder.build_assignment($lhs, $rhs, @assignExpr); }
+  expr[lhs] ASSIGN expr[rhs]
+  {
+    ss.backpatcher.finalize_bool_expr($rhs);
+    // TODO: catch error where expr[lhs] is not lvalue (old rules was $lvalue ASSIGN $expr (but then only bison could catch that error)
+    $assignExpr = ss.assign_builder.build_assignment($lhs, $rhs, @assignExpr);
+  }
 ;
 
 primary
@@ -275,7 +289,7 @@ primary
 ;
 
 lvalue:
-  ID { $lvalue = sd.lvalue_resolver.resolve_id($ID, @ID); }
+  ID { $lvalue = ss.lvalue_resolver.resolve_id($ID, @ID); }
 | LOCAL ID
 | GLOBAL ID
 | tableItem
@@ -377,12 +391,12 @@ funcDef:
 ;
 
 const
-: TRUE      { $const = sd.const_builder.build_true_expr(@TRUE); }
-| FALSE     { $const = sd.const_builder.build_false_expr(@FALSE); }
-| INT       { $const = sd.const_builder.build_int_expr($INT, @INT); }
-| FLOAT     { $const = sd.const_builder.build_float_expr($FLOAT, @FLOAT); }
-| STRING    { $const = sd.const_builder.build_string_expr($STRING, @STRING); }
-| NIL       { $const = sd.const_builder.build_nil_expr(@NIL); }
+: TRUE      { $const = ss.const_builder.build_true_expr(@TRUE); }
+| FALSE     { $const = ss.const_builder.build_false_expr(@FALSE); }
+| INT       { $const = ss.const_builder.build_int_expr($INT, @INT); }
+| FLOAT     { $const = ss.const_builder.build_float_expr($FLOAT, @FLOAT); }
+| STRING    { $const = ss.const_builder.build_string_expr($STRING, @STRING); }
+| NIL       { $const = ss.const_builder.build_nil_expr(@NIL); }
 ;
 
 ifPrefix

@@ -10,7 +10,7 @@
 #include "parser/symbol_table.hpp"
 #include "core/source_location.hpp"
 
-#include "L1_driver/semantic_driver.hpp"
+#include "L1_driver/semantic_system.hpp"
 
 extern ALPHA_YYLEX_SIGNATURE;
 // TODO: say in your report for  the project that ';' is not just a plain syntax requirement.
@@ -37,7 +37,7 @@ static void alpha_yyerror(
     [[maybe_unused]] Alpha::LocationTracker &lt,
     Alpha::DiagnosticEngine &diagnostic_engine,
     [[maybe_unused]] Alpha::LexerCtx &lexer_ctx,
-    [[maybe_unused]] Alpha::SemanticDriver &sd,
+    [[maybe_unused]] Alpha::SemanticSystem &ss,
     std::string error_message)
 {
     static constexpr char k_prefix[] = "syntax error, ";

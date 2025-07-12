@@ -1,8 +1,6 @@
 #ifndef SEMANTIC_DRIVER_HPP
 #define SEMANTIC_DRIVER_HPP
 
-#include "parser/parser_context.hpp"
-#include "parser/symbol_table.hpp"
 #include "core/basics.hpp"
 #include "diagnostics/diagnostic_engine.hpp"
 #include "L2_builders/expr_builders_RENAME_CONTEXT_CHANGED.hpp"
@@ -11,13 +9,15 @@
 #include "L3_ir_infra/expr_maker.hpp"
 #include "L3_ir_infra/expr_snitch.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
+#include "parser/parser_context.hpp"
+#include "parser/symbol_table.hpp"
 
 namespace Alpha
 {
 // Order of initialization is intentional.
 // As the subsystems of semantic driver utilize its internal state,
 // for their own initialization.
-class SemanticDriver : private Immobile
+class SemanticSystem : private Immobile
 {
 public:
     struct Options
@@ -25,9 +25,11 @@ public:
         const bool fold_arithmetic;
         const bool fold_relational;
         const bool fold_logical;
+        const bool propagate_const_assignment;
+        const bool propagate_const_return;
     };
 
-    SemanticDriver(
+    SemanticSystem(
         Options options,
         ParseCtx *parse_ctx,
         SymbolTable *symbol_table,
@@ -49,18 +51,19 @@ private:
 
 
     // -- Layer 3 subsystems --
+    // We use unique_ptr instead of normal vars, in order to detect wrong initialization order
     std::unique_ptr<ExprSnitch> expr_snitch_;
     std::unique_ptr<ExprMaker> expr_maker_;
     std::unique_ptr<ExprFolder> expr_folder_;
     std::unique_ptr<QuadHandler> quad_handler_;
 
-    SemanticDriverBridge sd_bridge_;
+    SemanticSystemBridge sd_bridge_;
 
-    DriverInitPack make_builder_init_pack();
+    SemanticSystemServices export_semantic_system_services();
 
     static BasicBuilder::Options get_basic_builder_options(const Options &options);
 
-    friend class SemanticDriverBridge;
+    friend class SemanticSystemBridge;
 
 public:
     // --Layer 2 subsystems --
@@ -68,19 +71,22 @@ public:
     BasicBuilder basic_builder;
     AssignBuilder assign_builder;
     LvalueResolver lvalue_resolver;
+    Backpatcher backpatcher;
 
     void mark_short_circuit_jump_point();
     const Expr *convert_to_bool_expr(const Expr *expr);
 };
 
 inline void
-SemanticDriver::mark_short_circuit_jump_point()
+SemanticSystem::mark_short_circuit_jump_point()
 {
     parse_ctx_->cache.short_circuit_jump_stack.push(quad_handler_->next_quad_label());
 }
 
+
+// Conversion to bool was IF_EQ and then JUMP, to optimize, I went with a single IF_NOTEQ
 inline const Expr *
-SemanticDriver::convert_to_bool_expr(const Expr *const expr)
+SemanticSystem::convert_to_bool_expr(const Expr *const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
     if (expr->type == Expr::Type::BOOL_EXPR)
@@ -94,6 +100,7 @@ SemanticDriver::convert_to_bool_expr(const Expr *const expr)
         IOPCode::IF_EQ, expr, expr_maker_->premade_true, nullptr, expr->loc);
     bool_expr->false_list.push_back(quad_handler_->next_quad_label());
     quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
+
     return bool_expr;
 }
 } // namespace Alpha

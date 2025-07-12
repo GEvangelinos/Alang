@@ -13,7 +13,7 @@ namespace Alpha
 class LvalueResolver
 {
 public:
-    explicit LvalueResolver(const DriverInitPack &init_pack);
+    explicit LvalueResolver(const SemanticSystemServices &init_pack);
 
     const Expr *resolve_id(const char *id_name, SourceLocation id_loc);
 
@@ -24,7 +24,7 @@ private:
     ExprMaker *const expr_maker_;
 };
 
-inline LvalueResolver::LvalueResolver(const DriverInitPack &init_pack)
+inline LvalueResolver::LvalueResolver(const SemanticSystemServices &init_pack)
     : parse_ctx_(init_pack.parse_ctx),
       symbol_table_(init_pack.symbol_table),
       dr_(init_pack.dr),

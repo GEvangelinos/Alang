@@ -5,10 +5,9 @@
 #include <string_view>                     // for string_view
 #include <scanner/alpha_scanner.hpp>               // for YY_BUFFER_STATE
 #include "diagnostics/diagnostic_engine.hpp"
-#include "diagnostics/diagnostic_engine.hpp"
 #include "core/source_location.hpp"         // for LocationTracker
 #include "parser/parser_context.hpp"
-#include "parser/L1_driver/semantic_driver.hpp"
+#include "parser/L1_driver/semantic_system.hpp"
 #include "parser/symbol_table.hpp"     // for SymbolTable
 #include "scanner/scanner_context.hpp" // for LexerCtx
 
@@ -59,7 +58,7 @@ private:
         SymbolTable st_;
         LexerCtx lexer_ctx_;
         ParseCtx parse_ctx_;
-        SemanticDriver semantic_driver_;
+        SemanticSystem semantic_system_;
         int parser_retval_ = 0;
         bool ok_flag_ = true;
 

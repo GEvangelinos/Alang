@@ -87,8 +87,8 @@ add_library(alpha_parser_impl STATIC
     ${ALPHA_PARSER_OUTPUT_FILEPATH}
     src/symbol_table.cpp
     src/RELOCATE_backpatcher.cpp
-    src/L1_driver/semantic_driver.cpp
-    src/L1_driver/semantic_driver_support.cpp
+    src/L1_driver/semantic_system.cpp
+    src/L1_driver/semantic_system_support.cpp
 )
 target_include_directories(alpha_parser_impl PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"

@@ -130,7 +130,12 @@ std::string expr_printer(const Alpha::Expr *expr)
     case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr *>(expr)->symbol->name;
     case ET::TABLE_ITEM: return static_cast<const TableItemExpr *>(expr)->symbol->name;
     case ET::VARIABLE: return static_cast<const VariableExpr *>(expr)->symbol->name;
-    default: UNREACHABLE("Unknown Expr::Type");
+    default:
+        UNREACHABLE(
+            FMT::format("Unhandled Expr::Type: int({}) = {}",
+                TO_STRING(expr->type),
+                static_cast<int>(expr->type))
+        );
     }
 }
 
@@ -236,7 +241,7 @@ Driver::Driver(const std::string &source_filepath, bool show_parser_trace)
       st_(),
       lexer_ctx_(source_filepath),
       parse_ctx_(st_, diagnostic_engine_),
-      semantic_driver_(SemanticDriver::Options{true, true, true}, &parse_ctx_, &st_,
+      semantic_system_(SemanticSystem::Options{true, true, true}, &parse_ctx_, &st_,
                        &diagnostic_engine_)
 {
     // TODO INITIALIZE SEMANTIC OPTS CORRECTLY.
@@ -250,7 +255,7 @@ Driver::~Driver()
 
 void Driver::run_alpha_parser()
 {
-    parser_retval_ = alpha_yyparse(lt_, diagnostic_engine_, lexer_ctx_, semantic_driver_);
+    parser_retval_ = alpha_yyparse(lt_, diagnostic_engine_, lexer_ctx_, semantic_system_);
 }
 
 void Driver::show_symbol_table() const
@@ -289,7 +294,7 @@ void Driver::show_quads() const
     // if (et_.contain_errors()) // We dont show quads if there are errors.
     // return;
     // TODO!! UNCOMMENT!
-    print_quads<true>(std::cout, semantic_driver_.retrieve_quads(), lt_);
+    print_quads<true>(std::cout, semantic_system_.retrieve_quads(), lt_);
 }
 
 void Driver::export_symbol_table() const

@@ -1,0 +1,9 @@
+“In this land, only the strong make it to IR. The weak are discarded — folded, propagated, and erased.”
+
+Optimization-name: --crush-weak-vars (folding, propagation, dead-code elimination)
+“Let me tell you of the days of high-level semantic suffering…”
+
+Hyborian Age of optimization: (When you like compilers.. but you played 6000 hours Conan Exiles )
+ * Dead vars? Sacrificed at the altar of DCE.
+ * Temporary temps? Folded into oblivion.
+ * Pointless expressions? Eliminated without mercy.

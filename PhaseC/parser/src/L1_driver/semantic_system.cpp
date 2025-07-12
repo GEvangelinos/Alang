@@ -1,10 +1,8 @@
-#include "L1_driver/semantic_driver.hpp"
-
-#include "diagnostics/diagnostic_reporter.gen.hpp"
+#include "L1_driver/semantic_system.hpp"
 
 namespace Alpha
 {
-SemanticDriver::SemanticDriver(
+SemanticSystem::SemanticSystem(
     const Options options,
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
@@ -23,15 +21,17 @@ SemanticDriver::SemanticDriver(
     sd_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
 
     // public servicers, used by users of semantic driver.
-    const_builder(make_builder_init_pack()),
-    basic_builder(get_basic_builder_options(options), make_builder_init_pack()),
-    assign_builder(make_builder_init_pack()),
-    lvalue_resolver(make_builder_init_pack()) {}
+    const_builder(export_semantic_system_services()),
+    basic_builder(get_basic_builder_options(options), export_semantic_system_services()),
+    assign_builder(export_semantic_system_services()),
+    lvalue_resolver(export_semantic_system_services()),
+    backpatcher(export_semantic_system_services()) {}
 
-DriverInitPack
-SemanticDriver::make_builder_init_pack()
+
+SemanticSystemServices
+SemanticSystem::export_semantic_system_services()
 {
-    return DriverInitPack{
+    return SemanticSystemServices{
         .parse_ctx = REQUIRE_PTR(parse_ctx_),
         .symbol_table = REQUIRE_PTR(symbol_table_),
         .dr = &REQUIRE_PTR(diagnostic_engine_)->dr,
@@ -39,12 +39,13 @@ SemanticDriver::make_builder_init_pack()
         .expr_folder = REQUIRE_PTR(expr_folder_.get()),
         .expr_snitch = REQUIRE_PTR(expr_snitch_.get()),
         .quad_handler = REQUIRE_PTR(quad_handler_.get()),
+        .backpatcher = &backpatcher,
         .sd_bridge = &sd_bridge_,
     };
 }
 
 BasicBuilder::Options
-SemanticDriver::get_basic_builder_options(const Options &options)
+SemanticSystem::get_basic_builder_options(const Options &options)
 {
     return {
         .fold_arithmetic = options.fold_arithmetic,
@@ -52,5 +53,4 @@ SemanticDriver::get_basic_builder_options(const Options &options)
         .fold_logical = options.fold_logical,
     };
 }
-
 } // namespace Alpha

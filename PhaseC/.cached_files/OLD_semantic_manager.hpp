@@ -418,6 +418,9 @@ inline void SemanticManager::term__lvalue_dec(Expr *&term, Expr *lvalue, const L
         }
 }
 
+// USED
+// USED
+// USED
 inline void SemanticManager::lvalue__id(Expr *&lvalue, const char *id_name, const Location id_loc)
 {
         const Symbol *symbol = st_.lookup_chain(id_name,

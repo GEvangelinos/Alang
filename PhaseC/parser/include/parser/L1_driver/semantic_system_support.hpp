@@ -27,18 +27,17 @@
 
 #include "parser/parser_context.hpp"
 #include "parser/ir.hpp"
-#include  "L3_ir_infra/expr_folder.hpp"
+#include "L3_ir_infra/expr_folder.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
 
 namespace Alpha
 {
 // TODO: maybe replace with the INIT pack.. or remove this class from initpack it contains duplciate fields
-class SemanticDriverBridge
+class SemanticSystemBridge
 {
 public:
-    SemanticDriverBridge(ParseCtx *parse_ctx, ExprMaker *expr_maker,
-                         QuadHandler *quad_handler);
+    SemanticSystemBridge(ParseCtx *parse_ctx, ExprMaker *expr_maker, QuadHandler *quad_handler);
 
     const Expr *emit_quad_if_table_item(const Expr *expr);
 
@@ -48,8 +47,9 @@ private:
     QuadHandler *const quad_handler_;
 };
 
+class Backpatcher; // Forward-Decl to avoid cyclic Includes
 
-struct DriverInitPack
+struct SemanticSystemServices
 {
     ParseCtx *const parse_ctx;
     SymbolTable *const symbol_table;
@@ -58,7 +58,8 @@ struct DriverInitPack
     ExprFolder *const expr_folder;
     ExprSnitch *const expr_snitch;
     QuadHandler *const quad_handler;
-    SemanticDriverBridge *const sd_bridge;
+    Backpatcher *const backpatcher;
+    SemanticSystemBridge *const sd_bridge;
 };
 } // namespace Alpha
 
