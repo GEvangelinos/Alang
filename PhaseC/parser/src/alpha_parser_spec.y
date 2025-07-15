@@ -180,8 +180,8 @@ program:
 ;
 
 multiStmt:
-  stmt
-| stmt
+  stmt { ss.reset_stmt_context(); }
+| stmt { ss.reset_stmt_context(); }
  multiStmt
 ;
 
@@ -202,8 +202,8 @@ stmt:
 ;
 
 loopCtrlStmt:
-  BREAK
-| CONTINUE
+  BREAK    { ss.loop_manager.process_break(@BREAK); }
+| CONTINUE { ss.loop_manager.process_continue(@CONTINUE); }
 ;
 
 not_op:
@@ -264,11 +264,11 @@ term
 : primary { $term = $primary; }
 | LEFT_PAREN expr RIGHT_PAREN { $term = $expr; }
 | MINUS expr %prec UMINUS { $term = ss.basic_builder.build_uminus($expr, @term); }
-| not_op { $term = $not_op; }
-| INC lvalue
-| lvalue INC
-| DEC lvalue
-| lvalue DEC
+| not_op { /* TODO: Can we put this under the `expr` rule? */   $term = $not_op; }
+| INC expr
+| expr INC
+| DEC expr
+| expr DEC
 ;
 
 assignExpr:

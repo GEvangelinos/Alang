@@ -45,18 +45,18 @@ public:
     SymbolTable();
     ~SymbolTable() = default;
 
-    const Function *insert_function(
+    const FuncSymbol *insert_function(
         const std::string &name,
         u32 scope,
         u32 address,
         const std::list<Parameter> &parameter_list,
         SourceLocation location);
 
-    const Variable *insert_variable(
+    const VarSymbol *insert_variable(
         const std::string &name,
         u32 scope,
-        Variable::Type type,
-        Variable::Space space,
+        VarSymbol::Type type,
+        VarSymbol::Space space,
         u32 offset,
         SourceLocation location);
 
@@ -70,8 +70,8 @@ public:
 
     /// The following two methods provide controlled overrides for `const_expr_` assignment
     /// during constant propagation. See SymbolTable.cpp for detailed rationale.
-    static void override_clear_const_value(const Variable *var);
-    static void override_set_const_value(const Variable *var, const ConstExpr *const_expr);
+    static void override_clear_const_value(const VarSymbol *var);
+    static void override_set_const_value(const VarSymbol *var, const ConstExpr *const_expr);
 
 private:
     SymbolMap symbol_map_;
@@ -82,7 +82,7 @@ private:
     std::unordered_set<SymbolName> library_function_set_;
 
     template<typename SymbolKind, typename... Args>
-        requires std::is_same_v<SymbolKind, Variable> || std::is_same_v<SymbolKind, Function>
+        requires std::is_same_v<SymbolKind, VarSymbol> || std::is_same_v<SymbolKind, FuncSymbol>
     [[nodiscard]] const SymbolKind *insert_symbol(
         const std::string &name, u32 scope, Args &&... args);
 };

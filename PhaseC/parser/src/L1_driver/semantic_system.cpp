@@ -3,7 +3,7 @@
 namespace Alpha
 {
 SemanticSystem::SemanticSystem(
-    const Options options,
+    const Options &options,
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
     DiagnosticEngine *const diagnostic_engine)
@@ -21,12 +21,12 @@ SemanticSystem::SemanticSystem(
     sd_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
 
     // public servicers, used by users of semantic driver.
+    backpatcher(export_semantic_system_services()),
     const_builder(export_semantic_system_services()),
     assign_builder(get_assign_builder_options(options), export_semantic_system_services()),
     basic_builder(get_basic_builder_options(options), export_semantic_system_services()),
-    lvalue_resolver(export_semantic_system_services()),
-    backpatcher(export_semantic_system_services()) {}
-
+    loop_manager(export_semantic_system_services()),
+    lvalue_resolver(export_semantic_system_services()) {}
 
 SemanticSystemServices
 SemanticSystem::export_semantic_system_services()
@@ -59,7 +59,7 @@ SemanticSystem::get_basic_builder_options(const Options &options)
         .fold_arithmetic = options.fold_arithmetic,
         .fold_relational = options.fold_relational,
         .fold_logical = options.fold_logical,
-        .propagate_constant_variable = options.propagate_constants
+        .constant_propagation = options.propagate_constants
     };
 }
 } // namespace Alpha

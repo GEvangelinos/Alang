@@ -7,7 +7,7 @@
 - Diagnostic: ASSIGN_LHS_NOT_LVALUE
   Type: ERROR
   Primary:
-    - Message: "Lvalue required as left operand of assignment (found type  {0})"
+    - Message: "Lvalue required as left operand of assignment (found type: {0})"
       Args: [ lhs_type ]
       Location: lhs_loc
 
@@ -72,5 +72,19 @@
       Args: [ curr_func_name ]
       Location: curr_func_loc
     - Message: "variable `{0}` declared here"
-      Args: [id_name]
+      Args: [ id_name ]
       Location: var_decl_loc
+
+- Diagnostic: LOOP_CTRL_OUTSIDE_LOOP
+  Type: ERROR
+  Primary:
+    - Message: "`{0}` statement not in a loop statement"
+      Args: [ keyword_name ]
+      Location: keyword_loc
+
+- Diagnostic: OPERATOR_REQUIRES_LVALUE
+  Type: ERROR
+  Primary:
+    - Message: "{0} operator {1} requires an lvalue operand"
+      Args: [ op_name, op_symbol ]
+      Location: result_loc

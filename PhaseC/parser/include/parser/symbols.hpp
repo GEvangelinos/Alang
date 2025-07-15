@@ -11,9 +11,9 @@ namespace Alpha
 {
 struct ConstExpr; // FWD declared
 // Classes defined here:
-class Symbol;   // IWYU pragma: keep
-class Variable; // IWYU pragma: keep
-class Function; // IWYU pragma: keep
+class Symbol;     // IWYU pragma: keep
+class VarSymbol;  // IWYU pragma: keep
+class FuncSymbol; // IWYU pragma: keep
 
 class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
 {
@@ -36,12 +36,9 @@ public:
 
     [[nodiscard]] std::string_view type_to_string() const noexcept;
     [[nodiscard]] bool is_variable() const noexcept { return !is_function(); }
-
-    [[nodiscard]] bool is_function() const noexcept
-    {
-        return type == Type::LIBRARY_FUNCTION || type == Type::PROGRAM_FUNCTION;
-    }
-
+    [[nodiscard]] bool is_library_function() const noexcept;
+    [[nodiscard]] bool is_program_function() const noexcept;
+    [[nodiscard]] bool is_function() const noexcept;
     [[nodiscard]] bool is_active() const noexcept { return is_active_; }
     [[nodiscard]] static bool is_modifiable_symbol(const Symbol *symbol);
 
@@ -57,7 +54,7 @@ private:
     friend class SymbolTable;
 };
 
-class Variable final : public Symbol
+class VarSymbol final : public Symbol
 {
 public:
     enum class Space
@@ -70,14 +67,14 @@ public:
     const Space space;
     const u32 offset;
 
-    Variable(
+    VarSymbol(
         const std::string &name,
         u32 scope,
         Type type,
         Space space,
         u32 offset,
         SourceLocation loc) noexcept;
-    ~Variable() override = default;
+    ~VarSymbol() override = default;
 
     const ConstExpr *get_const_expr() const noexcept { return const_expr_; }
     bool has_const_value() const noexcept { return const_expr_; }
@@ -89,7 +86,7 @@ private:
     friend class SymbolTable;
 };
 
-class Function final : public Symbol
+class FuncSymbol final : public Symbol
 {
 public:
     const u32 address;
@@ -97,14 +94,14 @@ public:
     Once<u32> local_variable_count;
 
 
-    Function(
+    FuncSymbol(
         const std::string &name,
         u32 scope,
         Type type,
         u32 address,
         const std::list<Parameter> &parameter_list,
         SourceLocation location);
-    ~Function() override = default;
+    ~FuncSymbol() override = default;
 
 private:
     friend class SymbolTable;
@@ -133,13 +130,17 @@ Symbol::type_to_string() const noexcept
 }
 
 inline bool
-Symbol::is_modifiable_symbol(const Symbol *symbol)
-{
-    return symbol->is_variable();
-}
+Symbol::is_library_function() const noexcept { return type == Type::LIBRARY_FUNCTION; }
+
+inline bool
+Symbol::is_program_function() const noexcept { return type == Type::PROGRAM_FUNCTION; }
+
+inline bool
+Symbol::is_function() const noexcept { return is_library_function() || is_program_function(); }
+
 
 inline
-Variable::Variable(
+VarSymbol::VarSymbol(
     const std::string &name,
     const u32 scope,
     const Type type,
@@ -152,7 +153,7 @@ Variable::Variable(
 
 
 inline
-Function::Function(
+FuncSymbol::FuncSymbol(
     const std::string &name,
     const u32 scope,
     const Type type,

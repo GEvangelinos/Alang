@@ -36,9 +36,9 @@ LvalueResolver::resolve_id(const char *id_name, const SourceLocation id_loc)
     const Symbol *symbol = symbol_table_->lookup_chain(id_name, parse_ctx_->scope_handler.scope());
     if (!symbol)
     {
-        const Variable::Type var_type = parse_ctx_->scope_handler.scope() == k_global_scope
-                                        ? Variable::Type::GLOBAL_VARIABLE
-                                        : Variable::Type::LOCAL_VARIABLE;
+        const VarSymbol::Type var_type = parse_ctx_->scope_handler.scope() == k_global_scope
+                                         ? VarSymbol::Type::GLOBAL_VARIABLE
+                                         : VarSymbol::Type::LOCAL_VARIABLE;
         symbol = symbol_table_->insert_variable(
             id_name,
             parse_ctx_->scope_handler.scope(),
@@ -49,18 +49,23 @@ LvalueResolver::resolve_id(const char *id_name, const SourceLocation id_loc)
     }
     else if (symbol->is_variable() &&
              symbol->scope > k_global_scope &&
-             symbol->scope <= parse_ctx_->function_ctx_handler.current_function_scope())
+             symbol->scope <= parse_ctx_->func_ctx_handler.current_function_scope())
     {
         dr_->report_inaccessible_variable_in_func(
             id_name,
-            parse_ctx_->function_ctx_handler.current_function_name(),
+            parse_ctx_->func_ctx_handler.current_function_name(),
             id_loc,
-            parse_ctx_->function_ctx_handler.current_function_location(),
+            parse_ctx_->func_ctx_handler.current_function_location(),
             symbol->loc);
     }
 
-    // Here symbol is either a found or a new variable.
-    return expr_maker_->make_variable_expr(static_cast<const Variable*>(symbol), symbol->loc);
+    if (symbol->is_variable())
+        return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol *>(symbol));
+    if (symbol->is_library_function())
+        return expr_maker_->make_lib_func_expr(id_loc, static_cast<const FuncSymbol *>(symbol));
+    if (symbol->is_program_function())
+        return expr_maker_->make_prog_func_expr(id_loc, static_cast<const FuncSymbol *>(symbol));
+    UNREACHABLE("We either inserted or found a symbol, and it should be either a var or a func");
 }
 } // namespace Alpha
 #endif // LVALUE_RESOLVER_HPP

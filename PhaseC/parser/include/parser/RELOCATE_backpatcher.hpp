@@ -6,7 +6,7 @@
 namespace Alpha::Backpatcher
 {
     void set_function_local_variable_count(
-        const Function *function_symbol,
+        const FuncSymbol *function_symbol,
         u32 local_variable_count);
 }
 

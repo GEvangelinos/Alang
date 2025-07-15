@@ -129,7 +129,7 @@ std::string expr_printer(const Alpha::Expr *expr)
     case ET::NEW_TABLE: return static_cast<const NewTableExpr *>(expr)->symbol->name;
     case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr *>(expr)->symbol->name;
     case ET::TABLE_ITEM: return static_cast<const TableItemExpr *>(expr)->symbol->name;
-    case ET::VARIABLE: return static_cast<const VariableExpr *>(expr)->symbol->name;
+    case ET::VARIABLE: return static_cast<const VariableExpr *>(expr)->var_symbol->name;
     default:
         UNREACHABLE(
             FMT::format("Unhandled Expr::Type: int({}) = {}",
@@ -285,8 +285,7 @@ void Driver::show_compile_issues() const
     const std::string source_filename = source_filepath_.filename().string();
 
     for (const auto &cti: diagnostic_engine_.get_compile_time_issues())
-        std::cerr << cti->make_pretty_diagnostic(source_filename, lt_,
-                                                 flex_buffer_.const_buffer());
+        std::cerr << cti->make_pretty_diagnostic(source_filename, lt_, flex_buffer_.const_buffer());
 }
 
 void Driver::show_quads() const
@@ -309,7 +308,7 @@ void Driver::export_compile_errors() const
 
 void Driver::export_quads() const
 {
-    if (diagnostic_engine_.contain_fatal_errors() || diagnostic_engine_.contain_errors())
+    if (diagnostic_engine_.has_fatal_errors() || diagnostic_engine_.has_errors())
         return;
     export_within_dir(k_quad_exports_dirname, &Driver::export_quads_impl);
 }

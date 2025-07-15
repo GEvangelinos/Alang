@@ -11,34 +11,47 @@ namespace Alpha
 class ExprMaker : private Immobile
 {
 public:
-    // Frequently used Const expressions.
-    const ConstBoolExpr *const premade_true;
-    const ConstBoolExpr *const premade_false;
-    const ConstIntExpr *const premade_int_1;
+    // WARNING: static_* expressions have dummy location which does NOT correspond
+    // to any real source buffer region. Never return them from synthesis; doing so
+    // risks invalid ranges in error reporting and location-sensitive computations.
+    const ConstIntExpr static_int_1;
+    const ConstBoolExpr static_true;
+    const ConstBoolExpr static_false;
+    const Expr static_error;
 
     explicit ExprMaker(ParseCtx *parse_ctx);
     ~ExprMaker() noexcept;
 
-    /// @Note: All expr_loc(s) are the loc of the resulting expression.
-    [[nodiscard]] const ArithmeticExpr *make_arithmetic_expr(SourceLocation expr_loc);
-    [[nodiscard]] const AssignExpr *make_assign_expr(const Symbol *symbol, SourceLocation expr_loc);
-    [[nodiscard]] BoolExpr *make_bool_expr(SourceLocation expr_loc);
+    template<bool make_dup = false>
+    [[nodiscard]] const ArithmeticExpr *make_arithmetic_expr(
+        SourceLocation expr_loc, const ArithmeticExpr *dup_from = nullptr);
+    template<bool make_dup = false>
+    [[nodiscard]] const BoolExpr *make_bool_expr(
+        SourceLocation expr_loc, const BoolExpr *dup_from = nullptr);
+    template<bool make_dup = false>
+    [[nodiscard]] const NewTableExpr *make_new_table_expr(
+        SourceLocation expr_loc, const NewTableExpr *dup_from = nullptr);
+    [[nodiscard]] const AssignExpr *make_assign_expr(
+        SourceLocation expr_loc, const VarSymbol *var_symbol);
     [[nodiscard]] const ConstBoolExpr *make_const_bool_expr(
-        bool bool_value, SourceLocation expr_loc);
+        SourceLocation expr_loc, bool bool_value);
     [[nodiscard]] const ConstIntExpr *make_const_int_expr(
-        AlphaInt int_value, SourceLocation expr_loc);
+        SourceLocation expr_loc, AlphaInt int_value);
     [[nodiscard]] const ConstFloatExpr *make_const_float_expr(
-        AlphaFloat float_value, SourceLocation expr_loc);
+        SourceLocation expr_loc, AlphaFloat float_value);
     [[nodiscard]] const ConstStringExpr *make_const_string_expr(
-        const char *str_value, SourceLocation expr_loc);
+        SourceLocation expr_loc, const char *str_value);
     [[nodiscard]] const ConstNilExpr *make_nil_expr(SourceLocation expr_loc);
-    [[nodiscard]] const NewTableExpr *make_new_table_expr(SourceLocation expr_loc);
-    [[nodiscard]] const ProgFuncExpr *make_program_function_expr(
-        SourceLocation expr_loc, const Function *function_symbol);
+    [[nodiscard]] const LibFuncExpr *make_lib_func_expr(
+        SourceLocation expr_loc, const FuncSymbol *func_symbol);
+    [[nodiscard]] const ProgFuncExpr *make_prog_func_expr(
+        SourceLocation expr_loc, const FuncSymbol *func_symbol);
     [[nodiscard]] const TableItemExpr *make_table_item_expr(
-        const Expr *lvalue, const Expr *index, SourceLocation expr_loc);
+        SourceLocation expr_loc, const Expr *lvalue, const Expr *index);
     [[nodiscard]] const VariableExpr *make_variable_expr(
-        const Variable *var, SourceLocation expr_loc);
+        SourceLocation expr_loc, const VarSymbol *var);
+    [[nodiscard]] const Expr *clone_with_updated_location(
+        SourceLocation new_loc, const Expr *donor);
 
 private:
     ParseCtx *const parse_ctx_;
@@ -47,9 +60,10 @@ private:
 
 inline
 ExprMaker::ExprMaker(ParseCtx *const parse_ctx)
-    : premade_true(make_const_bool_expr(true, k_no_loc)),
-      premade_false(make_const_bool_expr(false, k_no_loc)),
-      premade_int_1(make_const_int_expr(1, k_no_loc)),
+    : static_int_1(ConstIntExpr(k_no_loc, 1)),
+      static_true(ConstBoolExpr(k_no_loc, true)),
+      static_false(ConstBoolExpr(k_no_loc, false)),
+      static_error(Expr(Expr::Type::CONST_NIL, k_no_loc)),
       parse_ctx_(Utils::require_ptr(parse_ctx)) {}
 
 inline ExprMaker::~ExprMaker() noexcept
@@ -57,22 +71,23 @@ inline ExprMaker::~ExprMaker() noexcept
     for (const Expr *e: expr_sink_)
     {
         DEBUG_SMART_ASSERT(!!e);
+        using ET = Expr::Type;
         switch (e->type)
         {
-            // clang-format off
-        case Expr::Type::ARITHMETIC_EXPR: delete static_cast<const ArithmeticExpr *>(e); break;
-        case Expr::Type::ASSIGN_EXPR: delete static_cast<const AssignExpr *>(e);         break;
-        case Expr::Type::BOOL_EXPR: delete static_cast<const BoolExpr *>(e);             break;
-        case Expr::Type::CONST_BOOL: delete static_cast<const ConstBoolExpr *>(e);       break;
-        case Expr::Type::CONST_INT: delete static_cast<const ConstIntExpr *>(e);         break;
-        case Expr::Type::CONST_FLOAT: delete static_cast<const ConstFloatExpr *>(e);     break;
-        case Expr::Type::CONST_STRING: delete static_cast<const ConstStringExpr *>(e);   break;
-        case Expr::Type::CONST_NIL: delete static_cast<const ConstNilExpr *>(e);         break;
-        case Expr::Type::LIBRARY_FUNCTION: delete static_cast<const LibFuncExpr *>(e);   break;
-        case Expr::Type::PROGRAM_FUNCTION: delete static_cast<const ProgFuncExpr *>(e);  break;
-        case Expr::Type::NEW_TABLE: delete static_cast<const NewTableExpr *>(e);         break;
-        case Expr::Type::TABLE_ITEM: delete static_cast<const TableItemExpr *>(e);       break;
-        case Expr::Type::VARIABLE: delete static_cast<const VariableExpr *>(e);          break;
+        // clang-format off
+        case ET::ARITHMETIC_EXPR: delete static_cast<const ArithmeticExpr *>(e); break;
+        case ET::ASSIGN_EXPR: delete static_cast<const AssignExpr *>(e);         break;
+        case ET::BOOL_EXPR: delete static_cast<const BoolExpr *>(e);             break;
+        case ET::CONST_BOOL: delete static_cast<const ConstBoolExpr *>(e);       break;
+        case ET::CONST_INT: delete static_cast<const ConstIntExpr *>(e);         break;
+        case ET::CONST_FLOAT: delete static_cast<const ConstFloatExpr *>(e);     break;
+        case ET::CONST_STRING: delete static_cast<const ConstStringExpr *>(e);   break;
+        case ET::CONST_NIL: delete static_cast<const ConstNilExpr *>(e);         break;
+        case ET::LIBRARY_FUNCTION: delete static_cast<const LibFuncExpr *>(e);   break;
+        case ET::PROGRAM_FUNCTION: delete static_cast<const ProgFuncExpr *>(e);  break;
+        case ET::NEW_TABLE: delete static_cast<const NewTableExpr *>(e);         break;
+        case ET::TABLE_ITEM: delete static_cast<const TableItemExpr *>(e);       break;
+        case ET::VARIABLE: delete static_cast<const VariableExpr *>(e);          break;
         // clang-format on
         default: UNREACHABLE(FMT::format(
                 "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(e->type)));
@@ -80,33 +95,37 @@ inline ExprMaker::~ExprMaker() noexcept
     }
 }
 
-inline const ArithmeticExpr *
-ExprMaker::make_arithmetic_expr(const SourceLocation expr_loc)
-{
-    const auto *const arithmetic_expr = new const ArithmeticExpr(
-        expr_loc, parse_ctx_->new_temp());
-    expr_sink_.push_back(arithmetic_expr);
-    return arithmetic_expr;
-}
+#define DEFINE_MAKER_WITH_TEMP_SYMBOL(EXPR_TYPE, FN_NAME)                              \
+    template<bool make_dup>                                                            \
+    const EXPR_TYPE *                                                                  \
+    ExprMaker::FN_NAME(const SourceLocation expr_loc, const EXPR_TYPE *const dup_from) \
+    {                                                                                  \
+        const EXPR_TYPE *expr = nullptr;                                               \
+        if constexpr (make_dup)                                                        \
+            expr = new const EXPR_TYPE(expr_loc, REQUIRE_PTR(dup_from)->var_symbol);   \
+        else                                                                           \
+            expr = new const EXPR_TYPE(expr_loc, parse_ctx_->new_temp());              \
+        expr_sink_.push_back(expr);                                                    \
+        return expr;                                                                   \
+    }
+DEFINE_MAKER_WITH_TEMP_SYMBOL(ArithmeticExpr, make_arithmetic_expr)
+DEFINE_MAKER_WITH_TEMP_SYMBOL(BoolExpr, make_bool_expr)
+DEFINE_MAKER_WITH_TEMP_SYMBOL(NewTableExpr, make_new_table_expr)
+#undef DEFINE_MAKER_WITH_TEMP_SYMBOL
 
 inline const AssignExpr *
-ExprMaker::make_assign_expr(const Symbol *const symbol, const SourceLocation expr_loc)
+ExprMaker::make_assign_expr(
+    const SourceLocation expr_loc,
+    const VarSymbol *const var_symbol)
 {
-    DEBUG_SMART_ASSERT(!!symbol);
-    const auto *const assign_expr = new const AssignExpr(expr_loc, symbol);
+    DEBUG_SMART_ASSERT(!!var_symbol);
+    const auto *const assign_expr = new const AssignExpr(expr_loc, var_symbol);
     expr_sink_.push_back(assign_expr);
     return assign_expr;
 }
 
-inline BoolExpr *ExprMaker::make_bool_expr(const SourceLocation expr_loc)
-{
-    auto *const bool_expr = new BoolExpr(expr_loc, parse_ctx_->new_temp());
-    expr_sink_.push_back(bool_expr);
-    return bool_expr;
-}
-
 inline const ConstBoolExpr *
-ExprMaker::make_const_bool_expr(const bool bool_value, const SourceLocation expr_loc)
+ExprMaker::make_const_bool_expr(const SourceLocation expr_loc, const bool bool_value)
 {
     const auto *const const_bool_expr = new const ConstBoolExpr(expr_loc, bool_value);
     expr_sink_.push_back(const_bool_expr);
@@ -114,7 +133,7 @@ ExprMaker::make_const_bool_expr(const bool bool_value, const SourceLocation expr
 }
 
 inline const ConstIntExpr *
-ExprMaker::make_const_int_expr(const AlphaInt int_value, const SourceLocation expr_loc)
+ExprMaker::make_const_int_expr(const SourceLocation expr_loc, const AlphaInt int_value)
 {
     const auto *const const_int_expr = new const ConstIntExpr(expr_loc, int_value);
     expr_sink_.push_back(const_int_expr);
@@ -122,7 +141,7 @@ ExprMaker::make_const_int_expr(const AlphaInt int_value, const SourceLocation ex
 }
 
 inline const ConstFloatExpr *
-ExprMaker::make_const_float_expr(const AlphaFloat float_value, const SourceLocation expr_loc)
+ExprMaker::make_const_float_expr(const SourceLocation expr_loc, const AlphaFloat float_value)
 {
     const auto *const const_float_expr = new const ConstFloatExpr(expr_loc, float_value);
     expr_sink_.push_back(const_float_expr);
@@ -130,7 +149,7 @@ ExprMaker::make_const_float_expr(const AlphaFloat float_value, const SourceLocat
 }
 
 inline const ConstStringExpr *
-ExprMaker::make_const_string_expr(const char *const str_value, const SourceLocation expr_loc)
+ExprMaker::make_const_string_expr(const SourceLocation expr_loc, const char *const str_value)
 {
     DEBUG_SMART_ASSERT(!!str_value);
     const auto *const const_str_expr = new const ConstStringExpr(expr_loc, str_value);
@@ -146,29 +165,31 @@ ExprMaker::make_nil_expr(const SourceLocation expr_loc)
     return nil_expr;
 }
 
-inline const NewTableExpr *ExprMaker::make_new_table_expr(const SourceLocation expr_loc)
+inline const LibFuncExpr *
+ExprMaker::make_lib_func_expr(const SourceLocation expr_loc, const FuncSymbol *const func_symbol)
 {
-    const auto *const new_table_expr = new const NewTableExpr(expr_loc, parse_ctx_->new_temp());
-    expr_sink_.push_back(new_table_expr);
-    return new_table_expr;
+    DEBUG_SMART_ASSERT(!!func_symbol);
+    const auto *const lib_func_expr = new const LibFuncExpr(expr_loc, func_symbol);
+    expr_sink_.push_back(lib_func_expr);
+    return lib_func_expr;
 }
 
 inline const ProgFuncExpr *
-ExprMaker::make_program_function_expr(
+ExprMaker::make_prog_func_expr(
     const SourceLocation expr_loc,
-    const Function *const function_symbol)
+    const FuncSymbol *const func_symbol)
 {
-    DEBUG_SMART_ASSERT(!!function_symbol);
-    const auto *const progfunc_expr = new const ProgFuncExpr(expr_loc, function_symbol);
-    expr_sink_.push_back(progfunc_expr);
-    return progfunc_expr;
+    DEBUG_SMART_ASSERT(!!func_symbol);
+    const auto *const prog_func_expr = new const ProgFuncExpr(expr_loc, func_symbol);
+    expr_sink_.push_back(prog_func_expr);
+    return prog_func_expr;
 }
 
 inline const TableItemExpr *
 ExprMaker::make_table_item_expr(
+    const SourceLocation expr_loc,
     const Expr *const lvalue,
-    const Expr *const index,
-    const SourceLocation expr_loc)
+    const Expr *const index)
 {
     DEBUG_SMART_ASSERT(
         !!lvalue,
@@ -177,22 +198,63 @@ ExprMaker::make_table_item_expr(
         SemUtils::is_expr_with_symbol(lvalue)
     );
     const auto *const expr_w_symbol = static_cast<const ExprWSymbol *>(REQUIRE_PTR(lvalue));
-    const auto *const lvalue_symbol = static_cast<const Symbol *>(expr_w_symbol->symbol);
-    const auto *const table_item_expr = new const TableItemExpr(
-        expr_loc,
-        lvalue_symbol,
-        index);
+    DEBUG_SMART_ASSERT(expr_w_symbol->symbol->is_variable()); // TODO remove after you certain
+    const auto *const lvalue_symbol = static_cast<const VarSymbol *>(expr_w_symbol->symbol);
+    const auto *const table_item_expr = new const TableItemExpr(expr_loc, lvalue_symbol, index);
     expr_sink_.push_back(table_item_expr);
     return table_item_expr;
 }
 
 inline const VariableExpr *
-ExprMaker::make_variable_expr(const Variable *const var, const SourceLocation expr_loc)
+ExprMaker::make_variable_expr(const SourceLocation expr_loc, const VarSymbol *const var)
 {
     DEBUG_SMART_ASSERT(!!var);
     const auto *const variable_expr = new const VariableExpr(expr_loc, var);
     expr_sink_.push_back(variable_expr);
     return variable_expr;
+}
+
+inline const Expr *ExprMaker::clone_with_updated_location(
+    const SourceLocation new_loc,
+    const Expr *const donor)
+{
+    using ET = Expr::Type;
+    switch (donor->type)
+    {
+    case ET::ARITHMETIC_EXPR:
+        return make_arithmetic_expr<true>(new_loc, static_cast<const ArithmeticExpr *>(donor));
+    case ET::ASSIGN_EXPR:
+        return make_assign_expr(new_loc, static_cast<const AssignExpr *>(donor)->var_symbol);
+    case ET::BOOL_EXPR:
+        return make_bool_expr<true>(new_loc, static_cast<const BoolExpr *>(donor));
+    case ET::CONST_BOOL:
+        return make_const_bool_expr(new_loc, static_cast<const ConstBoolExpr *>(donor)->value);
+    case ET::CONST_INT:
+        return make_const_int_expr(new_loc, static_cast<const ConstIntExpr *>(donor)->value);
+    case ET::CONST_FLOAT:
+        return make_const_float_expr(new_loc, static_cast<const ConstFloatExpr *>(donor)->value);
+    case ET::CONST_STRING:
+        return make_const_string_expr(new_loc, static_cast<const ConstStringExpr *>(donor)->value);
+    case ET::CONST_NIL:
+        return make_nil_expr(new_loc);
+    case ET::LIBRARY_FUNCTION:
+        return make_lib_func_expr(new_loc, static_cast<const LibFuncExpr *>(donor)->func_symbol);
+        throw std::logic_error(ATTACH_CONTEXT("An Expr of type LIBRARY_FUNCTION doesn't exist"));
+    case ET::PROGRAM_FUNCTION:
+        return make_prog_func_expr(
+            new_loc, static_cast<const ProgFuncExpr *>(donor)->func_symbol);
+    case ET::NEW_TABLE:
+        return make_new_table_expr<true>(new_loc, static_cast<const NewTableExpr *>(donor));
+    case ET::TABLE_ITEM:
+
+        const Expr *index = static_cast<const TableItemExpr *>(donor)->index;
+        return make_table_item_expr(new_loc, donor, index);
+    case ET::VARIABLE:
+        return make_variable_expr(new_loc, static_cast<const VariableExpr *>(donor)->var_symbol);
+    default:
+        UNREACHABLE(FMT::format(
+            "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(donor->type)));
+    }
 }
 } // namespace Alpha
 #endif //ALPHA_EXPR_MAKER_HPP

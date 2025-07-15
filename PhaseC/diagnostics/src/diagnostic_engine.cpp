@@ -50,7 +50,8 @@ std::string expand_tabs(const std::string_view line, const int tab_width = 8)
             const int spaces = tab_width - col % tab_width;
             result.append(spaces, ' ');
             col += spaces;
-        } else
+        }
+        else
         {
             result += ch;
             ++col;
@@ -82,10 +83,10 @@ std::string_view Issue::type_to_string() const noexcept
 {
     switch (type)
     {
-        case Type::ERROR: return "issue";
-        case Type::WARNING: return "warning";
-        case Type::NOTE: return "note";
-        default: UNREACHABLE("Unknown Issue Type!");
+    case Type::ERROR: return "issue";
+    case Type::WARNING: return "warning";
+    case Type::NOTE: return "note";
+    default: UNREACHABLE("Unknown Issue Type!");
     }
 }
 
@@ -93,10 +94,10 @@ std::string_view Issue::pretty_color() const noexcept
 {
     switch (type)
     {
-        case Type::ERROR: return COLOR_ASCII_BOLD_RED;
-        case Type::WARNING: return COLOR_ASCII_BOLD_MAGENTA;
-        case Type::NOTE: return COLOR_ASCII_BOLD_CYAN;
-        default: UNREACHABLE("Unknown Issue Type!");
+    case Type::ERROR: return COLOR_ASCII_BOLD_RED;
+    case Type::WARNING: return COLOR_ASCII_BOLD_MAGENTA;
+    case Type::NOTE: return COLOR_ASCII_BOLD_CYAN;
+    default: UNREACHABLE("Unknown Issue Type!");
     }
 }
 
@@ -164,7 +165,7 @@ std::string Diagnostic::make_pretty_diagnostic_impl(const std::string &source_fi
 
         ss << FMT::format(
             "{} | {}{}^{}\n", std::string(line_box_width, ' '), // Spaces pre  |
-            std::string(visual_caret_offset, ' '), // spaces post | to move caret
+            std::string(visual_caret_offset, ' '),              // spaces post | to move caret
             issue.pretty_color(), std::string(highlight_length, '~'));
         ss << SGR_RESET;
     }
@@ -184,31 +185,31 @@ void DiagnosticEngine::report(
     const Issue::Type type,
     const std::string &desc,
     const SourceLocation loc,
-    std::list<Note> &&note_list_)
+    std::list<Note> &&note_list)
 {
     store(std::unique_ptr<const Diagnostic>(
-        new const Diagnostic(type, desc, loc, std::move(note_list_))));
+        new const Diagnostic(type, desc, loc, std::move(note_list))));
 }
 
 void DiagnosticEngine::store(std::unique_ptr<const Diagnostic> diagnostic)
 {
     diagnostics_.push_back(std::move(diagnostic)); // Pass ownership to `diagnostics_` vector.
     const Diagnostic *const dptr = diagnostics_.back().get();
-    switch ( dptr->primary.type)
+    switch (dptr->primary.type)
     {
-        case Issue::Type::WARNING:
-            warnings_.push_back(dptr);
-            break;
-        case Issue::Type::ERROR:
-            errors_.push_back(dptr);
-            break;
-        case Issue::Type::FATAL_ERROR:
-            fatals_.push_back(dptr);
-            break;
-        case Issue::Type::NOTE:
-            throw std::logic_error(ATTACH_CONTEXT(
-                "Issue::Type::NOTE is used to add auxiliary info. Should not be used as main Issue"));
-        default: UNREACHABLE("Unknown Issue::Type.");
+    case Issue::Type::WARNING:
+        warnings_.push_back(dptr);
+        break;
+    case Issue::Type::ERROR:
+        errors_.push_back(dptr);
+        break;
+    case Issue::Type::FATAL_ERROR:
+        fatals_.push_back(dptr);
+        break;
+    case Issue::Type::NOTE:
+        throw std::logic_error(ATTACH_CONTEXT(
+            "Issue::Type::NOTE is used to add auxiliary info. Should not be used as main Issue"));
+    default: UNREACHABLE("Unknown Issue::Type.");
     }
 }
 } // namespace Alpha

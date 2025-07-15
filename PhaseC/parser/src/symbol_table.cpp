@@ -47,7 +47,7 @@ namespace // (Anonymous)
 } // namespace
 
 template<typename SymbolKind, typename... Args>
-    requires std::is_same_v<SymbolKind, Variable> || std::is_same_v<SymbolKind, Function>
+    requires std::is_same_v<SymbolKind, VarSymbol> || std::is_same_v<SymbolKind, FuncSymbol>
 DEBUG_ALWAYS_INLINE const SymbolKind *
 SymbolTable::insert_symbol(
     const std::string &name,
@@ -73,14 +73,14 @@ SymbolTable::insert_symbol(
 }
 
 // Explicit instantiations for insert_symbol()
-template const Function *
-SymbolTable::insert_symbol<Function>(
-    const std::string &, u32, Function::Type &&, u32 &&, const std::list<Parameter> &,
+template const FuncSymbol *
+SymbolTable::insert_symbol<FuncSymbol>(
+    const std::string &, u32, FuncSymbol::Type &&, u32 &&, const std::list<Parameter> &,
     SourceLocation &&);
 
-template const Variable *
-SymbolTable::insert_symbol<Variable>(
-    const std::string &, u32, Variable::Type &&, Variable::Space &&, u32 &&, SourceLocation &&);
+template const VarSymbol *
+SymbolTable::insert_symbol<VarSymbol>(
+    const std::string &, u32, VarSymbol::Type &&, VarSymbol::Space &&, u32 &&, SourceLocation &&);
 
 SymbolTable::SymbolTable()
 {
@@ -90,7 +90,7 @@ SymbolTable::SymbolTable()
         const std::string &name = k_library_function_names[i];
         const auto function_address = i;
 
-        const Function *const function_symbol = insert_symbol<Function>(
+        const FuncSymbol *const function_symbol = insert_symbol<FuncSymbol>(
             name,
             k_global_scope,
             Symbol::Type::LIBRARY_FUNCTION,
@@ -106,7 +106,7 @@ SymbolTable::SymbolTable()
 }
 
 // Used for inserting PROGRAM_FUNCTIONS (USER FUNCTIONS)
-const Function *
+const FuncSymbol *
 SymbolTable::insert_function(
     const std::string &name,
     const u32 scope,
@@ -114,20 +114,20 @@ SymbolTable::insert_function(
     const std::list<Parameter> &parameter_list,
     const SourceLocation location)
 {
-    return insert_symbol<Function>(
+    return insert_symbol<FuncSymbol>(
         name, scope, Symbol::Type::PROGRAM_FUNCTION, address, parameter_list, location);
 }
 
-const Variable *
+const VarSymbol *
 SymbolTable::insert_variable(
     const std::string &name,
     const u32 scope,
-    const Variable::Type type,
-    const Variable::Space space,
+    const VarSymbol::Type type,
+    const VarSymbol::Space space,
     const u32 offset,
     const SourceLocation location)
 {
-    return insert_symbol<Variable>(name, scope, type, space, offset, location);
+    return insert_symbol<VarSymbol>(name, scope, type, space, offset, location);
 }
 
 const Symbol *
@@ -231,16 +231,16 @@ SymbolTable::is_lib_function(const std::string &name) const
 ///   it's *their bug*. This method trusts that the pipeline is well-formed.
 
 void
-SymbolTable::override_clear_const_value(const Variable *var)
+SymbolTable::override_clear_const_value(const VarSymbol *var)
 {
-    const_cast<Variable *>(var)->const_expr_ = nullptr;
+    const_cast<VarSymbol *>(var)->const_expr_ = nullptr;
 }
 
 // Related method — refer to rationale above
 void
-SymbolTable::override_set_const_value(const Variable *var, const ConstExpr *const const_expr)
+SymbolTable::override_set_const_value(const VarSymbol *var, const ConstExpr *const const_expr)
 {
     DEBUG_SMART_ASSERT(!!const_expr, SemUtils::is_const_expr(const_expr));
-    const_cast<Variable *>(var)->const_expr_ = const_expr;
+    const_cast<VarSymbol *>(var)->const_expr_ = const_expr;
 }
 } // namespace Alpha

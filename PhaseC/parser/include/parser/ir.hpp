@@ -66,7 +66,7 @@ enum class OperandSide : u8
     X(PROGRAM_FUNCTION) \
     X(NEW_TABLE)        \
     X(TABLE_ITEM)       \
-    X(VARIABLE)
+    X(VARIABLE)         \
 
 struct Expr : private Immobile
 {
@@ -87,10 +87,6 @@ struct Expr : private Immobile
           DEBUG(, has_symbol(has_symbol)) {}
 };
 
-// TODO: Near the end of the project, you would known which fields of Symbols (variable and functions)
-// can remain const or not.. if the are mixed up keep as is, and ignore this _TODO_. If not group in a struct.
-// an inherit it in each Expr type.
-
 struct ExprWSymbol : public Expr
 {
     const Symbol *const symbol;
@@ -103,39 +99,55 @@ struct ExprWSymbol : public Expr
           symbol(REQUIRE_PTR(symbol)) {}
 };
 
+struct ExprWVarSymbol : public Expr
+{
+    const VarSymbol *const var_symbol;
+
+    ALWAYS_INLINE ExprWVarSymbol(
+        const Type type,
+        const SourceLocation loc,
+        const VarSymbol *const var_symbol)
+        : Expr(type, loc, true),
+          var_symbol(REQUIRE_PTR(var_symbol)) {}
+};
+
+struct ExprWFuncSymbol : public Expr
+{
+    const FuncSymbol *const func_symbol;
+
+    ALWAYS_INLINE ExprWFuncSymbol(
+        const Type type,
+        const SourceLocation loc,
+        const FuncSymbol *const func_symbol)
+        : Expr(type, loc, true),
+          func_symbol(REQUIRE_PTR(func_symbol)) {}
+};
+
 struct ConstExpr : public Expr
 {
     // Inherit all constructors from Expr, so ConstExpr can be constructed like Expr
     using Expr::Expr;
 };
 
-struct ArithmeticExpr : public ExprWSymbol
+struct ArithmeticExpr : public ExprWVarSymbol
 {
-    ALWAYS_INLINE ArithmeticExpr(const SourceLocation loc, const Symbol *const var_symbol)
-        : ExprWSymbol(Type::ARITHMETIC_EXPR, loc, var_symbol)
-    {
-        // I am not certain, but I think arithmetic expressions are produced only with temp vars.
-        DEBUG_SMART_ASSERT(var_symbol->name.starts_with('_')); // TODO remove after you tested.
-    }
+    ALWAYS_INLINE ArithmeticExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
+        : ExprWVarSymbol(Type::ARITHMETIC_EXPR, loc, var_symbol) {}
 };
 
-struct AssignExpr : public ExprWSymbol
+struct AssignExpr : public ExprWVarSymbol
 {
-    ALWAYS_INLINE AssignExpr(const SourceLocation loc, const Symbol *const symbol)
-        : ExprWSymbol(Type::ASSIGN_EXPR, loc, REQUIRE_PTR(symbol)) {}
+    ALWAYS_INLINE AssignExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
+        : ExprWVarSymbol(Type::ASSIGN_EXPR, loc, REQUIRE_PTR(var_symbol)) {}
 };
 
-struct BoolExpr : public ExprWSymbol
+struct BoolExpr : public ExprWVarSymbol
 {
-    std::vector<LabelID> true_list;
-    std::vector<LabelID> false_list;
+    mutable std::vector<LabelID> true_list;
+    mutable std::vector<LabelID> false_list;
 
-    ALWAYS_INLINE BoolExpr(const SourceLocation loc, const Symbol *const var_symbol)
-        : ExprWSymbol(Type::BOOL_EXPR, loc, var_symbol)
-    {
-        // I am not certain, but I think arithmetic expressions are produced only with temp vars.
-        DEBUG_SMART_ASSERT(var_symbol->name.starts_with('_')); // TODO remove after you tested.
-    }
+    ALWAYS_INLINE BoolExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
+        : ExprWVarSymbol(Type::BOOL_EXPR, loc, var_symbol) {}
 };
 
 struct ConstBoolExpr : public ConstExpr
@@ -189,40 +201,40 @@ struct ConstNilExpr : public ConstExpr
         : ConstExpr(Type::CONST_NIL, loc, false) {}
 };
 
-struct LibFuncExpr : public ExprWSymbol
+struct LibFuncExpr : public ExprWFuncSymbol
 {
-    LibFuncExpr(const SourceLocation loc, const Function *const func_symbol)
-        : ExprWSymbol(Type::LIBRARY_FUNCTION, loc, func_symbol) {}
+    LibFuncExpr(const SourceLocation loc, const FuncSymbol *const func_symbol)
+        : ExprWFuncSymbol(Type::LIBRARY_FUNCTION, loc, func_symbol) {}
 };
 
-struct ProgFuncExpr : public ExprWSymbol
+struct ProgFuncExpr : public ExprWFuncSymbol
 {
-    ProgFuncExpr(const SourceLocation loc, const Function *const func_symbol)
-        : ExprWSymbol(Type::PROGRAM_FUNCTION, loc, func_symbol) {}
+    ProgFuncExpr(const SourceLocation loc, const FuncSymbol *const func_symbol)
+        : ExprWFuncSymbol(Type::PROGRAM_FUNCTION, loc, func_symbol) {}
 };
 
-struct NewTableExpr : public ExprWSymbol
+struct NewTableExpr : public ExprWVarSymbol
 {
-    NewTableExpr(const SourceLocation loc, const Symbol *const var_symbol)
-        : ExprWSymbol(Type::NEW_TABLE, loc, var_symbol) {}
+    NewTableExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
+        : ExprWVarSymbol(Type::NEW_TABLE, loc, var_symbol) {}
 };
 
-struct TableItemExpr : public ExprWSymbol
+struct TableItemExpr : public ExprWVarSymbol
 {
     const Expr *index;
 
     TableItemExpr(
         const SourceLocation loc,
-        const Symbol *const var_symbol,
+        const VarSymbol *const var_symbol,
         const Expr *const index)
-        : ExprWSymbol(Type::TABLE_ITEM, loc, REQUIRE_PTR(var_symbol)),
+        : ExprWVarSymbol(Type::TABLE_ITEM, loc, REQUIRE_PTR(var_symbol)),
           index(REQUIRE_PTR(index)) {}
 };
 
-struct VariableExpr : public ExprWSymbol
+struct VariableExpr : public ExprWVarSymbol
 {
-    VariableExpr(const SourceLocation loc, const Variable *const var)
-        : ExprWSymbol(Type::VARIABLE, loc, var)
+    VariableExpr(const SourceLocation loc, const VarSymbol *const var)
+        : ExprWVarSymbol(Type::VARIABLE, loc, var)
     {
         DEBUG_SMART_ASSERT(var->is_variable());
     }
