@@ -47,7 +47,7 @@
     bool const_bool;
     Alpha::AlphaInt const_int;
     Alpha::AlphaFloat const_float;
-    const Alpha::Function *const_function_symbol_ptr;
+    const Alpha::FuncSymbol *const_function_symbol_ptr;
     const Alpha::Expr *const_expr_ptr;
     Alpha::BlockLocation block_location;
 }
@@ -262,20 +262,19 @@ expr[result]:
 
 term
 : primary { $term = $primary; }
-| LEFT_PAREN expr RIGHT_PAREN { $term = $expr; }
+| LEFT_PAREN expr RIGHT_PAREN { /*TODO : We most likely have to finalize_bool_expr here tOO! test it out!!! */ $term = $expr; }
 | MINUS expr %prec UMINUS { $term = ss.basic_builder.build_uminus($expr, @term); }
 | not_op { /* TODO: Can we put this under the `expr` rule? */   $term = $not_op; }
-| INC expr
-| expr INC
-| DEC expr
-| expr DEC
+| INC expr { ss.assign_builder.build_pre_inc($expr, @term); }
+| expr INC { ss.assign_builder.build_post_inc($expr, @term); }
+| DEC expr { ss.assign_builder.build_pre_dec($expr, @term); }
+| expr DEC { ss.assign_builder.build_post_dec($expr, @term); }
 ;
 
 assignExpr:
   expr[lhs] ASSIGN expr[rhs]
   {
     ss.backpatcher.finalize_bool_expr($rhs);
-    // TODO: catch error where expr[lhs] is not lvalue (old rules was $lvalue ASSIGN $expr (but then only bison could catch that error)
     $assignExpr = ss.assign_builder.build_assignment($lhs, $rhs, @assignExpr);
   }
 ;

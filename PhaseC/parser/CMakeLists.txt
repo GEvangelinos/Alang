@@ -89,6 +89,7 @@ add_library(alpha_parser_impl STATIC
     src/RELOCATE_backpatcher.cpp
     src/L1_driver/semantic_system.cpp
     src/L1_driver/semantic_system_support.cpp
+    src/L2_builders/lvalue_resolver.cpp
 )
 target_include_directories(alpha_parser_impl PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"

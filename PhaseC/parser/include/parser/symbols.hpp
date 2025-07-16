@@ -5,6 +5,7 @@
 #include <string>
 
 #include "_parser_common.hpp"
+#include "core/konstants.hpp"
 #include "core/source_location.hpp"
 
 namespace Alpha
@@ -79,9 +80,12 @@ public:
     const ConstExpr *get_const_expr() const noexcept { return const_expr_; }
     bool has_const_value() const noexcept { return const_expr_; }
 
+    [[nodiscard]] static Type scope_to_symbol_type(u32 scope);
+
 private:
     // Used to reference the const_expr in order to extract its const_value for constant_propagation
-    const ConstExpr *const_expr_ = nullptr; // Only modified through friend class SymbolTable!
+    // Only modified through friend class SymbolTable!
+    mutable const ConstExpr *const_expr_ = nullptr;
 
     friend class SymbolTable;
 };
@@ -138,7 +142,6 @@ Symbol::is_program_function() const noexcept { return type == Type::PROGRAM_FUNC
 inline bool
 Symbol::is_function() const noexcept { return is_library_function() || is_program_function(); }
 
-
 inline
 VarSymbol::VarSymbol(
     const std::string &name,
@@ -151,6 +154,10 @@ VarSymbol::VarSymbol(
       space(space),
       offset(offset) {}
 
+inline Symbol::Type VarSymbol::scope_to_symbol_type(const u32 scope)
+{
+    return scope == k_global_scope ? Type::GLOBAL_VARIABLE : Type::LOCAL_VARIABLE;
+}
 
 inline
 FuncSymbol::FuncSymbol(

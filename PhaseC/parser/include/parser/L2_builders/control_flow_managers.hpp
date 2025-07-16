@@ -69,7 +69,7 @@ LoopManager::process_loop_keyword(const LoopKeyword keyword, const SourceLocatio
     default:
         UNREACHABLE(FMT::format("Unknown `LoopKeyword`: int(lk) = ", static_cast<int>(keyword)));
     }
-    quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, keyword_loc);
+    quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, keyword_loc);
 }
 
 inline bool

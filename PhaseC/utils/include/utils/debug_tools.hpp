@@ -27,7 +27,8 @@
         #define DEBUG(...) __VA_ARGS__
         #define DEBUG_ALWAYS_INLINE // Disable inlining to ensure that a function visible debug symbols.
         #define DEBUG_NULLIFY(pointer) ((pointer) = nullptr)
-        #define REQUIRE_PTR(ptr) Utils::require_ptr(ptr)
+        #define REQUIRE_PTR(ptr) Utils::require_ptr((ptr))
+        #define DEBUG_REQUIRE_PTR(ptr) Utils::require_ptr((ptr))
 
 //  Active in debug mode: evaluates and runs full SMART_ASSERT logic
         #define DEBUG_SMART_ASSERT(...) SMART_ASSERT(__VA_ARGS__)
@@ -37,7 +38,8 @@
         #define DEBUG(...) // Ignore input!
         #define DEBUG_ALWAYS_INLINE ALWAYS_INLINE
         #define DEBUG_NULLIFY(pointer) ((void)0)
-        #define REQUIRE_PTR(ptr) Utils::require_ptr_fast(ptr)
+        #define REQUIRE_PTR(ptr) Utils::require_ptr_fast((ptr))
+        #define DEBUG_REQUIRE_PTR(ptr) (ptr)
 
 //  In release mode: disables assertion and also skips evaluating expressions (no side effects)
         #define DEBUG_SMART_ASSERT(...) ((void)0)

@@ -111,24 +111,19 @@ std::string expr_printer(const Alpha::Expr *expr)
     using ET = Expr::Type;
     switch (expr->type)
     {
-    case ET::CONST_BOOL: return static_cast<const ConstBoolExpr *>(expr)->value
-                                ? "true"
-                                : "false";
-    case ET::CONST_INT: return FMT::to_string(
-            static_cast<const ConstIntExpr *>(expr)->value);
-    case ET::CONST_FLOAT: return FMT::to_string(
-            static_cast<const ConstFloatExpr *>(expr)->value);
+    case ET::CONST_BOOL: return static_cast<const ConstBoolExpr *>(expr)->value ? "true" : "false";
+    case ET::CONST_INT: return FMT::to_string(static_cast<const ConstIntExpr *>(expr)->value);
+    case ET::CONST_FLOAT: return FMT::to_string(static_cast<const ConstFloatExpr *>(expr)->value);
     case ET::CONST_STRING:
         return FMT::format("\"{}\"", static_cast<const ConstStringExpr *>(expr)->value);
     case ET::CONST_NIL: return "nil";
-    case ET::ARITHMETIC_EXPR: return static_cast<const ArithmeticExpr *>(expr)->symbol->
-                name;
-    case ET::ASSIGN_EXPR: return static_cast<const AssignExpr *>(expr)->symbol->name;
-    case ET::BOOL_EXPR: return static_cast<const BoolExpr *>(expr)->symbol->name;
-    case ET::LIBRARY_FUNCTION: return static_cast<const LibFuncExpr *>(expr)->symbol->name;
-    case ET::NEW_TABLE: return static_cast<const NewTableExpr *>(expr)->symbol->name;
-    case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr *>(expr)->symbol->name;
-    case ET::TABLE_ITEM: return static_cast<const TableItemExpr *>(expr)->symbol->name;
+    case ET::ARITHMETIC_EXPR: return static_cast<const ArithmeticExpr *>(expr)->var_symbol->name;
+    case ET::ASSIGN_EXPR: return static_cast<const AssignExpr *>(expr)->var_symbol->name;
+    case ET::BOOL_EXPR: return static_cast<const BoolExpr *>(expr)->var_symbol->name;
+    case ET::LIBRARY_FUNCTION: return static_cast<const LibFuncExpr *>(expr)->func_symbol->name;
+    case ET::NEW_TABLE: return static_cast<const NewTableExpr *>(expr)->var_symbol->name;
+    case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr *>(expr)->func_symbol->name;
+    case ET::TABLE_ITEM: return static_cast<const TableItemExpr *>(expr)->var_symbol->name;
     case ET::VARIABLE: return static_cast<const VariableExpr *>(expr)->var_symbol->name;
     default:
         UNREACHABLE(

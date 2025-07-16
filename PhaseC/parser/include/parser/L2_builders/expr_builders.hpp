@@ -19,30 +19,29 @@ private:
     QuadHandler *const quad_handler_ = nullptr;
 
 public:
-    struct OrStrategy
+    struct OrPolicy
     {
-        static std::vector<LabelID> &backpatch_list(const BoolExpr *e) { return e->false_list; }
-        static std::vector<LabelID> &merge_lhs_list(const BoolExpr *e) { return e->true_list; }
-        static std::vector<LabelID> &merge_rhs_list(const BoolExpr *e) { return e->true_list; }
-        static std::vector<LabelID> &assign_list(const BoolExpr *e) { return e->false_list; }
+        static auto &backpatch_list(const BoolExpr *e) { return e->false_list; }
+        static auto &merge_lhs_list(const BoolExpr *e) { return e->true_list; }
+        static auto &merge_rhs_list(const BoolExpr *e) { return e->true_list; }
+        static auto &assign_list(const BoolExpr *e) { return e->false_list; }
     };
 
-    struct AndStrategy
+    struct AndPolicy
     {
-        static std::vector<LabelID> &backpatch_list(const BoolExpr *e) { return e->true_list; }
-        static std::vector<LabelID> &merge_lhs_list(const BoolExpr *e) { return e->false_list; }
-        static std::vector<LabelID> &merge_rhs_list(const BoolExpr *e) { return e->false_list; }
-        static std::vector<LabelID> &assign_list(const BoolExpr *e) { return e->true_list; }
+        static auto &backpatch_list(const BoolExpr *e) { return e->true_list; }
+        static auto &merge_lhs_list(const BoolExpr *e) { return e->false_list; }
+        static auto &merge_rhs_list(const BoolExpr *e) { return e->false_list; }
+        static auto &assign_list(const BoolExpr *e) { return e->true_list; }
     };
 
     explicit Backpatcher(const SemanticSystemServices &services);
 
-    template<typename Strategy>
+    template<typename Policy>
     [[nodiscard]] const Expr *resolve_lazy_bool_expr(
         const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     void finalize_bool_expr(const Expr *expr);
 };
-
 
 class AssignBuilder
 {
@@ -56,13 +55,28 @@ public:
 
     [[nodiscard]] const Expr *build_assignment(
         const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
-
-    [[nodiscard]] const Expr *build_pre_inc(const Expr *lvalue, SourceLocation result_loc);  // ++i
-    [[nodiscard]] const Expr *build_post_inc(const Expr *lvalue, SourceLocation lvalue_loc); // i++
-    [[nodiscard]] const Expr *build_pre_dec(const Expr *lvalue, SourceLocation lvalue_loc);  // --i
-    [[nodiscard]] const Expr *build_post_dec(const Expr *lvalue, SourceLocation lvalue_loc); // i--
+    [[nodiscard]] const Expr *build_pre_inc(const Expr *lvalue, SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_post_inc(const Expr *lvalue, SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_pre_dec(const Expr *lvalue, SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_post_dec(const Expr *lvalue, SourceLocation result_loc);
 
 private:
+    enum class OpVariant { PRE, POST };
+
+    struct IncPolicy
+    {
+        static constexpr auto iopc = IOPCode::ADD;
+        static constexpr char op_name[] = "increment";
+        static constexpr char op_symbol[] = "++";
+    };
+
+    struct DecPolicy
+    {
+        static constexpr auto iopc = IOPCode::SUB;
+        static constexpr char op_name[] = "decrement";
+        static constexpr char op_symbol[] = "--";
+    };
+
     const Options options_;
     DiagnosticReporter *const dr_;
     ParseCtx *const parse_ctx_;
@@ -71,12 +85,19 @@ private:
     QuadHandler *const quad_handler_;
     SemanticSystemBridge *const ss_bridge_;
 
-    void validate_lvalue_for_assignment(const Expr *lvalue, SourceLocation assign_loc);
+    [[nodiscard]] bool validate_lvalue_assignment(const Expr *lvalue, SourceLocation assign_loc);
+    [[nodiscard]] bool try_record_const_value(const Expr *lvalue, const Expr *rvalue);
     [[nodiscard]] const Expr *handle_table_item_assignment(
         const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
     [[nodiscard]] const Expr *handle_direct_assignment(
         const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
-    [[nodiscard]] bool try_record_const_value(const Expr *lvalue, const Expr *rvalue);
+
+    template<OpVariant op_variant, typename Policy>
+    [[nodiscard]] const Expr *build_inc_dec(const Expr *lvalue, SourceLocation result_loc);
+    template<typename Policy>
+    [[nodiscard]] const Expr *handle_pre_inc_dec(const Expr *lvalue, SourceLocation result_loc);
+    template<typename Policy>
+    [[nodiscard]] const Expr *handle_post_inc_dec(const Expr *lvalue, SourceLocation result_loc);
 };
 
 class BasicBuilder
@@ -92,14 +113,12 @@ public:
 
     BasicBuilder(Options &&options, const SemanticSystemServices &services);
 
-    [[nodiscard]] const Expr *build_uminus(
-        const Expr *expr, SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_uminus(const Expr *expr, SourceLocation result_loc);
     [[nodiscard]] const Expr *build_arithmetic(
         IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *build_relational(
         IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_logical_not(
-        const Expr *expr, SourceLocation result_loc);
+    [[nodiscard]] const Expr *build_logical_not(const Expr *expr, SourceLocation result_loc);
     [[nodiscard]] const Expr *build_logical_and(
         const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *build_logical_or(
@@ -124,7 +143,6 @@ private:
     template<typename... Exprs>
     [[nodiscard]] bool should_fold_logical(const Exprs &... exprs);
     [[nodiscard]] bool should_propagate_const();
-
     [[nodiscard]] static const Expr *try_propagate_const(const Expr *expr);
 };
 
@@ -152,13 +170,16 @@ Backpatcher::Backpatcher(const SemanticSystemServices &services)
       parse_cache_(&REQUIRE_PTR(services.parse_ctx)->cache),
       quad_handler_(REQUIRE_PTR(services.quad_handler)) {}
 
-template<typename Strategy>
+template<typename Policy>
 [[nodiscard]] const Expr *
 Backpatcher::resolve_lazy_bool_expr(
     const Expr *const lhs,
     const Expr *const rhs,
     const SourceLocation result_loc)
 {
+    static_assert(std::is_same_v<Policy, OrPolicy> ||
+                  std::is_same_v<Policy, AndPolicy>, "Unknown backpatching policy");
+
     DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
     const BoolExpr *const left_bool = static_cast<const BoolExpr *>(lhs);
     const BoolExpr *const right_bool = static_cast<const BoolExpr *>(rhs);
@@ -166,20 +187,21 @@ Backpatcher::resolve_lazy_bool_expr(
 
     // Patching left side.
     DEBUG_SMART_ASSERT(!parse_cache_->short_circuit_jump_stack.empty());
-    for (const LabelID quad_label: Strategy::backpatch_list(left_bool))
+    for (const LabelID quad_label: Policy::backpatch_list(left_bool))
         quad_handler_->patch_quad(quad_label, parse_cache_->short_circuit_jump_stack.top());
     parse_cache_->short_circuit_jump_stack.pop();
-    Strategy::backpatch_list(left_bool).clear();
+    Policy::backpatch_list(left_bool).clear();
 
     // Merging right side.
-    auto &lhs_merge = Strategy::merge_lhs_list(left_bool);
-    auto &rhs_merge = Strategy::merge_rhs_list(right_bool);
-    auto &result_merge = Strategy::merge_lhs_list(bool_result_expr); // We could use merge_rhs too
+    auto &lhs_merge = Policy::merge_lhs_list(left_bool);
+    auto &rhs_merge = Policy::merge_rhs_list(right_bool);
+    auto &result_merge = Policy::merge_lhs_list(bool_result_expr);
+    // We could use merge_rhs too
     result_merge.reserve(lhs_merge.size() + rhs_merge.size());
     result_merge.insert(result_merge.end(), lhs_merge.begin(), lhs_merge.end());
     result_merge.insert(result_merge.end(), rhs_merge.begin(), rhs_merge.end());
 
-    Strategy::assign_list(bool_result_expr) = Strategy::assign_list(right_bool);
+    Policy::assign_list(bool_result_expr) = Policy::assign_list(right_bool);
     return bool_result_expr;
 }
 
@@ -187,19 +209,21 @@ inline void
 Backpatcher::finalize_bool_expr(const Expr *const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
+    if (!SemUtils::assert_no_error_exprs(expr))
+        return; // Nothing to backpatch, as expr is error_flag expr.
     if (expr->type != Expr::Type::BOOL_EXPR)
-        return; // Nothing to backpatch.
+        return; // Nothing to backpatch if not bool_expr.
 
     const BoolExpr *const bool_expr = static_cast<const BoolExpr *>(expr);
-    auto *const qh = quad_handler_; // Alias for shorting names.
+    auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
 
     DEBUG_SMART_ASSERT(!!bool_expr->var_symbol);
 
     qh->patch_list(bool_expr->true_list, qh->next_quad_label());
-    qh->emit_next_quad(IOPCode::ASSIGN, &expr_maker_->static_true, nullptr, expr, expr->loc);
-    qh->emit_next_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc, 2);
+    qh->emit_next(IOPCode::ASSIGN, &k_static_true_expr, nullptr, expr, expr->loc);
+    qh->emit_next(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc, 2);
     quad_handler_->patch_list(bool_expr->false_list, quad_handler_->next_quad_label());
-    qh->emit_next_quad(IOPCode::ASSIGN, &expr_maker_->static_false, nullptr, expr, expr->loc);
+    qh->emit_next(IOPCode::ASSIGN, &k_static_false_expr, nullptr, expr, expr->loc);
 }
 
 inline
@@ -219,41 +243,43 @@ AssignBuilder::build_assignment(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-    validate_lvalue_for_assignment(lvalue, result_loc);
-    if (lvalue->type == Expr::Type::TABLE_ITEM)
-        return handle_table_item_assignment(lvalue, rvalue, result_loc);
-    return handle_direct_assignment(lvalue, rvalue, result_loc);
+    if (SemUtils::assert_no_error_exprs(lvalue, rvalue))
+        return &k_static_error_expr;
+    if (!validate_lvalue_assignment(lvalue, result_loc))
+        return &k_static_error_expr;
+
+    return lvalue->type == Expr::Type::TABLE_ITEM
+           ? handle_table_item_assignment(lvalue, rvalue, result_loc)
+           : handle_direct_assignment(lvalue, rvalue, result_loc);
 }
 
 inline const Expr *
 AssignBuilder::build_pre_inc(const Expr *const lvalue, const SourceLocation result_loc)
 {
-    if (!SemUtils::is_lvalue_expr(lvalue))
-        dr_->report_operator_on_non_lvalue("increment", "++", result_loc);
-    if (lvalue->type == Expr::Type::TABLE_ITEM)
-    {
-        const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
-        const Expr *const result_var = ss_bridge_->emit_quad_if_table_item(ti_lvalue); // EMITS
-        quad_handler_->emit_next_quad(
-            IOPCode::ADD, result_var,& expr_maker_->static_int_1, result_var, result_loc);
-        quad_handler_->emit_next_quad(
-            IOPCode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result_var, result_loc);
-        return result_var;
-    }
-    else // This case runs even in error cases. (Do we want that? Well IR will definitely be wrong..., but it shouldn't crash)
-        // Can you suggest a way I could return a singleton(s) known to be faulty (throw on error) Any compiler doing that?
-    {
-        quad_handler_->emit_next_quad(
-            IOPCode::ADD, lvalue, &expr_maker_->static_int_1, lvalue, result_loc);
-        const Expr *const result_var  = expr_maker_->make_arithmetic_expr(result_loc);
-        quad_handler_->emit_next_quad(IOPCode::ASSIGN, lvalue, nullptr, result_var, result_loc);
-        return result_var;
-    }
+    return build_inc_dec<OpVariant::PRE, IncPolicy>(lvalue, result_loc);
+}
+
+inline const Expr *
+AssignBuilder::build_post_inc(const Expr *const lvalue, const SourceLocation result_loc)
+{
+    return build_inc_dec<OpVariant::POST, IncPolicy>(lvalue, result_loc);
+}
+
+inline const Expr *
+AssignBuilder::build_pre_dec(const Expr *const lvalue, const SourceLocation result_loc)
+{
+    return build_inc_dec<OpVariant::PRE, DecPolicy>(lvalue, result_loc);
+}
+
+inline const Expr *
+AssignBuilder::build_post_dec(const Expr *const lvalue, const SourceLocation result_loc)
+{
+    return build_inc_dec<OpVariant::POST, DecPolicy>(lvalue, result_loc);
 }
 
 
-inline void
-AssignBuilder::validate_lvalue_for_assignment(
+inline bool
+AssignBuilder::validate_lvalue_assignment(
     const Expr *const lvalue,
     const SourceLocation assign_loc)
 {
@@ -261,20 +287,44 @@ AssignBuilder::validate_lvalue_for_assignment(
     if (!SemUtils::is_lvalue_expr(lvalue))
     {
         dr_->report_assign_lhs_not_lvalue(lvalue->type, lvalue->loc);
-        return;
+        return false;
     }
     DEBUG_SMART_ASSERT(lvalue->has_symbol); // If here. Its Lvalue and all lvalues have symbols.
     const Symbol *const lv_symbol = static_cast<const ExprWSymbol *>(lvalue)->symbol;
     if (lv_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
     {
         dr_->report_assign_to_libfunc(lv_symbol->name, assign_loc);
-        return;
+        return false;
     }
     if (lv_symbol->type == Symbol::Type::PROGRAM_FUNCTION)
     {
         dr_->report_assign_to_func(lv_symbol->name, assign_loc, lv_symbol->loc);
-        return;
+        return false;
     }
+    return true;
+}
+
+// TODO: do we propagate assignment of assignment like x = y = z = 5? If NOT
+// We might need to let Expr::Type::ASSIGN_EXPR
+inline bool
+AssignBuilder::try_record_const_value(const Expr *const lvalue, const Expr *const rvalue)
+{
+    DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
+    #ifndef ALL_OPTIMIZATIONS_ENABLED_BUILD
+    if (!options_.record_constant_variables)
+        return false;
+    #endif
+    if (lvalue->type != Expr::Type::VARIABLE)
+        return false;
+
+    const auto *const var_symbol = static_cast<const VariableExpr *>(lvalue)->var_symbol;
+    if (!SemUtils::is_const_expr(rvalue))
+    {
+        SymbolTable::override_clear_const_value(var_symbol);
+        return false;
+    }
+    SymbolTable::override_set_const_value(var_symbol, static_cast<const ConstExpr *>(rvalue));
+    return true;
 }
 
 inline const Expr *
@@ -287,7 +337,7 @@ AssignBuilder::handle_table_item_assignment(
     DEBUG_SMART_ASSERT(lvalue->type == Expr::Type::TABLE_ITEM);
 
     const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
-    quad_handler_->emit_next_quad(IOPCode::TABLESETELEM, ti, ti->index, rvalue, result_loc);
+    quad_handler_->emit_next(IOPCode::TABLESETELEM, ti, ti->index, rvalue, result_loc);
     const Expr *temp_var = ss_bridge_->emit_quad_if_table_item(lvalue); // !CERTAIN EMIT!
     DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
     const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
@@ -305,30 +355,88 @@ AssignBuilder::handle_direct_assignment(
     if (try_record_const_value(lvalue, rvalue))
         return lvalue;
 
+
     // TODO: check todo 52 (on how to make this only when needed)
     const Expr *const temp = expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());
-    quad_handler_->emit_next_quad(IOPCode::ASSIGN, rvalue, nullptr, lvalue, result_loc);
-    quad_handler_->emit_next_quad(IOPCode::ASSIGN, lvalue, nullptr, temp, result_loc);
+    quad_handler_->emit_next(IOPCode::ASSIGN, rvalue, nullptr, lvalue, result_loc);
+    quad_handler_->emit_next(IOPCode::ASSIGN, lvalue, nullptr, temp, result_loc);
     return temp;
 }
 
-inline bool
-AssignBuilder::try_record_const_value(const Expr *const lvalue, const Expr *const rvalue)
+template<AssignBuilder::OpVariant op_variant, typename Policy>
+const Expr *
+AssignBuilder::build_inc_dec(const Expr *const lvalue, const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-    #ifndef ALL_OPTIMIZATIONS_ENABLED_BUILD
-    if (!options_.record_constant_variables)
-        return false;
-    #endif
-    if (!SemUtils::is_const_expr(rvalue))
-        return false;
-    if (lvalue->type != Expr::Type::VARIABLE)
-        return false;
+    static_assert(std::is_same_v<Policy, IncPolicy> ||
+                  std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
+    if (!SemUtils::assert_no_error_exprs(lvalue))
+        return &k_static_error_expr;
+    if (!SemUtils::is_lvalue_expr(lvalue))
+    {
+        dr_->report_operator_requires_lvalue(Policy::op_name, Policy::op_symbol, result_loc);
+        return &k_static_error_expr;
+    }
 
-    const VariableExpr *const var_expr = static_cast<const VariableExpr *>(lvalue);
-    SymbolTable::override_set_const_value(
-        var_expr->var_symbol, static_cast<const ConstExpr *>(rvalue));
-    return true;
+    if constexpr (op_variant == OpVariant::PRE)
+        return handle_pre_inc_dec<Policy>(lvalue, result_loc);
+    else if constexpr (op_variant == OpVariant::POST)
+        return handle_post_inc_dec<Policy>(lvalue, result_loc);
+    else
+        static_assert(false, "build_inc_dec(): Unknown OpVariant");
+}
+
+template<typename Policy>
+const Expr *
+AssignBuilder::handle_pre_inc_dec(const Expr *lvalue, const SourceLocation result_loc)
+{
+    static_assert(std::is_same_v<Policy, IncPolicy> ||
+                  std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
+    auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
+
+    const Expr *result = nullptr;
+    if (lvalue->type == Expr::Type::TABLE_ITEM)
+    {
+        const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
+        result = ss_bridge_->emit_quad_if_table_item(ti_lvalue); // EMITS!
+        qh->emit_next(Policy::iopc, result, &k_static_int_1_expr, result, result_loc);
+        qh->emit_next(IOPCode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result, result_loc);
+    }
+    else
+    {
+        // TODO: HOOK: After you implemented logic to make assignment aware of if its happening,
+        // inside a function parameter list (TODO 52), create this new arithmetic_expr (new temp)
+        // only if inside assignment. NOTE! ONLY ENABLE THIS OPTIMIZATION IFF optimization options is passed.
+        // DO NOT make it standard behavior.. you may get fucked in examination :D
+        result = expr_maker_->make_arithmetic_expr(result_loc);
+        qh->emit_next(Policy::iopc, lvalue, &k_static_int_1_expr, lvalue, result_loc);
+        qh->emit_next(IOPCode::ASSIGN, lvalue, nullptr, result, result_loc);
+    }
+    return DEBUG_REQUIRE_PTR(result); // Check cause we initialized with nullptr.
+}
+
+template<typename Policy>
+const Expr *
+AssignBuilder::handle_post_inc_dec(const Expr *lvalue, const SourceLocation result_loc)
+{
+    static_assert(std::is_same_v<Policy, IncPolicy> ||
+                  std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
+    auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
+
+    const Expr *result = expr_maker_->make_variable_expr(result_loc, parse_ctx_->new_temp());
+    if (lvalue->type == Expr::Type::TABLE_ITEM)
+    {
+        const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
+        const Expr *ti = ss_bridge_->emit_quad_if_table_item(lvalue); // EMITS!
+        qh->emit_next(IOPCode::ASSIGN, ti, nullptr, result, result_loc);
+        qh->emit_next(Policy::iopc, ti, &k_static_int_1_expr, ti, result_loc);
+        qh->emit_next(IOPCode::TABLESETELEM, ti_lvalue, ti_lvalue->index, ti, result_loc);
+    }
+    else
+    {
+        qh->emit_next(IOPCode::ASSIGN, lvalue, nullptr, result, result_loc);
+        qh->emit_next(Policy::iopc, lvalue, &k_static_int_1_expr, lvalue, result_loc);
+    }
+    return result;
 }
 
 inline
@@ -355,7 +463,7 @@ BasicBuilder::build_uminus(
         return expr_folder_->fold_uminus(expr, result_loc);
 
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
-    quad_handler_->emit_next_quad(IOPCode::UMINUS, expr, nullptr, arithmetic_expr, result_loc);
+    quad_handler_->emit_next(IOPCode::UMINUS, expr, nullptr, arithmetic_expr, result_loc);
     return arithmetic_expr;
 }
 
@@ -380,7 +488,7 @@ BasicBuilder::build_arithmetic(
         return expr_folder_->fold_arithmetic(iopc, lhs, rhs, result_loc);
 
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
-    quad_handler_->emit_next_quad(iopc, lhs, rhs, arithmetic_expr, result_loc);
+    quad_handler_->emit_next(iopc, lhs, rhs, arithmetic_expr, result_loc);
     return arithmetic_expr;
 }
 
@@ -407,9 +515,9 @@ BasicBuilder::build_relational(
 
     const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
     result_expr->true_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless_quad(iopc, lhs, rhs, nullptr, result_loc);
+    quad_handler_->emit_labelless(iopc, lhs, rhs, nullptr, result_loc);
     result_expr->false_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, result_loc);
+    quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, result_loc);
     return result_expr;
 }
 
@@ -449,7 +557,7 @@ BasicBuilder::build_logical_and(
     if (should_fold_logical(lhs, rhs))
         return expr_folder_->fold_logical_and(lhs, rhs, result_loc);
 
-    return backpatcher_->resolve_lazy_bool_expr<Backpatcher::AndStrategy>(lhs, rhs, result_loc);
+    return backpatcher_->resolve_lazy_bool_expr<Backpatcher::AndPolicy>(lhs, rhs, result_loc);
 }
 
 inline const Expr *
@@ -472,7 +580,7 @@ BasicBuilder::build_logical_or(
     if (should_fold_logical(lhs, rhs))
         return expr_folder_->fold_logical_or(lhs, rhs, result_loc);
 
-    return backpatcher_->resolve_lazy_bool_expr<Backpatcher::OrStrategy>(lhs, rhs, result_loc);
+    return backpatcher_->resolve_lazy_bool_expr<Backpatcher::OrPolicy>(lhs, rhs, result_loc);
 }
 
 inline const Expr *

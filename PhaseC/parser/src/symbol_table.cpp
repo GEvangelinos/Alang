@@ -231,16 +231,18 @@ SymbolTable::is_lib_function(const std::string &name) const
 ///   it's *their bug*. This method trusts that the pipeline is well-formed.
 
 void
-SymbolTable::override_clear_const_value(const VarSymbol *var)
+SymbolTable::override_clear_const_value(const VarSymbol *var_symbol)
 {
-    const_cast<VarSymbol *>(var)->const_expr_ = nullptr;
+    var_symbol->const_expr_ = nullptr;
 }
 
 // Related method — refer to rationale above
 void
-SymbolTable::override_set_const_value(const VarSymbol *var, const ConstExpr *const const_expr)
+SymbolTable::override_set_const_value(
+    const VarSymbol *var_symbol,
+    const ConstExpr *const const_expr)
 {
     DEBUG_SMART_ASSERT(!!const_expr, SemUtils::is_const_expr(const_expr));
-    const_cast<VarSymbol *>(var)->const_expr_ = const_expr;
+    var_symbol->const_expr_ = const_expr;
 }
 } // namespace Alpha

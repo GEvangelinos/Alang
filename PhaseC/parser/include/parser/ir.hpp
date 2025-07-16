@@ -6,6 +6,8 @@
 #include "parser/symbols.hpp"
 #include <parser/konstants.hpp>
 
+#include "core/konstants.hpp"
+
 #define IOPCODES_WITH_LABEL \
     X(IF_EQ)                \
     X(IF_NOTEQ)             \
@@ -53,20 +55,20 @@ enum class OperandSide : u8
     RIGHT
 };
 
-#define EXPR_TYPES      \
-    X(ARITHMETIC_EXPR)  \
-    X(ASSIGN_EXPR)      \
-    X(BOOL_EXPR)        \
-    X(CONST_BOOL)       \
-    X(CONST_INT)        \
-    X(CONST_FLOAT)      \
-    X(CONST_STRING)     \
-    X(CONST_NIL)        \
-    X(LIBRARY_FUNCTION) \
-    X(PROGRAM_FUNCTION) \
-    X(NEW_TABLE)        \
-    X(TABLE_ITEM)       \
-    X(VARIABLE)         \
+#define EXPR_TYPES  \
+X(ARITHMETIC_EXPR)  \
+X(ASSIGN_EXPR)      \
+X(BOOL_EXPR)        \
+X(CONST_BOOL)       \
+X(CONST_INT)        \
+X(CONST_FLOAT)      \
+X(CONST_STRING)     \
+X(CONST_NIL)        \
+X(LIBRARY_FUNCTION) \
+X(PROGRAM_FUNCTION) \
+X(NEW_TABLE)        \
+X(TABLE_ITEM)       \
+X(VARIABLE)
 
 struct Expr : private Immobile
 {
@@ -81,16 +83,24 @@ struct Expr : private Immobile
     const SourceLocation loc;
     DEBUG(const bool has_symbol);
 
+protected:
     ALWAYS_INLINE Expr(const Type type, const SourceLocation loc, const bool has_symbol = false)
         : type(type),
           loc(loc)
           DEBUG(, has_symbol(has_symbol)) {}
 };
 
+struct ErrorExpr final : public Expr
+{
+    ErrorExpr(): Expr(Type::CONST_NIL, k_no_loc) {}
+};
+
 struct ExprWSymbol : public Expr
 {
+public:
     const Symbol *const symbol;
 
+protected:
     ALWAYS_INLINE ExprWSymbol(
         const Type type,
         const SourceLocation loc,
@@ -101,8 +111,10 @@ struct ExprWSymbol : public Expr
 
 struct ExprWVarSymbol : public Expr
 {
+public:
     const VarSymbol *const var_symbol;
 
+protected:
     ALWAYS_INLINE ExprWVarSymbol(
         const Type type,
         const SourceLocation loc,
@@ -113,8 +125,10 @@ struct ExprWVarSymbol : public Expr
 
 struct ExprWFuncSymbol : public Expr
 {
+public:
     const FuncSymbol *const func_symbol;
 
+protected:
     ALWAYS_INLINE ExprWFuncSymbol(
         const Type type,
         const SourceLocation loc,
@@ -129,19 +143,19 @@ struct ConstExpr : public Expr
     using Expr::Expr;
 };
 
-struct ArithmeticExpr : public ExprWVarSymbol
+struct ArithmeticExpr final : public ExprWVarSymbol
 {
     ALWAYS_INLINE ArithmeticExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
         : ExprWVarSymbol(Type::ARITHMETIC_EXPR, loc, var_symbol) {}
 };
 
-struct AssignExpr : public ExprWVarSymbol
+struct AssignExpr final : public ExprWVarSymbol
 {
     ALWAYS_INLINE AssignExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
         : ExprWVarSymbol(Type::ASSIGN_EXPR, loc, REQUIRE_PTR(var_symbol)) {}
 };
 
-struct BoolExpr : public ExprWVarSymbol
+struct BoolExpr final : public ExprWVarSymbol
 {
     mutable std::vector<LabelID> true_list;
     mutable std::vector<LabelID> false_list;
@@ -150,7 +164,7 @@ struct BoolExpr : public ExprWVarSymbol
         : ExprWVarSymbol(Type::BOOL_EXPR, loc, var_symbol) {}
 };
 
-struct ConstBoolExpr : public ConstExpr
+struct ConstBoolExpr final : public ConstExpr
 {
     bool value;
 
@@ -159,7 +173,7 @@ struct ConstBoolExpr : public ConstExpr
           value(value) {}
 };
 
-struct ConstIntExpr : public ConstExpr
+struct ConstIntExpr final : public ConstExpr
 {
     const AlphaInt value;
 
@@ -168,7 +182,7 @@ struct ConstIntExpr : public ConstExpr
           value(value) {}
 };
 
-struct ConstFloatExpr : public ConstExpr
+struct ConstFloatExpr final : public ConstExpr
 {
     const AlphaFloat value;
 
@@ -177,7 +191,7 @@ struct ConstFloatExpr : public ConstExpr
           value(value) {}
 };
 
-struct ConstStringExpr : public ConstExpr
+struct ConstStringExpr final : public ConstExpr
 {
     const char *value;
 
@@ -195,31 +209,31 @@ struct ConstStringExpr : public ConstExpr
     }
 };
 
-struct ConstNilExpr : public ConstExpr
+struct ConstNilExpr final : public ConstExpr
 {
     explicit ConstNilExpr(const SourceLocation loc)
         : ConstExpr(Type::CONST_NIL, loc, false) {}
 };
 
-struct LibFuncExpr : public ExprWFuncSymbol
+struct LibFuncExpr final : public ExprWFuncSymbol
 {
     LibFuncExpr(const SourceLocation loc, const FuncSymbol *const func_symbol)
         : ExprWFuncSymbol(Type::LIBRARY_FUNCTION, loc, func_symbol) {}
 };
 
-struct ProgFuncExpr : public ExprWFuncSymbol
+struct ProgFuncExpr final : public ExprWFuncSymbol
 {
     ProgFuncExpr(const SourceLocation loc, const FuncSymbol *const func_symbol)
         : ExprWFuncSymbol(Type::PROGRAM_FUNCTION, loc, func_symbol) {}
 };
 
-struct NewTableExpr : public ExprWVarSymbol
+struct NewTableExpr final : public ExprWVarSymbol
 {
     NewTableExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
         : ExprWVarSymbol(Type::NEW_TABLE, loc, var_symbol) {}
 };
 
-struct TableItemExpr : public ExprWVarSymbol
+struct TableItemExpr final : public ExprWVarSymbol
 {
     const Expr *index;
 
@@ -231,7 +245,7 @@ struct TableItemExpr : public ExprWVarSymbol
           index(REQUIRE_PTR(index)) {}
 };
 
-struct VariableExpr : public ExprWVarSymbol
+struct VariableExpr final : public ExprWVarSymbol
 {
     VariableExpr(const SourceLocation loc, const VarSymbol *const var)
         : ExprWVarSymbol(Type::VARIABLE, loc, var)
@@ -240,7 +254,7 @@ struct VariableExpr : public ExprWVarSymbol
     }
 };
 
-struct Quad
+struct Quad final
 {
     const IOPCode iopcode;
     const Expr *arg1;
@@ -265,5 +279,16 @@ inline Expr::Type to_expr_type(const Symbol::Type symbol_type)
     default: UNREACHABLE("Unknown Symbol::Type");
     }
 }
+
+// The k_static_error is a sentinel expression used to signal invalid/error states.
+// For Expr::Type we can pass any type; we only care about the address of this singleton.
+inline static const ErrorExpr k_static_error_expr{};
+
+// WARNING: static_* expressions have dummy location which does NOT correspond
+// to any real source buffer region. Never return them from synthesis; doing so
+// risks invalid ranges in error reporting and location-sensitive computations.
+inline static const ConstIntExpr k_static_int_1_expr{k_no_loc, 1};
+inline static const ConstBoolExpr k_static_true_expr{k_no_loc, true};
+inline static const ConstBoolExpr k_static_false_expr{k_no_loc, false};
 } // namespace Alpha
 #endif // IR_HPP

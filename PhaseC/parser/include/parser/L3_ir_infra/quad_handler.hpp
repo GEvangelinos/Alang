@@ -13,7 +13,7 @@ public:
     QuadHandler() = default;
     ~QuadHandler() = default;
 
-    void emit_next_quad(
+    void emit_next(
         IOPCode iopc,
         const Expr *arg1,
         const Expr *arg2,
@@ -21,7 +21,7 @@ public:
         SourceLocation loc,
         LabelID label_offset = 0);
 
-    void emit_labelless_quad(
+    void emit_labelless(
         IOPCode iopc,
         const Expr *arg1,
         const Expr *arg2,
@@ -38,7 +38,7 @@ private:
     LabelID next_quad_label_ = k_first_label;
     std::vector<Quad> quads_;
 
-    void emit_quad(
+    void emit(
         IOPCode iopc,
         const Expr *arg1,
         const Expr *arg2,
@@ -49,7 +49,7 @@ private:
 };
 
 inline void
-QuadHandler::emit_quad(
+QuadHandler::emit(
     const IOPCode iopc,
     const Expr *const arg1,
     const Expr *const arg2,
@@ -70,7 +70,7 @@ QuadHandler::emit_quad(
 }
 
 inline void
-QuadHandler::emit_next_quad(
+QuadHandler::emit_next(
     const IOPCode iopc,
     const Expr *const arg1,
     const Expr *const arg2,
@@ -78,18 +78,18 @@ QuadHandler::emit_next_quad(
     const SourceLocation loc,
     const LabelID label_offset)
 {
-    emit_quad(iopc, arg1, arg2, result, next_quad_label_ + label_offset, loc);
+    emit(iopc, arg1, arg2, result, next_quad_label_ + label_offset, loc);
 }
 
 inline void
-QuadHandler::emit_labelless_quad(
+QuadHandler::emit_labelless(
     const IOPCode iopc,
     const Expr *const arg1,
     const Expr *const arg2,
     const Expr *const result,
     const SourceLocation loc)
 {
-    emit_quad(iopc, arg1, arg2, result, k_no_label, loc);
+    emit(iopc, arg1, arg2, result, k_no_label, loc);
 }
 
 inline void

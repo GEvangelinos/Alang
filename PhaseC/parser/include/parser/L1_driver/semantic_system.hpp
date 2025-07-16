@@ -102,10 +102,9 @@ SemanticSystem::convert_to_bool_expr(const Expr *const expr)
 
     const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
     bool_expr->true_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless_quad(
-        IOPCode::IF_EQ, expr, expr_maker_->static_true, nullptr, expr->loc);
+    quad_handler_->emit_labelless(IOPCode::IF_EQ, expr, &k_static_true_expr, nullptr, expr->loc);
     bool_expr->false_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless_quad(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
+    quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
 
     return bool_expr;
 }

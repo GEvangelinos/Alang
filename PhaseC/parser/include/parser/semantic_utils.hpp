@@ -214,5 +214,14 @@ namespace Alpha::SemUtils
     default: throw std::logic_error(ATTACH_CONTEXT("Expected rvalue expr."));
     }
 }
+
+template<typename... Exprs>
+[[nodiscard]] bool assert_no_error_exprs(const Exprs &... exprs)
+{
+    static_assert(sizeof...(Exprs) > 0, "assert_errorless_exprs: Called without arguments");
+    static_assert((std::is_same_v<Exprs, const Expr *> && ...),
+                  "assert_errorless_exprs:All arguments must be of type `const Expr *`");
+    return ((&k_static_error_expr != exprs) && ... );
+}
 } // namespace Alpha::SemanticUtils
 #endif // SEMANTIC_UTILS_HPP

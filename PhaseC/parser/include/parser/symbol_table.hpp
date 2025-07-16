@@ -70,8 +70,8 @@ public:
 
     /// The following two methods provide controlled overrides for `const_expr_` assignment
     /// during constant propagation. See SymbolTable.cpp for detailed rationale.
-    static void override_clear_const_value(const VarSymbol *var);
-    static void override_set_const_value(const VarSymbol *var, const ConstExpr *const_expr);
+    static void override_clear_const_value(const VarSymbol *var_symbol);
+    static void override_set_const_value(const VarSymbol *var_symbol, const ConstExpr *const_expr);
 
 private:
     SymbolMap symbol_map_;

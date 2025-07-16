@@ -2,6 +2,7 @@
 #define ALPHA_EXPR_MAKER_HPP
 
 #include "expr_snitch.hpp"
+#include "ir.hpp"
 #include "core/basics.hpp"
 #include "core/source_location.hpp"
 #include "parser/parser_context.hpp"
@@ -11,14 +12,6 @@ namespace Alpha
 class ExprMaker : private Immobile
 {
 public:
-    // WARNING: static_* expressions have dummy location which does NOT correspond
-    // to any real source buffer region. Never return them from synthesis; doing so
-    // risks invalid ranges in error reporting and location-sensitive computations.
-    const ConstIntExpr static_int_1;
-    const ConstBoolExpr static_true;
-    const ConstBoolExpr static_false;
-    const Expr static_error;
-
     explicit ExprMaker(ParseCtx *parse_ctx);
     ~ExprMaker() noexcept;
 
@@ -60,11 +53,7 @@ private:
 
 inline
 ExprMaker::ExprMaker(ParseCtx *const parse_ctx)
-    : static_int_1(ConstIntExpr(k_no_loc, 1)),
-      static_true(ConstBoolExpr(k_no_loc, true)),
-      static_false(ConstBoolExpr(k_no_loc, false)),
-      static_error(Expr(Expr::Type::CONST_NIL, k_no_loc)),
-      parse_ctx_(Utils::require_ptr(parse_ctx)) {}
+    : parse_ctx_(Utils::require_ptr(parse_ctx)) {}
 
 inline ExprMaker::~ExprMaker() noexcept
 {
@@ -239,16 +228,16 @@ inline const Expr *ExprMaker::clone_with_updated_location(
         return make_nil_expr(new_loc);
     case ET::LIBRARY_FUNCTION:
         return make_lib_func_expr(new_loc, static_cast<const LibFuncExpr *>(donor)->func_symbol);
-        throw std::logic_error(ATTACH_CONTEXT("An Expr of type LIBRARY_FUNCTION doesn't exist"));
     case ET::PROGRAM_FUNCTION:
         return make_prog_func_expr(
             new_loc, static_cast<const ProgFuncExpr *>(donor)->func_symbol);
     case ET::NEW_TABLE:
         return make_new_table_expr<true>(new_loc, static_cast<const NewTableExpr *>(donor));
     case ET::TABLE_ITEM:
-
+    {
         const Expr *index = static_cast<const TableItemExpr *>(donor)->index;
         return make_table_item_expr(new_loc, donor, index);
+    }
     case ET::VARIABLE:
         return make_variable_expr(new_loc, static_cast<const VariableExpr *>(donor)->var_symbol);
     default:
