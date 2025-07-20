@@ -9,6 +9,7 @@
 
 #define ATTACH_CONTEXT(message) \
         FMT::format("{}:{} -> {}(): {}", __FILENAME__, __LINE__, __func__, (message))
+#define ATTACH_CONTEXT_CT(message)(__FILENAME__ __LINE__ message)
 
 #define UNIMPLEMENTED(message_if_reached)                                                           \
         do                                                                        \

@@ -231,14 +231,14 @@ SymbolTable::is_lib_function(const std::string &name) const
 ///   it's *their bug*. This method trusts that the pipeline is well-formed.
 
 void
-SymbolTable::override_clear_const_value(const VarSymbol *var_symbol)
+SymbolTable::clear_const_expr(const VarSymbol *var_symbol)
 {
     var_symbol->const_expr_ = nullptr;
 }
 
 // Related method — refer to rationale above
 void
-SymbolTable::override_set_const_value(
+SymbolTable::attach_const_expr(
     const VarSymbol *var_symbol,
     const ConstExpr *const const_expr)
 {

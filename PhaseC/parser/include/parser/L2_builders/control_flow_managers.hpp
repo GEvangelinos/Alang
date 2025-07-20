@@ -6,6 +6,7 @@
 #include "core/source_location.hpp"
 #include "L1_driver/semantic_system_support.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
+#include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 
 namespace Alpha
 {
@@ -15,6 +16,8 @@ class LoopManager
 {
 public:
     explicit LoopManager(const SemanticSystemServices &services);
+
+    DISPATCH_DECLARE_HANDLER();
 
     void process_break(SourceLocation break_loc);
     void process_continue(SourceLocation continue_loc);
@@ -37,6 +40,14 @@ LoopManager::LoopManager(const SemanticSystemServices &services)
     : dr_(REQUIRE_PTR(services.dr)),
       parse_ctx_(REQUIRE_PTR(services.parse_ctx)),
       quad_handler_(REQUIRE_PTR(services.quad_handler)) {}
+
+DISPATCH_DEFINE_HANDLER_BEGIN(LoopManager);
+    DISPATCH_BEGIN_CALLS();
+    DISPATCH_CALL_METHOD(process_break);
+    DISPATCH_CALL_METHOD(process_continue);
+    DISPATCH_END_CALLS();
+DISPATCH_DEFINE_HANDLER_END(LoopManager);
+
 
 inline void
 LoopManager::process_break(const SourceLocation break_loc)

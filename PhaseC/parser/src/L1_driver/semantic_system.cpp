@@ -7,26 +7,27 @@ SemanticSystem::SemanticSystem(
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
     DiagnosticEngine *const diagnostic_engine)
-    :
-    // External resources, required to initialize class.
-    parse_ctx_(Utils::require_ptr(parse_ctx)),
-    symbol_table_(Utils::require_ptr(symbol_table)),
-    diagnostic_engine_(Utils::require_ptr(diagnostic_engine)),
+    : error_gateway_(in_semantic_error),
+      // External resources, required to initialize class.
+      parse_ctx_(Utils::require_ptr(parse_ctx)),
+      symbol_table_(Utils::require_ptr(symbol_table)),
+      diagnostic_engine_(Utils::require_ptr(diagnostic_engine)),
 
-    // private resources, used by public servicers.
-    expr_snitch_(std::make_unique<ExprSnitch>(&diagnostic_engine_->dr)),
-    expr_maker_(std::make_unique<ExprMaker>(parse_ctx_)),
-    expr_folder_(std::make_unique<ExprFolder>(expr_maker_.get(), expr_snitch_.get())),
-    quad_handler_(std::make_unique<QuadHandler>()),
-    sd_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
+      // private resources, used by public servicers.
+      expr_snitch_(std::make_unique<ExprSnitch>(&diagnostic_engine_->dr)),
+      expr_maker_(std::make_unique<ExprMaker>(parse_ctx_)),
+      expr_folder_(std::make_unique<ExprFolder>(expr_maker_.get(), expr_snitch_.get())),
+      quad_handler_(std::make_unique<QuadHandler>()),
+      sd_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
 
-    // public servicers, used by users of semantic driver.
-    backpatcher(export_semantic_system_services()),
-    const_builder(export_semantic_system_services()),
-    assign_builder(get_assign_builder_options(options), export_semantic_system_services()),
-    basic_builder(get_basic_builder_options(options), export_semantic_system_services()),
-    loop_manager(export_semantic_system_services()),
-    lvalue_resolver(export_semantic_system_services()) {}
+      // public servicers, used by users of semantic driver.
+      backpatcher(export_semantic_system_services()),
+      const_builder(export_semantic_system_services()),
+      assign_builder(get_assign_builder_options(options), export_semantic_system_services()),
+      basic_builder(get_basic_builder_options(options), export_semantic_system_services()),
+      loop_manager(export_semantic_system_services()),
+      lvalue_resolver(export_semantic_system_services()) {}
+
 
 SemanticSystemServices
 SemanticSystem::export_semantic_system_services()

@@ -8,6 +8,8 @@
 #include <string_view>             // for string_view
 #include "core/source_location.hpp" // for SourceLocation, SourceLocationTracker
 #include <diagnostics/diagnostic_reporter.gen.hpp>
+#include <L1_driver/semantic_system_gateway.hpp>
+
 
 namespace Alpha
 {
@@ -82,25 +84,23 @@ public:
     DiagnosticEngine()
         : dr(this) {}
 
-    [[nodiscard]] const std::vector<std::unique_ptr<const Diagnostic> > &
-    get_compile_time_issues() const noexcept { return diagnostics_; }
-
+    void bind_semantic_system_error_gateway(SemanticSystemGateway &ss_gateway);
+    [[nodiscard]] const auto &get_compile_time_issues() const noexcept { return diagnostics_; }
     [[nodiscard]] bool has_issues() const noexcept { return !diagnostics_.empty(); }
     [[nodiscard]] bool has_fatal_errors() const noexcept { return !fatals_.empty(); }
     [[nodiscard]] bool has_errors() const noexcept { return !errors_.empty(); }
     [[nodiscard]] bool has_warnings() const noexcept { return !warnings_.empty(); }
 
 private:
-    std::vector<std::unique_ptr<const Diagnostic> > diagnostics_;
+    Once<SemanticSystemGateway *> semantic_system_gateway_;
+    std::vector<std::unique_ptr<const Diagnostic>> diagnostics_;
     std::vector<const Diagnostic *> warnings_;
     std::vector<const Diagnostic *> errors_;
     std::vector<const Diagnostic *> fatals_;
 
-
     void report(Issue::Type type, const std::string &desc, SourceLocation loc);
     void report(
         Issue::Type type, const std::string &desc, SourceLocation loc, std::list<Note> &&note_list);
-
     void store(std::unique_ptr<const Diagnostic> diagnostic);
 
     friend class DiagnosticReporter;

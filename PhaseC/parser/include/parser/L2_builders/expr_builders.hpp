@@ -1,7 +1,7 @@
 #ifndef EXPR_BUILDERS_HPP
 #define EXPR_BUILDERS_HPP
 
-#include "diagnostics/diagnostic_engine.hpp"
+#include  <L1_driver/semantic_system_dispatcher_dsl.hpp>
 #include "L1_driver/semantic_system_support.hpp"
 #include "L3_ir_infra/expr_folder.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
@@ -37,6 +37,8 @@ public:
 
     explicit Backpatcher(const SemanticSystemServices &services);
 
+    DISPATCH_DECLARE_HANDLER();
+
     template<typename Policy>
     [[nodiscard]] const Expr *resolve_lazy_bool_expr(
         const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
@@ -52,6 +54,8 @@ public:
     };
 
     AssignBuilder(Options &&options, const SemanticSystemServices &services);
+
+    DISPATCH_DECLARE_HANDLER();
 
     [[nodiscard]] const Expr *build_assignment(
         const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
@@ -86,7 +90,7 @@ private:
     SemanticSystemBridge *const ss_bridge_;
 
     [[nodiscard]] bool validate_lvalue_assignment(const Expr *lvalue, SourceLocation assign_loc);
-    [[nodiscard]] bool try_record_const_value(const Expr *lvalue, const Expr *rvalue);
+    [[nodiscard]] bool try_record_const_expr(const Expr *lvalue, const Expr *rvalue);
     [[nodiscard]] const Expr *handle_table_item_assignment(
         const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
     [[nodiscard]] const Expr *handle_direct_assignment(
@@ -112,6 +116,8 @@ public:
     };
 
     BasicBuilder(Options &&options, const SemanticSystemServices &services);
+
+    DISPATCH_DECLARE_HANDLER();
 
     [[nodiscard]] const Expr *build_uminus(const Expr *expr, SourceLocation result_loc);
     [[nodiscard]] const Expr *build_arithmetic(
@@ -152,6 +158,8 @@ class ConstBuilder
 public:
     explicit ConstBuilder(const SemanticSystemServices &services);
 
+    DISPATCH_DECLARE_HANDLER();
+
     [[nodiscard]] const Expr *build_true_expr(SourceLocation loc);
     [[nodiscard]] const Expr *build_false_expr(SourceLocation loc);
     [[nodiscard]] const Expr *build_int_expr(AlphaInt value, SourceLocation loc);
@@ -169,6 +177,12 @@ Backpatcher::Backpatcher(const SemanticSystemServices &services)
     : expr_maker_(REQUIRE_PTR(services.expr_maker)),
       parse_cache_(&REQUIRE_PTR(services.parse_ctx)->cache),
       quad_handler_(REQUIRE_PTR(services.quad_handler)) {}
+
+DISPATCH_DEFINE_HANDLER_BEGIN(Backpatcher);
+    DISPATCH_BEGIN_CALLS();
+    DISPATCH_CALL_METHOD(finalize_bool_expr);
+    DISPATCH_END_CALLS();
+DISPATCH_DEFINE_HANDLER_END(Backpatcher);
 
 template<typename Policy>
 [[nodiscard]] const Expr *
@@ -209,8 +223,6 @@ inline void
 Backpatcher::finalize_bool_expr(const Expr *const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
-    if (!SemUtils::assert_no_error_exprs(expr))
-        return; // Nothing to backpatch, as expr is error_flag expr.
     if (expr->type != Expr::Type::BOOL_EXPR)
         return; // Nothing to backpatch if not bool_expr.
 
@@ -222,7 +234,7 @@ Backpatcher::finalize_bool_expr(const Expr *const expr)
     qh->patch_list(bool_expr->true_list, qh->next_quad_label());
     qh->emit_next(IOPCode::ASSIGN, &k_static_true_expr, nullptr, expr, expr->loc);
     qh->emit_next(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc, 2);
-    quad_handler_->patch_list(bool_expr->false_list, quad_handler_->next_quad_label());
+    qh->patch_list(bool_expr->false_list, quad_handler_->next_quad_label());
     qh->emit_next(IOPCode::ASSIGN, &k_static_false_expr, nullptr, expr, expr->loc);
 }
 
@@ -236,6 +248,16 @@ AssignBuilder::AssignBuilder(Options &&options, const SemanticSystemServices &se
       quad_handler_(REQUIRE_PTR(services.quad_handler)),
       ss_bridge_(REQUIRE_PTR(services.sd_bridge)) {}
 
+DISPATCH_DEFINE_HANDLER_BEGIN(AssignBuilder);
+    DISPATCH_BEGIN_CALLS();
+    DISPATCH_CALL_METHOD(build_assignment);
+    DISPATCH_CALL_METHOD(build_pre_inc);
+    DISPATCH_CALL_METHOD(build_post_inc);
+    DISPATCH_CALL_METHOD(build_pre_dec);
+    DISPATCH_CALL_METHOD(build_post_dec);
+    DISPATCH_END_CALLS();
+DISPATCH_DEFINE_HANDLER_END(AssignBuilder);
+
 inline const Expr *
 AssignBuilder::build_assignment(
     const Expr *const lvalue,
@@ -243,10 +265,8 @@ AssignBuilder::build_assignment(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-    if (SemUtils::assert_no_error_exprs(lvalue, rvalue))
-        return &k_static_error_expr;
     if (!validate_lvalue_assignment(lvalue, result_loc))
-        return &k_static_error_expr;
+        return nullptr;
 
     return lvalue->type == Expr::Type::TABLE_ITEM
            ? handle_table_item_assignment(lvalue, rvalue, result_loc)
@@ -307,7 +327,7 @@ AssignBuilder::validate_lvalue_assignment(
 // TODO: do we propagate assignment of assignment like x = y = z = 5? If NOT
 // We might need to let Expr::Type::ASSIGN_EXPR
 inline bool
-AssignBuilder::try_record_const_value(const Expr *const lvalue, const Expr *const rvalue)
+AssignBuilder::try_record_const_expr(const Expr *const lvalue, const Expr *const rvalue)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
     #ifndef ALL_OPTIMIZATIONS_ENABLED_BUILD
@@ -320,10 +340,10 @@ AssignBuilder::try_record_const_value(const Expr *const lvalue, const Expr *cons
     const auto *const var_symbol = static_cast<const VariableExpr *>(lvalue)->var_symbol;
     if (!SemUtils::is_const_expr(rvalue))
     {
-        SymbolTable::override_clear_const_value(var_symbol);
+        SymbolTable::clear_const_expr(var_symbol);
         return false;
     }
-    SymbolTable::override_set_const_value(var_symbol, static_cast<const ConstExpr *>(rvalue));
+    SymbolTable::attach_const_expr(var_symbol, static_cast<const ConstExpr *>(rvalue));
     return true;
 }
 
@@ -352,8 +372,8 @@ AssignBuilder::handle_direct_assignment(
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
 
-    if (try_record_const_value(lvalue, rvalue))
-        return lvalue;
+    if (try_record_const_expr(lvalue, rvalue))
+        return lvalue; // Now lvalue's symbol carries rvalue.
 
 
     // TODO: check todo 52 (on how to make this only when needed)
@@ -369,12 +389,10 @@ AssignBuilder::build_inc_dec(const Expr *const lvalue, const SourceLocation resu
 {
     static_assert(std::is_same_v<Policy, IncPolicy> ||
                   std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
-    if (!SemUtils::assert_no_error_exprs(lvalue))
-        return &k_static_error_expr;
     if (!SemUtils::is_lvalue_expr(lvalue))
     {
         dr_->report_operator_requires_lvalue(Policy::op_name, Policy::op_symbol, result_loc);
-        return &k_static_error_expr;
+        return nullptr;
     }
 
     if constexpr (op_variant == OpVariant::PRE)
@@ -448,6 +466,18 @@ BasicBuilder::BasicBuilder(Options &&options, const SemanticSystemServices &serv
       snitch_(REQUIRE_PTR(services.expr_snitch)),
       quad_handler_(REQUIRE_PTR(services.quad_handler)),
       backpatcher_(REQUIRE_PTR(services.backpatcher)) {}
+
+DISPATCH_DEFINE_HANDLER_BEGIN(BasicBuilder);
+    DISPATCH_BEGIN_CALLS();
+    DISPATCH_CALL_METHOD(build_uminus);
+    DISPATCH_CALL_METHOD(build_arithmetic);
+    DISPATCH_CALL_METHOD(build_relational);
+    DISPATCH_CALL_METHOD(build_relational);
+    DISPATCH_CALL_METHOD(build_logical_not);
+    DISPATCH_CALL_METHOD(build_logical_and);
+    DISPATCH_CALL_METHOD(build_logical_or);
+    DISPATCH_END_CALLS();
+DISPATCH_DEFINE_HANDLER_END(BasicBuilder);
 
 inline const Expr *
 BasicBuilder::build_uminus(
@@ -657,11 +687,23 @@ inline bool BasicBuilder::should_propagate_const()
     return options_.constant_propagation;
 }
 
-
 inline
 ConstBuilder::ConstBuilder(const SemanticSystemServices &services)
     : dr_(REQUIRE_PTR(services.dr)),
       expr_maker_(REQUIRE_PTR(services.expr_maker)) {}
+
+DISPATCH_DEFINE_HANDLER_BEGIN(ConstBuilder);
+    DISPATCH_BEGIN_CALLS();
+    DISPATCH_CALL_METHOD(build_true_expr);
+    DISPATCH_CALL_METHOD(build_false_expr);
+    DISPATCH_CALL_METHOD(build_false_expr);
+    DISPATCH_CALL_METHOD(build_false_expr);
+    DISPATCH_CALL_METHOD(build_int_expr);
+    DISPATCH_CALL_METHOD(build_float_expr);
+    DISPATCH_CALL_METHOD(build_string_expr);
+    DISPATCH_CALL_METHOD(build_nil_expr);
+    DISPATCH_END_CALLS();
+DISPATCH_DEFINE_HANDLER_END(ConstBuilder);
 
 inline const Expr *
 ConstBuilder::build_true_expr(const SourceLocation loc)

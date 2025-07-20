@@ -7,6 +7,7 @@
 #include <utils/debug_tools.hpp>
 #include <utils/format_adapter.hpp>
 #include "core/source_location.hpp"  // for SourceLocation, SourceLocationTracker
+#include "L1_driver/semantic_system.hpp"
 #include "utils/cli_color.h"        // for COLOR_ASCII_BOLD_DEFAULT, SGR_RESET
 #include "utils/misc.hpp"
 #include "utils/smart_assert.h" // for DEBUG_SMART_ASSERT
@@ -14,7 +15,9 @@
 namespace
 {
 std::vector<std::string_view> extract_line_views(
-    const char *const buffer, const std::size_t start_index, const std::size_t end_index)
+    const char *const buffer,
+    const std::size_t start_index,
+    const std::size_t end_index)
 {
     std::vector<std::string_view> lines;
     const char *start = buffer + start_index;
@@ -60,8 +63,10 @@ std::string expand_tabs(const std::string_view line, const int tab_width = 8)
     return result;
 }
 
-int compute_visual_caret_offset(const std::string_view line, const Alpha::uf64 raw_offset,
-                                const int tab_width = 8)
+int compute_visual_caret_offset(
+    const std::string_view line,
+    const Alpha::uf64 raw_offset,
+    const int tab_width = 8)
 {
     Alpha::uf64 col = 0;
     for (Alpha::uf64 i = 0; i < raw_offset; ++i)
@@ -101,9 +106,10 @@ std::string_view Issue::pretty_color() const noexcept
     }
 }
 
-std::string Diagnostic::make_pretty_diagnostic(const std::string &source_filename,
-                                               const LocationTracker &lt,
-                                               const char *input_buffer) const
+std::string Diagnostic::make_pretty_diagnostic(
+    const std::string &source_filename,
+    const LocationTracker &lt,
+    const char *input_buffer) const
 {
     std::stringstream ss;
     ss << make_pretty_diagnostic_impl(source_filename, lt, input_buffer, primary);
@@ -127,10 +133,11 @@ Diagnostic::Diagnostic(
       notes(std::move(note_list_)) {}
 
 // TODO: Fix.. its ugly AF
-std::string Diagnostic::make_pretty_diagnostic_impl(const std::string &source_filename,
-                                                    const LocationTracker &lt,
-                                                    const char *input_buffer,
-                                                    const Issue &issue)
+std::string Diagnostic::make_pretty_diagnostic_impl(
+    const std::string &source_filename,
+    const LocationTracker &lt,
+    const char *input_buffer,
+    const Issue &issue)
 {
     const u32 issue_line = issue.line(lt);
     const u32 issue_column = issue.column(lt);
@@ -173,6 +180,15 @@ std::string Diagnostic::make_pretty_diagnostic_impl(const std::string &source_fi
     return ss.str();
 }
 
+void
+DiagnosticEngine::bind_semantic_system_error_gateway(SemanticSystemGateway &ss_gateway)
+{
+    if (semantic_system_gateway_.assigned())
+        throw std::logic_error(ATTACH_CONTEXT(
+            "DiagnosticEngine has already assigned its gateway to SemanticSystem"));
+    semantic_system_gateway_.set(&ss_gateway);
+}
+
 void DiagnosticEngine::report(
     const Issue::Type type,
     const std::string &desc,
@@ -194,17 +210,18 @@ void DiagnosticEngine::report(
 void DiagnosticEngine::store(std::unique_ptr<const Diagnostic> diagnostic)
 {
     diagnostics_.push_back(std::move(diagnostic)); // Pass ownership to `diagnostics_` vector.
-    const Diagnostic *const dptr = diagnostics_.back().get();
-    switch (dptr->primary.type)
+
+    switch (const Diagnostic *const d_ptr = diagnostics_.back().get(); d_ptr->primary.type)
     {
     case Issue::Type::WARNING:
-        warnings_.push_back(dptr);
+        warnings_.push_back(d_ptr);
         break;
     case Issue::Type::ERROR:
-        errors_.push_back(dptr);
+        errors_.push_back(d_ptr);
+        semantic_system_gateway_->set_error_state();
         break;
     case Issue::Type::FATAL_ERROR:
-        fatals_.push_back(dptr);
+        fatals_.push_back(d_ptr);
         break;
     case Issue::Type::NOTE:
         throw std::logic_error(ATTACH_CONTEXT(

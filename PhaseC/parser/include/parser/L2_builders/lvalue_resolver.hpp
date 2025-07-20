@@ -8,6 +8,7 @@
 #include <parser/symbol_table.hpp>
 #include <parser/L3_ir_infra/expr_maker.hpp>
 #include "L1_driver/semantic_system_support.hpp"
+#include  <L1_driver/semantic_system_dispatcher_dsl.hpp>
 
 namespace Alpha
 {
@@ -15,6 +16,8 @@ class LvalueResolver
 {
 public:
     explicit LvalueResolver(const SemanticSystemServices &ss_services);
+
+    DISPATCH_DECLARE_HANDLER();
 
     [[nodiscard ]] const Expr *resolve_id(const char *id_name, SourceLocation id_loc);
 
@@ -27,6 +30,12 @@ private:
     [[nodiscard]] bool ensure_reachable_variable(
         const Symbol *symbol, const char *id_name, SourceLocation id_loc);
 };
+
+DISPATCH_DEFINE_HANDLER_BEGIN(LvalueResolver);
+    DISPATCH_BEGIN_CALLS();
+    DISPATCH_CALL_METHOD(resolve_id);
+    DISPATCH_END_CALLS();
+DISPATCH_DEFINE_HANDLER_END(LvalueResolver);
 
 } // namespace Alpha
 #endif // LVALUE_RESOLVER_HPP

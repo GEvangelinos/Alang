@@ -90,11 +90,6 @@ protected:
           DEBUG(, has_symbol(has_symbol)) {}
 };
 
-struct ErrorExpr final : public Expr
-{
-    ErrorExpr(): Expr(Type::CONST_NIL, k_no_loc) {}
-};
-
 struct ExprWSymbol : public Expr
 {
 public:
@@ -279,10 +274,6 @@ inline Expr::Type to_expr_type(const Symbol::Type symbol_type)
     default: UNREACHABLE("Unknown Symbol::Type");
     }
 }
-
-// The k_static_error is a sentinel expression used to signal invalid/error states.
-// For Expr::Type we can pass any type; we only care about the address of this singleton.
-inline static const ErrorExpr k_static_error_expr{};
 
 // WARNING: static_* expressions have dummy location which does NOT correspond
 // to any real source buffer region. Never return them from synthesis; doing so

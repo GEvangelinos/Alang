@@ -67,7 +67,23 @@ public:
         assigned_ = true;
     }
 
-    [[nodiscard]] const T &get()
+    template<typename U = T>
+    std::enable_if_t<std::is_pointer_v<U>, U> operator->() { return get(); }
+
+    template<typename U = T>
+    std::enable_if_t<std::is_pointer_v<U>, U> operator->() const { return get(); }
+
+    // We prefer use addressof instead of  & to avoid overloads on & operator.
+    template<typename U = T>
+    std::enable_if_t<!std::is_pointer_v<U>, U> operator->() { return std::addressof(get()); }
+
+    // We prefer use addressof instead of  & to avoid overloads on & operator.
+    template<typename U = T>
+    std::enable_if_t<!std::is_pointer_v<U>, U> operator->() const { return std::addressof(get()); }
+
+    explicit operator bool() { return assigned(); }
+
+    [[nodiscard]] const T &get() const
     {
         if (!assigned_)
             throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` not assigned yet"));

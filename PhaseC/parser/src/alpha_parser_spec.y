@@ -180,13 +180,13 @@ program:
 ;
 
 multiStmt:
-  stmt { ss.reset_stmt_context(); }
-| stmt { ss.reset_stmt_context(); }
+  stmt { ss.call<"reset_stmt_context">(); }
+| stmt { ss.call<"reset_stmt_context">(); }
  multiStmt
 ;
 
 stmt:
-  expr SEMICOLON { ss.backpatcher.finalize_bool_expr($expr); }
+  expr SEMICOLON { ss.call<"backpatcher.finalize_bool_expr">($expr); }
 | ifStmt
 | whileStmt
 | forStmt
@@ -202,15 +202,15 @@ stmt:
 ;
 
 loopCtrlStmt:
-  BREAK    { ss.loop_manager.process_break(@BREAK); }
-| CONTINUE { ss.loop_manager.process_continue(@CONTINUE); }
+  BREAK    { ss.call<"loop_manager.process_break">(@BREAK); }
+| CONTINUE { ss.call<"loop_manager.process_continue">(@CONTINUE); }
 ;
 
 not_op:
   NOT expr
   {
-    $expr = ss.convert_to_bool_expr($expr);
-    $not_op = ss.basic_builder.build_logical_not($expr, @not_op);
+    $expr = ss.call<"convert_to_bool_expr">($expr);
+    $not_op = ss.call<"basic_builder.build_logical_not">($expr, @not_op);
   }
 ;
 
@@ -218,13 +218,13 @@ and_op:
   expr[lhs]
   AND
   {
-    $lhs = ss.convert_to_bool_expr($lhs);
-    ss.mark_short_circuit_jump_point();
+    $lhs = ss.call<"convert_to_bool_expr">($lhs);
+    ss.call<"mark_short_circuit_jump_point">();
   }
   expr[rhs]
   {
-    $rhs = ss.convert_to_bool_expr($rhs);
-    $and_op = ss.basic_builder.build_logical_and($lhs, $rhs, @and_op);
+    $rhs = ss.call<"convert_to_bool_expr">($rhs);
+    $and_op = ss.call<"basic_builder.build_logical_and">($lhs, $rhs, @and_op);
   }
 ;
 
@@ -232,50 +232,53 @@ or_op:
   expr[lhs]
   OR
   {
-    $lhs = ss.convert_to_bool_expr($lhs);
-    ss.mark_short_circuit_jump_point();
+    $lhs = ss.call<"convert_to_bool_expr">($lhs);
+    ss.call<"mark_short_circuit_jump_point">();
   }
   expr[rhs]
   {
-    $rhs = ss.convert_to_bool_expr($rhs);
-    $or_op = ss.basic_builder.build_logical_or($lhs, $rhs, @or_op);
+    $rhs = ss.call<"convert_to_bool_expr">($rhs);
+    $or_op = ss.call<"basic_builder.build_logical_or">($lhs, $rhs, @or_op);
+    $or_op = ss.call<"basic_builder.build_logical_or">($lhs, $rhs, @or_op);
   }
 ;
 
 expr[result]:
   assignExpr { $result = $assignExpr; }
 | term       { $result = $term; }
-| expr[lhs] PLUS  expr[rhs] { $result = ss.basic_builder.build_arithmetic(AIOP::ADD,          $lhs, $rhs, @result); }
-| expr[lhs] MINUS expr[rhs] { $result = ss.basic_builder.build_arithmetic(AIOP::SUB,          $lhs, $rhs, @result); }
-| expr[lhs] MUL   expr[rhs] { $result = ss.basic_builder.build_arithmetic(AIOP::MUL,          $lhs, $rhs, @result); }
-| expr[lhs] DIV   expr[rhs] { $result = ss.basic_builder.build_arithmetic(AIOP::DIV,          $lhs, $rhs, @result); }
-| expr[lhs] MOD   expr[rhs] { $result = ss.basic_builder.build_arithmetic(AIOP::MOD,          $lhs, $rhs, @result); }
-| expr[lhs] GT    expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_GREATER,   $lhs, $rhs, @result); }
-| expr[lhs] GTE   expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_GREATEREQ, $lhs, $rhs, @result); }
-| expr[lhs] LT    expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_LESS,      $lhs, $rhs, @result); }
-| expr[lhs] LTE   expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_LESSEQ,    $lhs, $rhs, @result); }
-| expr[lhs] EQ    expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_EQ,        $lhs, $rhs, @result); }
-| expr[lhs] NEQ   expr[rhs] { $result = ss.basic_builder.build_relational(AIOP::IF_NOTEQ,     $lhs, $rhs, @result); }
+| expr[lhs] PLUS  expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(AIOP::ADD,          $lhs, $rhs, @result); }
+| expr[lhs] MINUS expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(AIOP::SUB,          $lhs, $rhs, @result); }
+| expr[lhs] MUL   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(AIOP::MUL,          $lhs, $rhs, @result); }
+| expr[lhs] DIV   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(AIOP::DIV,          $lhs, $rhs, @result); }
+| expr[lhs] MOD   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(AIOP::MOD,          $lhs, $rhs, @result); }
+| expr[lhs] GT    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_GREATER,   $lhs, $rhs, @result); }
+| expr[lhs] GTE   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_GREATEREQ, $lhs, $rhs, @result); }
+| expr[lhs] LT    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_LESS,      $lhs, $rhs, @result); }
+| expr[lhs] LTE   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_LESSEQ,    $lhs, $rhs, @result); }
+| expr[lhs] EQ    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_EQ,        $lhs, $rhs, @result); }
+| expr[lhs] NEQ   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_NOTEQ,     $lhs, $rhs, @result); }
 | and_op { $result = $and_op; }
 | or_op  { $result = $or_op; }
 ;
 
 term
 : primary { $term = $primary; }
-| LEFT_PAREN expr RIGHT_PAREN { /*TODO : We most likely have to finalize_bool_expr here tOO! test it out!!! */ $term = $expr; }
-| MINUS expr %prec UMINUS { $term = ss.basic_builder.build_uminus($expr, @term); }
+| LEFT_PAREN expr RIGHT_PAREN { /*TODO : We most likely have to finalize_bool_expr here tOO! test it out!!!
+ OR.. maybe not... as it becomes a term and term and expr and when expr become stmt we finalize it ... */
+  $term = $expr; }
+| MINUS expr %prec UMINUS { $term = ss.call<"basic_builder.build_uminus">($expr, @term); }
 | not_op { /* TODO: Can we put this under the `expr` rule? */   $term = $not_op; }
-| INC expr { ss.assign_builder.build_pre_inc($expr, @term); }
-| expr INC { ss.assign_builder.build_post_inc($expr, @term); }
-| DEC expr { ss.assign_builder.build_pre_dec($expr, @term); }
-| expr DEC { ss.assign_builder.build_post_dec($expr, @term); }
+| INC expr { $term = ss.call<"assign_builder.build_pre_inc">($expr, @term); }
+| expr INC { $term = ss.call<"assign_builder.build_post_inc">($expr, @term); }
+| DEC expr { $term = ss.call<"assign_builder.build_pre_dec">($expr, @term); }
+| expr DEC { $term = ss.call<"assign_builder.build_post_dec">($expr, @term); }
 ;
 
 assignExpr:
   expr[lhs] ASSIGN expr[rhs]
   {
-    ss.backpatcher.finalize_bool_expr($rhs);
-    $assignExpr = ss.assign_builder.build_assignment($lhs, $rhs, @assignExpr);
+    ss.call<"backpatcher.finalize_bool_expr">($rhs);
+    $assignExpr = ss.call<"assign_builder.build_assignment">($lhs, $rhs, @assignExpr);
   }
 ;
 
@@ -288,7 +291,7 @@ primary
 ;
 
 lvalue:
-  ID { $lvalue = ss.lvalue_resolver.resolve_id($ID, @ID); }
+  ID { $lvalue = ss.call<"lvalue_resolver.resolve_id">($ID, @ID); }
 | LOCAL ID
 | GLOBAL ID
 | tableItem
@@ -390,12 +393,12 @@ funcDef:
 ;
 
 const
-: TRUE      { $const = ss.const_builder.build_true_expr(@TRUE); }
-| FALSE     { $const = ss.const_builder.build_false_expr(@FALSE); }
-| INT       { $const = ss.const_builder.build_int_expr($INT, @INT); }
-| FLOAT     { $const = ss.const_builder.build_float_expr($FLOAT, @FLOAT); }
-| STRING    { $const = ss.const_builder.build_string_expr($STRING, @STRING); }
-| NIL       { $const = ss.const_builder.build_nil_expr(@NIL); }
+: TRUE      { $const = ss.call<"const_builder.build_true_expr">(@TRUE); }
+| FALSE     { $const = ss.call<"const_builder.build_false_expr">(@FALSE); }
+| INT       { $const = ss.call<"const_builder.build_int_expr">($INT, @INT); }
+| FLOAT     { $const = ss.call<"const_builder.build_float_expr">($FLOAT, @FLOAT); }
+| STRING    { $const = ss.call<"const_builder.build_string_expr">($STRING, @STRING); }
+| NIL       { $const = ss.call<"const_builder.build_nil_expr">(@NIL); }
 ;
 
 ifPrefix

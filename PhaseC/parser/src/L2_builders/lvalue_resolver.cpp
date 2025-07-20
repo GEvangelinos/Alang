@@ -24,7 +24,7 @@ LvalueResolver::resolve_id(const char *id_name, const SourceLocation id_loc)
         );
     }
     else if (!ensure_reachable_variable(symbol, id_name, id_loc))
-        return &k_static_error_expr; // Found Symbol but is not reachable!
+        return nullptr;
     if (symbol->is_variable())
         return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol *>(symbol));
     if (symbol->is_library_function())
