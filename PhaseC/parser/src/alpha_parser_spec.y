@@ -393,12 +393,12 @@ funcDef:
 ;
 
 const
-: TRUE      { $const = ss.call<"const_builder.build_true_expr">(@TRUE); }
-| FALSE     { $const = ss.call<"const_builder.build_false_expr">(@FALSE); }
-| INT       { $const = ss.call<"const_builder.build_int_expr">($INT, @INT); }
-| FLOAT     { $const = ss.call<"const_builder.build_float_expr">($FLOAT, @FLOAT); }
-| STRING    { $const = ss.call<"const_builder.build_string_expr">($STRING, @STRING); }
-| NIL       { $const = ss.call<"const_builder.build_nil_expr">(@NIL); }
+: TRUE      {  $const = ss.call<"const_builder.build_true_expr">(@TRUE); }
+| FALSE     {  $const = ss.call<"const_builder.build_false_expr">(@FALSE); }
+| INT       {  $const = ss.call<"const_builder.build_int_expr">($INT, @INT); }
+| FLOAT     {  $const = ss.call<"const_builder.build_float_expr">($FLOAT, @FLOAT); }
+| STRING    {  $const = ss.call<"const_builder.build_string_expr">($STRING, @STRING); }
+| NIL       {  $const = ss.call<"const_builder.build_nil_expr">(@NIL); }
 ;
 
 ifPrefix

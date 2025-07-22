@@ -180,7 +180,7 @@ Backpatcher::Backpatcher(const SemanticSystemServices &services)
 
 DISPATCH_DEFINE_HANDLER_BEGIN(Backpatcher);
     DISPATCH_BEGIN_CALLS();
-    DISPATCH_CALL_METHOD(finalize_bool_expr);
+    DISPATCH_METHOD_CALL(finalize_bool_expr);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(Backpatcher);
 
@@ -250,11 +250,11 @@ AssignBuilder::AssignBuilder(Options &&options, const SemanticSystemServices &se
 
 DISPATCH_DEFINE_HANDLER_BEGIN(AssignBuilder);
     DISPATCH_BEGIN_CALLS();
-    DISPATCH_CALL_METHOD(build_assignment);
-    DISPATCH_CALL_METHOD(build_pre_inc);
-    DISPATCH_CALL_METHOD(build_post_inc);
-    DISPATCH_CALL_METHOD(build_pre_dec);
-    DISPATCH_CALL_METHOD(build_post_dec);
+    DISPATCH_METHOD_CALL(build_assignment);
+    DISPATCH_METHOD_CALL(build_pre_inc);
+    DISPATCH_METHOD_CALL(build_post_inc);
+    DISPATCH_METHOD_CALL(build_pre_dec);
+    DISPATCH_METHOD_CALL(build_post_dec);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(AssignBuilder);
 
@@ -469,13 +469,13 @@ BasicBuilder::BasicBuilder(Options &&options, const SemanticSystemServices &serv
 
 DISPATCH_DEFINE_HANDLER_BEGIN(BasicBuilder);
     DISPATCH_BEGIN_CALLS();
-    DISPATCH_CALL_METHOD(build_uminus);
-    DISPATCH_CALL_METHOD(build_arithmetic);
-    DISPATCH_CALL_METHOD(build_relational);
-    DISPATCH_CALL_METHOD(build_relational);
-    DISPATCH_CALL_METHOD(build_logical_not);
-    DISPATCH_CALL_METHOD(build_logical_and);
-    DISPATCH_CALL_METHOD(build_logical_or);
+    DISPATCH_METHOD_CALL(build_uminus);
+    DISPATCH_METHOD_CALL(build_arithmetic);
+    DISPATCH_METHOD_CALL(build_relational);
+    DISPATCH_METHOD_CALL(build_relational);
+    DISPATCH_METHOD_CALL(build_logical_not);
+    DISPATCH_METHOD_CALL(build_logical_and);
+    DISPATCH_METHOD_CALL(build_logical_or);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(BasicBuilder);
 
@@ -694,14 +694,14 @@ ConstBuilder::ConstBuilder(const SemanticSystemServices &services)
 
 DISPATCH_DEFINE_HANDLER_BEGIN(ConstBuilder);
     DISPATCH_BEGIN_CALLS();
-    DISPATCH_CALL_METHOD(build_true_expr);
-    DISPATCH_CALL_METHOD(build_false_expr);
-    DISPATCH_CALL_METHOD(build_false_expr);
-    DISPATCH_CALL_METHOD(build_false_expr);
-    DISPATCH_CALL_METHOD(build_int_expr);
-    DISPATCH_CALL_METHOD(build_float_expr);
-    DISPATCH_CALL_METHOD(build_string_expr);
-    DISPATCH_CALL_METHOD(build_nil_expr);
+    DISPATCH_METHOD_CALL(build_true_expr);
+    DISPATCH_METHOD_CALL(build_false_expr);
+    DISPATCH_METHOD_CALL(build_false_expr);
+    DISPATCH_METHOD_CALL(build_false_expr);
+    DISPATCH_METHOD_CALL(build_int_expr);
+    DISPATCH_METHOD_CALL(build_float_expr);
+    DISPATCH_METHOD_CALL(build_string_expr);
+    DISPATCH_METHOD_CALL(build_nil_expr);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(ConstBuilder);
 

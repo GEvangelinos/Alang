@@ -43,8 +43,8 @@ LoopManager::LoopManager(const SemanticSystemServices &services)
 
 DISPATCH_DEFINE_HANDLER_BEGIN(LoopManager);
     DISPATCH_BEGIN_CALLS();
-    DISPATCH_CALL_METHOD(process_break);
-    DISPATCH_CALL_METHOD(process_continue);
+    DISPATCH_METHOD_CALL(process_break);
+    DISPATCH_METHOD_CALL(process_continue);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(LoopManager);
 
