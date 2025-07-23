@@ -335,7 +335,7 @@ AssignBuilder::handle_table_item_assignment(
 
     const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
     quad_handler_->emit_next(IOPCode::TABLESETELEM, ti, ti->index, rvalue, result_loc);
-    const Expr *temp_var = ss_bridge_->if_table_item_emit_tablegetelem(lvalue); // !CERTAIN EMIT!
+    const Expr *temp_var = ss_bridge_->emit_tablegetelem_if_table_item(lvalue); // !CERTAIN EMIT!
     DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
     const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
     return expr_maker_->make_assign_expr(result_loc, temp_symbol);
@@ -391,10 +391,11 @@ AssignBuilder::handle_pre_inc_dec(const Expr *lvalue, const SourceLocation resul
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
-        result = ss_bridge_->if_table_item_emit_tablegetelem(ti_lvalue); // EMITS!
+        result = ss_bridge_->emit_tablegetelem_if_table_item(ti_lvalue); // EMITS!
         qh->emit_next(Policy::iopc, result, &k_static_int_1_expr, result, result_loc);
         qh->emit_next(IOPCode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result, result_loc);
-    } else
+    }
+    else
     {
         // TODO: HOOK: After you implemented logic to make assignment aware of if its happening,
         // inside a function parameter list (TODO 52), create this new arithmetic_expr (new temp)
@@ -419,11 +420,12 @@ AssignBuilder::handle_post_inc_dec(const Expr *lvalue, const SourceLocation resu
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
-        const Expr *ti = ss_bridge_->if_table_item_emit_tablegetelem(lvalue); // EMITS!
+        const Expr *ti = ss_bridge_->emit_tablegetelem_if_table_item(lvalue); // EMITS!
         qh->emit_next(IOPCode::ASSIGN, ti, nullptr, result, result_loc);
         qh->emit_next(Policy::iopc, ti, &k_static_int_1_expr, ti, result_loc);
         qh->emit_next(IOPCode::TABLESETELEM, ti_lvalue, ti_lvalue->index, ti, result_loc);
-    } else
+    }
+    else
     {
         qh->emit_next(IOPCode::ASSIGN, lvalue, nullptr, result, result_loc);
         qh->emit_next(Policy::iopc, lvalue, &k_static_int_1_expr, lvalue, result_loc);

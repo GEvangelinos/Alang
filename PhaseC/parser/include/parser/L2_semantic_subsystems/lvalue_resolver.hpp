@@ -22,12 +22,11 @@ public:
 
     DISPATCH_DECLARE_HANDLER();
 
+private:
     [[nodiscard]] const Expr *resolve_id(const char *id_name, SourceLocation id_loc);
     [[nodiscard]] const Expr *resolve_local_id(const char *id_name, SourceLocation id_loc);
     [[nodiscard]] const Expr *resolve_global_id(const char *id_name, SourceLocation id_loc);
     [[nodiscard]] const Expr *resolve_lvalue_to_rvalue(const Expr *lvalue);
-
-private:
     [[nodiscard]] bool ensure_reachable_symbol(
         const Symbol *symbol, const char *id_name, SourceLocation id_loc);
 };
@@ -44,7 +43,7 @@ DISPATCH_DEFINE_HANDLER_END(LvalueResolver);
 inline const Expr *
 LvalueResolver::resolve_lvalue_to_rvalue(const Expr *const lvalue)
 {
-    return ss_bridge_->if_table_item_emit_tablegetelem(lvalue);
+    return ss_bridge_->emit_tablegetelem_if_table_item(lvalue);
 }
 
 } // namespace Alpha

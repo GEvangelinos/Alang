@@ -49,7 +49,7 @@
     Alpha::AlphaFloat const_float;
     const Alpha::FuncSymbol *const_function_symbol_ptr;
     const Alpha::Expr *const_expr_ptr;
-    Alpha::BlockLocation block_location;
+    Alpha::BlockSourceLocation block_location;
 }
 
 %type  <const_expr_ptr> const
@@ -79,10 +79,10 @@
 %type  <const_function_symbol_ptr> funcDef
 %type  <const_function_symbol_ptr> funcSignature
 
-%type  <location>       blockBegin
-%type  <location>       blockEnd
-%type  <block_location> block
 *******************************************************/
+%type  <location>       block_begin_loc
+%type  <location>       block_end_loc
+%type  <block_location> block_loc
 
 /* By default Bison uses the bare token names (e.g. IF, METHOD_CALL)
  * in its syntax‐error messages.  If you follow a %token with
@@ -193,7 +193,7 @@ stmt:
 | forStmt
 | returnStmt SEMICOLON
 | loopCtrlStmt SEMICOLON
-| block
+| block_loc
 | funcDef
 | SEMICOLON
 | error SEMICOLON     { yyerrok; } // Syntax error recovery hook.
@@ -354,18 +354,18 @@ indexedElem:
   RIGHT_BRACE
 ;
 
-blockBegin:
-  LEFT_BRACE  
+block_begin_loc:
+  LEFT_BRACE  { ss.call<"block_manager.enter_block">(); }
 ;
 
-blockEnd:
-  RIGHT_BRACE
+block_end_loc:
+  RIGHT_BRACE { ss.call<"block_manager.exit_block">(); }
 ;
 
 
-block:
-  blockBegin multiStmt  blockEnd   
-| blockBegin blockEnd
+block_loc:
+  block_begin_loc multiStmt block_end_loc {}
+| block_begin_loc block_end_loc {}
 ;
 
 
@@ -389,7 +389,7 @@ funcSignature:
 ;
 
 funcDef:
-  funcSignature block 
+  funcSignature block_loc
 ;
 
 const

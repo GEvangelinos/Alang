@@ -38,7 +38,7 @@ class SemanticSystemBridge
 public:
     SemanticSystemBridge(ParseCtx *parse_ctx, ExprMaker *expr_maker, QuadHandler *quad_handler);
 
-    const Expr *if_table_item_emit_tablegetelem(const Expr *expr);
+    const Expr *emit_tablegetelem_if_table_item(const Expr *expr);
 
 private:
     ParseCtx *const parse_ctx_;

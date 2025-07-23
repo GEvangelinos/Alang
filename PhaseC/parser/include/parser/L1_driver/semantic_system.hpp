@@ -5,6 +5,7 @@
 #include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 #include "core/basics.hpp"
 #include "L1_driver/semantic_system_gateway.hpp"
+#include "L2_semantic_subsystems/block_manager.hpp"
 #include "parser/L2_semantic_subsystems/control_flow_managers.hpp"
 #include "parser/L2_semantic_subsystems/expr_builders.hpp"
 #include "parser/L2_semantic_subsystems/lvalue_resolver.hpp"
@@ -71,12 +72,13 @@ private:
 
     friend class SemanticSystemBridge;
 
-    // --Layer 2 subsystems --
+    // --Layer 2 subsystems -- No trailing underscores here, as these are directly used in dispatch mechanisms.
     Backpatcher backpatcher;
     ConstBuilder const_builder;
     AssignBuilder assign_builder;
     BasicBuilder basic_builder;
     LoopManager loop_manager;
+    BlockManager block_manager;
     LvalueResolver lvalue_resolver;
 
     // -- Direct methods-- // TODO: maybe package inside a module? // Dont if to unrelatable!
@@ -97,6 +99,7 @@ DISPATCH_DEFINE_HANDLER_BEGIN(SemanticSystem);
     DISPATCH_MASTER_MODULE_CALL(assign_builder);
     DISPATCH_MASTER_MODULE_CALL(basic_builder);
     DISPATCH_MASTER_MODULE_CALL(loop_manager);
+    DISPATCH_MASTER_MODULE_CALL(block_manager);
     DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(SemanticSystem);

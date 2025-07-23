@@ -29,8 +29,10 @@ private:
     ParseCtx *const parse_ctx_;
     QuadHandler *const quad_handler_;
 
-    void process_loop_keyword(LoopKeyword keyword, SourceLocation keyword_loc);
     bool is_in_loop();
+
+    template<LoopKeyword keyword>
+    void process_loop_keyword(SourceLocation keyword_loc);
 
     static const char *to_string(LoopKeyword lk);
 };
@@ -48,53 +50,37 @@ DISPATCH_DEFINE_HANDLER_BEGIN(LoopManager);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(LoopManager);
 
-
 inline void
 LoopManager::process_break(const SourceLocation break_loc)
 {
-    process_loop_keyword(LoopKeyword::BREAK, break_loc);
+    process_loop_keyword<LoopKeyword::BREAK>(break_loc);
 }
 
 inline void
 LoopManager::process_continue(const SourceLocation continue_loc)
 {
-    process_loop_keyword(LoopKeyword::CONTINUE, continue_loc);
+    process_loop_keyword<LoopKeyword::CONTINUE>(continue_loc);
 }
 
-inline void
-LoopManager::process_loop_keyword(const LoopKeyword keyword, const SourceLocation keyword_loc)
+inline bool
+LoopManager::is_in_loop() { return parse_ctx_->func_ctx_handler.loop_depth() > 0; }
+
+template<LoopManager::LoopKeyword keyword>
+void LoopManager::process_loop_keyword(const SourceLocation keyword_loc)
 {
     if (!is_in_loop())
     {
         dr_->report_loop_ctrl_keyword_outside_loop(to_string(keyword), keyword_loc);
         return;
     }
-    switch (keyword)
-    {
-    case LoopKeyword::BREAK:
+    if constexpr (keyword == LoopKeyword::BREAK)
         parse_ctx_->func_ctx_handler.add_label_to_breaklist(quad_handler_->next_quad_label());
-        break;
-    case LoopKeyword::CONTINUE:
+    else if constexpr (keyword == LoopKeyword::CONTINUE)
         parse_ctx_->func_ctx_handler.add_label_to_continuelist(quad_handler_->next_quad_label());
-        break;
-    default:
-        UNREACHABLE(FMT::format("Unknown `LoopKeyword`: int(lk) = ", static_cast<int>(keyword)));
-    }
+    else
+        static_assert([]() { return false; }(), "Unknown keyword");
+
     quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, keyword_loc);
-}
-
-inline bool
-LoopManager::is_in_loop() { return parse_ctx_->func_ctx_handler.loop_depth() > 0; }
-
-inline const char *
-LoopManager::to_string(const LoopKeyword lk)
-{
-    switch (lk)
-    {
-    case LoopKeyword::BREAK: return "break";
-    case LoopKeyword::CONTINUE: return "continue";
-    default: UNREACHABLE(FMT::format("Unknown `LoopKeyword`: int(lk) = ", static_cast<int>(lk)));
-    }
 }
 } // namespace Alpha
 #endif // CONTROL_FLOW_HANDLERS_HPP

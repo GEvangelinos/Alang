@@ -18,7 +18,7 @@ SemanticSystemBridge::SemanticSystemBridge(
 
 
 const Expr *
-SemanticSystemBridge::if_table_item_emit_tablegetelem(const Expr *const expr)
+SemanticSystemBridge::emit_tablegetelem_if_table_item(const Expr *const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
     if (expr->type != Expr::Type::TABLE_ITEM)
