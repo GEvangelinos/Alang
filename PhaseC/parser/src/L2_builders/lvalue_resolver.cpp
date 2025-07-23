@@ -1,20 +1,17 @@
-#include "L2_builders/lvalue_resolver.hpp"
+#include "parser/L2_semantic_subsystems/lvalue_resolver.hpp"
 
 namespace Alpha
 {
 LvalueResolver::LvalueResolver(const SemanticSystemServices &ss_services)
-    : parse_ctx_(ss_services.parse_ctx),
-      symbol_table_(ss_services.symbol_table),
-      dr_(ss_services.dr),
-      expr_maker_(ss_services.expr_maker) {}
+    : SemanticSubsystem(ss_services) {}
 
 const Expr *
 LvalueResolver::resolve_id(const char *id_name, const SourceLocation id_loc)
 {
-    const Symbol *symbol = symbol_table_->lookup_chain(id_name, parse_ctx_->scope_handler.scope());
-    if (!symbol) // Symbol not found, so insert it!
+    const Symbol *result = symbol_table_->lookup_chain(id_name, parse_ctx_->scope_handler.scope());
+    if (!result) // Symbol not found, so insert it!
     {
-        symbol = symbol_table_->insert_variable(
+        result = symbol_table_->insert_variable(
             id_name,
             parse_ctx_->scope_handler.scope(),
             VarSymbol::scope_to_symbol_type(parse_ctx_->scope_handler.scope()),
@@ -23,28 +20,73 @@ LvalueResolver::resolve_id(const char *id_name, const SourceLocation id_loc)
             id_loc
         );
     }
-    else if (!ensure_reachable_variable(symbol, id_name, id_loc))
+    else if (!ensure_reachable_symbol(result, id_name, id_loc)) // Symbol found, is it reachable?
         return nullptr;
-    if (symbol->is_variable())
-        return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol *>(symbol));
-    if (symbol->is_library_function())
-        return expr_maker_->make_lib_func_expr(id_loc, static_cast<const FuncSymbol *>(symbol));
-    if (symbol->is_program_function())
-        return expr_maker_->make_prog_func_expr(id_loc, static_cast<const FuncSymbol *>(symbol));
-    UNREACHABLE("We either inserted or found a symbol, and it should be either a var or a func");
+    if (result->is_variable())
+        return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol *>(result));
+    if (result->is_progfunc())
+        return expr_maker_->make_prog_func_expr(id_loc, static_cast<const FuncSymbol *>(result));
+    if (result->is_libfunc())
+        return expr_maker_->make_lib_func_expr(id_loc, static_cast<const FuncSymbol *>(result));
+    UNREACHABLE("Resolved symbol is neither a variable nor a function: unexpected symbol type");
+}
+
+const Expr *
+LvalueResolver::resolve_local_id(const char *const id_name, const SourceLocation id_loc)
+{
+    const Symbol *result = symbol_table_->lookup_local(id_name, parse_ctx_->scope_handler.scope());
+    if (!result)
+    {
+        const VarSymbol *const inserted = symbol_table_->insert_variable(
+            id_name,
+            parse_ctx_->scope_handler.scope(),
+            VarSymbol::Type::LOCAL_VARIABLE,
+            parse_ctx_->space_handler.space(),
+            parse_ctx_->space_handler.next_offset(),
+            id_loc
+        );
+        return expr_maker_->make_variable_expr(id_loc, inserted);
+    }
+    if (result->is_variable())
+        return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol *>(result));
+    if (result->is_progfunc())
+        return expr_maker_->make_prog_func_expr(id_loc, static_cast<const FuncSymbol *>(result));
+    if (result->is_libfunc())
+    {
+        dr_->report_local_id_shadows_libfunc(id_name, id_loc);
+        return nullptr;
+    }
+    UNREACHABLE("Unexpected symbol type");
+}
+
+const Expr *LvalueResolver::resolve_global_id(const char *id_name, SourceLocation id_loc)
+{
+    const Symbol *result = symbol_table_->lookup_global(id_name);
+    if (!result)
+    {
+        dr_->report_unresolved_global_symbol(id_name, id_loc);
+        return nullptr;
+    }
+    if (result->is_variable())
+        return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol *>(result));
+    if (result->is_progfunc())
+        return expr_maker_->make_prog_func_expr(id_loc, static_cast<const FuncSymbol *>(result));
+    if (result->is_libfunc())
+        return expr_maker_->make_lib_func_expr(id_loc, static_cast<const FuncSymbol *>(result));
+    UNREACHABLE("Unexpected symbol type");
 }
 
 DEBUG_ALWAYS_INLINE bool // inline hint for local call-sites
-LvalueResolver::ensure_reachable_variable(
+LvalueResolver::ensure_reachable_symbol(
     const Symbol *symbol,
     const char *const id_name,
     const SourceLocation id_loc)
 {
-    const bool unreachable_condition =
-            symbol->is_variable() &&
-            symbol->scope > k_global_scope &&
-            symbol->scope <= parse_ctx_->func_ctx_handler.current_function_scope();
-    if (!unreachable_condition)
+    const bool reachable =
+            !symbol->is_variable() ||
+            symbol->scope == k_global_scope ||
+            symbol->scope == parse_ctx_->func_ctx_handler.current_function_scope();
+    if (reachable)
         return true;
     dr_->report_inaccessible_variable_in_func(
         id_name,

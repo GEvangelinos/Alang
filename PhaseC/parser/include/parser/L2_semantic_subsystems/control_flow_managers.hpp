@@ -43,8 +43,8 @@ LoopManager::LoopManager(const SemanticSystemServices &services)
 
 DISPATCH_DEFINE_HANDLER_BEGIN(LoopManager);
     DISPATCH_BEGIN_CALLS();
-    DISPATCH_METHOD_CALL(process_break);
-    DISPATCH_METHOD_CALL(process_continue);
+    DISPATCH_SLAVE_METHOD_CALL(process_break);
+    DISPATCH_SLAVE_METHOD_CALL(process_continue);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(LoopManager);
 
@@ -66,7 +66,7 @@ LoopManager::process_loop_keyword(const LoopKeyword keyword, const SourceLocatio
 {
     if (!is_in_loop())
     {
-        dr_->report_loop_ctrl_outside_loop(to_string(keyword), keyword_loc);
+        dr_->report_loop_ctrl_keyword_outside_loop(to_string(keyword), keyword_loc);
         return;
     }
     switch (keyword)

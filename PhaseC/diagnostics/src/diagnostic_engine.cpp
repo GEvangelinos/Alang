@@ -7,7 +7,6 @@
 #include <utils/debug_tools.hpp>
 #include <utils/format_adapter.hpp>
 #include "core/source_location.hpp"  // for SourceLocation, SourceLocationTracker
-#include "L1_driver/semantic_system.hpp"
 #include "utils/cli_color.h"        // for COLOR_ASCII_BOLD_DEFAULT, SGR_RESET
 #include "utils/misc.hpp"
 #include "utils/smart_assert.h" // for DEBUG_SMART_ASSERT

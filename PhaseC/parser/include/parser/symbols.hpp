@@ -37,8 +37,8 @@ public:
 
     [[nodiscard]] std::string_view type_to_string() const noexcept;
     [[nodiscard]] bool is_variable() const noexcept { return !is_function(); }
-    [[nodiscard]] bool is_library_function() const noexcept;
-    [[nodiscard]] bool is_program_function() const noexcept;
+    [[nodiscard]] bool is_libfunc() const noexcept;
+    [[nodiscard]] bool is_progfunc() const noexcept;
     [[nodiscard]] bool is_function() const noexcept;
     [[nodiscard]] bool is_active() const noexcept { return is_active_; }
     [[nodiscard]] static bool is_modifiable_symbol(const Symbol *symbol);
@@ -134,13 +134,13 @@ Symbol::type_to_string() const noexcept
 }
 
 inline bool
-Symbol::is_library_function() const noexcept { return type == Type::LIBRARY_FUNCTION; }
+Symbol::is_libfunc() const noexcept { return type == Type::LIBRARY_FUNCTION; }
 
 inline bool
-Symbol::is_program_function() const noexcept { return type == Type::PROGRAM_FUNCTION; }
+Symbol::is_progfunc() const noexcept { return type == Type::PROGRAM_FUNCTION; }
 
 inline bool
-Symbol::is_function() const noexcept { return is_library_function() || is_program_function(); }
+Symbol::is_function() const noexcept { return is_libfunc() || is_progfunc(); }
 
 inline
 VarSymbol::VarSymbol(

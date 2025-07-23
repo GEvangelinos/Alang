@@ -3,7 +3,6 @@
 
 #include "parser/semantic_utils.hpp"
 #include "parser/ir.hpp"
-#include "diagnostics/diagnostic_engine.hpp"
 
 namespace Alpha
 {
@@ -46,7 +45,7 @@ ExprSnitch::report_non_arithmetic_operand(
     DEBUG_SMART_ASSERT(!!expr);
     if (SemUtils::is_binary_arithmetic_iopcode(iopc))
         dr_->report_arith_op_nonarith_operand(
-            op_side, SemUtils::arith_op_to_str(iopc), expr->type, expr->loc);
+            op_side, SemUtils::arith_iopc_to_str_symbol(iopc), expr->type, expr->loc);
     else if (iopc == IOPCode::UMINUS)
         dr_->report_uminus_nonarith_operand(expr->type, expr->loc);
     else

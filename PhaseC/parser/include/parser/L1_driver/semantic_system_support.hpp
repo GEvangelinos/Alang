@@ -33,13 +33,12 @@
 
 namespace Alpha
 {
-// TODO: maybe replace with the INIT pack.. or remove this class from initpack it contains duplciate fields
 class SemanticSystemBridge
 {
 public:
     SemanticSystemBridge(ParseCtx *parse_ctx, ExprMaker *expr_maker, QuadHandler *quad_handler);
 
-    const Expr *emit_quad_if_table_item(const Expr *expr);
+    const Expr *if_table_item_emit_tablegetelem(const Expr *expr);
 
 private:
     ParseCtx *const parse_ctx_;
@@ -59,7 +58,7 @@ struct SemanticSystemServices
     ExprSnitch *const expr_snitch;
     QuadHandler *const quad_handler;
     Backpatcher *const backpatcher;
-    SemanticSystemBridge *const sd_bridge;
+    SemanticSystemBridge *const ss_bridge;
 };
 } // namespace Alpha
 

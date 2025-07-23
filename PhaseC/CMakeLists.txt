@@ -70,10 +70,10 @@ if (DEBUG_MODE)
 endif ()
 
 if (OPTIMIZED_MODE)
+#    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) // TODO: determine why it causes error (it enables, LTO and WPO)
     add_compile_options(
         -O3
         -march=native
-        # -flto # TODO: Find why it causes linking errors (it didnt before)
     )
     add_compile_definitions(OPTIMIZED_MODE)
     message(WARNING "CMAKE: Running with OPTIMIZED_MODE ON")

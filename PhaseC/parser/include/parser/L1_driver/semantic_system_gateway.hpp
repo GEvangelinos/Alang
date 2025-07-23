@@ -1,16 +1,23 @@
 #ifndef SEMANTIC_SYSTEM_GATEWAY_HPP
 #define SEMANTIC_SYSTEM_GATEWAY_HPP
 
+namespace Alpha
+{
+enum class SemanticSystemStatus :std::uint8_t { OK, ERROR };
+
+class SemanticSystem;
+
 class SemanticSystemGateway
 {
 public:
-    explicit SemanticSystemGateway(bool &in_error) : in_error_(in_error) {}
-
-    void set_error_state() noexcept { in_error_ = true; }
+    void set_error_state() noexcept { ss_status_ = SemanticSystemStatus::ERROR; }
 
 private:
-    bool &in_error_;
+    SemanticSystemStatus &ss_status_;
+
+    explicit SemanticSystemGateway(SemanticSystemStatus &ss_status) : ss_status_(ss_status) {}
+
     friend class SemanticSystem;
-    friend class DiagnosticEngine;
 };
+} // namespace Alpha
 #endif // SEMANTIC_SYSTEM_GATEWAY_HPP

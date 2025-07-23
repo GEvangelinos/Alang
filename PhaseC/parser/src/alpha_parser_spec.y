@@ -61,6 +61,7 @@
 %type  <const_expr_ptr> and_op
 %type  <const_expr_ptr> or_op
 %type  <const_expr_ptr> assignExpr
+%type  <const_expr_ptr> call
 /********************************************************
 %type  <expr_ptr> tableItem
 %type  <expr_ptr> member
@@ -78,7 +79,7 @@
 %type  <const_function_symbol_ptr> funcDef
 %type  <const_function_symbol_ptr> funcSignature
 
-%type  <location>       blockBegin 
+%type  <location>       blockBegin
 %type  <location>       blockEnd
 %type  <block_location> block
 *******************************************************/
@@ -105,11 +106,11 @@
 /* Keyword tokens */
 %token IF       "keyword `if`"
 %token ELSE     "keyword `else`"
-%token WHILE    "keyword `while`"        
+%token WHILE    "keyword `while`"
 %token FOR      "keyword `for`"
-%token CONTINUE "keyword `continue`"        
+%token CONTINUE "keyword `continue`"
 %token BREAK    "keyword `break`"
-%token FUNCTION "keyword `function`"     
+%token FUNCTION "keyword `function`"
 %token RETURN   "keyword `return`"
 %token NOT      "keyword `not`"
 %token AND      "keyword `and`"
@@ -121,7 +122,7 @@
 
 /* Operator tokens */
 %token ASSIGN    "assignment operator ="
-%token PLUS      "+" 
+%token PLUS      "+"
 %token MINUS     "-"
 %token MUL      "*"
 %token DIV       "/"
@@ -131,7 +132,7 @@
 %token GTE       ">="
 %token LTE       "<="
 %token EQ        "=="
-%token NEQ       "!="     
+%token NEQ       "!="
 %token DEC       "decrement operator `--`"
 %token INC       "increment operator `++`"
 
@@ -140,13 +141,13 @@
 %token RIGHT_BRACE   "}"
 %token LEFT_BRACKET  "["
 %token RIGHT_BRACKET "]"
-%token LEFT_PAREN    "(" 
+%token LEFT_PAREN    "("
 %token RIGHT_PAREN   ")"
-%token SEMICOLON     ";"   
+%token SEMICOLON     ";"
 %token COMMA         ","
-%token DOT           "."   
+%token DOT           "."
 %token METHOD_CALL    "method-call operator .."
-%token COLON         ":"   
+%token COLON         ":"
 %token GLOBAL  "global operator ::"
 
 /* Priorities */
@@ -239,7 +240,6 @@ or_op:
   {
     $rhs = ss.call<"convert_to_bool_expr">($rhs);
     $or_op = ss.call<"basic_builder.build_logical_or">($lhs, $rhs, @or_op);
-    $or_op = ss.call<"basic_builder.build_logical_or">($lhs, $rhs, @or_op);
   }
 ;
 
@@ -266,8 +266,8 @@ term
 | LEFT_PAREN expr RIGHT_PAREN { /*TODO : We most likely have to finalize_bool_expr here tOO! test it out!!!
  OR.. maybe not... as it becomes a term and term and expr and when expr become stmt we finalize it ... */
   $term = $expr; }
-| MINUS expr %prec UMINUS { $term = ss.call<"basic_builder.build_uminus">($expr, @term); }
 | not_op { /* TODO: Can we put this under the `expr` rule? */   $term = $not_op; }
+| MINUS expr %prec UMINUS { $term = ss.call<"basic_builder.build_uminus">($expr, @term); }
 | INC expr { $term = ss.call<"assign_builder.build_pre_inc">($expr, @term); }
 | expr INC { $term = ss.call<"assign_builder.build_post_inc">($expr, @term); }
 | DEC expr { $term = ss.call<"assign_builder.build_pre_dec">($expr, @term); }
@@ -284,16 +284,16 @@ assignExpr:
 
 primary
 : const  { $primary = $const; }
-| lvalue { $primary = $lvalue; }
-| call
+| lvalue { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($lvalue); }
+| call   { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($call); }
 | objectDef
 | LEFT_PAREN funcDef RIGHT_PAREN
 ;
 
 lvalue:
-  ID { $lvalue = ss.call<"lvalue_resolver.resolve_id">($ID, @ID); }
-| LOCAL ID
-| GLOBAL ID
+  ID        { $lvalue = ss.call<"lvalue_resolver.resolve_id">($ID, @ID); }
+| LOCAL ID  { $lvalue = ss.call<"lvalue_resolver.resolve_local_id">($ID, @ID); }
+| GLOBAL ID { $lvalue = ss.call<"lvalue_resolver.resolve_global_id">($ID, @ID); }
 | tableItem
 ;
 

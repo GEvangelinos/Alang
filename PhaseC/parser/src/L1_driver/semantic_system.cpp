@@ -7,7 +7,7 @@ SemanticSystem::SemanticSystem(
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
     DiagnosticEngine *const diagnostic_engine)
-    : error_gateway_(in_semantic_error),
+    : ss_gateway_(ss_status_),
       // External resources, required to initialize class.
       parse_ctx_(Utils::require_ptr(parse_ctx)),
       symbol_table_(Utils::require_ptr(symbol_table)),
@@ -41,7 +41,7 @@ SemanticSystem::export_semantic_system_services()
         .expr_snitch = REQUIRE_PTR(expr_snitch_.get()),
         .quad_handler = REQUIRE_PTR(quad_handler_.get()),
         .backpatcher = &backpatcher,
-        .sd_bridge = &sd_bridge_,
+        .ss_bridge = &sd_bridge_,
     };
 }
 

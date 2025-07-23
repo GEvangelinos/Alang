@@ -2,13 +2,12 @@
 #define SEMANTIC_DRIVER_HPP
 
 #include <core/fixed_string.hpp>
-
 #include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 #include "core/basics.hpp"
 #include "L1_driver/semantic_system_gateway.hpp"
-#include "L2_builders/control_flow_managers.hpp"
-#include "L2_builders/expr_builders.hpp"
-#include "L2_builders/lvalue_resolver.hpp"
+#include "parser/L2_semantic_subsystems/control_flow_managers.hpp"
+#include "parser/L2_semantic_subsystems/expr_builders.hpp"
+#include "parser/L2_semantic_subsystems/lvalue_resolver.hpp"
 #include "L3_ir_infra/expr_folder.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
 #include "L3_ir_infra/expr_snitch.hpp"
@@ -19,121 +18,117 @@
 
 namespace Alpha
 {
-    // Order of initialization is intentional.
-    // As the subsystems of semantic driver utilize its internal state,
-    // for their own initialization.
-    class SemanticSystem : private Immobile
+// Order of initialization is intentional.
+// As the subsystems of semantic driver utilize its internal state,
+// for their own initialization.
+class SemanticSystem : private Immobile
+{
+public:
+    struct Options
     {
-    public:
-        enum class Status { OK, ERROR };
-
-        struct Options
-        {
-            const bool fold_arithmetic;
-            const bool fold_relational;
-            const bool fold_logical;
-            const bool propagate_constants;
-            const bool propagate_const_return;
-        };
-
-        SemanticSystem(
-            const Options &options,
-            ParseCtx *parse_ctx,
-            SymbolTable *symbol_table,
-            DiagnosticEngine *diagnostic_engine);
-
-        DISPATCH_DECLARE_HANDLER();
-
-        // TODO make a function that user calls before destructor call that basically extracts all this
-        // alpha drivers would want (like the generated quads).
-        [[nodiscard]] const auto &retrieve_quads() const noexcept { return quad_handler_->quads(); }
-        [[nodiscard]] bool good() const noexcept { return run_state_ == Status::OK; }
-
-    private:
-        // Gateway class for DiagnosticEngine to set SemanticSystem's error state.
-        Status run_state_;
-        SemanticSystemGateway error_gateway_;
-        // Must be initialized first -- used by subsystems during their construction.
-        // Defaulted to nullptr to trigger safe asserts if construction order is violated.
-        ParseCtx *const parse_ctx_ = nullptr;
-        SymbolTable *const symbol_table_ = nullptr;
-        DiagnosticEngine *const diagnostic_engine_ = nullptr;
-        // -- Layer 3 subsystems --
-        // We use unique_ptr instead of normal vars, in order to detect wrong initialization order
-        std::unique_ptr<ExprSnitch> expr_snitch_;
-        std::unique_ptr<ExprMaker> expr_maker_;
-        std::unique_ptr<ExprFolder> expr_folder_;
-        std::unique_ptr<QuadHandler> quad_handler_;
-        SemanticSystemBridge sd_bridge_;
-
-        SemanticSystemServices export_semantic_system_services();
-
-        static AssignBuilder::Options get_assign_builder_options(const Options &options);
-
-        static BasicBuilder::Options get_basic_builder_options(const Options &options);
-
-        friend class SemanticSystemBridge;
-
-        // --Layer 2 subsystems --
-        Backpatcher backpatcher;
-        ConstBuilder const_builder;
-        AssignBuilder assign_builder;
-        BasicBuilder basic_builder;
-        LoopManager loop_manager;
-        LvalueResolver lvalue_resolver;
-
-        // -- Direct methods-- // TODO: maybe package inside a module? // Dont if to unrelatable!
-        void mark_short_circuit_jump_point();
-
-        const Expr *convert_to_bool_expr(const Expr *expr);
-
-        void reset_stmt_context() noexcept;
+        const bool fold_arithmetic;
+        const bool fold_relational;
+        const bool fold_logical;
+        const bool propagate_constants;
+        const bool propagate_const_return;
     };
 
-    DISPATCH_DEFINE_HANDLER_BEGIN(SemanticSystem);
-        DISPATCH_BEGIN_CALLS();
-        DISPATCH_METHOD_CALL(mark_short_circuit_jump_point);
-        DISPATCH_METHOD_CALL(convert_to_bool_expr);
-        DISPATCH_METHOD_CALL(reset_stmt_context);
-        DISPATCH_MODULE_CALL(backpatcher);
-        DISPATCH_MODULE_CALL(const_builder);
-        DISPATCH_MODULE_CALL(assign_builder);
-        DISPATCH_MODULE_CALL(basic_builder);
-        DISPATCH_MODULE_CALL(loop_manager);
-        DISPATCH_MODULE_CALL(lvalue_resolver);
-        DISPATCH_END_CALLS();
-    DISPATCH_DEFINE_HANDLER_END(SemanticSystem);
+    SemanticSystem(
+        const Options &options,
+        ParseCtx *parse_ctx,
+        SymbolTable *symbol_table,
+        DiagnosticEngine *diagnostic_engine);
 
-    inline void
-    SemanticSystem::mark_short_circuit_jump_point()
-    {
-        parse_ctx_->cache.short_circuit_jump_stack.push(quad_handler_->next_quad_label());
-    }
+    DISPATCH_DECLARE_HANDLER();
 
-    // Conversion to bool was IF_EQ and then JUMP, to optimize, I went with a single IF_NOTEQ
-    inline const Expr *
-    SemanticSystem::convert_to_bool_expr(const Expr *const expr)
-    {
-        DEBUG_SMART_ASSERT(!!expr);
+    // TODO make a function that user calls before destructor call that basically extracts all this
+    // alpha drivers would want (like the generated quads).
+    [[nodiscard]] const auto &retrieve_quads() const noexcept { return quad_handler_->quads(); }
+    [[nodiscard]] bool good() const noexcept { return ss_status_ == SemanticSystemStatus::OK; }
 
-        if (expr->type == Expr::Type::BOOL_EXPR)
-            return expr;
-        if (SemUtils::is_static_expr(expr))
-            return SemUtils::as_bool(expr)
-                       ? expr_maker_->make_const_bool_expr(expr->loc, true)
-                       : expr_maker_->make_const_bool_expr(expr->loc, false);
+private:
+    // Gateway class for DiagnosticEngine to set SemanticSystem's error state.
+    SemanticSystemStatus ss_status_;
+    SemanticSystemGateway ss_gateway_;
+    // Must be initialized first -- used by subsystems during their construction.
+    // Defaulted to nullptr to trigger safe asserts if construction order is violated.
+    ParseCtx *const parse_ctx_ = nullptr;
+    SymbolTable *const symbol_table_ = nullptr;
+    DiagnosticEngine *const diagnostic_engine_ = nullptr;
+    // -- Layer 3 subsystems --
+    // We use unique_ptr instead of normal vars, in order to detect wrong initialization order
+    std::unique_ptr<ExprSnitch> expr_snitch_;
+    std::unique_ptr<ExprMaker> expr_maker_;
+    std::unique_ptr<ExprFolder> expr_folder_;
+    std::unique_ptr<QuadHandler> quad_handler_;
+    SemanticSystemBridge sd_bridge_;
 
+    SemanticSystemServices export_semantic_system_services();
 
-        const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
-        bool_expr->true_list.push_back(quad_handler_->next_quad_label());
-        quad_handler_->emit_labelless(IOPCode::IF_EQ, expr, &k_static_true_expr, nullptr, expr->loc);
-        bool_expr->false_list.push_back(quad_handler_->next_quad_label());
-        quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
+    static AssignBuilder::Options get_assign_builder_options(const Options &options);
 
-        return bool_expr;
-    }
+    static BasicBuilder::Options get_basic_builder_options(const Options &options);
 
-    inline void
-    SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->name_generator.reset_temp_names(); }
+    friend class SemanticSystemBridge;
+
+    // --Layer 2 subsystems --
+    Backpatcher backpatcher;
+    ConstBuilder const_builder;
+    AssignBuilder assign_builder;
+    BasicBuilder basic_builder;
+    LoopManager loop_manager;
+    LvalueResolver lvalue_resolver;
+
+    // -- Direct methods-- // TODO: maybe package inside a module? // Dont if to unrelatable!
+    void mark_short_circuit_jump_point();
+
+    const Expr *convert_to_bool_expr(const Expr *expr);
+
+    void reset_stmt_context() noexcept;
+};
+
+DISPATCH_DEFINE_HANDLER_BEGIN(SemanticSystem);
+    DISPATCH_BEGIN_CALLS();
+    DISPATCH_MASTER_METHOD_CALL(mark_short_circuit_jump_point);
+    DISPATCH_MASTER_METHOD_CALL(convert_to_bool_expr);
+    DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
+    DISPATCH_MASTER_MODULE_CALL(backpatcher);
+    DISPATCH_MASTER_MODULE_CALL(const_builder);
+    DISPATCH_MASTER_MODULE_CALL(assign_builder);
+    DISPATCH_MASTER_MODULE_CALL(basic_builder);
+    DISPATCH_MASTER_MODULE_CALL(loop_manager);
+    DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
+    DISPATCH_END_CALLS();
+DISPATCH_DEFINE_HANDLER_END(SemanticSystem);
+
+inline void
+SemanticSystem::mark_short_circuit_jump_point()
+{
+    parse_ctx_->cache.short_circuit_jump_stack.push(quad_handler_->next_quad_label());
+}
+
+inline const Expr *
+SemanticSystem::convert_to_bool_expr(const Expr *const expr)
+{
+    DEBUG_SMART_ASSERT(!!expr);
+
+    if (expr->type == Expr::Type::BOOL_EXPR)
+        return expr;
+    if (SemUtils::is_static_expr(expr))
+        return SemUtils::as_bool(expr)
+               ? expr_maker_->make_const_bool_expr(expr->loc, true)
+               : expr_maker_->make_const_bool_expr(expr->loc, false);
+
+    const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
+    bool_expr->true_list.push_back(quad_handler_->next_quad_label());
+    quad_handler_->emit_labelless(IOPCode::IF_EQ, expr, &k_static_true_expr, nullptr, expr->loc);
+    bool_expr->false_list.push_back(quad_handler_->next_quad_label());
+    quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
+
+    return bool_expr;
+}
+
+inline void
+SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->name_generator.reset_temp_names(); }
 } // namespace Alpha
 #endif // SEMANTIC_DRIVER_HPP

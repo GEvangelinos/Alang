@@ -204,7 +204,7 @@ SymbolTable::hide_scope_symbols(const u32 scope) noexcept
 }
 
 bool
-SymbolTable::is_lib_function(const std::string &name) const
+SymbolTable::is_libfunc_name(const std::string &name) const
 {
     return library_function_set_.contains(name);
 }

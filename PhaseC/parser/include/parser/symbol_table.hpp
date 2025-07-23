@@ -65,7 +65,7 @@ public:
     [[nodiscard]] const Symbol *lookup_local(const std::string &name, u32 scope) const;
 
     void hide_scope_symbols(u32 scope) noexcept;
-    [[nodiscard]] bool is_lib_function(const std::string &name) const;
+    [[nodiscard]] bool is_libfunc_name(const std::string &name) const;
     [[nodiscard]] const auto &symbols_per_scope() const { return symbols_per_scope_; }
 
     /// The following two methods provide controlled overrides for `const_expr_` assignment

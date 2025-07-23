@@ -162,7 +162,7 @@ namespace Alpha::SemUtils
     }
 }
 
-[[nodiscard]] constexpr const char *arith_op_to_str(const IOPCode iopc)
+[[nodiscard]] constexpr const char *arith_iopc_to_str_symbol(const IOPCode iopc)
 {
     DEBUG_SMART_ASSERT(is_binary_arithmetic_iopcode(iopc));
     switch (iopc)

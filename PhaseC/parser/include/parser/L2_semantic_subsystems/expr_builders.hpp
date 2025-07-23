@@ -1,23 +1,18 @@
 #ifndef EXPR_BUILDERS_HPP
 #define EXPR_BUILDERS_HPP
-
-#include  <L1_driver/semantic_system_dispatcher_dsl.hpp>
+#include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 #include "L1_driver/semantic_system_support.hpp"
 #include "L3_ir_infra/expr_folder.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
 #include "parser/ir.hpp"
 #include "parser/semantic_utils.hpp"
+#include "semantic_subsystem.hpp"
 
 namespace Alpha
 {
-class Backpatcher
+class Backpatcher final : private SemanticSubsystem
 {
-private:
-    ExprMaker *const expr_maker_ = nullptr;
-    ParseCache *const parse_cache_ = nullptr;
-    QuadHandler *const quad_handler_ = nullptr;
-
 public:
     struct OrPolicy
     {
@@ -35,7 +30,8 @@ public:
         static auto &assign_list(const BoolExpr *e) { return e->true_list; }
     };
 
-    explicit Backpatcher(const SemanticSystemServices &services);
+    explicit Backpatcher(const SemanticSystemServices &ss_services);
+    ~Backpatcher() override = default;
 
     DISPATCH_DECLARE_HANDLER();
 
@@ -43,9 +39,12 @@ public:
     [[nodiscard]] const Expr *resolve_lazy_bool_expr(
         const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     void finalize_bool_expr(const Expr *expr);
+
+private:
+    ParseCache *const parse_cache_;
 };
 
-class AssignBuilder
+class AssignBuilder final : private SemanticSubsystem
 {
 public:
     struct Options
@@ -53,7 +52,8 @@ public:
         bool record_constant_variables;
     };
 
-    AssignBuilder(Options &&options, const SemanticSystemServices &services);
+    AssignBuilder(Options &&options, const SemanticSystemServices &ss_services);
+    ~AssignBuilder() override = default;
 
     DISPATCH_DECLARE_HANDLER();
 
@@ -82,12 +82,6 @@ private:
     };
 
     const Options options_;
-    DiagnosticReporter *const dr_;
-    ParseCtx *const parse_ctx_;
-    ExprMaker *const expr_maker_;
-    ExprSnitch *const expr_snitch_;
-    QuadHandler *const quad_handler_;
-    SemanticSystemBridge *const ss_bridge_;
 
     [[nodiscard]] bool validate_lvalue_assignment(const Expr *lvalue, SourceLocation assign_loc);
     [[nodiscard]] bool try_record_const_expr(const Expr *lvalue, const Expr *rvalue);
@@ -104,7 +98,7 @@ private:
     [[nodiscard]] const Expr *handle_post_inc_dec(const Expr *lvalue, SourceLocation result_loc);
 };
 
-class BasicBuilder
+class BasicBuilder final : private SemanticSubsystem
 {
 public:
     struct Options
@@ -115,7 +109,8 @@ public:
         bool constant_propagation;
     };
 
-    BasicBuilder(Options &&options, const SemanticSystemServices &services);
+    BasicBuilder(Options &&options, const SemanticSystemServices &ss_services);
+    ~BasicBuilder() override = default;
 
     DISPATCH_DECLARE_HANDLER();
 
@@ -132,13 +127,6 @@ public:
 
 private:
     const Options options_;
-    DiagnosticReporter *const dr_;
-    ExprMaker *const expr_maker_;
-    ExprFolder *const expr_folder_;
-    ExprSnitch *const snitch_;
-    QuadHandler *const quad_handler_;
-    Backpatcher *const backpatcher_;
-
 
     template<typename... Exprs>
     [[nodiscard]] bool should_fold_arithmetic(const Exprs &... exprs);
@@ -152,11 +140,11 @@ private:
     [[nodiscard]] static const Expr *try_propagate_const(const Expr *expr);
 };
 
-
-class ConstBuilder
+class ConstBuilder final : private SemanticSubsystem
 {
 public:
-    explicit ConstBuilder(const SemanticSystemServices &services);
+    explicit ConstBuilder(const SemanticSystemServices &ss_services);
+    ~ConstBuilder() override = default;
 
     DISPATCH_DECLARE_HANDLER();
 
@@ -166,21 +154,16 @@ public:
     [[nodiscard]] const Expr *build_float_expr(AlphaFloat value, SourceLocation loc);
     [[nodiscard]] const Expr *build_string_expr(const char *value, SourceLocation loc);
     [[nodiscard]] const Expr *build_nil_expr(SourceLocation loc);
-
-private:
-    DiagnosticReporter *const dr_;
-    ExprMaker *const expr_maker_;
 };
 
 inline
-Backpatcher::Backpatcher(const SemanticSystemServices &services)
-    : expr_maker_(REQUIRE_PTR(services.expr_maker)),
-      parse_cache_(&REQUIRE_PTR(services.parse_ctx)->cache),
-      quad_handler_(REQUIRE_PTR(services.quad_handler)) {}
+Backpatcher::Backpatcher(const SemanticSystemServices &ss_services)
+    : SemanticSubsystem(ss_services),
+      parse_cache_(&REQUIRE_PTR(parse_ctx_)->cache) {}
 
 DISPATCH_DEFINE_HANDLER_BEGIN(Backpatcher);
     DISPATCH_BEGIN_CALLS();
-    DISPATCH_METHOD_CALL(finalize_bool_expr);
+    DISPATCH_SLAVE_METHOD_CALL(finalize_bool_expr);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(Backpatcher);
 
@@ -239,22 +222,17 @@ Backpatcher::finalize_bool_expr(const Expr *const expr)
 }
 
 inline
-AssignBuilder::AssignBuilder(Options &&options, const SemanticSystemServices &services)
-    : options_(options),
-      dr_(REQUIRE_PTR(services.dr)),
-      parse_ctx_(REQUIRE_PTR(services.parse_ctx)),
-      expr_maker_(REQUIRE_PTR(services.expr_maker)),
-      expr_snitch_(REQUIRE_PTR(services.expr_snitch)),
-      quad_handler_(REQUIRE_PTR(services.quad_handler)),
-      ss_bridge_(REQUIRE_PTR(services.sd_bridge)) {}
+AssignBuilder::AssignBuilder(Options &&options, const SemanticSystemServices &ss_services)
+    : SemanticSubsystem(ss_services),
+      options_(options) {}
 
 DISPATCH_DEFINE_HANDLER_BEGIN(AssignBuilder);
     DISPATCH_BEGIN_CALLS();
-    DISPATCH_METHOD_CALL(build_assignment);
-    DISPATCH_METHOD_CALL(build_pre_inc);
-    DISPATCH_METHOD_CALL(build_post_inc);
-    DISPATCH_METHOD_CALL(build_pre_dec);
-    DISPATCH_METHOD_CALL(build_post_dec);
+    DISPATCH_SLAVE_METHOD_CALL(build_assignment);
+    DISPATCH_SLAVE_METHOD_CALL(build_pre_inc);
+    DISPATCH_SLAVE_METHOD_CALL(build_post_inc);
+    DISPATCH_SLAVE_METHOD_CALL(build_pre_dec);
+    DISPATCH_SLAVE_METHOD_CALL(build_post_dec);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(AssignBuilder);
 
@@ -296,7 +274,6 @@ AssignBuilder::build_post_dec(const Expr *const lvalue, const SourceLocation res
 {
     return build_inc_dec<OpVariant::POST, DecPolicy>(lvalue, result_loc);
 }
-
 
 inline bool
 AssignBuilder::validate_lvalue_assignment(
@@ -358,7 +335,7 @@ AssignBuilder::handle_table_item_assignment(
 
     const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
     quad_handler_->emit_next(IOPCode::TABLESETELEM, ti, ti->index, rvalue, result_loc);
-    const Expr *temp_var = ss_bridge_->emit_quad_if_table_item(lvalue); // !CERTAIN EMIT!
+    const Expr *temp_var = ss_bridge_->if_table_item_emit_tablegetelem(lvalue); // !CERTAIN EMIT!
     DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
     const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
     return expr_maker_->make_assign_expr(result_loc, temp_symbol);
@@ -374,7 +351,6 @@ AssignBuilder::handle_direct_assignment(
 
     if (try_record_const_expr(lvalue, rvalue))
         return lvalue; // Now lvalue's symbol carries rvalue.
-
 
     // TODO: check todo 52 (on how to make this only when needed)
     const Expr *const temp = expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());
@@ -415,11 +391,10 @@ AssignBuilder::handle_pre_inc_dec(const Expr *lvalue, const SourceLocation resul
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
-        result = ss_bridge_->emit_quad_if_table_item(ti_lvalue); // EMITS!
+        result = ss_bridge_->if_table_item_emit_tablegetelem(ti_lvalue); // EMITS!
         qh->emit_next(Policy::iopc, result, &k_static_int_1_expr, result, result_loc);
         qh->emit_next(IOPCode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result, result_loc);
-    }
-    else
+    } else
     {
         // TODO: HOOK: After you implemented logic to make assignment aware of if its happening,
         // inside a function parameter list (TODO 52), create this new arithmetic_expr (new temp)
@@ -429,7 +404,7 @@ AssignBuilder::handle_pre_inc_dec(const Expr *lvalue, const SourceLocation resul
         qh->emit_next(Policy::iopc, lvalue, &k_static_int_1_expr, lvalue, result_loc);
         qh->emit_next(IOPCode::ASSIGN, lvalue, nullptr, result, result_loc);
     }
-    return DEBUG_REQUIRE_PTR(result); // Check cause we initialized with nullptr.
+    return DEBUG_REQUIRE_PTR(result); // Check because we initialized with nullptr.
 }
 
 template<typename Policy>
@@ -444,12 +419,11 @@ AssignBuilder::handle_post_inc_dec(const Expr *lvalue, const SourceLocation resu
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
-        const Expr *ti = ss_bridge_->emit_quad_if_table_item(lvalue); // EMITS!
+        const Expr *ti = ss_bridge_->if_table_item_emit_tablegetelem(lvalue); // EMITS!
         qh->emit_next(IOPCode::ASSIGN, ti, nullptr, result, result_loc);
         qh->emit_next(Policy::iopc, ti, &k_static_int_1_expr, ti, result_loc);
         qh->emit_next(IOPCode::TABLESETELEM, ti_lvalue, ti_lvalue->index, ti, result_loc);
-    }
-    else
+    } else
     {
         qh->emit_next(IOPCode::ASSIGN, lvalue, nullptr, result, result_loc);
         qh->emit_next(Policy::iopc, lvalue, &k_static_int_1_expr, lvalue, result_loc);
@@ -458,24 +432,19 @@ AssignBuilder::handle_post_inc_dec(const Expr *lvalue, const SourceLocation resu
 }
 
 inline
-BasicBuilder::BasicBuilder(Options &&options, const SemanticSystemServices &services)
-    : options_(options),
-      dr_(REQUIRE_PTR(services.dr)),
-      expr_maker_(REQUIRE_PTR(services.expr_maker)),
-      expr_folder_(REQUIRE_PTR(services.expr_folder)),
-      snitch_(REQUIRE_PTR(services.expr_snitch)),
-      quad_handler_(REQUIRE_PTR(services.quad_handler)),
-      backpatcher_(REQUIRE_PTR(services.backpatcher)) {}
+BasicBuilder::BasicBuilder(Options &&options, const SemanticSystemServices &ss_services)
+    : SemanticSubsystem(ss_services),
+      options_(options) {}
 
 DISPATCH_DEFINE_HANDLER_BEGIN(BasicBuilder);
     DISPATCH_BEGIN_CALLS();
-    DISPATCH_METHOD_CALL(build_uminus);
-    DISPATCH_METHOD_CALL(build_arithmetic);
-    DISPATCH_METHOD_CALL(build_relational);
-    DISPATCH_METHOD_CALL(build_relational);
-    DISPATCH_METHOD_CALL(build_logical_not);
-    DISPATCH_METHOD_CALL(build_logical_and);
-    DISPATCH_METHOD_CALL(build_logical_or);
+    DISPATCH_SLAVE_METHOD_CALL(build_uminus);
+    DISPATCH_SLAVE_METHOD_CALL(build_arithmetic);
+    DISPATCH_SLAVE_METHOD_CALL(build_relational);
+    DISPATCH_SLAVE_METHOD_CALL(build_relational);
+    DISPATCH_SLAVE_METHOD_CALL(build_logical_not);
+    DISPATCH_SLAVE_METHOD_CALL(build_logical_and);
+    DISPATCH_SLAVE_METHOD_CALL(build_logical_or);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(BasicBuilder);
 
@@ -485,7 +454,7 @@ BasicBuilder::build_uminus(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
-    snitch_->report_if_not_arithmetic_expr(IOPCode::UMINUS, expr, OperandSide::UNARY);
+    expr_snitch_->report_if_not_arithmetic_expr(IOPCode::UMINUS, expr, OperandSide::UNARY);
 
     if (should_propagate_const())
         expr = try_propagate_const(expr);
@@ -503,11 +472,10 @@ BasicBuilder::build_arithmetic(
     const Expr *lhs,
     const Expr *rhs,
     const SourceLocation result_loc)
-
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    snitch_->report_if_not_arithmetic_expr(iopc, lhs, OperandSide::LEFT);
-    snitch_->report_if_not_arithmetic_expr(iopc, rhs, OperandSide::RIGHT);
+    expr_snitch_->report_if_not_arithmetic_expr(iopc, lhs, OperandSide::LEFT);
+    expr_snitch_->report_if_not_arithmetic_expr(iopc, rhs, OperandSide::RIGHT);
 
     if (should_propagate_const())
     {
@@ -530,8 +498,8 @@ BasicBuilder::build_relational(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    snitch_->report_if_not_relational(iopc, lhs, OperandSide::LEFT);
-    snitch_->report_if_not_relational(iopc, rhs, OperandSide::RIGHT);
+    expr_snitch_->report_if_not_relational(iopc, lhs, OperandSide::LEFT);
+    expr_snitch_->report_if_not_relational(iopc, rhs, OperandSide::RIGHT);
 
     if (should_propagate_const())
     {
@@ -688,20 +656,19 @@ inline bool BasicBuilder::should_propagate_const()
 }
 
 inline
-ConstBuilder::ConstBuilder(const SemanticSystemServices &services)
-    : dr_(REQUIRE_PTR(services.dr)),
-      expr_maker_(REQUIRE_PTR(services.expr_maker)) {}
+ConstBuilder::ConstBuilder(const SemanticSystemServices &ss_services)
+    : SemanticSubsystem(ss_services) {}
 
 DISPATCH_DEFINE_HANDLER_BEGIN(ConstBuilder);
     DISPATCH_BEGIN_CALLS();
-    DISPATCH_METHOD_CALL(build_true_expr);
-    DISPATCH_METHOD_CALL(build_false_expr);
-    DISPATCH_METHOD_CALL(build_false_expr);
-    DISPATCH_METHOD_CALL(build_false_expr);
-    DISPATCH_METHOD_CALL(build_int_expr);
-    DISPATCH_METHOD_CALL(build_float_expr);
-    DISPATCH_METHOD_CALL(build_string_expr);
-    DISPATCH_METHOD_CALL(build_nil_expr);
+    DISPATCH_SLAVE_METHOD_CALL(build_true_expr);
+    DISPATCH_SLAVE_METHOD_CALL(build_false_expr);
+    DISPATCH_SLAVE_METHOD_CALL(build_false_expr);
+    DISPATCH_SLAVE_METHOD_CALL(build_false_expr);
+    DISPATCH_SLAVE_METHOD_CALL(build_int_expr);
+    DISPATCH_SLAVE_METHOD_CALL(build_float_expr);
+    DISPATCH_SLAVE_METHOD_CALL(build_string_expr);
+    DISPATCH_SLAVE_METHOD_CALL(build_nil_expr);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(ConstBuilder);
 
@@ -736,9 +703,6 @@ ConstBuilder::build_string_expr(const char *const value, const SourceLocation lo
 }
 
 inline const Expr *
-ConstBuilder::build_nil_expr(const SourceLocation loc)
-{
-    return expr_maker_->make_nil_expr(loc);
-}
+ConstBuilder::build_nil_expr(const SourceLocation loc) { return expr_maker_->make_nil_expr(loc); }
 } // namespace Alpha
 #endif // EXPR_BUILDERS_HPP
