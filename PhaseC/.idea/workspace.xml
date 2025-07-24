@@ -6,7 +6,7 @@
   <component name="BackendCodeEditorMiscSettings">
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
     <option name="/Default/Housekeeping/LiveTemplatesHousekeeping/HotspotSessionHintIsShown/@EntryValue" value="true" type="bool" />
-    <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="CppFormatterOtherPage" type="string" />
+    <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="RiderCppLiveTemplatesSettings" type="string" />
     <option name="/Default/Housekeeping/RefactoringsMru/RenameRefactoring/DoQuickRename/@EntryValue" value="true" type="bool" />
   </component>
   <component name="CMakePresetLoader">{
@@ -42,23 +42,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/block_manager.hpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/parser/src/L2_builders/control_flow_managers.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.TODO_BLACKWHOLE.md" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.cached_files/OLD_semantic_builder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/.cached_files/OLD_semantic_builder.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/test.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/test.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/source_location.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/source_location.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_support.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_support.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_managers.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_managers.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/block_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/block_manager.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/lvalue_resolver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/lvalue_resolver.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/_parser_common.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/_parser_common.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system_support.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system_support.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -249,6 +240,7 @@
     "Python.main.executor": "Run",
     "RunOnceActivity.RadMigrateCodeStyle": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
     "RunOnceActivity.cidr.known.project.marker": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
@@ -262,7 +254,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "settings.editor.selected.configurable": "RiderCppLiveTemplatesSettingsId",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -272,11 +264,6 @@
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.alpha_driver.out">
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="alpha_core_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_core_impl" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -409,6 +396,8 @@
       <workItem from="1751911590565" duration="13518000" />
       <workItem from="1752085378128" duration="21245000" />
       <workItem from="1752244324184" duration="29964000" />
+      <workItem from="1753375474284" duration="3000" />
+      <workItem from="1753376013995" duration="13113000" />
     </task>
     <servers />
   </component>

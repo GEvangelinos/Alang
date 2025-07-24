@@ -50,16 +50,7 @@ public:
     SemanticBuilder(SemanticOpts sem_opts, ParseCtx &parse_ctx, SymbolTable &st,
                     ErrorTracker &et);
 
-    [[nodiscard]] ExprList *make_empty_expr_list();
-    [[nodiscard]] ExprList *make_expr_list_with(Expr *expr, Location new_expr_loc);
-    [[nodiscard]] ExprList *extend_expr_list_with(ExprList *expr_list, Expr *expr,
-                                                  Location new_expr_loc);
-    [[nodiscard]] DictList *make_dict_list_with(ExprPair *first_pair);
-    [[nodiscard]] DictList *extend_dict_list_with(DictList *dict_list, ExprPair *new_pair);
-    [[nodiscard]] Expr *make_table_list(ExprList *&elist, Location table_list_loc);
-    [[nodiscard]] Expr *make_table_dict(DictList *&dlist, Location table_dict_loc);
     [[nodiscard]] Expr *make_program_function(const Function *function_symbol);
-    [[nodiscard]] ExprPair *make_expr_pair(Expr *first, Expr *second);
     [[nodiscard]] Expr *make_table_item(Expr *&lvalue, const char *id, Location table_item_loc,
                                         Location id_loc);
     [[nodiscard]] Expr *make_table_item(Expr *&lvalue, Expr *expr, Location table_item_loc);
@@ -69,9 +60,6 @@ public:
     [[nodiscard]] Expr *make_iife_call(const Function *func_symbol, ExprList *&elist,
                                        Location call_loc);
 
-    [[nodiscard]] static BlockLocation make_block_location(Location begin,
-                                                           Location end) noexcept;
-
 private:
     ParseCtx &parse_ctx_;
     [[maybe_unused]] SymbolTable &st_; // TODO: REMOVE IF UNUSED
@@ -80,12 +68,10 @@ private:
     void delete_expr_list(ExprList *&elist);
     void delete_dict_list(DictList *&dlist);
 
-    static void update_expr_location(Expr *expr, Location new_expr_loc);
     [[nodiscard]] DictList *make_empty_dict_list();
 
 }; // class SemanticBuilder
 
-inline ExprList *SemanticBuilder::make_empty_expr_list() { return new ExprList(); }
 
 inline void SemanticBuilder::delete_expr_list(ExprList *&elist)
 {
@@ -99,22 +85,6 @@ inline void SemanticBuilder::delete_dict_list(DictList *&dlist)
         delete pair;
     delete dlist;
     DEBUG_NULLIFY(dlist);
-}
-
-inline ExprList *SemanticBuilder::make_expr_list_with(Expr *expr, const Location new_expr_loc)
-{
-    DEBUG_SMART_ASSERT(!!expr);
-    ExprList *new_expr_list = make_empty_expr_list();
-    return extend_expr_list_with(new_expr_list, expr, new_expr_loc);
-}
-
-inline ExprList *SemanticBuilder::extend_expr_list_with(ExprList *expr_list, Expr *expr,
-                                                        const Location new_expr_loc)
-{
-    DEBUG_SMART_ASSERT(!!expr_list, !!expr);
-    update_expr_location(expr, new_expr_loc);
-    expr_list->push_back(expr);
-    return expr_list;
 }
 
 inline Expr *SemanticBuilder::make_call(Expr *lvalue, ExprList *&elist, Location call_loc)
@@ -192,27 +162,7 @@ inline Expr *SemanticBuilder::make_program_function(const Function *function_sym
     return parse_ctx_.expr_handler.make_expr_program_function(function_symbol);
 }
 
-inline ExprPair *SemanticBuilder::make_expr_pair(Expr *first, Expr *second)
-{
-    return new ExprPair(first, second);
-}
 
-inline DictList *SemanticBuilder::make_empty_dict_list() { return new DictList{}; }
-
-inline DictList *SemanticBuilder::make_dict_list_with(ExprPair *first_element)
-{
-    DEBUG_SMART_ASSERT(!!first_element);
-    DictList *new_dict_list = make_empty_dict_list();
-    new_dict_list->push_back(first_element);
-    return new_dict_list;
-}
-
-inline DictList *SemanticBuilder::extend_dict_list_with(DictList *dict_list, ExprPair *new_pair)
-{
-    DEBUG_SMART_ASSERT(!!dict_list, !!new_pair);
-    dict_list->push_back(new_pair);
-    return dict_list;
-}
 
 inline Expr *SemanticBuilder::make_table_item(Expr *&lvalue, const char *id,
                                               Location table_item_loc, Location id_loc)
@@ -253,19 +203,6 @@ inline Expr *SemanticBuilder::make_iife_call(const Function *func_symbol, ExprLi
     return make_call(func_expr, elist, call_loc);
 }
 
-inline BlockLocation SemanticBuilder::make_block_location(Location begin, Location end) noexcept
-{
-    return {
-        .begin = begin,
-        .end = end,
-    };
-}
-
-
-inline void SemanticBuilder::update_expr_location(Expr *expr, Location new_expr_loc)
-{
-    expr->location = new_expr_loc;
-}
 
 } // namespace Alpha
 

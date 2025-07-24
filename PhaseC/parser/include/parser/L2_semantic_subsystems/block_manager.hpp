@@ -16,11 +16,12 @@ private:
     void enter_block() noexcept;
     void exit_block() noexcept;
 
-    BlockSourceLocation make_block_location(
-        SourceLocation begin, SourceLocation end) const noexcept;
+    static BlockSourceLocation make_block_location(
+        SourceLocation begin, SourceLocation end) noexcept;
 };
 
-inline BlockManager::BlockManager(const SemanticSystemServices &ss_services)
+inline
+BlockManager::BlockManager(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
 
 DISPATCH_DEFINE_HANDLER_BEGIN(BlockManager);
@@ -31,18 +32,18 @@ DISPATCH_DEFINE_HANDLER_BEGIN(BlockManager);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(BlockManager);
 
-inline void BlockManager::enter_block() noexcept { parse_ctx_->scope_handler.enter_scope(); }
+inline void
+BlockManager::enter_block() noexcept { parse_ctx_->scope_handler.enter_scope(); }
 
-inline void BlockManager::exit_block() noexcept
+inline void
+BlockManager::exit_block() noexcept
 {
     symbol_table_->hide_scope_symbols(parse_ctx_->scope_handler.scope());
     parse_ctx_->scope_handler.exit_scope();
 }
 
 inline BlockSourceLocation
-BlockManager::make_block_location(
-    const SourceLocation begin,
-    const SourceLocation end) noexcept
+BlockManager::make_block_location(const SourceLocation begin, const SourceLocation end) noexcept
 {
     return {
         .begin = begin,

@@ -407,4 +407,24 @@ TODO: Compiler Feature Planning
 66) Put all friend declaration of any class at the top.. .before any access specifier (private ,public)
   at it quickly signal I am this function... I inherit these.. and my freinds are..
 
+  BEcareful this rule can be broken.. if friendship order matters for ex:
+
+    class Facade {};
+
+    class AggregateBuilder final : private SemanticSubsystem
+    {
+    public:
+        class Facade
+        {
+        friend class SemanticSystem;
+
+            AggregateBuilder &ab_ref_;
+            explicit Facade(AggregateBuilder &ab_ref): ab_ref_(ab_ref) {}
+        };
+
+        // Friendship to Facade must be declared after the nested class definition,
+        // otherwise a global class named Facade could unintentionally receive friendship.
+        friend class Facade;
+
+
 

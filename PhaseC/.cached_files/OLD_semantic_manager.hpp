@@ -131,7 +131,7 @@ inline void SemanticManager::insert_gathered_function_parameters()
         if (!reported_parameter_name_conflict(current_scope, param))
             st_.insert_variable(param.name, current_scope,
                                 Variable::Type::FORMAL_ARGUMENT, space,
-                                parse_ctx_.space_handler.next_offset(), param.location);
+                                parse_ctx_.space_handler.next_offset(), param.loc);
 }
 
 inline bool SemanticManager::reported_parameter_name_conflict(const u32 current_scope,
@@ -142,7 +142,7 @@ inline bool SemanticManager::reported_parameter_name_conflict(const u32 current_
     {
         const std::string error = FMT::format(
             "`{}` is a library function, can't declare it as formal", parameter.name);
-        et_.report_error(CTError::Type::SEMANTIC, error, parameter.location);
+        et_.report_error(CTError::Type::SEMANTIC, error, parameter.loc);
         return true;
     }
     const Symbol *formal_symbol = st_.lookup_local(parameter.name, current_scope);
@@ -159,7 +159,7 @@ inline bool SemanticManager::reported_parameter_name_conflict(const u32 current_
                 FMT::format("redefinition of parameter `{}`", parameter.name);
         const std::string note =
                 FMT::format("previous definition of `{}` here", parameter.name);
-        et_.report_error(CTError::Type::SEMANTIC, error, parameter.location, note,
+        et_.report_error(CTError::Type::SEMANTIC, error, parameter.loc, note,
                          formal_symbol->location);
         return true;
     }

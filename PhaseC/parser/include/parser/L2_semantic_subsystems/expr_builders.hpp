@@ -44,6 +44,44 @@ private:
     ParseCache *const parse_cache_;
 };
 
+class AggregateBuilder final : private SemanticSubsystem
+{
+public:
+    class Facade
+    {
+        friend class SemanticSystem;
+
+    private:
+        AggregateBuilder &ab_ref_;
+
+        explicit Facade(AggregateBuilder &ab_ref): ab_ref_(ab_ref) {}
+
+        DISPATCH_DECLARE_HANDLER();
+    };
+
+    friend class Facade;
+    /// Friendship to Facade must be declared after the nested class definition,
+    /// otherwise a global class named Facade could unintentionally receive friendship.
+
+private:
+    explicit AggregateBuilder(const SemanticSystemServices &ss_services);
+
+    // List related (candidate for submodule)
+    [[nodiscard]] static ExprList *make_expr_list();
+    [[nodiscard]] static ExprList *make_expr_list(const Expr *head_expr);
+    [[nodiscard]] static ExprList *extend_expr_list(ExprList *expr_list, const Expr *next_expr);
+
+    [[nodiscard]] static const ExprPair *make_expr_pair(const Expr *first, const Expr *second);
+
+    // Dict related (candidate for submodule)
+    [[nodiscard]] static DictList *make_dict_list();
+    [[nodiscard]] static DictList *make_dict_list(const ExprPair *head_pair);
+    [[nodiscard]] static DictList *extend_dict_list(DictList *dict_list, const ExprPair *next_pair);
+
+    [[nodiscard]] static Expr *make_table_list(ExprList *&elist, SourceLocation table_list_loc);
+    [[nodiscard]] static Expr *make_table_dict(DictList *&dlist, SourceLocation table_dict_loc);
+};
+
 class AssignBuilder final : private SemanticSubsystem
 {
 public:
@@ -219,6 +257,55 @@ Backpatcher::finalize_bool_expr(const Expr *const expr)
     qh->emit_next(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc, 2);
     qh->patch_list(bool_expr->false_list, quad_handler_->next_quad_label());
     qh->emit_next(IOPCode::ASSIGN, &k_static_false_expr, nullptr, expr, expr->loc);
+}
+
+inline
+AggregateBuilder::AggregateBuilder(const SemanticSystemServices &ss_services)
+    : SemanticSubsystem(ss_services) {}
+
+inline ExprList *
+AggregateBuilder::make_expr_list() { return new ExprList(); }
+
+inline ExprList *
+AggregateBuilder::make_expr_list(const Expr *const head_expr)
+{
+    DEBUG_SMART_ASSERT(!!head_expr);
+    return extend_expr_list(make_expr_list(), head_expr);
+}
+
+inline ExprList *
+AggregateBuilder::extend_expr_list(ExprList *const expr_list, const Expr *const next_expr)
+{
+    DEBUG_SMART_ASSERT(!!expr_list, !!next_expr);
+    expr_list->push_back(next_expr);
+    return expr_list;
+}
+
+inline const ExprPair *
+AggregateBuilder::make_expr_pair(const Expr *const first, const Expr *const second)
+{
+    DEBUG_SMART_ASSERT(!!first, !!second);
+    // TODO: can you make this `new const` ? Can you delete ptr afterwards?
+    // WIthout const_cast() checks when at end of project
+    return new ExprPair(first, second);
+}
+
+inline DictList *
+AggregateBuilder::make_dict_list() { return new DictList(); }
+
+inline DictList *
+AggregateBuilder::make_dict_list(const ExprPair *const head_pair)
+{
+    DEBUG_SMART_ASSERT(!!head_pair);
+    return extend_dict_list(make_dict_list(), head_pair);
+}
+
+inline DictList *
+AggregateBuilder::extend_dict_list(DictList *const dict_list, const ExprPair *const next_pair)
+{
+    DEBUG_SMART_ASSERT(!!dict_list, !!next_pair);
+    dict_list->push_back(next_pair);
+    return dict_list;
 }
 
 inline

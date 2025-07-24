@@ -80,8 +80,6 @@
 %type  <const_function_symbol_ptr> funcSignature
 
 *******************************************************/
-%type  <location>       block_begin_loc
-%type  <location>       block_end_loc
 %type  <block_location> block_loc
 
 /* By default Bison uses the bare token names (e.g. IF, METHOD_CALL)
@@ -317,7 +315,12 @@ call[invocation]:
 ;
 
 exprList[head]:
-  expr 
+  expr
+  {
+    ss.call<"backpatcher.finalize_bool_expr">($expr);
+    
+
+  }
 | expr COMMA exprList[tail]
 ;
 
@@ -354,18 +357,22 @@ indexedElem:
   RIGHT_BRACE
 ;
 
-block_begin_loc:
+block_begin:
   LEFT_BRACE  { ss.call<"block_manager.enter_block">(); }
 ;
 
-block_end_loc:
+block_end:
   RIGHT_BRACE { ss.call<"block_manager.exit_block">(); }
 ;
 
 
+block_body:
+  /* (empty) */
+| multiStmt
+;
+
 block_loc:
-  block_begin_loc multiStmt block_end_loc {}
-| block_begin_loc block_end_loc {}
+  block_begin block_body block_end { ss.call<"block_manager.make_block_location">(@block_begin, @block_end); }
 ;
 
 
