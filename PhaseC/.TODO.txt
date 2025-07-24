@@ -399,4 +399,12 @@ TODO: Compiler Feature Planning
 
 64) Add --show-lore in Arguinator :D And print this very message
 
+65)Review all DEBUG_SMART_ASSERT / SMART_ASSERT calls.
+   - Add explanatory comments using:  condition && "EXPLANATORY_COMMENT"
+   - Only where it adds clarity (e.g., non-obvious assumptions or deep call chains)
+   - Prefer concise, useful messages over repeating the obvious
+
+66) Put all friend declaration of any class at the top.. .before any access specifier (private ,public)
+  at it quickly signal I am this function... I inherit these.. and my freinds are..
+
 
