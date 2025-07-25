@@ -428,3 +428,31 @@ TODO: Compiler Feature Planning
 
 
 
+67) make bison rules written in snake case not in camel case
+ (they were camel in first architecture build with semanticManager and SemanticBuilder)
+
+68) Add a translation layer for these IOPCODES:
+
+#define IOPCODES_WITH_LABEL \
+    X(IF_EQ)                \
+    X(IF_NOTEQ)             \
+    X(IF_LESS)              \
+    X(IF_GREATER)           \
+    X(IF_LESSEQ)            \
+    X(IF_GREATEREQ)         \
+    X(JUMP)
+
+because I am about to prune them to:
+
+#define IOPCODES_WITH_LABEL \
+    X(IF_EQ)                \
+    X(IF_NEQ)               \
+    X(IF_LT)                \
+    X(IF_GT)                \
+    X(IF_LTE)               \
+    X(IF_G)                 \
+    X(JUMP)
+
+And maybe.. saviddis team.. will cry about it..
+Well there are kinda right..
+As the "Standard or Alpha" outputs the original IOPCodes for IR :D

@@ -9,7 +9,7 @@
     #include "parser/parser_context.hpp"    // for ParseCtx
     #include "scanner/scanner_context.hpp"  // for LexerCtx
     #include "parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
-    using AIOP = Alpha::IOPCode;
+    using A_IOPC = Alpha::IOPCode; // TODO:
 }
 
 %code requires
@@ -49,6 +49,10 @@
     Alpha::AlphaFloat const_float;
     const Alpha::FuncSymbol *const_function_symbol_ptr;
     const Alpha::Expr *const_expr_ptr;
+    Alpha::ExprList *expr_list_ptr;
+    Alpha::ExprPair *expr_pair_ptr;
+    Alpha::DictList *dict_list_ptr;
+
     Alpha::BlockSourceLocation block_location;
 }
 
@@ -62,16 +66,17 @@
 %type  <const_expr_ptr> or_op
 %type  <const_expr_ptr> assignExpr
 %type  <const_expr_ptr> call
+
+%type  <expr_list_ptr> elist
+%type  <expr_list_ptr> exprList
+%type  <const_expr_ptr> tableList
 /********************************************************
 %type  <expr_ptr> tableItem
 %type  <expr_ptr> member
 %type  <expr_ptr> call
 %type  <expr_ptr> objectDef
-%type  <expr_ptr> tableList
 %type  <expr_ptr> tableDict
 
-%type  <expr_list_ptr> exprList
-%type  <expr_list_ptr> elist
 %type  <dict_list_ptr> indexed
 %type  <dict_list_ptr> indexedElemList
 %type  <expr_pair_ptr> indexedElem
@@ -174,7 +179,7 @@
 
 %%
 program:
-  // (empty)
+/* (empty) */
 | multiStmt
 ;
 
@@ -244,17 +249,17 @@ or_op:
 expr[result]:
   assignExpr { $result = $assignExpr; }
 | term       { $result = $term; }
-| expr[lhs] PLUS  expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(AIOP::ADD,          $lhs, $rhs, @result); }
-| expr[lhs] MINUS expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(AIOP::SUB,          $lhs, $rhs, @result); }
-| expr[lhs] MUL   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(AIOP::MUL,          $lhs, $rhs, @result); }
-| expr[lhs] DIV   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(AIOP::DIV,          $lhs, $rhs, @result); }
-| expr[lhs] MOD   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(AIOP::MOD,          $lhs, $rhs, @result); }
-| expr[lhs] GT    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_GREATER,   $lhs, $rhs, @result); }
-| expr[lhs] GTE   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_GREATEREQ, $lhs, $rhs, @result); }
-| expr[lhs] LT    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_LESS,      $lhs, $rhs, @result); }
-| expr[lhs] LTE   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_LESSEQ,    $lhs, $rhs, @result); }
-| expr[lhs] EQ    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_EQ,        $lhs, $rhs, @result); }
-| expr[lhs] NEQ   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(AIOP::IF_NOTEQ,     $lhs, $rhs, @result); }
+| expr[lhs] PLUS  expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(A_IOPC::ADD,    $lhs, $rhs, @result); }
+| expr[lhs] MINUS expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(A_IOPC::SUB,    $lhs, $rhs, @result); }
+| expr[lhs] MUL   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(A_IOPC::MUL,    $lhs, $rhs, @result); }
+| expr[lhs] DIV   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(A_IOPC::DIV,    $lhs, $rhs, @result); }
+| expr[lhs] MOD   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(A_IOPC::MOD,    $lhs, $rhs, @result); }
+| expr[lhs] GT    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_GT,  $lhs, $rhs, @result); }
+| expr[lhs] GTE   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_GTE, $lhs, $rhs, @result); }
+| expr[lhs] LT    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_LT,  $lhs, $rhs, @result); }
+| expr[lhs] LTE   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_LTE, $lhs, $rhs, @result); }
+| expr[lhs] EQ    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_EQ,  $lhs, $rhs, @result); }
+| expr[lhs] NEQ   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_NEQ, $lhs, $rhs, @result); }
 | and_op { $result = $and_op; }
 | or_op  { $result = $or_op; }
 ;
@@ -318,19 +323,22 @@ exprList[head]:
   expr
   {
     ss.call<"finalize_bool_expr">($expr);
-    
-
+    $head = ss.call<"aggregate_builder.build_expr_list">($expr);
   }
 | expr COMMA exprList[tail]
+  {
+    ss.call<"finalize_bool_expr">($expr);
+    $head = ss.call<"aggregate_builder.extend_expr_list">($tail, $expr);
+  }
 ;
 
 elist:
-  /* (empty) */
-| exprList
+/* (empty) */ { ss.call<"aggregate_builder.build_expr_list">(); }
+| exprList    { $elist = $exprList; }
 ;
 
 tableList:
-  LEFT_BRACKET elist RIGHT_BRACKET
+  LEFT_BRACKET elist RIGHT_BRACKET { $tableList = ss.call<"aggregate_builder.build_table_list">($elist, @tableList); }
 ;
 
 tableDict:
@@ -367,7 +375,7 @@ block_end:
 
 
 block_body:
-  /* (empty) */
+/* (empty) */
 | multiStmt
 ;
 

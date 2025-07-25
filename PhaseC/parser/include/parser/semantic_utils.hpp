@@ -124,11 +124,11 @@ namespace Alpha::SemUtils
     switch (iopc)
     {
     case IOPCode::IF_EQ:
-    case IOPCode::IF_NOTEQ:
-    case IOPCode::IF_GREATER:
-    case IOPCode::IF_GREATEREQ:
-    case IOPCode::IF_LESS:
-    case IOPCode::IF_LESSEQ:
+    case IOPCode::IF_NEQ:
+    case IOPCode::IF_GT:
+    case IOPCode::IF_GTE:
+    case IOPCode::IF_LT:
+    case IOPCode::IF_LTE:
         return true;
     default:
         return false;
@@ -137,7 +137,7 @@ namespace Alpha::SemUtils
 
 [[nodiscard]] inline bool is_relational_equality_iopcode(const IOPCode iopc)
 {
-    return iopc == IOPCode::IF_EQ || iopc == IOPCode::IF_NOTEQ;
+    return iopc == IOPCode::IF_EQ || iopc == IOPCode::IF_NEQ;
 }
 
 [[nodiscard]] inline bool is_relational_arithmetic_iopcode(const IOPCode iopc)
@@ -150,12 +150,12 @@ namespace Alpha::SemUtils
     DEBUG_SMART_ASSERT(is_relational_iopcode(iopc));
     switch (iopc)
     {
-    case IOPCode::IF_LESS: return "<";
-    case IOPCode::IF_GREATER: return ">";
-    case IOPCode::IF_LESSEQ: return "<=";
-    case IOPCode::IF_GREATEREQ: return ">=";
+    case IOPCode::IF_LT: return "<";
+    case IOPCode::IF_GT: return ">";
+    case IOPCode::IF_LTE: return "<=";
+    case IOPCode::IF_GTE: return ">=";
     case IOPCode::IF_EQ: return "==";
-    case IOPCode::IF_NOTEQ: return "!=";
+    case IOPCode::IF_NEQ: return "!=";
     default:
         throw std::logic_error(ATTACH_CONTEXT(
             "Expected strictly an IOPCode corresponding to a relational operator"));

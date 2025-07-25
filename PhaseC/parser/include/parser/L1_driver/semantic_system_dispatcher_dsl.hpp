@@ -14,7 +14,7 @@
 
 #define CALL_STR call_string
 
-#define DISPATCH_TARGET restricted__
+#define DISPATCH_TARGET restricted_
 
 #define DISPATCH_DECLARE_HANDLER()                   \
     template<FixedString CALL_STR, typename... Args> \

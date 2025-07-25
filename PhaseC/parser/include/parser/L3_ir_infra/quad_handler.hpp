@@ -45,15 +45,14 @@ private:
         const Expr *result,
         LabelID label,
         SourceLocation loc);
-
 };
 
 inline void
 QuadHandler::emit(
     const IOPCode iopc,
+    const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
-    const Expr *const result,
     const LabelID label,
     const SourceLocation loc)
 {
@@ -72,24 +71,24 @@ QuadHandler::emit(
 inline void
 QuadHandler::emit_next(
     const IOPCode iopc,
+    const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
-    const Expr *const result,
     const SourceLocation loc,
     const LabelID label_offset)
 {
-    emit(iopc, arg1, arg2, result, next_quad_label_ + label_offset, loc);
+    emit(iopc, result, arg1, arg2, next_quad_label_ + label_offset, loc);
 }
 
 inline void
 QuadHandler::emit_labelless(
     const IOPCode iopc,
+    const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
-    const Expr *const result,
     const SourceLocation loc)
 {
-    emit(iopc, arg1, arg2, result, k_no_label, loc);
+    emit(iopc, result, arg1, arg2, k_no_label, loc);
 }
 
 inline void

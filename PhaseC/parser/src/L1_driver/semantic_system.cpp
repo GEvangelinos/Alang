@@ -21,11 +21,12 @@ SemanticSystem::SemanticSystem(
       sd_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
 
       // public servicers, used by users of semantic driver.
-      const_builder(export_semantic_system_services()),
+      aggregate_builder(export_semantic_system_services()),
       assign_builder(get_assign_builder_options(options), export_semantic_system_services()),
       basic_builder(get_basic_builder_options(options), export_semantic_system_services()),
-      loop_manager(export_semantic_system_services()),
       block_manager(export_semantic_system_services()),
+      const_builder(export_semantic_system_services()),
+      loop_manager(export_semantic_system_services()),
       lvalue_resolver(export_semantic_system_services()) {}
 
 SemanticSystemServices
@@ -76,7 +77,7 @@ SemanticSystem::convert_to_bool_expr(const Expr *const expr)
 
     const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
     bool_expr->true_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(IOPCode::IF_EQ, expr, &k_static_true_expr, nullptr, expr->loc);
+    quad_handler_->emit_labelless(IOPCode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc);
     bool_expr->false_list.push_back(quad_handler_->next_quad_label());
     quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
 
@@ -96,9 +97,9 @@ SemanticSystem::finalize_bool_expr(const Expr *const expr)
     DEBUG_SMART_ASSERT(!!bool_expr->var_symbol);
 
     qh->patch_list(bool_expr->true_list, qh->next_quad_label());
-    qh->emit_next(IOPCode::ASSIGN, &k_static_true_expr, nullptr, expr, expr->loc);
+    qh->emit_next(IOPCode::ASSIGN, expr, &k_static_true_expr, nullptr, expr->loc);
     qh->emit_next(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc, 2);
     qh->patch_list(bool_expr->false_list, quad_handler_->next_quad_label());
-    qh->emit_next(IOPCode::ASSIGN, &k_static_false_expr, nullptr, expr, expr->loc);
+    qh->emit_next(IOPCode::ASSIGN, expr, &k_static_false_expr, nullptr, expr->loc);
 }
 } // namespace Alpha

@@ -72,11 +72,12 @@ private:
     static BasicBuilder::Options get_basic_builder_options(const Options &options);
 
     // --Layer 2 subsystems -- No trailing underscores here, as these are directly used in dispatch mechanisms.
-    ConstBuilder const_builder;
+    AggregateBuilder aggregate_builder;
     AssignBuilder assign_builder;
     BasicBuilder basic_builder;
-    LoopManager loop_manager;
     BlockManager block_manager;
+    ConstBuilder const_builder;
+    LoopManager loop_manager;
     LvalueResolver lvalue_resolver;
 
     // -- Direct methods-- // TODO: maybe package inside a module? // Dont if to unrelatable!
@@ -94,11 +95,12 @@ DISPATCH_DEFINE_HANDLER_BEGIN(SemanticSystem);
     DISPATCH_MASTER_METHOD_CALL(mark_short_circuit_jump_point);
     DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
     DISPATCH_MASTER_METHOD_CALL(finalize_bool_expr);
-    DISPATCH_MASTER_MODULE_CALL(const_builder);
+    DISPATCH_MASTER_MODULE_CALL(aggregate_builder);
     DISPATCH_MASTER_MODULE_CALL(assign_builder);
     DISPATCH_MASTER_MODULE_CALL(basic_builder);
-    DISPATCH_MASTER_MODULE_CALL(loop_manager);
     DISPATCH_MASTER_MODULE_CALL(block_manager);
+    DISPATCH_MASTER_MODULE_CALL(const_builder);
+    DISPATCH_MASTER_MODULE_CALL(loop_manager);
     DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(SemanticSystem);

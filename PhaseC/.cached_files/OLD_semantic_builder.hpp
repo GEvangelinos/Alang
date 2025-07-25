@@ -65,27 +65,8 @@ private:
     [[maybe_unused]] SymbolTable &st_; // TODO: REMOVE IF UNUSED
     ErrorTracker &et_;
 
-    void delete_expr_list(ExprList *&elist);
-    void delete_dict_list(DictList *&dlist);
-
-    [[nodiscard]] DictList *make_empty_dict_list();
-
 }; // class SemanticBuilder
 
-
-inline void SemanticBuilder::delete_expr_list(ExprList *&elist)
-{
-    delete elist;
-    DEBUG_NULLIFY(elist);
-}
-
-inline void SemanticBuilder::delete_dict_list(DictList *&dlist)
-{
-    for (ExprPair *pair: *dlist)
-        delete pair;
-    delete dlist;
-    DEBUG_NULLIFY(dlist);
-}
 
 inline Expr *SemanticBuilder::make_call(Expr *lvalue, ExprList *&elist, Location call_loc)
 {
@@ -139,23 +120,6 @@ inline Expr *SemanticBuilder::make_table_list(ExprList *&elist, Location table_l
     return new_table_expr;
 }
 
-inline Expr *SemanticBuilder::make_table_dict(DictList *&dlist, Location table_dict_loc)
-{
-    Expr *new_table_expr = parse_ctx_.expr_handler.make_expr_new_table(table_dict_loc);
-    parse_ctx_.quad_handler.emit_quad(IOPCode::TABLECREATE, nullptr, nullptr, new_table_expr,
-                                      table_dict_loc //
-    );
-
-    for (auto it = dlist->crbegin(); it != dlist->crend(); ++it)
-    {
-        parse_ctx_.quad_handler.emit_quad(IOPCode::TABLESETELEM, (*it)->first,
-                                          (*it)->second, new_table_expr,
-                                          k_no_location //
-        );
-    }
-    delete_dict_list(dlist);
-    return new_table_expr;
-}
 
 inline Expr *SemanticBuilder::make_program_function(const Function *function_symbol)
 {

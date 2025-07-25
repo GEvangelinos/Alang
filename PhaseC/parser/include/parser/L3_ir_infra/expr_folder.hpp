@@ -104,7 +104,7 @@ ExprFolder::fold_relational_equality(
     const bool right_value = SemUtils::as_bool(right);
     if (iopc == IOPCode::IF_EQ)
         return expr_maker_->make_const_bool_expr(result_loc, left_value == right_value);
-    if (iopc == IOPCode::IF_NOTEQ)
+    if (iopc == IOPCode::IF_NEQ)
         return expr_maker_->make_const_bool_expr(result_loc, left_value != right_value);
     throw std::logic_error(ATTACH_CONTEXT("Needed equality IOPCode"));
 }
@@ -125,13 +125,13 @@ ExprFolder::fold_relational_arithmetic(
     {
         switch (iopc)
         {
-        case IOPCode::IF_GREATER:
+        case IOPCode::IF_GT:
             return expr_maker_->make_const_bool_expr(result_loc, l > r);
-        case IOPCode::IF_GREATEREQ:
+        case IOPCode::IF_GTE:
             return expr_maker_->make_const_bool_expr(result_loc, l >= r);
-        case IOPCode::IF_LESS:
+        case IOPCode::IF_LT:
             return expr_maker_->make_const_bool_expr(result_loc, l < r);
-        case IOPCode::IF_LESSEQ:
+        case IOPCode::IF_LTE:
             return expr_maker_->make_const_bool_expr(result_loc, l <= r);
         default:
             throw std::logic_error(ATTACH_CONTEXT("Needed relational arithmetic IOPC"));

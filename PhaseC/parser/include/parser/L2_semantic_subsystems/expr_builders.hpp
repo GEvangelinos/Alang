@@ -25,20 +25,22 @@ private:
         ~Restricted() override = default;
 
         // List related (candidate for submodule)
-        [[nodiscard]] static ExprList *make_expr_list();
-        [[nodiscard]] static ExprList *make_expr_list(const Expr *head_expr);
-        [[nodiscard]] static ExprList *extend_expr_list(ExprList *expr_list, const Expr *next_expr);
-
-        [[nodiscard]] static const ExprPair *make_expr_pair(const Expr *first, const Expr *second);
+        [[nodiscard]] static ExprList *build_expr_list();
+        [[nodiscard]] static ExprList *build_expr_list(const Expr *head_expr);
+        [[nodiscard]] static ExprList *extend_expr_list(ExprList *elist, const Expr *next_expr);
+        static void delete_expr_list(ExprList *&elist);
 
         // Dict related (candidate for submodule)
-        [[nodiscard]] static DictList *make_dict_list();
-        [[nodiscard]] static DictList *make_dict_list(const ExprPair *head_pair);
-        [[nodiscard]] static DictList *extend_dict_list(DictList *dict_list,
-                                                        const ExprPair *next_pair);
+        [[nodiscard]] static const ExprPair *build_expr_pair(const Expr *first, const Expr *second);
+        [[nodiscard]] static DictList *build_dict_list();
+        [[nodiscard]] static DictList *build_dict_list(const ExprPair *head_pair);
+        [[nodiscard]] static DictList *extend_dict_list(DictList *dlist, const ExprPair *next_pair);
+        void static delete_dict_list(DictList *&dlist);
 
-        [[nodiscard]] static Expr *make_table_list(ExprList *&elist, SourceLocation table_list_loc);
-        [[nodiscard]] static Expr *make_table_dict(DictList *&dlist, SourceLocation table_dict_loc);
+        [[nodiscard]] const Expr *build_table_list_consuming(
+            ExprList *elist, SourceLocation table_list_loc);
+        [[nodiscard]] const Expr *build_table_dict_consuming(
+            DictList *dlist, SourceLocation table_dict_loc);
     };
 
     Restricted DISPATCH_TARGET;
@@ -149,6 +151,7 @@ private:
             static auto &merge_rhs_list(const BoolExpr *e) { return e->false_list; }
             static auto &assign_list(const BoolExpr *e) { return e->true_list; }
         };
+
         const Options options_;
 
         Restricted(Options &&options, const SemanticSystemServices &ss_services);
@@ -216,27 +219,49 @@ private:
     DISPATCH_DECLARE_HANDLER();
 };
 
-inline ExprList *
-AggregateBuilder::Restricted::make_expr_list() { return new ExprList(); }
+DISPATCH_DEFINE_HANDLER_BEGIN(AggregateBuilder);
+    DISPATCH_BEGIN_CALLS();
+    DISPATCH_SLAVE_METHOD_CALL(build_expr_list);
+    DISPATCH_SLAVE_METHOD_CALL(build_expr_pair);
+    DISPATCH_SLAVE_METHOD_CALL(build_dict_list);
+    DISPATCH_SLAVE_METHOD_CALL(extend_expr_list);
+    DISPATCH_SLAVE_METHOD_CALL(extend_dict_list);
+    DISPATCH_SLAVE_METHOD_CALL(build_table_list_consuming);
+    DISPATCH_SLAVE_METHOD_CALL(build_table_dict_consuming);
+    DISPATCH_END_CALLS();
+DISPATCH_DEFINE_HANDLER_END(AggregateBuilder);
 
 inline ExprList *
-AggregateBuilder::Restricted::make_expr_list(const Expr *const head_expr)
+AggregateBuilder::Restricted::build_expr_list() { return new ExprList(); }
+
+inline ExprList *
+AggregateBuilder::Restricted::build_expr_list(const Expr *const head_expr)
 {
     DEBUG_SMART_ASSERT(!!head_expr);
-    return extend_expr_list(make_expr_list(), head_expr);
+    return extend_expr_list(build_expr_list(), head_expr);
 }
 
 inline ExprList *
-AggregateBuilder::Restricted::extend_expr_list(ExprList *const expr_list,
-                                               const Expr *const next_expr)
+AggregateBuilder::Restricted::extend_expr_list(
+    ExprList *const elist,
+    const Expr *const next_expr)
 {
-    DEBUG_SMART_ASSERT(!!expr_list, !!next_expr);
-    expr_list->push_back(next_expr);
-    return expr_list;
+    DEBUG_SMART_ASSERT(!!elist, !!next_expr);
+    elist->push_back(next_expr);
+    return elist;
+}
+
+// Passed by reference to nullify after deletion -- avoids leaving a dangling pointer.
+inline void
+AggregateBuilder::Restricted::delete_expr_list(ExprList *&elist)
+{
+    // Note: Do NOT delete the expressions in ExprList -- those are handler by ExprMaker.
+    delete elist;
+    DEBUG_NULLIFY(elist);
 }
 
 inline const ExprPair *
-AggregateBuilder::Restricted::make_expr_pair(const Expr *const first, const Expr *const second)
+AggregateBuilder::Restricted::build_expr_pair(const Expr *const first, const Expr *const second)
 {
     DEBUG_SMART_ASSERT(!!first, !!second);
     // TODO: can you make this `new const` ? Can you delete ptr afterwards?
@@ -245,22 +270,80 @@ AggregateBuilder::Restricted::make_expr_pair(const Expr *const first, const Expr
 }
 
 inline DictList *
-AggregateBuilder::Restricted::make_dict_list() { return new DictList(); }
+AggregateBuilder::Restricted::build_dict_list() { return new DictList(); }
 
 inline DictList *
-AggregateBuilder::Restricted::make_dict_list(const ExprPair *const head_pair)
+AggregateBuilder::Restricted::build_dict_list(const ExprPair *const head_pair)
 {
     DEBUG_SMART_ASSERT(!!head_pair);
-    return extend_dict_list(make_dict_list(), head_pair);
+    return extend_dict_list(build_dict_list(), head_pair);
 }
 
 inline DictList *
-AggregateBuilder::Restricted::extend_dict_list(DictList *const dict_list,
-                                               const ExprPair *const next_pair)
+AggregateBuilder::Restricted::extend_dict_list(
+    DictList *const dlist,
+    const ExprPair *const next_pair)
 {
-    DEBUG_SMART_ASSERT(!!dict_list, !!next_pair);
-    dict_list->push_back(next_pair);
-    return dict_list;
+    DEBUG_SMART_ASSERT(!!dlist, !!next_pair);
+    dlist->push_back(next_pair);
+    return dlist;
+}
+
+// Passed by reference to nullify after deletion -- avoids leaving a dangling pointer.
+inline void
+AggregateBuilder::Restricted::delete_dict_list(DictList *&dlist)
+{
+    // Note: Do NOT delete the expressions in ExprPair -- those are handler by ExprMaker.
+    for (const ExprPair *pair: *dlist)
+        delete pair; // Shallow delete, it does NOT delete the expressions it's holding.
+    delete dlist;
+    DEBUG_NULLIFY(dlist);
+}
+
+inline const Expr *
+AggregateBuilder::Restricted::build_table_list_consuming(
+    ExprList *elist,
+    const SourceLocation table_list_loc)
+{
+    DEBUG_SMART_ASSERT(!!elist);
+    auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
+
+    const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
+    qh->emit_next(IOPCode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
+
+    // Emit list's items.
+    u32 list_index = 0;
+    for (auto expr_it = elist->crbegin(); expr_it != elist->crend(); ++expr_it)
+    {
+        const Expr *index_expr = expr_maker_->make_const_int_expr((*expr_it)->loc, list_index++);
+        qh->emit_next(IOPCode::TABLESETELEM, new_table_expr, index_expr, *expr_it, (*expr_it)->loc);
+    }
+
+    // Delete elist after use — it must not be used again
+    delete_expr_list(elist);
+
+    return new_table_expr;
+}
+
+inline const Expr *
+AggregateBuilder::Restricted::build_table_dict_consuming(
+    DictList *&dlist,
+    const SourceLocation table_dict_loc)
+{
+    Expr *new_table_expr = parse_ctx_.expr_handler.make_expr_new_table(table_dict_loc);
+    parse_ctx_.quad_handler.emit_quad(IOPCode::TABLECREATE, nullptr, nullptr, new_table_expr,
+                                      table_dict_loc //
+    );
+
+    for (auto it = dlist->crbegin(); it != dlist->crend(); ++it)
+    {
+        parse_ctx_.quad_handler.emit_quad(IOPCode::TABLESETELEM, (*it)->first,
+                                          (*it)->second, new_table_expr,
+                                          k_no_location //
+        );
+    }
+    delete_dict_list(dlist);
+    return new_table_expr;
 }
 
 DISPATCH_DEFINE_HANDLER_BEGIN(AssignBuilder);
@@ -371,7 +454,7 @@ AssignBuilder::Restricted::handle_table_item_assignment(
     DEBUG_SMART_ASSERT(lvalue->type == Expr::Type::TABLE_ITEM);
 
     const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
-    quad_handler_->emit_next(IOPCode::TABLESETELEM, ti, ti->index, rvalue, result_loc);
+    quad_handler_->emit_next(IOPCode::TABLESETELEM, rvalue, ti, ti->index, result_loc);
     const Expr *temp_var = ss_bridge_->emit_tablegetelem_if_table_item(lvalue); // !CERTAIN EMIT!
     DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
     const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
@@ -391,8 +474,8 @@ AssignBuilder::Restricted::handle_direct_assignment(
 
     // TODO: check todo 52 (on how to make this only when needed)
     const Expr *const temp = expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());
-    quad_handler_->emit_next(IOPCode::ASSIGN, rvalue, nullptr, lvalue, result_loc);
-    quad_handler_->emit_next(IOPCode::ASSIGN, lvalue, nullptr, temp, result_loc);
+    quad_handler_->emit_next(IOPCode::ASSIGN, lvalue, rvalue, nullptr, result_loc);
+    quad_handler_->emit_next(IOPCode::ASSIGN, temp, lvalue, nullptr, result_loc);
     return temp;
 }
 
@@ -429,8 +512,8 @@ AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *lvalue, const SourceLo
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
         result = ss_bridge_->emit_tablegetelem_if_table_item(ti_lvalue); // EMITS!
-        qh->emit_next(Policy::iopc, result, &k_static_int_1_expr, result, result_loc);
-        qh->emit_next(IOPCode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result, result_loc);
+        qh->emit_next(Policy::iopc, result, result, &k_static_int_1_expr, result_loc);
+        qh->emit_next(IOPCode::TABLESETELEM, result, ti_lvalue, ti_lvalue->index, result_loc);
     }
     else
     {
@@ -439,8 +522,8 @@ AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *lvalue, const SourceLo
         // only if inside assignment. NOTE! ONLY ENABLE THIS OPTIMIZATION IFF optimization options is passed.
         // DO NOT make it standard behavior.. you may get fucked in examination :D
         result = expr_maker_->make_arithmetic_expr(result_loc);
-        qh->emit_next(Policy::iopc, lvalue, &k_static_int_1_expr, lvalue, result_loc);
-        qh->emit_next(IOPCode::ASSIGN, lvalue, nullptr, result, result_loc);
+        qh->emit_next(Policy::iopc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
+        qh->emit_next(IOPCode::ASSIGN, result, lvalue, nullptr, result_loc);
     }
     return DEBUG_REQUIRE_PTR(result); // Check because we initialized with nullptr.
 }
@@ -458,14 +541,14 @@ AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue, const SourceL
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
         const Expr *ti = ss_bridge_->emit_tablegetelem_if_table_item(lvalue); // EMITS!
-        qh->emit_next(IOPCode::ASSIGN, ti, nullptr, result, result_loc);
-        qh->emit_next(Policy::iopc, ti, &k_static_int_1_expr, ti, result_loc);
-        qh->emit_next(IOPCode::TABLESETELEM, ti_lvalue, ti_lvalue->index, ti, result_loc);
+        qh->emit_next(IOPCode::ASSIGN, result, ti, nullptr, result_loc);
+        qh->emit_next(Policy::iopc, ti, ti, &k_static_int_1_expr, result_loc);
+        qh->emit_next(IOPCode::TABLESETELEM, ti, ti_lvalue, ti_lvalue->index, result_loc);
     }
     else
     {
-        qh->emit_next(IOPCode::ASSIGN, lvalue, nullptr, result, result_loc);
-        qh->emit_next(Policy::iopc, lvalue, &k_static_int_1_expr, lvalue, result_loc);
+        qh->emit_next(IOPCode::ASSIGN, result, lvalue, nullptr, result_loc);
+        qh->emit_next(Policy::iopc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
     }
     return result;
 }
@@ -496,7 +579,7 @@ BasicBuilder::Restricted::build_uminus(
         return expr_folder_->fold_uminus(expr, result_loc);
 
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
-    quad_handler_->emit_next(IOPCode::UMINUS, expr, nullptr, arithmetic_expr, result_loc);
+    quad_handler_->emit_next(IOPCode::UMINUS, arithmetic_expr, expr, nullptr, result_loc);
     return arithmetic_expr;
 }
 
@@ -520,7 +603,7 @@ BasicBuilder::Restricted::build_arithmetic(
         return expr_folder_->fold_arithmetic(iopc, lhs, rhs, result_loc);
 
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
-    quad_handler_->emit_next(iopc, lhs, rhs, arithmetic_expr, result_loc);
+    quad_handler_->emit_next(iopc, arithmetic_expr, lhs, rhs, result_loc);
     return arithmetic_expr;
 }
 
@@ -547,7 +630,7 @@ BasicBuilder::Restricted::build_relational(
 
     const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
     result_expr->true_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(iopc, lhs, rhs, nullptr, result_loc);
+    quad_handler_->emit_labelless(iopc, nullptr, lhs, rhs, result_loc);
     result_expr->false_list.push_back(quad_handler_->next_quad_label());
     quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, result_loc);
     return result_expr;
@@ -628,7 +711,7 @@ BasicBuilder::Restricted::try_propagate_const(const Expr *const expr)
 }
 
 template<typename Policy>
-[[nodiscard]] const Expr *
+const Expr *
 BasicBuilder::Restricted::build_short_circuit_bool_expr(
     const Expr *const lhs,
     const Expr *const rhs,
@@ -661,6 +744,7 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
     Policy::assign_list(bool_result_expr) = Policy::assign_list(right_bool);
     return bool_result_expr;
 }
+
 template<typename... Exprs>
 bool BasicBuilder::Restricted::should_fold_arithmetic(const Exprs &... exprs)
 {

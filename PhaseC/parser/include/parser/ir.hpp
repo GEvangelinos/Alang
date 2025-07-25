@@ -10,11 +10,11 @@
 
 #define IOPCODES_WITH_LABEL \
     X(IF_EQ)                \
-    X(IF_NOTEQ)             \
-    X(IF_LESS)              \
-    X(IF_GREATER)           \
-    X(IF_LESSEQ)            \
-    X(IF_GREATEREQ)         \
+    X(IF_NEQ)               \
+    X(IF_LT)                \
+    X(IF_GT)                \
+    X(IF_LTE)               \
+    X(IF_GTE)               \
     X(JUMP)
 
 #define IOPCODES_WITHOUT_LABEL \

@@ -26,7 +26,7 @@ SemanticSystemBridge::emit_tablegetelem_if_table_item(const Expr *const expr)
     const auto *const ti_expr = static_cast<const TableItemExpr *>(expr);
     const auto *const temp_var = expr_maker_->make_variable_expr(expr->loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(
-        IOPCode::TABLEGETELEM, ti_expr, ti_expr->index, temp_var, ti_expr->loc);
+        IOPCode::TABLEGETELEM, temp_var, ti_expr, ti_expr->index, ti_expr->loc);
     return temp_var;
 }
 } // namespace Alpha
