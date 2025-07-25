@@ -11,134 +11,116 @@
 
 namespace Alpha
 {
-class Backpatcher final : private SemanticSubsystem
+class AggregateBuilder
 {
-public:
-    struct OrPolicy
-    {
-        static auto &backpatch_list(const BoolExpr *e) { return e->false_list; }
-        static auto &merge_lhs_list(const BoolExpr *e) { return e->true_list; }
-        static auto &merge_rhs_list(const BoolExpr *e) { return e->true_list; }
-        static auto &assign_list(const BoolExpr *e) { return e->false_list; }
-    };
-
-    struct AndPolicy
-    {
-        static auto &backpatch_list(const BoolExpr *e) { return e->true_list; }
-        static auto &merge_lhs_list(const BoolExpr *e) { return e->false_list; }
-        static auto &merge_rhs_list(const BoolExpr *e) { return e->false_list; }
-        static auto &assign_list(const BoolExpr *e) { return e->true_list; }
-    };
-
-    explicit Backpatcher(const SemanticSystemServices &ss_services);
-    ~Backpatcher() override = default;
-
-    DISPATCH_DECLARE_HANDLER();
-
-    template<typename Policy>
-    [[nodiscard]] const Expr *resolve_lazy_bool_expr(
-        const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
-    void finalize_bool_expr(const Expr *expr);
+    friend class SemanticSystem;
 
 private:
-    ParseCache *const parse_cache_;
-};
-
-class AggregateBuilder final : private SemanticSubsystem
-{
-public:
-    class Facade
+    class Restricted final : private SemanticSubsystem
     {
-        friend class SemanticSystem;
+        friend class AggregateBuilder;
 
     private:
-        AggregateBuilder &ab_ref_;
+        explicit Restricted(const SemanticSystemServices &ss_services);
+        ~Restricted() override = default;
 
-        explicit Facade(AggregateBuilder &ab_ref): ab_ref_(ab_ref) {}
+        // List related (candidate for submodule)
+        [[nodiscard]] static ExprList *make_expr_list();
+        [[nodiscard]] static ExprList *make_expr_list(const Expr *head_expr);
+        [[nodiscard]] static ExprList *extend_expr_list(ExprList *expr_list, const Expr *next_expr);
 
-        DISPATCH_DECLARE_HANDLER();
+        [[nodiscard]] static const ExprPair *make_expr_pair(const Expr *first, const Expr *second);
+
+        // Dict related (candidate for submodule)
+        [[nodiscard]] static DictList *make_dict_list();
+        [[nodiscard]] static DictList *make_dict_list(const ExprPair *head_pair);
+        [[nodiscard]] static DictList *extend_dict_list(DictList *dict_list,
+                                                        const ExprPair *next_pair);
+
+        [[nodiscard]] static Expr *make_table_list(ExprList *&elist, SourceLocation table_list_loc);
+        [[nodiscard]] static Expr *make_table_dict(DictList *&dlist, SourceLocation table_dict_loc);
     };
 
-    friend class Facade;
-    /// Friendship to Facade must be declared after the nested class definition,
-    /// otherwise a global class named Facade could unintentionally receive friendship.
+    Restricted DISPATCH_TARGET;
 
-private:
     explicit AggregateBuilder(const SemanticSystemServices &ss_services);
 
-    // List related (candidate for submodule)
-    [[nodiscard]] static ExprList *make_expr_list();
-    [[nodiscard]] static ExprList *make_expr_list(const Expr *head_expr);
-    [[nodiscard]] static ExprList *extend_expr_list(ExprList *expr_list, const Expr *next_expr);
-
-    [[nodiscard]] static const ExprPair *make_expr_pair(const Expr *first, const Expr *second);
-
-    // Dict related (candidate for submodule)
-    [[nodiscard]] static DictList *make_dict_list();
-    [[nodiscard]] static DictList *make_dict_list(const ExprPair *head_pair);
-    [[nodiscard]] static DictList *extend_dict_list(DictList *dict_list, const ExprPair *next_pair);
-
-    [[nodiscard]] static Expr *make_table_list(ExprList *&elist, SourceLocation table_list_loc);
-    [[nodiscard]] static Expr *make_table_dict(DictList *&dlist, SourceLocation table_dict_loc);
+    DISPATCH_DECLARE_HANDLER();
 };
 
-class AssignBuilder final : private SemanticSubsystem
+class AssignBuilder
 {
-public:
+    friend class SemanticSystem;
+
+private:
     struct Options
     {
         bool record_constant_variables;
     };
 
+    class Restricted final : private SemanticSubsystem
+    {
+        friend class AssignBuilder;
+
+    private:
+        enum class OpVariant { PRE, POST };
+
+        struct IncPolicy
+        {
+            static constexpr auto iopc = IOPCode::ADD;
+            static constexpr char op_name[] = "increment";
+            static constexpr char op_symbol[] = "++";
+        };
+
+        struct DecPolicy
+        {
+            static constexpr auto iopc = IOPCode::SUB;
+            static constexpr char op_name[] = "decrement";
+            static constexpr char op_symbol[] = "--";
+        };
+
+        const Options options_;
+
+        Restricted(Options &&options, const SemanticSystemServices &ss_services);
+        ~Restricted() override = default;
+
+        [[nodiscard]] const Expr *build_assignment(
+            const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_pre_inc(const Expr *lvalue, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_post_inc(const Expr *lvalue, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_pre_dec(const Expr *lvalue, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_post_dec(const Expr *lvalue, SourceLocation result_loc);
+
+        [[nodiscard]] bool validate_lvalue_assignment(
+            const Expr *lvalue, SourceLocation assign_loc);
+        [[nodiscard]] bool try_record_const_expr(const Expr *lvalue, const Expr *rvalue);
+        [[nodiscard]] const Expr *handle_table_item_assignment(
+            const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
+        [[nodiscard]] const Expr *handle_direct_assignment(
+            const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
+
+        template<OpVariant op_variant, typename Policy>
+        [[nodiscard]] const Expr *build_inc_dec(const Expr *lvalue, SourceLocation result_loc);
+        template<typename Policy>
+        [[nodiscard]] const Expr *handle_pre_inc_dec(
+            const Expr *lvalue, SourceLocation result_loc);
+        template<typename Policy>
+        [[nodiscard]] const Expr *handle_post_inc_dec(
+            const Expr *lvalue, SourceLocation result_loc);
+    };
+
+    Restricted DISPATCH_TARGET;
+
     AssignBuilder(Options &&options, const SemanticSystemServices &ss_services);
-    ~AssignBuilder() override = default;
 
     DISPATCH_DECLARE_HANDLER();
-
-    [[nodiscard]] const Expr *build_assignment(
-        const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_pre_inc(const Expr *lvalue, SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_post_inc(const Expr *lvalue, SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_pre_dec(const Expr *lvalue, SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_post_dec(const Expr *lvalue, SourceLocation result_loc);
-
-private:
-    enum class OpVariant { PRE, POST };
-
-    struct IncPolicy
-    {
-        static constexpr auto iopc = IOPCode::ADD;
-        static constexpr char op_name[] = "increment";
-        static constexpr char op_symbol[] = "++";
-    };
-
-    struct DecPolicy
-    {
-        static constexpr auto iopc = IOPCode::SUB;
-        static constexpr char op_name[] = "decrement";
-        static constexpr char op_symbol[] = "--";
-    };
-
-    const Options options_;
-
-    [[nodiscard]] bool validate_lvalue_assignment(const Expr *lvalue, SourceLocation assign_loc);
-    [[nodiscard]] bool try_record_const_expr(const Expr *lvalue, const Expr *rvalue);
-    [[nodiscard]] const Expr *handle_table_item_assignment(
-        const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
-    [[nodiscard]] const Expr *handle_direct_assignment(
-        const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
-
-    template<OpVariant op_variant, typename Policy>
-    [[nodiscard]] const Expr *build_inc_dec(const Expr *lvalue, SourceLocation result_loc);
-    template<typename Policy>
-    [[nodiscard]] const Expr *handle_pre_inc_dec(const Expr *lvalue, SourceLocation result_loc);
-    template<typename Policy>
-    [[nodiscard]] const Expr *handle_post_inc_dec(const Expr *lvalue, SourceLocation result_loc);
 };
 
-class BasicBuilder final : private SemanticSubsystem
+class BasicBuilder
 {
-public:
+    friend class SemanticSystem;
+
+private:
     struct Options
     {
         bool fold_arithmetic;
@@ -147,134 +129,106 @@ public:
         bool constant_propagation;
     };
 
+    class Restricted final : private SemanticSubsystem
+    {
+        friend class BasicBuilder;
+
+    private:
+        struct OrShortCircuitPolicy
+        {
+            static auto &backpatch_list(const BoolExpr *e) { return e->false_list; }
+            static auto &merge_lhs_list(const BoolExpr *e) { return e->true_list; }
+            static auto &merge_rhs_list(const BoolExpr *e) { return e->true_list; }
+            static auto &assign_list(const BoolExpr *e) { return e->false_list; }
+        };
+
+        struct AndShortCircuitPolicy
+        {
+            static auto &backpatch_list(const BoolExpr *e) { return e->true_list; }
+            static auto &merge_lhs_list(const BoolExpr *e) { return e->false_list; }
+            static auto &merge_rhs_list(const BoolExpr *e) { return e->false_list; }
+            static auto &assign_list(const BoolExpr *e) { return e->true_list; }
+        };
+        const Options options_;
+
+        Restricted(Options &&options, const SemanticSystemServices &ss_services);
+        ~Restricted() override = default;
+
+        [[nodiscard]] const Expr *build_uminus(const Expr *expr, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_arithmetic(
+            IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_relational(
+            IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_logical_not(const Expr *expr, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_logical_and(
+            const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_logical_or(
+            const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+
+        template<typename BackpatchingPolicy>
+        [[nodiscard]] const Expr *build_short_circuit_bool_expr(
+            const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+
+        template<typename... Exprs>
+        [[nodiscard]] bool should_fold_arithmetic(const Exprs &... exprs);
+        template<typename... Εxprs>
+        [[nodiscard]] bool should_fold_relational_arithmetic(IOPCode iopc, const Εxprs &... exprs);
+        template<typename... Εxprs>
+        [[nodiscard]] bool should_fold_relational_equality(IOPCode iopc, const Εxprs &... exprs);
+        template<typename... Exprs>
+        [[nodiscard]] bool should_fold_logical(const Exprs &... exprs);
+        [[nodiscard]] bool should_propagate_const();
+        [[nodiscard]] static const Expr *try_propagate_const(const Expr *expr);
+    };
+
+    Restricted DISPATCH_TARGET;
+
     BasicBuilder(Options &&options, const SemanticSystemServices &ss_services);
-    ~BasicBuilder() override = default;
 
     DISPATCH_DECLARE_HANDLER();
+};
 
-    [[nodiscard]] const Expr *build_uminus(const Expr *expr, SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_arithmetic(
-        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_relational(
-        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_logical_not(const Expr *expr, SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_logical_and(
-        const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
-    [[nodiscard]] const Expr *build_logical_or(
-        const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+class ConstBuilder
+{
+    friend class SemanticSystem;
 
 private:
-    const Options options_;
+    class Restricted final : private SemanticSubsystem
+    {
+        friend class ConstBuilder;
 
-    template<typename... Exprs>
-    [[nodiscard]] bool should_fold_arithmetic(const Exprs &... exprs);
-    template<typename... Εxprs>
-    [[nodiscard]] bool should_fold_relational_arithmetic(IOPCode iopc, const Εxprs &... exprs);
-    template<typename... Εxprs>
-    [[nodiscard]] bool should_fold_relational_equality(IOPCode iopc, const Εxprs &... exprs);
-    template<typename... Exprs>
-    [[nodiscard]] bool should_fold_logical(const Exprs &... exprs);
-    [[nodiscard]] bool should_propagate_const();
-    [[nodiscard]] static const Expr *try_propagate_const(const Expr *expr);
-};
+    private:
+        explicit Restricted(const SemanticSystemServices &ss_services);
+        ~Restricted() override = default;
 
-class ConstBuilder final : private SemanticSubsystem
-{
-public:
+        [[nodiscard]] const Expr *build_true_expr(SourceLocation loc);
+        [[nodiscard]] const Expr *build_false_expr(SourceLocation loc);
+        [[nodiscard]] const Expr *build_int_expr(AlphaInt value, SourceLocation loc);
+        [[nodiscard]] const Expr *build_float_expr(AlphaFloat value, SourceLocation loc);
+        [[nodiscard]] const Expr *build_string_expr(const char *value, SourceLocation loc);
+        [[nodiscard]] const Expr *build_nil_expr(SourceLocation loc);
+    };
+
+    Restricted DISPATCH_TARGET;
+
     explicit ConstBuilder(const SemanticSystemServices &ss_services);
-    ~ConstBuilder() override = default;
 
     DISPATCH_DECLARE_HANDLER();
-
-    [[nodiscard]] const Expr *build_true_expr(SourceLocation loc);
-    [[nodiscard]] const Expr *build_false_expr(SourceLocation loc);
-    [[nodiscard]] const Expr *build_int_expr(AlphaInt value, SourceLocation loc);
-    [[nodiscard]] const Expr *build_float_expr(AlphaFloat value, SourceLocation loc);
-    [[nodiscard]] const Expr *build_string_expr(const char *value, SourceLocation loc);
-    [[nodiscard]] const Expr *build_nil_expr(SourceLocation loc);
 };
 
-inline
-Backpatcher::Backpatcher(const SemanticSystemServices &ss_services)
-    : SemanticSubsystem(ss_services),
-      parse_cache_(&REQUIRE_PTR(parse_ctx_)->cache) {}
-
-DISPATCH_DEFINE_HANDLER_BEGIN(Backpatcher);
-    DISPATCH_BEGIN_CALLS();
-    DISPATCH_SLAVE_METHOD_CALL(finalize_bool_expr);
-    DISPATCH_END_CALLS();
-DISPATCH_DEFINE_HANDLER_END(Backpatcher);
-
-template<typename Policy>
-[[nodiscard]] const Expr *
-Backpatcher::resolve_lazy_bool_expr(
-    const Expr *const lhs,
-    const Expr *const rhs,
-    const SourceLocation result_loc)
-{
-    static_assert(std::is_same_v<Policy, OrPolicy> ||
-                  std::is_same_v<Policy, AndPolicy>, "Unknown backpatching policy");
-
-    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
-    const BoolExpr *const left_bool = static_cast<const BoolExpr *>(lhs);
-    const BoolExpr *const right_bool = static_cast<const BoolExpr *>(rhs);
-    const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
-
-    // Patching left side.
-    DEBUG_SMART_ASSERT(!parse_cache_->short_circuit_jump_stack.empty());
-    for (const LabelID quad_label: Policy::backpatch_list(left_bool))
-        quad_handler_->patch_quad(quad_label, parse_cache_->short_circuit_jump_stack.top());
-    parse_cache_->short_circuit_jump_stack.pop();
-    Policy::backpatch_list(left_bool).clear();
-
-    // Merging right side.
-    auto &lhs_merge = Policy::merge_lhs_list(left_bool);
-    auto &rhs_merge = Policy::merge_rhs_list(right_bool);
-    auto &result_merge = Policy::merge_lhs_list(bool_result_expr);
-    // We could use merge_rhs too
-    result_merge.reserve(lhs_merge.size() + rhs_merge.size());
-    result_merge.insert(result_merge.end(), lhs_merge.begin(), lhs_merge.end());
-    result_merge.insert(result_merge.end(), rhs_merge.begin(), rhs_merge.end());
-
-    Policy::assign_list(bool_result_expr) = Policy::assign_list(right_bool);
-    return bool_result_expr;
-}
-
-inline void
-Backpatcher::finalize_bool_expr(const Expr *const expr)
-{
-    DEBUG_SMART_ASSERT(!!expr);
-    if (expr->type != Expr::Type::BOOL_EXPR)
-        return; // Nothing to backpatch if not bool_expr.
-
-    const BoolExpr *const bool_expr = static_cast<const BoolExpr *>(expr);
-    auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
-
-    DEBUG_SMART_ASSERT(!!bool_expr->var_symbol);
-
-    qh->patch_list(bool_expr->true_list, qh->next_quad_label());
-    qh->emit_next(IOPCode::ASSIGN, &k_static_true_expr, nullptr, expr, expr->loc);
-    qh->emit_next(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc, 2);
-    qh->patch_list(bool_expr->false_list, quad_handler_->next_quad_label());
-    qh->emit_next(IOPCode::ASSIGN, &k_static_false_expr, nullptr, expr, expr->loc);
-}
-
-inline
-AggregateBuilder::AggregateBuilder(const SemanticSystemServices &ss_services)
-    : SemanticSubsystem(ss_services) {}
+inline ExprList *
+AggregateBuilder::Restricted::make_expr_list() { return new ExprList(); }
 
 inline ExprList *
-AggregateBuilder::make_expr_list() { return new ExprList(); }
-
-inline ExprList *
-AggregateBuilder::make_expr_list(const Expr *const head_expr)
+AggregateBuilder::Restricted::make_expr_list(const Expr *const head_expr)
 {
     DEBUG_SMART_ASSERT(!!head_expr);
     return extend_expr_list(make_expr_list(), head_expr);
 }
 
 inline ExprList *
-AggregateBuilder::extend_expr_list(ExprList *const expr_list, const Expr *const next_expr)
+AggregateBuilder::Restricted::extend_expr_list(ExprList *const expr_list,
+                                               const Expr *const next_expr)
 {
     DEBUG_SMART_ASSERT(!!expr_list, !!next_expr);
     expr_list->push_back(next_expr);
@@ -282,7 +236,7 @@ AggregateBuilder::extend_expr_list(ExprList *const expr_list, const Expr *const 
 }
 
 inline const ExprPair *
-AggregateBuilder::make_expr_pair(const Expr *const first, const Expr *const second)
+AggregateBuilder::Restricted::make_expr_pair(const Expr *const first, const Expr *const second)
 {
     DEBUG_SMART_ASSERT(!!first, !!second);
     // TODO: can you make this `new const` ? Can you delete ptr afterwards?
@@ -291,27 +245,23 @@ AggregateBuilder::make_expr_pair(const Expr *const first, const Expr *const seco
 }
 
 inline DictList *
-AggregateBuilder::make_dict_list() { return new DictList(); }
+AggregateBuilder::Restricted::make_dict_list() { return new DictList(); }
 
 inline DictList *
-AggregateBuilder::make_dict_list(const ExprPair *const head_pair)
+AggregateBuilder::Restricted::make_dict_list(const ExprPair *const head_pair)
 {
     DEBUG_SMART_ASSERT(!!head_pair);
     return extend_dict_list(make_dict_list(), head_pair);
 }
 
 inline DictList *
-AggregateBuilder::extend_dict_list(DictList *const dict_list, const ExprPair *const next_pair)
+AggregateBuilder::Restricted::extend_dict_list(DictList *const dict_list,
+                                               const ExprPair *const next_pair)
 {
     DEBUG_SMART_ASSERT(!!dict_list, !!next_pair);
     dict_list->push_back(next_pair);
     return dict_list;
 }
-
-inline
-AssignBuilder::AssignBuilder(Options &&options, const SemanticSystemServices &ss_services)
-    : SemanticSubsystem(ss_services),
-      options_(options) {}
 
 DISPATCH_DEFINE_HANDLER_BEGIN(AssignBuilder);
     DISPATCH_BEGIN_CALLS();
@@ -324,7 +274,7 @@ DISPATCH_DEFINE_HANDLER_BEGIN(AssignBuilder);
 DISPATCH_DEFINE_HANDLER_END(AssignBuilder);
 
 inline const Expr *
-AssignBuilder::build_assignment(
+AssignBuilder::Restricted::build_assignment(
     const Expr *const lvalue,
     const Expr *const rvalue,
     const SourceLocation result_loc)
@@ -339,31 +289,31 @@ AssignBuilder::build_assignment(
 }
 
 inline const Expr *
-AssignBuilder::build_pre_inc(const Expr *const lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::build_pre_inc(const Expr *const lvalue, const SourceLocation result_loc)
 {
     return build_inc_dec<OpVariant::PRE, IncPolicy>(lvalue, result_loc);
 }
 
 inline const Expr *
-AssignBuilder::build_post_inc(const Expr *const lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::build_post_inc(const Expr *const lvalue, const SourceLocation result_loc)
 {
     return build_inc_dec<OpVariant::POST, IncPolicy>(lvalue, result_loc);
 }
 
 inline const Expr *
-AssignBuilder::build_pre_dec(const Expr *const lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::build_pre_dec(const Expr *const lvalue, const SourceLocation result_loc)
 {
     return build_inc_dec<OpVariant::PRE, DecPolicy>(lvalue, result_loc);
 }
 
 inline const Expr *
-AssignBuilder::build_post_dec(const Expr *const lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::build_post_dec(const Expr *const lvalue, const SourceLocation result_loc)
 {
     return build_inc_dec<OpVariant::POST, DecPolicy>(lvalue, result_loc);
 }
 
 inline bool
-AssignBuilder::validate_lvalue_assignment(
+AssignBuilder::Restricted::validate_lvalue_assignment(
     const Expr *const lvalue,
     const SourceLocation assign_loc)
 {
@@ -391,7 +341,7 @@ AssignBuilder::validate_lvalue_assignment(
 // TODO: do we propagate assignment of assignment like x = y = z = 5? If NOT
 // We might need to let Expr::Type::ASSIGN_EXPR
 inline bool
-AssignBuilder::try_record_const_expr(const Expr *const lvalue, const Expr *const rvalue)
+AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const Expr *const rvalue)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
     #ifndef ALL_OPTIMIZATIONS_ENABLED_BUILD
@@ -412,7 +362,7 @@ AssignBuilder::try_record_const_expr(const Expr *const lvalue, const Expr *const
 }
 
 inline const Expr *
-AssignBuilder::handle_table_item_assignment(
+AssignBuilder::Restricted::handle_table_item_assignment(
     const Expr *const lvalue,
     const Expr *const rvalue,
     const SourceLocation result_loc)
@@ -429,7 +379,7 @@ AssignBuilder::handle_table_item_assignment(
 }
 
 inline const Expr *
-AssignBuilder::handle_direct_assignment(
+AssignBuilder::Restricted::handle_direct_assignment(
     const Expr *const lvalue,
     const Expr *const rvalue,
     const SourceLocation result_loc)
@@ -446,9 +396,9 @@ AssignBuilder::handle_direct_assignment(
     return temp;
 }
 
-template<AssignBuilder::OpVariant op_variant, typename Policy>
+template<AssignBuilder::Restricted::OpVariant op_variant, typename Policy>
 const Expr *
-AssignBuilder::build_inc_dec(const Expr *const lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::build_inc_dec(const Expr *const lvalue, const SourceLocation result_loc)
 {
     static_assert(std::is_same_v<Policy, IncPolicy> ||
                   std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
@@ -468,7 +418,7 @@ AssignBuilder::build_inc_dec(const Expr *const lvalue, const SourceLocation resu
 
 template<typename Policy>
 const Expr *
-AssignBuilder::handle_pre_inc_dec(const Expr *lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *lvalue, const SourceLocation result_loc)
 {
     static_assert(std::is_same_v<Policy, IncPolicy> ||
                   std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
@@ -497,7 +447,7 @@ AssignBuilder::handle_pre_inc_dec(const Expr *lvalue, const SourceLocation resul
 
 template<typename Policy>
 const Expr *
-AssignBuilder::handle_post_inc_dec(const Expr *lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue, const SourceLocation result_loc)
 {
     static_assert(std::is_same_v<Policy, IncPolicy> ||
                   std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
@@ -520,11 +470,6 @@ AssignBuilder::handle_post_inc_dec(const Expr *lvalue, const SourceLocation resu
     return result;
 }
 
-inline
-BasicBuilder::BasicBuilder(Options &&options, const SemanticSystemServices &ss_services)
-    : SemanticSubsystem(ss_services),
-      options_(options) {}
-
 DISPATCH_DEFINE_HANDLER_BEGIN(BasicBuilder);
     DISPATCH_BEGIN_CALLS();
     DISPATCH_SLAVE_METHOD_CALL(build_uminus);
@@ -538,7 +483,7 @@ DISPATCH_DEFINE_HANDLER_BEGIN(BasicBuilder);
 DISPATCH_DEFINE_HANDLER_END(BasicBuilder);
 
 inline const Expr *
-BasicBuilder::build_uminus(
+BasicBuilder::Restricted::build_uminus(
     const Expr *expr,
     const SourceLocation result_loc)
 {
@@ -556,7 +501,7 @@ BasicBuilder::build_uminus(
 }
 
 inline const Expr *
-BasicBuilder::build_arithmetic(
+BasicBuilder::Restricted::build_arithmetic(
     const IOPCode iopc,
     const Expr *lhs,
     const Expr *rhs,
@@ -580,7 +525,7 @@ BasicBuilder::build_arithmetic(
 }
 
 inline const Expr *
-BasicBuilder::build_relational(
+BasicBuilder::Restricted::build_relational(
     const IOPCode iopc,
     const Expr *lhs,
     const Expr *rhs,
@@ -609,7 +554,7 @@ BasicBuilder::build_relational(
 }
 
 inline const Expr *
-BasicBuilder::build_logical_not(const Expr *expr, const SourceLocation result_loc)
+BasicBuilder::Restricted::build_logical_not(const Expr *expr, const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr, SemUtils::is_in_bool_form(expr));
 
@@ -625,7 +570,7 @@ BasicBuilder::build_logical_not(const Expr *expr, const SourceLocation result_lo
 }
 
 inline const Expr *
-BasicBuilder::build_logical_and(
+BasicBuilder::Restricted::build_logical_and(
     const Expr *lhs,
     const Expr *rhs,
     const SourceLocation result_loc)
@@ -644,11 +589,11 @@ BasicBuilder::build_logical_and(
     if (should_fold_logical(lhs, rhs))
         return expr_folder_->fold_logical_and(lhs, rhs, result_loc);
 
-    return backpatcher_->resolve_lazy_bool_expr<Backpatcher::AndPolicy>(lhs, rhs, result_loc);
+    return build_short_circuit_bool_expr<AndShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
 inline const Expr *
-BasicBuilder::build_logical_or(
+BasicBuilder::Restricted::build_logical_or(
     const Expr *lhs,
     const Expr *rhs,
     const SourceLocation result_loc)
@@ -667,11 +612,11 @@ BasicBuilder::build_logical_or(
     if (should_fold_logical(lhs, rhs))
         return expr_folder_->fold_logical_or(lhs, rhs, result_loc);
 
-    return backpatcher_->resolve_lazy_bool_expr<Backpatcher::OrPolicy>(lhs, rhs, result_loc);
+    return build_short_circuit_bool_expr<OrShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
 inline const Expr *
-BasicBuilder::try_propagate_const(const Expr *const expr)
+BasicBuilder::Restricted::try_propagate_const(const Expr *const expr)
 {
     if (expr->type != Expr::Type::VARIABLE)
         return expr;
@@ -682,8 +627,42 @@ BasicBuilder::try_propagate_const(const Expr *const expr)
     return var_symbol->get_const_expr();
 }
 
+template<typename Policy>
+[[nodiscard]] const Expr *
+BasicBuilder::Restricted::build_short_circuit_bool_expr(
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation result_loc)
+{
+    static_assert(std::is_same_v<Policy, OrShortCircuitPolicy> ||
+                  std::is_same_v<Policy, AndShortCircuitPolicy>, "Unknown backpatching policy");
+
+    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
+    const BoolExpr *const left_bool = static_cast<const BoolExpr *>(lhs);
+    const BoolExpr *const right_bool = static_cast<const BoolExpr *>(rhs);
+    const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
+
+    // Patching left side.
+    DEBUG_SMART_ASSERT(!parse_ctx_->cache.short_circuit_jump_stack.empty());
+    for (const LabelID quad_label: Policy::backpatch_list(left_bool))
+        quad_handler_->patch_quad(quad_label, parse_ctx_->cache.short_circuit_jump_stack.top());
+    parse_ctx_->cache.short_circuit_jump_stack.pop();
+    Policy::backpatch_list(left_bool).clear();
+
+    // Merging right side.
+    auto &lhs_merge = Policy::merge_lhs_list(left_bool);
+    auto &rhs_merge = Policy::merge_rhs_list(right_bool);
+    auto &result_merge = Policy::merge_lhs_list(bool_result_expr);
+    // We could use merge_rhs too
+    result_merge.reserve(lhs_merge.size() + rhs_merge.size());
+    result_merge.insert(result_merge.end(), lhs_merge.begin(), lhs_merge.end());
+    result_merge.insert(result_merge.end(), rhs_merge.begin(), rhs_merge.end());
+
+    Policy::assign_list(bool_result_expr) = Policy::assign_list(right_bool);
+    return bool_result_expr;
+}
 template<typename... Exprs>
-bool BasicBuilder::should_fold_arithmetic(const Exprs &... exprs)
+bool BasicBuilder::Restricted::should_fold_arithmetic(const Exprs &... exprs)
 {
     static_assert(sizeof...(Exprs) >= 1, "should_fold_arithmetic: expects at least 1 const Expr *");
     static_assert(sizeof...(Exprs) <= 2, "should_fold_arithmetic: expects at max 2 const Expr *");
@@ -695,7 +674,8 @@ bool BasicBuilder::should_fold_arithmetic(const Exprs &... exprs)
 }
 
 template<typename... Exprs>
-bool BasicBuilder::should_fold_relational_arithmetic(const IOPCode iopc, const Exprs &... exprs)
+bool BasicBuilder::Restricted::should_fold_relational_arithmetic(
+    const IOPCode iopc, const Exprs &... exprs)
 {
     static_assert(sizeof...(Exprs) == 2,
                   "should_fold_relational_arithmetic: expects exactly 2 const Expr *");
@@ -709,7 +689,8 @@ bool BasicBuilder::should_fold_relational_arithmetic(const IOPCode iopc, const E
 }
 
 template<typename... Exprs>
-bool BasicBuilder::should_fold_relational_equality(const IOPCode iopc, const Exprs &... exprs)
+bool BasicBuilder::Restricted::should_fold_relational_equality(
+    const IOPCode iopc, const Exprs &... exprs)
 {
     static_assert(sizeof...(Exprs) == 2,
                   "should_fold_relational_equality: expects exactly 2 const Expr *");
@@ -723,7 +704,7 @@ bool BasicBuilder::should_fold_relational_equality(const IOPCode iopc, const Exp
 }
 
 template<typename... Exprs>
-bool BasicBuilder::should_fold_logical(const Exprs &... exprs)
+bool BasicBuilder::Restricted::should_fold_logical(const Exprs &... exprs)
 {
     static_assert(sizeof...(Exprs) >= 1, "should_fold_logical: expects at least 1 const Expr *");
     static_assert(sizeof...(Exprs) <= 2, "should_fold_logical: expects at max 2 const Expr *");
@@ -736,17 +717,13 @@ bool BasicBuilder::should_fold_logical(const Exprs &... exprs)
     return options_.fold_logical && (SemUtils::is_const_bool_expr(exprs) || ...);
 }
 
-inline bool BasicBuilder::should_propagate_const()
+inline bool BasicBuilder::Restricted::should_propagate_const()
 {
     #ifndef ALL_OPTIMIZATIONS_ENABLED_BUILD
     return true;
     #endif
     return options_.constant_propagation;
 }
-
-inline
-ConstBuilder::ConstBuilder(const SemanticSystemServices &ss_services)
-    : SemanticSubsystem(ss_services) {}
 
 DISPATCH_DEFINE_HANDLER_BEGIN(ConstBuilder);
     DISPATCH_BEGIN_CALLS();
@@ -762,36 +739,39 @@ DISPATCH_DEFINE_HANDLER_BEGIN(ConstBuilder);
 DISPATCH_DEFINE_HANDLER_END(ConstBuilder);
 
 inline const Expr *
-ConstBuilder::build_true_expr(const SourceLocation loc)
+ConstBuilder::Restricted::build_true_expr(const SourceLocation loc)
 {
     return expr_maker_->make_const_bool_expr(loc, true);
 }
 
 inline const Expr *
-ConstBuilder::build_false_expr(const SourceLocation loc)
+ConstBuilder::Restricted::build_false_expr(const SourceLocation loc)
 {
     return expr_maker_->make_const_bool_expr(loc, false);
 }
 
 inline const Expr *
-ConstBuilder::build_int_expr(const AlphaInt value, const SourceLocation loc)
+ConstBuilder::Restricted::build_int_expr(const AlphaInt value, const SourceLocation loc)
 {
     return expr_maker_->make_const_int_expr(loc, value);
 }
 
 inline const Expr *
-ConstBuilder::build_float_expr(const AlphaFloat value, const SourceLocation loc)
+ConstBuilder::Restricted::build_float_expr(const AlphaFloat value, const SourceLocation loc)
 {
     return expr_maker_->make_const_float_expr(loc, value);
 }
 
 inline const Expr *
-ConstBuilder::build_string_expr(const char *const value, const SourceLocation loc)
+ConstBuilder::Restricted::build_string_expr(const char *const value, const SourceLocation loc)
 {
     return expr_maker_->make_const_string_expr(loc, value);
 }
 
 inline const Expr *
-ConstBuilder::build_nil_expr(const SourceLocation loc) { return expr_maker_->make_nil_expr(loc); }
+ConstBuilder::Restricted::build_nil_expr(const SourceLocation loc)
+{
+    return expr_maker_->make_nil_expr(loc);
+}
 } // namespace Alpha
 #endif // EXPR_BUILDERS_HPP

@@ -82,7 +82,7 @@ target_include_directories(alpha_parser_api INTERFACE
 target_link_libraries(alpha_parser_api INTERFACE
     utils_api
 )
-
+ #TODO short in alphabetical order! (like in directory explorer tab)
 add_library(alpha_parser_impl STATIC
     ${ALPHA_PARSER_OUTPUT_FILEPATH}
     src/symbol_table.cpp
@@ -91,6 +91,9 @@ add_library(alpha_parser_impl STATIC
     src/L1_driver/semantic_system_support.cpp
     src/L2_builders/lvalue_resolver.cpp
     src/L2_builders/control_flow_managers.cpp
+    src/L2_builders/expr_builders.cpp
+    src/L2_builders/block_manager.cpp
+
 )
 target_include_directories(alpha_parser_impl PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"

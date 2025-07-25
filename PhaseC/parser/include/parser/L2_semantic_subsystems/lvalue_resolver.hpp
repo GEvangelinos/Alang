@@ -14,21 +14,33 @@
 
 namespace Alpha
 {
-class LvalueResolver final : private SemanticSubsystem
+class LvalueResolver
 {
-public:
-    explicit LvalueResolver(const SemanticSystemServices &ss_services);
-    ~LvalueResolver() override = default;
-
-    DISPATCH_DECLARE_HANDLER();
+    friend class SemanticSystem;
 
 private:
-    [[nodiscard]] const Expr *resolve_id(const char *id_name, SourceLocation id_loc);
-    [[nodiscard]] const Expr *resolve_local_id(const char *id_name, SourceLocation id_loc);
-    [[nodiscard]] const Expr *resolve_global_id(const char *id_name, SourceLocation id_loc);
-    [[nodiscard]] const Expr *resolve_lvalue_to_rvalue(const Expr *lvalue);
-    [[nodiscard]] bool ensure_reachable_symbol(
-        const Symbol *symbol, const char *id_name, SourceLocation id_loc);
+    class Restricted final : private SemanticSubsystem
+    {
+        friend class LvalueResolver;
+
+    private:
+        explicit Restricted(const SemanticSystemServices &ss_services);
+        ~Restricted() override = default;
+
+        [[nodiscard]] const Expr *resolve_id(const char *id_name, SourceLocation id_loc);
+        [[nodiscard]] const Expr *resolve_local_id(const char *id_name, SourceLocation id_loc);
+        [[nodiscard]] const Expr *resolve_global_id(const char *id_name, SourceLocation id_loc);
+        [[nodiscard]] const Expr *resolve_lvalue_to_rvalue(const Expr *lvalue);
+
+        [[nodiscard]] bool ensure_reachable_symbol(
+            const Symbol *symbol, const char *id_name, SourceLocation id_loc);
+    };
+
+    Restricted DISPATCH_TARGET;
+
+    explicit LvalueResolver(const SemanticSystemServices &ss_services);
+
+    DISPATCH_DECLARE_HANDLER();
 };
 
 DISPATCH_DEFINE_HANDLER_BEGIN(LvalueResolver);
@@ -41,10 +53,9 @@ DISPATCH_DEFINE_HANDLER_BEGIN(LvalueResolver);
 DISPATCH_DEFINE_HANDLER_END(LvalueResolver);
 
 inline const Expr *
-LvalueResolver::resolve_lvalue_to_rvalue(const Expr *const lvalue)
+LvalueResolver::Restricted::resolve_lvalue_to_rvalue(const Expr *const lvalue)
 {
     return ss_bridge_->emit_tablegetelem_if_table_item(lvalue);
 }
-
 } // namespace Alpha
 #endif // LVALUE_RESOLVER_HPP

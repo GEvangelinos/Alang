@@ -3,10 +3,12 @@
 namespace Alpha
 {
 LvalueResolver::LvalueResolver(const SemanticSystemServices &ss_services)
+    : DISPATCH_TARGET(ss_services) {}
+LvalueResolver::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
 
 const Expr *
-LvalueResolver::resolve_id(const char *id_name, const SourceLocation id_loc)
+LvalueResolver::Restricted::resolve_id(const char *id_name, const SourceLocation id_loc)
 {
     const Symbol *result = symbol_table_->lookup_chain(id_name, parse_ctx_->scope_handler.scope());
     if (!result) // Symbol not found, so insert it!
@@ -32,7 +34,7 @@ LvalueResolver::resolve_id(const char *id_name, const SourceLocation id_loc)
 }
 
 const Expr *
-LvalueResolver::resolve_local_id(const char *const id_name, const SourceLocation id_loc)
+LvalueResolver::Restricted::resolve_local_id(const char *const id_name, const SourceLocation id_loc)
 {
     const Symbol *result = symbol_table_->lookup_local(id_name, parse_ctx_->scope_handler.scope());
     if (!result)
@@ -59,7 +61,7 @@ LvalueResolver::resolve_local_id(const char *const id_name, const SourceLocation
     UNREACHABLE("Unexpected symbol type");
 }
 
-const Expr *LvalueResolver::resolve_global_id(const char *id_name, SourceLocation id_loc)
+const Expr *LvalueResolver::Restricted::resolve_global_id(const char *id_name, SourceLocation id_loc)
 {
     const Symbol *result = symbol_table_->lookup_global(id_name);
     if (!result)
@@ -77,7 +79,7 @@ const Expr *LvalueResolver::resolve_global_id(const char *id_name, SourceLocatio
 }
 
 DEBUG_ALWAYS_INLINE bool // inline hint for local call-sites
-LvalueResolver::ensure_reachable_symbol(
+LvalueResolver::Restricted::ensure_reachable_symbol(
     const Symbol *symbol,
     const char *const id_name,
     const SourceLocation id_loc)

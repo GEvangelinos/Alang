@@ -24,6 +24,7 @@ namespace Alpha
 // for their own initialization.
 class SemanticSystem : private Immobile
 {
+    friend class SemanticSystemBridge;
 public:
     struct Options
     {
@@ -70,10 +71,7 @@ private:
 
     static BasicBuilder::Options get_basic_builder_options(const Options &options);
 
-    friend class SemanticSystemBridge;
-
     // --Layer 2 subsystems -- No trailing underscores here, as these are directly used in dispatch mechanisms.
-    Backpatcher backpatcher;
     ConstBuilder const_builder;
     AssignBuilder assign_builder;
     BasicBuilder basic_builder;
@@ -82,19 +80,20 @@ private:
     LvalueResolver lvalue_resolver;
 
     // -- Direct methods-- // TODO: maybe package inside a module? // Dont if to unrelatable!
-    void mark_short_circuit_jump_point();
-
     const Expr *convert_to_bool_expr(const Expr *expr);
-
+    void mark_short_circuit_jump_point();
     void reset_stmt_context() noexcept;
+    void finalize_bool_expr(const Expr *const expr);
+
 };
 
 DISPATCH_DEFINE_HANDLER_BEGIN(SemanticSystem);
     DISPATCH_BEGIN_CALLS();
-    DISPATCH_MASTER_METHOD_CALL(mark_short_circuit_jump_point);
+
     DISPATCH_MASTER_METHOD_CALL(convert_to_bool_expr);
+    DISPATCH_MASTER_METHOD_CALL(mark_short_circuit_jump_point);
     DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
-    DISPATCH_MASTER_MODULE_CALL(backpatcher);
+    DISPATCH_MASTER_METHOD_CALL(finalize_bool_expr);
     DISPATCH_MASTER_MODULE_CALL(const_builder);
     DISPATCH_MASTER_MODULE_CALL(assign_builder);
     DISPATCH_MASTER_MODULE_CALL(basic_builder);
@@ -110,26 +109,6 @@ SemanticSystem::mark_short_circuit_jump_point()
     parse_ctx_->cache.short_circuit_jump_stack.push(quad_handler_->next_quad_label());
 }
 
-inline const Expr *
-SemanticSystem::convert_to_bool_expr(const Expr *const expr)
-{
-    DEBUG_SMART_ASSERT(!!expr);
-
-    if (expr->type == Expr::Type::BOOL_EXPR)
-        return expr;
-    if (SemUtils::is_static_expr(expr))
-        return SemUtils::as_bool(expr)
-               ? expr_maker_->make_const_bool_expr(expr->loc, true)
-               : expr_maker_->make_const_bool_expr(expr->loc, false);
-
-    const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
-    bool_expr->true_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(IOPCode::IF_EQ, expr, &k_static_true_expr, nullptr, expr->loc);
-    bool_expr->false_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
-
-    return bool_expr;
-}
 
 inline void
 SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->name_generator.reset_temp_names(); }

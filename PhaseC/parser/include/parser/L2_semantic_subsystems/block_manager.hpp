@@ -5,24 +5,31 @@
 
 namespace Alpha
 {
-class BlockManager final : private SemanticSubsystem
+class BlockManager
 {
-public:
+    friend class SemanticSystem;
+
+private:
+    class Restricted final : private SemanticSubsystem
+    {
+        friend class BlockManager;
+
+    private:
+        explicit Restricted(const SemanticSystemServices &ss_services);
+
+        void enter_block() noexcept;
+        void exit_block() noexcept;
+
+        static BlockSourceLocation make_block_location(
+            SourceLocation begin, SourceLocation end) noexcept;
+    };
+
+    Restricted DISPATCH_TARGET;
+
     explicit BlockManager(const SemanticSystemServices &ss_services);
 
     DISPATCH_DECLARE_HANDLER();
-
-private:
-    void enter_block() noexcept;
-    void exit_block() noexcept;
-
-    static BlockSourceLocation make_block_location(
-        SourceLocation begin, SourceLocation end) noexcept;
 };
-
-inline
-BlockManager::BlockManager(const SemanticSystemServices &ss_services)
-    : SemanticSubsystem(ss_services) {}
 
 DISPATCH_DEFINE_HANDLER_BEGIN(BlockManager);
     DISPATCH_BEGIN_CALLS();
@@ -33,17 +40,19 @@ DISPATCH_DEFINE_HANDLER_BEGIN(BlockManager);
 DISPATCH_DEFINE_HANDLER_END(BlockManager);
 
 inline void
-BlockManager::enter_block() noexcept { parse_ctx_->scope_handler.enter_scope(); }
+BlockManager::Restricted::enter_block() noexcept { parse_ctx_->scope_handler.enter_scope(); }
 
 inline void
-BlockManager::exit_block() noexcept
+BlockManager::Restricted::exit_block() noexcept
 {
     symbol_table_->hide_scope_symbols(parse_ctx_->scope_handler.scope());
     parse_ctx_->scope_handler.exit_scope();
 }
 
 inline BlockSourceLocation
-BlockManager::make_block_location(const SourceLocation begin, const SourceLocation end) noexcept
+BlockManager::Restricted::make_block_location(
+    const SourceLocation begin,
+    const SourceLocation end) noexcept
 {
     return {
         .begin = begin,

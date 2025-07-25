@@ -185,7 +185,7 @@ multiStmt:
 ;
 
 stmt:
-  expr SEMICOLON { ss.call<"backpatcher.finalize_bool_expr">($expr); }
+  expr SEMICOLON { ss.call<"finalize_bool_expr">($expr); }
 | ifStmt
 | whileStmt
 | forStmt
@@ -275,7 +275,7 @@ term
 assignExpr:
   expr[lhs] ASSIGN expr[rhs]
   {
-    ss.call<"backpatcher.finalize_bool_expr">($rhs);
+    ss.call<"finalize_bool_expr">($rhs);
     $assignExpr = ss.call<"assign_builder.build_assignment">($lhs, $rhs, @assignExpr);
   }
 ;
@@ -317,7 +317,7 @@ call[invocation]:
 exprList[head]:
   expr
   {
-    ss.call<"backpatcher.finalize_bool_expr">($expr);
+    ss.call<"finalize_bool_expr">($expr);
     
 
   }

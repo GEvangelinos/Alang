@@ -2,8 +2,14 @@
 
 namespace Alpha
 {
+LoopManager::LoopManager(const SemanticSystemServices &ss_services)
+    :DISPATCH_TARGET(ss_services) {}
+
+LoopManager::Restricted::Restricted(const SemanticSystemServices &ss_services)
+    : SemanticSubsystem(ss_services) {}
+
 const char *
-LoopManager::to_string(const LoopKeyword lk)
+LoopManager::Restricted::to_string(const LoopKeyword lk)
 {
     switch (lk)
     {

@@ -41,26 +41,25 @@ public:
     const Expr *emit_tablegetelem_if_table_item(const Expr *expr);
 
 private:
-    ParseCtx *const parse_ctx_;
-    ExprMaker *const expr_maker_;
-    QuadHandler *const quad_handler_;
+    ParseCtx *const parse_ctx_ = nullptr;
+    ExprMaker *const expr_maker_ = nullptr;
+    QuadHandler *const quad_handler_ = nullptr;
 };
 
 class Backpatcher; // Forward-Decl to avoid cyclic Includes
 
 struct SemanticSystemServices
 {
-    ParseCtx *const parse_ctx;
-    SymbolTable *const symbol_table;
-    DiagnosticReporter *const dr;
-    ExprMaker *const expr_maker;
-    ExprFolder *const expr_folder;
-    ExprSnitch *const expr_snitch;
-    QuadHandler *const quad_handler;
-    Backpatcher *const backpatcher;
-    SemanticSystemBridge *const ss_bridge;
+    ParseCtx *const parse_ctx = nullptr;
+    SymbolTable *const symbol_table = nullptr;
+    DiagnosticReporter *const dr = nullptr;
+    ExprMaker *const expr_maker = nullptr;
+    ExprFolder *const expr_folder = nullptr;
+    ExprSnitch *const expr_snitch = nullptr;
+    QuadHandler *const quad_handler = nullptr;
+    Backpatcher *const backpatcher = nullptr;
+    SemanticSystemBridge *const ss_bridge = nullptr;
 };
 } // namespace Alpha
-
 
 #endif //SEMANTIC_DRIVER_SERVICES_HPP

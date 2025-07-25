@@ -5,7 +5,7 @@
 
 namespace Alpha
 {
-class SemanticSubsystem
+class SemanticSubsystem : private Immobile
 {
 protected:
     ParseCtx *const parse_ctx_ = nullptr;

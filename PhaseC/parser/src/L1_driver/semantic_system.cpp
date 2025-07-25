@@ -21,7 +21,6 @@ SemanticSystem::SemanticSystem(
       sd_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
 
       // public servicers, used by users of semantic driver.
-      backpatcher(export_semantic_system_services()),
       const_builder(export_semantic_system_services()),
       assign_builder(get_assign_builder_options(options), export_semantic_system_services()),
       basic_builder(get_basic_builder_options(options), export_semantic_system_services()),
@@ -40,7 +39,6 @@ SemanticSystem::export_semantic_system_services()
         .expr_folder = REQUIRE_PTR(expr_folder_.get()),
         .expr_snitch = REQUIRE_PTR(expr_snitch_.get()),
         .quad_handler = REQUIRE_PTR(quad_handler_.get()),
-        .backpatcher = &backpatcher,
         .ss_bridge = &sd_bridge_,
     };
 }
@@ -62,5 +60,45 @@ SemanticSystem::get_basic_builder_options(const Options &options)
         .fold_logical = options.fold_logical,
         .constant_propagation = options.propagate_constants
     };
+}
+
+const Expr *
+SemanticSystem::convert_to_bool_expr(const Expr *const expr)
+{
+    DEBUG_SMART_ASSERT(!!expr);
+
+    if (expr->type == Expr::Type::BOOL_EXPR)
+        return expr;
+    if (SemUtils::is_static_expr(expr))
+        return SemUtils::as_bool(expr)
+               ? expr_maker_->make_const_bool_expr(expr->loc, true)
+               : expr_maker_->make_const_bool_expr(expr->loc, false);
+
+    const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
+    bool_expr->true_list.push_back(quad_handler_->next_quad_label());
+    quad_handler_->emit_labelless(IOPCode::IF_EQ, expr, &k_static_true_expr, nullptr, expr->loc);
+    bool_expr->false_list.push_back(quad_handler_->next_quad_label());
+    quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
+
+    return bool_expr;
+}
+
+void
+SemanticSystem::finalize_bool_expr(const Expr *const expr)
+{
+    DEBUG_SMART_ASSERT(!!expr);
+    if (expr->type != Expr::Type::BOOL_EXPR)
+        return; // Nothing to backpatch if not bool_expr.
+
+    const BoolExpr *const bool_expr = static_cast<const BoolExpr *>(expr);
+    auto *const qh = quad_handler_.get(); // Short alias to improve readability and reduce verbosity
+
+    DEBUG_SMART_ASSERT(!!bool_expr->var_symbol);
+
+    qh->patch_list(bool_expr->true_list, qh->next_quad_label());
+    qh->emit_next(IOPCode::ASSIGN, &k_static_true_expr, nullptr, expr, expr->loc);
+    qh->emit_next(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc, 2);
+    qh->patch_list(bool_expr->false_list, quad_handler_->next_quad_label());
+    qh->emit_next(IOPCode::ASSIGN, &k_static_false_expr, nullptr, expr, expr->loc);
 }
 } // namespace Alpha

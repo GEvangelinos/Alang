@@ -6,7 +6,7 @@
   <component name="BackendCodeEditorMiscSettings">
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
     <option name="/Default/Housekeeping/LiveTemplatesHousekeeping/HotspotSessionHintIsShown/@EntryValue" value="true" type="bool" />
-    <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="RiderCppLiveTemplatesSettings" type="string" />
+    <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="CppFormatterOtherPage" type="string" />
     <option name="/Default/Housekeeping/RefactoringsMru/RenameRefactoring/DoQuickRename/@EntryValue" value="true" type="bool" />
   </component>
   <component name="CMakePresetLoader">{
@@ -42,14 +42,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/parser/src/L2_builders/block_manager.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.TODO_BLACKWHOLE.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.cached_files/OLD_semantic_builder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/.cached_files/OLD_semantic_builder.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_dispatcher_dsl.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_dispatcher_dsl.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_support.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_support.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/block_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/block_manager.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_managers.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_managers.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/_parser_common.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/_parser_common.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/lvalue_resolver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/lvalue_resolver.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/control_flow_managers.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/control_flow_managers.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -254,7 +261,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "RiderCppLiveTemplatesSettingsId",
+    "settings.editor.selected.configurable": "preferences.sourceCode.C/C++",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -264,6 +271,11 @@
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.alpha_driver.out">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="alpha_core_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_core_impl" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -397,7 +409,7 @@
       <workItem from="1752085378128" duration="21245000" />
       <workItem from="1752244324184" duration="29964000" />
       <workItem from="1753375474284" duration="3000" />
-      <workItem from="1753376013995" duration="13113000" />
+      <workItem from="1753376013995" duration="27868000" />
     </task>
     <servers />
   </component>
@@ -424,7 +436,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp</url>
-          <line>107</line>
+          <line>106</line>
           <option name="timeStamp" value="13" />
         </line-breakpoint>
       </breakpoints>
