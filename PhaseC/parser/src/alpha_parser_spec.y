@@ -47,10 +47,10 @@
     bool const_bool;
     Alpha::AlphaInt const_int;
     Alpha::AlphaFloat const_float;
-    const Alpha::FuncSymbol *const_function_symbol_ptr;
+    const Alpha::FuncSymbol *const_func_symbol_ptr;
     const Alpha::Expr *const_expr_ptr;
     Alpha::ExprList *expr_list_ptr;
-    Alpha::ExprPair *expr_pair_ptr;
+    const Alpha::ExprPair *const_expr_pair_ptr;
     Alpha::DictList *dict_list_ptr;
 
     Alpha::BlockSourceLocation block_location;
@@ -70,19 +70,20 @@
 %type  <expr_list_ptr> elist
 %type  <expr_list_ptr> exprList
 %type  <const_expr_ptr> tableList
+
+%type  <dict_list_ptr> indexed
+%type  <dict_list_ptr> indexedElemList
+%type  <const_expr_pair_ptr> indexedElem
+%type  <const_expr_ptr> tableDict
 /********************************************************
 %type  <expr_ptr> tableItem
 %type  <expr_ptr> member
 %type  <expr_ptr> call
 %type  <expr_ptr> objectDef
-%type  <expr_ptr> tableDict
 
-%type  <dict_list_ptr> indexed
-%type  <dict_list_ptr> indexedElemList
-%type  <expr_pair_ptr> indexedElem
 
-%type  <const_function_symbol_ptr> funcDef
-%type  <const_function_symbol_ptr> funcSignature
+%type  <const_func_symbol_ptr> funcDef
+%type  <const_func_symbol_ptr> funcSignature
 
 *******************************************************/
 %type  <block_location> block_loc
@@ -338,31 +339,29 @@ elist:
 ;
 
 tableList:
-  LEFT_BRACKET elist RIGHT_BRACKET { $tableList = ss.call<"aggregate_builder.build_table_list">($elist, @tableList); }
+  LEFT_BRACKET elist RIGHT_BRACKET { $tableList = ss.call<"aggregate_builder.build_table_list_consuming">($elist, @tableList); }
+;
+
+indexedElem:
+  LEFT_BRACE
+  expr[key]   { ss.call<"finalize_bool_expr">($key); }
+  COLON
+  expr[value] { ss.call<"finalize_bool_expr">($value); }
+  RIGHT_BRACE { $indexedElem = ss.call<"aggregate_builder.build_expr_pair">($key, $value); }
+;
+
+indexedElemList[head]:
+  indexedElem                             { $head = ss.call<"aggregate_builder.build_dict_list">($indexedElem); }
+| indexedElem COMMA indexedElemList[tail] { $head = ss.call<"aggregate_builder.extend_dict_list">($tail, $indexedElem); }
 ;
 
 tableDict:
-  LEFT_BRACKET indexed RIGHT_BRACKET
+  LEFT_BRACKET indexedElemList RIGHT_BRACKET
 ;
 
 objectDef:
   tableList
 | tableDict
-;
-
-indexed:
-  indexedElemList
-;
-
-indexedElemList[head]:
-  indexedElem
-| indexedElem COMMA indexedElemList[tail]
-;
-
-indexedElem:
-  LEFT_BRACE expr[key] COLON
-  expr[value]
-  RIGHT_BRACE
 ;
 
 block_begin:
@@ -373,7 +372,6 @@ block_end:
   RIGHT_BRACE { ss.call<"block_manager.exit_block">(); }
 ;
 
-
 block_body:
 /* (empty) */
 | multiStmt
@@ -382,7 +380,6 @@ block_body:
 block_loc:
   block_begin block_body block_end { ss.call<"block_manager.make_block_location">(@block_begin, @block_end); }
 ;
-
 
 funcPrefix:
   FUNCTION

@@ -15,17 +15,17 @@ public:
 
     void emit_next(
         IOPCode iopc,
+        const Expr *result,
         const Expr *arg1,
         const Expr *arg2,
-        const Expr *result,
         SourceLocation loc,
         LabelID label_offset = 0);
 
     void emit_labelless(
         IOPCode iopc,
+        const Expr *result,
         const Expr *arg1,
         const Expr *arg2,
-        const Expr *result,
         SourceLocation loc);
 
     void patch_quad(LabelID target_quad_label, LabelID destination_label);
@@ -40,11 +40,12 @@ private:
 
     void emit(
         IOPCode iopc,
+        const Expr *result,
         const Expr *arg1,
         const Expr *arg2,
-        const Expr *result,
         LabelID label,
         SourceLocation loc);
+
 };
 
 inline void

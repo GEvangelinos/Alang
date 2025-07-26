@@ -84,8 +84,7 @@ private:
     const Expr *convert_to_bool_expr(const Expr *expr);
     void mark_short_circuit_jump_point();
     void reset_stmt_context() noexcept;
-    void finalize_bool_expr(const Expr *const expr);
-
+    void finalize_bool_expr(const Expr *expr);
 };
 
 DISPATCH_DEFINE_HANDLER_BEGIN(SemanticSystem);

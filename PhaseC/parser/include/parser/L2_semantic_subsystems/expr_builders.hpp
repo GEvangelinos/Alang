@@ -40,7 +40,7 @@ private:
         [[nodiscard]] const Expr *build_table_list_consuming(
             ExprList *elist, SourceLocation table_list_loc);
         [[nodiscard]] const Expr *build_table_dict_consuming(
-            DictList *dlist, SourceLocation table_dict_loc);
+            DictList *&dlist, SourceLocation table_dict_loc);
     };
 
     Restricted DISPATCH_TARGET;
@@ -265,7 +265,7 @@ AggregateBuilder::Restricted::build_expr_pair(const Expr *const first, const Exp
 {
     DEBUG_SMART_ASSERT(!!first, !!second);
     // TODO: can you make this `new const` ? Can you delete ptr afterwards?
-    // WIthout const_cast() checks when at end of project
+    // Without const_cast() checks when at end of project
     return new ExprPair(first, second);
 }
 
@@ -330,19 +330,19 @@ AggregateBuilder::Restricted::build_table_dict_consuming(
     DictList *&dlist,
     const SourceLocation table_dict_loc)
 {
-    Expr *new_table_expr = parse_ctx_.expr_handler.make_expr_new_table(table_dict_loc);
-    parse_ctx_.quad_handler.emit_quad(IOPCode::TABLECREATE, nullptr, nullptr, new_table_expr,
-                                      table_dict_loc //
-    );
+    DEBUG_SMART_ASSERT(!!dlist);
+    auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
 
+    const Expr *const new_table_expr = expr_maker_->make_new_table_expr(table_dict_loc);
+    qh->emit_next(IOPCode::TABLECREATE, nullptr, nullptr, new_table_expr, table_dict_loc);
+
+    // Emit dict's items.
     for (auto it = dlist->crbegin(); it != dlist->crend(); ++it)
-    {
-        parse_ctx_.quad_handler.emit_quad(IOPCode::TABLESETELEM, (*it)->first,
-                                          (*it)->second, new_table_expr,
-                                          k_no_location //
-        );
-    }
+        qh->emit_next(IOPCode::TABLESETELEM, (*it)->first, (*it)->second, new_table_expr, k_no_loc);
+
+    // Delete elist after use — it must not be used again
     delete_dict_list(dlist);
+
     return new_table_expr;
 }
 

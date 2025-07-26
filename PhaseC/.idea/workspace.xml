@@ -42,19 +42,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.TODO_BLACKWHOLE.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.cached_files/OLD_semantic_builder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/.cached_files/OLD_semantic_builder.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_dispatcher_dsl.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_dispatcher_dsl.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_folder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_folder.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/quad_handler.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/quad_handler.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/ir.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/semantic_utils.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/semantic_utils.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system_support.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system_support.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -407,7 +399,7 @@
       <workItem from="1752085378128" duration="21245000" />
       <workItem from="1752244324184" duration="29964000" />
       <workItem from="1753375474284" duration="3000" />
-      <workItem from="1753376013995" duration="42021000" />
+      <workItem from="1753376013995" duration="47633000" />
     </task>
     <servers />
   </component>
@@ -434,7 +426,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp</url>
-          <line>108</line>
+          <line>107</line>
           <option name="timeStamp" value="13" />
         </line-breakpoint>
       </breakpoints>
