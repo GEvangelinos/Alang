@@ -456,3 +456,26 @@ because I am about to prune them to:
 And maybe.. saviddis team.. will cry about it..
 Well there are kinda right..
 As the "Standard or Alpha" outputs the original IOPCodes for IR :D
+
+69) OPTS to do:
+do x+0 = x
+x - 0 = x
+
+and x*1 = x optimizations
+
+0 / x = 0
+x / 1 = x
+x % 1 = 0
+0 % x = 0
+
+
+
+70) Assert DEBUG_SMART_ASSERT/ SMART_ASSERT calls dont use function with multiple arguments
+
+cause smart_assert uses comma in order to separate conditions... but function with multiple arguments
+
+already use comma for the multiple arguments.
+
+maybe we can solve this.. by adding parentheses around macro arguments.. and instead of counting commas...
+
+we count parenthses open-close, like: (func_call(1,2))

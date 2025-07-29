@@ -46,10 +46,7 @@ class ParseCtx;
  * Lifetime: ParseCache is owned by ParseCtx and lives for the duration
  * of parsing a single alpha source file.
  */
-struct ParseCache
-{
-    std::stack<LabelID> short_circuit_jump_stack;
-};
+struct ParseCache : private Immobile {};
 
 class SpaceHandler : private Immobile
 {

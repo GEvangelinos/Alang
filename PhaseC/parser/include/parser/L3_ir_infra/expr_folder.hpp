@@ -3,39 +3,75 @@
 
 #include <cmath>
 #include "expr_maker.hpp"
-#include "parser/ir.hpp"
+#include "semantic_utils.hpp"
 #include "core/source_location.hpp"
+#include "parser/ir.hpp"
 
 namespace Alpha
 {
 class ExprFolder
 {
 public:
-    ExprFolder(ExprMaker *expr_maker, ExprSnitch *expr_snitch);
+    explicit ExprFolder(ExprMaker *expr_maker);
 
     [[nodiscard]] const Expr *fold_uminus(const Expr *expr, SourceLocation result_loc);
     [[nodiscard]] const Expr *fold_arithmetic(
-        IOPCode iopc, const Expr *left, const Expr *right, SourceLocation result_loc);
+        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *fold_relational_equality(
-        IOPCode iopc, const Expr *left, const Expr *right, SourceLocation result_loc);
+        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *fold_relational_arithmetic(
-        IOPCode iopc, const Expr *left, const Expr *right, SourceLocation result_loc);
+        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *fold_logical_or(
-        const Expr *left, const Expr *right, SourceLocation result_loc);
+        const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *fold_logical_and(
-        const Expr *left, const Expr *right, SourceLocation result_loc);
+        const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *fold_logical_not(const Expr *expr, SourceLocation result_loc);
+
+    [[nodiscard]] const Expr *try_simplify_relational_equality(
+        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
 
 private:
     ExprMaker *const expr_maker_;
-    ExprSnitch *const snitch_;
-
-    [[nodiscard]] AlphaFloat extract_alpha_float(const Expr *e);
 };
 
-inline ExprFolder::ExprFolder(ExprMaker *const expr_maker, ExprSnitch *const expr_snitch)
-    : expr_maker_(Utils::require_ptr(expr_maker)),
-      snitch_(Utils::require_ptr(expr_snitch)) {}
+class ExprTrimmer
+{
+public:
+    explicit ExprTrimmer(ExprMaker *expr_maker);
+
+    [[nodiscard]] const Expr *try_trim_relational_equality(
+        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+
+    [[nodiscard]] const Expr *try_trim_add(
+        const Expr *lhs, const Expr *rhs, SourceLocation add_loc);
+    [[nodiscard]] const Expr *try_trim_sub(
+        const Expr *lhs, const Expr *rhs, SourceLocation sub_loc);
+    [[nodiscard]] const Expr *try_trim_mul(
+        const Expr *lhs, const Expr *rhs, SourceLocation mul_loc);
+    [[nodiscard]] const Expr *try_trim_div(
+        const Expr *lhs, const Expr *rhs, SourceLocation div_loc);
+    [[nodiscard]] const Expr *try_trim_mod(
+        const Expr *lhs, const Expr *rhs, SourceLocation mod_loc);
+
+private:
+    ExprMaker *const expr_maker_;
+};
+
+class ExprOptimizer
+{
+public:
+    explicit ExprOptimizer(ExprMaker *expr_maker);
+
+    ExprFolder expr_folder;
+    ExprTrimmer expr_trimmer;
+};
+
+inline ExprOptimizer::ExprOptimizer(ExprMaker *expr_maker)
+    : expr_folder(Utils::require_ptr(expr_maker)),
+      expr_trimmer(Utils::require_ptr(expr_maker)) {}
+
+inline ExprFolder::ExprFolder(ExprMaker *const expr_maker)
+    : expr_maker_(Utils::require_ptr(expr_maker)) {}
 
 inline const Expr *
 ExprFolder::fold_uminus(const Expr *const expr, const SourceLocation result_loc)
@@ -54,18 +90,17 @@ ExprFolder::fold_uminus(const Expr *const expr, const SourceLocation result_loc)
 
 inline const Expr *ExprFolder::fold_arithmetic(
     const IOPCode iopc,
-    const Expr *left,
-    const Expr *right,
+    const Expr *lhs,
+    const Expr *rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(
-        !!left, !!right,
-        SemUtils::is_const_arithmetic_expr(left),
-        SemUtils::is_const_arithmetic_expr(right)
+        !!lhs, !!rhs,
+        SemUtils::is_const_arithmetic_expr(lhs),
+        SemUtils::is_const_arithmetic_expr(rhs)
     );
 
-    const auto fold_arith_op =
-            [this, iopc, result_loc](const auto l, const auto r) -> const Expr *
+    const auto fold_arith_op = [this, iopc, result_loc](const auto l, const auto r) -> const Expr *
     {
         switch (iopc)
         {
@@ -81,45 +116,50 @@ inline const Expr *ExprFolder::fold_arithmetic(
         }
     };
 
-    return left->type == Expr::Type::CONST_INT && right->type == Expr::Type::CONST_INT
-           ? fold_arith_op(static_cast<const ConstIntExpr *>(left)->value,
-                           static_cast<const ConstIntExpr *>(right)->value)
-           : fold_arith_op(extract_alpha_float(left), extract_alpha_float(right));
+    return lhs->type == Expr::Type::CONST_INT && rhs->type == Expr::Type::CONST_INT
+           ? fold_arith_op(static_cast<const ConstIntExpr *>(lhs)->value,
+                           static_cast<const ConstIntExpr *>(rhs)->value)
+           : fold_arith_op(SemUtils::extract_alpha_float(lhs), SemUtils::extract_alpha_float(rhs));
 }
 
 inline const Expr *
 ExprFolder::fold_relational_equality(
     const IOPCode iopc,
-    const Expr *const left,
-    const Expr *const right,
+    const Expr *const lhs,
+    const Expr *const rhs,
     const SourceLocation result_loc)
 
 {
     DEBUG_SMART_ASSERT(
-        !!left, !!right,
-        SemUtils::is_static_expr(left),
-        SemUtils::is_static_expr(right)
+        !!lhs, !!rhs,
+        iopc == IOPCode::IF_EQ || iopc == IOPCode::IF_NEQ,
+        (SemUtils::is_static_expr(lhs) || SemUtils::is_static_expr(rhs))
+        && "Expected at least 1 static_expr, for at least partial folding"
     );
-    const bool left_value = SemUtils::as_bool(left);
-    const bool right_value = SemUtils::as_bool(right);
-    if (iopc == IOPCode::IF_EQ)
-        return expr_maker_->make_const_bool_expr(result_loc, left_value == right_value);
-    if (iopc == IOPCode::IF_NEQ)
-        return expr_maker_->make_const_bool_expr(result_loc, left_value != right_value);
-    throw std::logic_error(ATTACH_CONTEXT("Needed equality IOPCode"));
+
+    if (SemUtils::is_static_expr(lhs) && SemUtils::is_static_expr(rhs))
+    {
+        const bool lhs_value = SemUtils::as_bool(lhs);
+        const bool rhs_value = SemUtils::as_bool(rhs);
+        if (iopc == IOPCode::IF_EQ)
+            return expr_maker_->make_const_bool_expr(result_loc, lhs_value == rhs_value);
+        if (iopc == IOPCode::IF_NEQ)
+            return expr_maker_->make_const_bool_expr(result_loc, lhs_value != rhs_value);
+        throw std::logic_error(ATTACH_CONTEXT("Needed equality IOPCode"));
+    }
 }
 
 inline const Expr *
 ExprFolder::fold_relational_arithmetic(
     const IOPCode iopc,
-    const Expr *const left,
-    const Expr *const right,
+    const Expr *const lhs,
+    const Expr *const rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(
-        !!left, !!right,
-        SemUtils::is_const_arithmetic_expr(left),
-        SemUtils::is_const_arithmetic_expr(right)
+        !!lhs, !!rhs,
+        SemUtils::is_const_arithmetic_expr(lhs),
+        SemUtils::is_const_arithmetic_expr(rhs)
     );
     const auto fold_rel_op = [this, iopc, result_loc](const auto l, const auto r) -> const Expr *
     {
@@ -138,44 +178,44 @@ ExprFolder::fold_relational_arithmetic(
         }
     };
 
-    return left->type == Expr::Type::CONST_INT && right->type == Expr::Type::CONST_INT
-           ? fold_rel_op(static_cast<const ConstIntExpr *>(left)->value,
-                         static_cast<const ConstIntExpr *>(right)->value)
-           : fold_rel_op(extract_alpha_float(left), extract_alpha_float(right));
+    return lhs->type == Expr::Type::CONST_INT && rhs->type == Expr::Type::CONST_INT
+           ? fold_rel_op(static_cast<const ConstIntExpr *>(lhs)->value,
+                         static_cast<const ConstIntExpr *>(rhs)->value)
+           : fold_rel_op(SemUtils::extract_alpha_float(lhs), SemUtils::extract_alpha_float(rhs));
 }
 
 inline const Expr *ExprFolder::fold_logical_or(
-    const Expr *const left,
-    const Expr *const right,
+    const Expr *const lhs,
+    const Expr *const rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!left, !!right);
-    if (SemUtils::is_const_true_expr(left) || SemUtils::is_const_true_expr(right))
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    if (SemUtils::is_const_true_expr(lhs) || SemUtils::is_const_true_expr(rhs))
         return expr_maker_->make_const_bool_expr(result_loc, true);
-    if (SemUtils::is_const_false_expr(left) && SemUtils::is_const_false_expr(right))
+    if (SemUtils::is_const_false_expr(lhs) && SemUtils::is_const_false_expr(rhs))
         return expr_maker_->make_const_bool_expr(result_loc, false);
-    if (SemUtils::is_const_false_expr(left)) // false OR var = var
-        return expr_maker_->clone_with_updated_location(result_loc, right);
-    if (SemUtils::is_const_false_expr(right)) // var OR false = var
-        return expr_maker_->clone_with_updated_location(result_loc, left);
+    if (SemUtils::is_const_false_expr(lhs)) // false OR var = var
+        return expr_maker_->clone_with_updated_location(result_loc, rhs);
+    if (SemUtils::is_const_false_expr(rhs)) // var OR false = var
+        return expr_maker_->clone_with_updated_location(result_loc, lhs);
     throw std::logic_error(ATTACH_CONTEXT(
         "This function should not be used, if at least one operand is not ConstBoolExpr"));
 }
 
 inline const Expr *ExprFolder::fold_logical_and(
-    const Expr *const left,
-    const Expr *const right,
+    const Expr *const lhs,
+    const Expr *const rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!left, !!right);
-    if (SemUtils::is_const_false_expr(left) || SemUtils::is_const_false_expr(right))
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    if (SemUtils::is_const_false_expr(lhs) || SemUtils::is_const_false_expr(rhs))
         return expr_maker_->make_const_bool_expr(result_loc, false);
-    if (SemUtils::is_const_true_expr(left) && SemUtils::is_const_true_expr(right))
+    if (SemUtils::is_const_true_expr(lhs) && SemUtils::is_const_true_expr(rhs))
         return expr_maker_->make_const_bool_expr(result_loc, true);
-    if (SemUtils::is_const_true_expr(left)) // true AND var = var
-        return expr_maker_->clone_with_updated_location(result_loc, right);
-    if (SemUtils::is_const_true_expr(right)) // var AND true = var
-        return expr_maker_->clone_with_updated_location(result_loc, left);
+    if (SemUtils::is_const_true_expr(lhs)) // true AND var = var
+        return expr_maker_->clone_with_updated_location(result_loc, rhs);
+    if (SemUtils::is_const_true_expr(rhs)) // var AND true = var
+        return expr_maker_->clone_with_updated_location(result_loc, lhs);
     throw std::logic_error(ATTACH_CONTEXT(
         "This function should not be used, if at least one operand is not ConstBoolExpr"));
 }
@@ -193,18 +233,111 @@ inline const Expr *ExprFolder::fold_logical_not(
         result_loc, !static_cast<const ConstBoolExpr *>(expr)->value);
 }
 
-inline AlphaFloat
-ExprFolder::extract_alpha_float(const Expr *const e)
+inline ExprTrimmer::ExprTrimmer(ExprMaker *expr_maker)
+    : expr_maker_(expr_maker) {}
+
+inline const Expr *
+ExprTrimmer::try_trim_relational_equality(
+    const IOPCode iopc,
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation result_loc)
 {
-    if (e->type == Expr::Type::CONST_FLOAT)
-        return static_cast<const ConstFloatExpr *>(e)->value;
-    if (e->type == Expr::Type::CONST_INT)
+    if (iopc == IOPCode::IF_NEQ) // var != 0 -> var     <<<>>>     0 != var -> var
     {
-        const AlphaInt int_value = static_cast<const ConstIntExpr *>(e)->value;
-        snitch_->report_if_int_to_float_loss(int_value, e->loc);
-        return static_cast<AlphaFloat>(int_value);
+        if (SemUtils::is_static_expr(lhs) && SemUtils::as_bool(lhs) == false)
+            return expr_maker_->clone_with_updated_location(result_loc, rhs);
+        if (SemUtils::is_static_expr(rhs) && SemUtils::as_bool(rhs) == false)
+            return expr_maker_->clone_with_updated_location(result_loc, lhs);
     }
-    throw std::logic_error(ATTACH_CONTEXT("Expected CONST_INT or CONST_FLOAT Expr::Type"));
+    if (iopc == IOPCode::IF_EQ)
+    {
+        // 1 == var(true) -> var(true), 1 == var(false) -> var(false) => 1 == var -> var
+        if (SemUtils::is_const_expr_true_or_1(lhs) && SemUtils::is_const_bool_expr(rhs))
+            return expr_maker_->clone_with_updated_location(result_loc, rhs);
+        if (SemUtils::is_const_expr_true_or_1(rhs) && SemUtils::is_const_bool_expr(lhs))
+            return expr_maker_->clone_with_updated_location(result_loc, lhs);
+    }
+    return nullptr; // Simplification failed.
+}
+
+inline const Expr *
+ExprTrimmer::try_trim_add(
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation add_loc)
+{
+    DEBUG_SMART_ASSERT(
+        !(SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs))
+        && "try_trim_add: both operands are const; should be folded by ExprFolder."
+    );
+
+    // 0 + x -> x and x + 0 -> x
+    if (SemUtils::is_const_0(lhs)) return expr_maker_->clone_with_updated_location(add_loc, rhs);
+    if (SemUtils::is_const_0(rhs)) return expr_maker_->clone_with_updated_location(add_loc, lhs);
+}
+
+inline const Expr *
+ExprTrimmer::try_trim_sub(
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation sub_loc)
+{
+    DEBUG_SMART_ASSERT(
+        !(SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs))
+        && "try_trim_add: both operands are const; should be folded by ExprFolder."
+    );
+
+    // x - 0 -> x
+    if (SemUtils::is_const_0(rhs)) return expr_maker_->clone_with_updated_location(sub_loc, lhs);
+}
+
+inline const Expr *
+ExprTrimmer::try_trim_mul(
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation mul_loc)
+{
+    DEBUG_SMART_ASSERT(
+        !(SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs))
+        && "try_trim_add: both operands are const; should be folded by ExprFolder."
+    );
+
+    // x * 0 -> 0 and 0 * x -> 0
+    if (SemUtils::is_const_0(lhs))return expr_maker_->make_const_int_expr(mul_loc, 0);
+    if (SemUtils::is_const_0(rhs)) return expr_maker_->make_const_int_expr(mul_loc, 0);
+
+    // x * 1 -> x and 1 * x -> x
+    if (SemUtils::is_const_1(lhs)) return expr_maker_->clone_with_updated_location(mul_loc, rhs);
+    if (SemUtils::is_const_1(rhs)) return expr_maker_->clone_with_updated_location(mul_loc, lhs);
+}
+
+inline const Expr *
+ExprTrimmer::try_trim_div(
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation div_loc)
+{
+    DEBUG_SMART_ASSERT(
+        !(SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs))
+        && "try_trim_add: both operands are const; should be folded by ExprFolder."
+    );
+
+    if (SemUtils::is_const_1(rhs)) return expr_maker_->clone_with_updated_location(div_loc, lhs);
+}
+
+inline const Expr *
+ExprTrimmer::try_trim_mod(
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation mod_loc)
+{
+    DEBUG_SMART_ASSERT(
+        !(SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs))
+        && "try_trim_add: both operands are const; should be folded by ExprFolder."
+    );
+
+    if (SemUtils::is_const_1(rhs)) return expr_maker_->clone_with_updated_location(mod_loc, lhs);
 }
 } // namespace Alpha
 

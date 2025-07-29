@@ -36,6 +36,12 @@
       Args: [ operand_side, operator_symbol, operand_expr_type ]
       Location: operand_loc
 
+- Diagnostic: DIVISION_BY_ZERO
+  Type: ERROR
+  Primary:
+    - Message: "Division by zero"
+      Location: division_loc
+
 - Diagnostic: REL_OP_NONARITH_OPERAND
   Type: ERROR
   Primary:

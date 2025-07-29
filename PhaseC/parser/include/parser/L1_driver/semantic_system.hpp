@@ -104,12 +104,6 @@ DISPATCH_DEFINE_HANDLER_BEGIN(SemanticSystem);
     DISPATCH_END_CALLS();
 DISPATCH_DEFINE_HANDLER_END(SemanticSystem);
 
-inline void
-SemanticSystem::mark_short_circuit_jump_point()
-{
-    parse_ctx_->cache.short_circuit_jump_stack.push(quad_handler_->next_quad_label());
-}
-
 
 inline void
 SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->name_generator.reset_temp_names(); }

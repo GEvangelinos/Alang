@@ -67,14 +67,12 @@
 %type  <const_expr_ptr> assignExpr
 %type  <const_expr_ptr> call
 
-%type  <expr_list_ptr> elist
-%type  <expr_list_ptr> exprList
-%type  <const_expr_ptr> tableList
+%type  <expr_list_ptr> expr_list
+%type  <expr_list_ptr> comma_separated_exprs
 
-%type  <dict_list_ptr> indexed
-%type  <dict_list_ptr> indexedElemList
-%type  <const_expr_pair_ptr> indexedElem
-%type  <const_expr_ptr> tableDict
+%type  <const_expr_pair_ptr> dict_entry
+%type  <dict_list_ptr> dict_list
+%type  <const_expr_ptr> table_literal
 /********************************************************
 %type  <expr_ptr> tableItem
 %type  <expr_ptr> member
@@ -247,22 +245,22 @@ or_op:
   }
 ;
 
-expr[result]:
-  assignExpr { $result = $assignExpr; }
-| term       { $result = $term; }
-| expr[lhs] PLUS  expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(A_IOPC::ADD,    $lhs, $rhs, @result); }
-| expr[lhs] MINUS expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(A_IOPC::SUB,    $lhs, $rhs, @result); }
-| expr[lhs] MUL   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(A_IOPC::MUL,    $lhs, $rhs, @result); }
-| expr[lhs] DIV   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(A_IOPC::DIV,    $lhs, $rhs, @result); }
-| expr[lhs] MOD   expr[rhs] { $result = ss.call<"basic_builder.build_arithmetic">(A_IOPC::MOD,    $lhs, $rhs, @result); }
-| expr[lhs] GT    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_GT,  $lhs, $rhs, @result); }
-| expr[lhs] GTE   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_GTE, $lhs, $rhs, @result); }
-| expr[lhs] LT    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_LT,  $lhs, $rhs, @result); }
-| expr[lhs] LTE   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_LTE, $lhs, $rhs, @result); }
-| expr[lhs] EQ    expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_EQ,  $lhs, $rhs, @result); }
-| expr[lhs] NEQ   expr[rhs] { $result = ss.call<"basic_builder.build_relational">(A_IOPC::IF_NEQ, $lhs, $rhs, @result); }
-| and_op { $result = $and_op; }
-| or_op  { $result = $or_op; }
+expr[out]:
+  assignExpr { $out = $assignExpr; }
+| term       { $out = $term; }
+| expr[lhs] PLUS  expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(A_IOPC::ADD,    $lhs, $rhs, @out); }
+| expr[lhs] MINUS expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(A_IOPC::SUB,    $lhs, $rhs, @out); }
+| expr[lhs] MUL   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(A_IOPC::MUL,    $lhs, $rhs, @out); }
+| expr[lhs] DIV   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(A_IOPC::DIV,    $lhs, $rhs, @out); }
+| expr[lhs] MOD   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(A_IOPC::MOD,    $lhs, $rhs, @out); }
+| expr[lhs] GT    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_GT,  $lhs, $rhs, @out); }
+| expr[lhs] GTE   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_GTE, $lhs, $rhs, @out); }
+| expr[lhs] LT    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_LT,  $lhs, $rhs, @out); }
+| expr[lhs] LTE   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_LTE, $lhs, $rhs, @out); }
+| expr[lhs] EQ    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_EQ,  $lhs, $rhs, @out); }
+| expr[lhs] NEQ   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_NEQ, $lhs, $rhs, @out); }
+| and_op { $out = $and_op; }
+| or_op  { $out = $or_op; }
 ;
 
 term
@@ -287,10 +285,10 @@ assignExpr:
 ;
 
 primary
-: const  { $primary = $const; }
-| lvalue { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($lvalue); }
-| call   { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($call); }
-| objectDef
+: const         { $primary = $const; }
+| table_literal { $primary = $table_literal; }
+| lvalue        { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($lvalue); }
+| call          { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($call); }
 | LEFT_PAREN funcDef RIGHT_PAREN
 ;
 
@@ -314,54 +312,51 @@ methodCallId:
 
 //*TODO: ADD normal_call and Method_call and pass needed variable trhoguh a Call struct!! */
 call[invocation]:
-  call[callable] LEFT_PAREN elist RIGHT_PAREN // <------------------------------------ CHAIN_CALL
-| lvalue LEFT_PAREN elist RIGHT_PAREN // <-------------------------------------------- NORMAL_CALL
-| lvalue methodCallId LEFT_PAREN elist RIGHT_PAREN // <------------------------------- METHOD_CALL
-| LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN elist RIGHT_PAREN // <---------------------IIFE_CALL
+  call[callable] LEFT_PAREN expr_list RIGHT_PAREN // <------------------------------------ CHAIN_CALL
+| lvalue LEFT_PAREN expr_list RIGHT_PAREN // <-------------------------------------------- NORMAL_CALL
+| lvalue methodCallId LEFT_PAREN expr_list RIGHT_PAREN // <------------------------------- METHOD_CALL
+| LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN expr_list RIGHT_PAREN // <---------------------IIFE_CALL
 ;
 
-exprList[head]:
+comma_separated_exprs[out]:
   expr
   {
     ss.call<"finalize_bool_expr">($expr);
-    $head = ss.call<"aggregate_builder.build_expr_list">($expr);
+    $out = ss.call<"aggregate_builder.build_expr_list">($expr);
   }
-| expr COMMA exprList[tail]
+| expr COMMA comma_separated_exprs[prev]
   {
     ss.call<"finalize_bool_expr">($expr);
-    $head = ss.call<"aggregate_builder.extend_expr_list">($tail, $expr);
+    $out = ss.call<"aggregate_builder.extend_expr_list">($prev, $expr);
   }
 ;
 
-elist:
-/* (empty) */ { ss.call<"aggregate_builder.build_expr_list">(); }
-| exprList    { $elist = $exprList; }
+expr_list:
+/* (empty) */           { ss.call<"aggregate_builder.build_expr_list">(); }
+| comma_separated_exprs { $expr_list = $comma_separated_exprs; }
 ;
 
-tableList:
-  LEFT_BRACKET elist RIGHT_BRACKET { $tableList = ss.call<"aggregate_builder.build_table_list_consuming">($elist, @tableList); }
-;
-
-indexedElem:
+dict_entry:
   LEFT_BRACE
   expr[key]   { ss.call<"finalize_bool_expr">($key); }
   COLON
   expr[value] { ss.call<"finalize_bool_expr">($value); }
-  RIGHT_BRACE { $indexedElem = ss.call<"aggregate_builder.build_expr_pair">($key, $value); }
+  RIGHT_BRACE { $dict_entry = ss.call<"aggregate_builder.build_expr_pair">($key, $value); }
 ;
 
-indexedElemList[head]:
-  indexedElem                             { $head = ss.call<"aggregate_builder.build_dict_list">($indexedElem); }
-| indexedElem COMMA indexedElemList[tail] { $head = ss.call<"aggregate_builder.extend_dict_list">($tail, $indexedElem); }
+dict_list[out]:
+  dict_entry
+  { $out = ss.call<"aggregate_builder.build_dict_list">($dict_entry); }
+| dict_entry COMMA dict_list[prev]
+  { $out = ss.call<"aggregate_builder.extend_dict_list">($prev, $dict_entry); }
 ;
 
-tableDict:
-  LEFT_BRACKET indexedElemList RIGHT_BRACKET
-;
-
-objectDef:
-  tableList
-| tableDict
+table_literal:
+  LEFT_BRACKET expr_list RIGHT_BRACKET
+  { $table_literal = ss.call<"aggregate_builder.build_table_list_consuming">($expr_list, @table_literal); }
+|
+  LEFT_BRACKET dict_list RIGHT_BRACKET
+  { $table_literal = ss.call<"aggregate_builder.build_table_dict_consuming">($dict_list, @table_literal); }
 ;
 
 block_begin:
@@ -382,7 +377,7 @@ block_loc:
 ;
 
 funcPrefix:
-  FUNCTION
+  FUNCTION {}
 | FUNCTION ID
 ;
 
@@ -392,7 +387,7 @@ funcArgs:
 ;
 
 funcArgList:
-  LEFT_PAREN /*Void*/  RIGHT_PAREN
+  LEFT_PAREN /*Empty*/ RIGHT_PAREN
 | LEFT_PAREN funcArgs  RIGHT_PAREN
 ;
 
@@ -456,13 +451,13 @@ M:
 forHeader:
   FOR
   LEFT_PAREN
-  elist
+  expr_list
   SEMICOLON
   M
   expr
   SEMICOLON
   N1
-  elist
+  expr_list
   RIGHT_PAREN
 ;
 
