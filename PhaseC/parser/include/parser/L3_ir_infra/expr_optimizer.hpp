@@ -41,6 +41,11 @@ public:
 
     [[nodiscard]] const Expr *try_trim_relational_equality(
         IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+    [[nodiscard]] const Expr *try_trim_binary_arithmetic(
+        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+
+private:
+    ExprMaker *const expr_maker_;
 
     [[nodiscard]] const Expr *try_trim_add(
         const Expr *lhs, const Expr *rhs, SourceLocation add_loc);
@@ -52,9 +57,6 @@ public:
         const Expr *lhs, const Expr *rhs, SourceLocation div_loc);
     [[nodiscard]] const Expr *try_trim_mod(
         const Expr *lhs, const Expr *rhs, SourceLocation mod_loc);
-
-private:
-    ExprMaker *const expr_maker_;
 };
 
 class ExprOptimizer
@@ -262,6 +264,25 @@ ExprTrimmer::try_trim_relational_equality(
 }
 
 inline const Expr *
+ExprTrimmer::try_trim_binary_arithmetic(
+    const IOPCode iopc,
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation result_loc)
+{
+    switch (iopc)
+    {
+    case IOPCode::ADD: return try_trim_add(lhs, rhs, result_loc);
+    case IOPCode::SUB: return try_trim_sub(lhs, rhs, result_loc);
+    case IOPCode::MUL: return try_trim_mul(lhs, rhs, result_loc);
+    case IOPCode::DIV: return try_trim_div(lhs, rhs, result_loc);
+    case IOPCode::MOD: return try_trim_mod(lhs, rhs, result_loc);
+        [[unlikely]] default: throw std::logic_error(
+            ATTACH_CONTEXT("Expected a binary arithmetic IOPCode"));
+    }
+}
+
+inline const Expr *
 ExprTrimmer::try_trim_add(
     const Expr *const lhs,
     const Expr *const rhs,
@@ -275,6 +296,9 @@ ExprTrimmer::try_trim_add(
     // 0 + x -> x and x + 0 -> x
     if (SemUtils::is_const_0(lhs)) return expr_maker_->clone_with_updated_location(add_loc, rhs);
     if (SemUtils::is_const_0(rhs)) return expr_maker_->clone_with_updated_location(add_loc, lhs);
+
+    // Trimming failed (most common scenario)
+    return nullptr;
 }
 
 inline const Expr *
@@ -290,6 +314,9 @@ ExprTrimmer::try_trim_sub(
 
     // x - 0 -> x
     if (SemUtils::is_const_0(rhs)) return expr_maker_->clone_with_updated_location(sub_loc, lhs);
+
+    // Trimming failed (most common scenario)
+    return nullptr;
 }
 
 inline const Expr *
@@ -310,6 +337,9 @@ ExprTrimmer::try_trim_mul(
     // x * 1 -> x and 1 * x -> x
     if (SemUtils::is_const_1(lhs)) return expr_maker_->clone_with_updated_location(mul_loc, rhs);
     if (SemUtils::is_const_1(rhs)) return expr_maker_->clone_with_updated_location(mul_loc, lhs);
+
+    // Trimming failed (most common scenario)
+    return nullptr;
 }
 
 inline const Expr *
@@ -324,6 +354,9 @@ ExprTrimmer::try_trim_div(
     );
 
     if (SemUtils::is_const_1(rhs)) return expr_maker_->clone_with_updated_location(div_loc, lhs);
+
+    // Trimming failed (most common scenario)
+    return nullptr;
 }
 
 inline const Expr *
@@ -337,7 +370,11 @@ ExprTrimmer::try_trim_mod(
         && "try_trim_add: both operands are const; should be folded by ExprFolder."
     );
 
-    if (SemUtils::is_const_1(rhs)) return expr_maker_->clone_with_updated_location(mod_loc, lhs);
+    // x % 1 -> 0
+    if (SemUtils::is_const_1(rhs)) return expr_maker_->make_const_int_expr(mod_loc, 0);
+
+    // Trimming failed (most common scenario)
+    return nullptr;
 }
 } // namespace Alpha
 
