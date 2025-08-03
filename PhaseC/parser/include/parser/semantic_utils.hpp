@@ -136,7 +136,7 @@ namespace Alpha::SemUtils
     }
 }
 
-[[nodiscard]] inline bool is_binary_arithmetic_iopcode(const IOPCode iopc)
+[[nodiscard]] constexpr bool  is_binary_arithmetic_iopcode(const IOPCode iopc)
 {
     switch (iopc)
     {
@@ -172,7 +172,7 @@ namespace Alpha::SemUtils
     return iopc == IOPCode::IF_EQ || iopc == IOPCode::IF_NEQ;
 }
 
-[[nodiscard]] inline bool is_relational_arithmetic_iopcode(const IOPCode iopc)
+[[nodiscard]] inline bool is_relational_numeric_iopcode(const IOPCode iopc)
 {
     return is_relational_iopcode(iopc) && !is_relational_equality_iopcode(iopc);
 }

@@ -3,6 +3,7 @@
 
 #include "expr_snitch.hpp"
 #include "ir.hpp"
+#include "semantic_utils.hpp"
 #include "core/basics.hpp"
 #include "core/source_location.hpp"
 #include "parser/parser_context.hpp"
@@ -181,8 +182,7 @@ ExprMaker::make_table_item_expr(
     const Expr *const index)
 {
     DEBUG_SMART_ASSERT(
-        !!lvalue,
-        !!index,
+        !!lvalue, !!index,
         SemUtils::is_lvalue_expr(lvalue),
         SemUtils::is_expr_with_symbol(lvalue)
     );
@@ -207,6 +207,7 @@ inline const Expr *ExprMaker::clone_with_updated_location(
     const SourceLocation new_loc,
     const Expr *const donor)
 {
+    DEBUG_SMART_ASSERT(!!donor);
     using ET = Expr::Type;
     switch (donor->type)
     {

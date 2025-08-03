@@ -189,14 +189,6 @@ private:
         [[nodiscard]] const Expr *build_short_circuit_bool_expr(
             const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
 
-        template<typename... Exprs>
-        [[nodiscard]] bool should_fold_arithmetic(const Exprs &... exprs);
-        template<typename... Εxprs>
-        [[nodiscard]] bool should_fold_relational_arithmetic(IOPCode iopc, const Εxprs &... exprs);
-        template<typename... Εxprs>
-        [[nodiscard]] bool should_fold_relational_equality(IOPCode iopc, const Εxprs &... exprs);
-        template<typename... Exprs>
-        [[nodiscard]] bool should_fold_logical(const Exprs &... exprs);
         [[nodiscard]] bool should_propagate_const();
 
         [[nodiscard]] static const Expr *try_propagate_const(const Expr *expr);
@@ -694,7 +686,7 @@ BasicBuilder::Restricted::build_logical_not(const Expr *expr, const SourceLocati
 
     if (should_propagate_const())
         expr = try_propagate_const(expr);
-    if (SemUtils::is_const_bool_expr(expr))
+    if (should_fold_logical(expr))
         return expr_folder_->fold_logical_not(expr, result_loc);
 
     const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
@@ -794,63 +786,6 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
 
     Policy::assign_list(bool_result_expr) = Policy::assign_list(rhs_bool);
     return bool_result_expr;
-}
-
-template<typename... Exprs>
-bool BasicBuilder::Restricted::should_fold_arithmetic(const Exprs &... exprs)
-{
-    static_assert(sizeof...(Exprs) >= 1, "should_fold_arithmetic: expects at least 1 const Expr *");
-    static_assert(sizeof...(Exprs) <= 2, "should_fold_arithmetic: expects at max 2 const Expr *");
-    static_assert((std::is_same_v<Exprs, const Expr *> && ...),
-                  "should_fold_arithmetic: expects all arguments to be const Expr *");
-
-    // We fold the variadic exprs into a single `and` joined expression.
-    return options_.fold_arithmetic && (SemUtils::is_const_arithmetic_expr(exprs) && ...);
-}
-
-template<typename... Exprs>
-bool BasicBuilder::Restricted::should_fold_relational_arithmetic(
-    const IOPCode iopc, const Exprs &... exprs)
-{
-    static_assert(sizeof...(Exprs) == 2,
-                  "should_fold_relational_arithmetic: expects exactly 2 const Expr *");
-    static_assert((std::is_same_v<Exprs, const Expr *> && ...),
-                  "should_fold_relational_arithmetic: expects all arguments to be const Expr *");
-
-    // We fold the variadic exprs into a single `and` joined expression.
-    return options_.fold_relational &&
-           SemUtils::is_relational_arithmetic_iopcode(iopc) &&
-           (SemUtils::is_const_arithmetic_expr(exprs) && ...);
-}
-
-template<typename... Exprs>
-bool BasicBuilder::Restricted::should_fold_relational_equality(
-    const IOPCode iopc, const Exprs &... exprs)
-{
-    static_assert(sizeof...(Exprs) == 2,
-                  "should_fold_relational_equality: expects exactly 2 const Expr *");
-    static_assert((std::is_same_v<Exprs, const Expr *> && ...),
-                  "should_fold_relational_equality: expects all arguments to be const Expr *");
-
-    // We fold the variadic exprs into a single `and` joined expression.
-    return options_.fold_relational &&
-           SemUtils::is_relational_equality_iopcode(iopc) &&
-           (SemUtils::is_static_expr(exprs) && ...);
-}
-
-template<typename... Exprs>
-bool
-BasicBuilder::Restricted::should_fold_logical(const Exprs &... exprs)
-{
-    static_assert(sizeof...(Exprs) >= 1, "should_fold_logical: expects at least 1 const Expr *");
-    static_assert(sizeof...(Exprs) <= 2, "should_fold_logical: expects at max 2 const Expr *");
-    static_assert((std::is_same_v<Exprs, const Expr *> && ...),
-                  "should_fold_logical: expects all arguments to be const Expr *");
-
-    // We fold the variadic exprs into a single `or` joined expression.
-    // Why `or` because in logical operators AND, OR, we can even do partial folding.
-    // e.g.: true and var => var
-    return options_.fold_logical && (SemUtils::is_const_bool_expr(exprs) || ...);
 }
 
 inline bool

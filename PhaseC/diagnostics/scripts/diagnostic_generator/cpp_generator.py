@@ -168,7 +168,6 @@ class CppGenerator:
             f"\n"
             f"#include <string>\n"
             f"#include <core/basics.hpp>\n"
-            f"#include <core/to_string.hpp> // File contains overloads of to_string for project's types.\n"
             f"#include <{_source_location_header_path}>\n"
             f"\n"
             f"namespace {_namespace}\n"

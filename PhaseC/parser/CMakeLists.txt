@@ -18,21 +18,37 @@ get_filename_component(parser_extension ${BISON_SPEC_FILENAME} EXT)
 # Create the filename for the injected parser: 
 set(logged_file_marker "_LOGGED_")
 set(LOG_INJECTED_BISON_SPEC_FILENAME "${parser_basename}${logged_file_marker}${parser_extension}")
+set(IR_OPERATIONS_HEADER_FILENAME "ir_operations.hpp")
 
 if (NOT HATE_PYTHON_MODE)
     file(GLOB injector_files scripts/log_injector/*.py)
     add_custom_command(
-        OUTPUT ${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}
-        COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/scripts/log_injector/main.py" # -B is used to disable .pyc (__pycache__)
-        --input ${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}
-        --output ${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}
-        --log-fn display_trace
-        DEPENDS
+            OUTPUT "${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
+            COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/scripts/log_injector/main.py" # -B is used to disable .pyc (__pycache__)
+            --input "${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}"
+            --output "${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
+            --log-fn display_trace
+            DEPENDS
             ${injector_files}
             "${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}"
-        COMMENT "[PYTHON][LOG_INJECTOR] Generating log injected parser file"
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        VERBATIM
+            COMMENT "[PYTHON][LOG_INJECTOR] Generating log injected parser file"
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            VERBATIM
+    )
+
+    file(GLOB ir_operations_generator_files scripts/ir_operations_generator/*.py)
+    add_custom_command(
+            OUTPUT "${GENERATED_INLUDE_COMPONENT_DIR}/${IR_OPERATIONS_HEADER_FILENAME}"
+            COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/scripts/ir_operations_generator/main.py" # -B is used to disable .pyc (__pycache__)
+            --ir-spec "${CMAKE_CURRENT_SOURCE_DIR}/config/${IR_OPERATIONS_SPEC_FILENAME}"
+            --out-header "${GENERATED_INLUDE_COMPONENT_DIR}/${IR_OPERATIONS_HEADER_FILENAME}"
+            COMMAND ${Python3_EXECUTABLE} -B "${CMAKE_CURRENT_SOURCE_DIR}/scripts/ir_operations_generator/main.py" # -B is used to disable .pyc (__pycache__)
+            DEPENDS
+            ${ir_operations_generator_files}
+            "${CMAKE_CURRENT_SOURCE_DIR}/config/${IR_OPERATIONS_SPEC_FILENAME}"
+            COMMENT "[PYTHON][IR_OPERATIONS] Generating ir operations and traits header file"
+            WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+            VERBATIM
     )
 endif ()
 
@@ -48,60 +64,72 @@ set(ALPHA_PARSER_HEADER_FILEPATH "${GENERATED_INCLUDE_COMPONENT_DIR}/${BISON_HEA
 
 if (NOT HATE_PYTHON_MODE)
     bison_target(ALPHA_PARSER
-        "${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
-        "${ALPHA_PARSER_OUTPUT_FILEPATH}"
-        DEFINES_FILE ${ALPHA_PARSER_HEADER_FILEPATH}
+            "${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
+            "${ALPHA_PARSER_OUTPUT_FILEPATH}"
+            DEFINES_FILE ${ALPHA_PARSER_HEADER_FILEPATH}
     )
 else () # This is the case exists for when python is not allowed
     bison_target(ALPHA_PARSER
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}"
-        "${ALPHA_PARSER_OUTPUT_FILEPATH}"
-        DEFINES_FILE "${ALPHA_PARSER_HEADER_FILEPATH}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}"
+            "${ALPHA_PARSER_OUTPUT_FILEPATH}"
+            DEFINES_FILE "${ALPHA_PARSER_HEADER_FILEPATH}"
     )
 endif ()
 
 # We create a phony target so we force BISON files to be generated before compilation.
 if (NOT HATE_PYTHON_MODE)
     add_custom_target(generate_parser ALL DEPENDS
-        "${BISON_ALPHA_PARSER_OUTPUTS}"
-        "${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
+            "${BISON_ALPHA_PARSER_OUTPUTS}"
+            "${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
+    )
+
+    add_custom_target(generate_ir_operations ALL DEPENDS
+            "${GENERATED_INLUDE_COMPONENT_DIR}/${IR_OPERATIONS_HEADER_FILENAME}"
     )
 else () # This is the case exists for when python is not allowed
     add_custom_target(generate_parser ALL DEPENDS
-        "${BISON_ALPHA_PARSER_OUTPUTS}"
-        "src/${BISON_SPEC_FILENAME}"
+            "${BISON_ALPHA_PARSER_OUTPUTS}"
+            "src/${BISON_SPEC_FILENAME}"
+    )
+
+    add_custom_target(generate_ir_operations
+            COMMAND ${CMAKE_COMMAND} -E echo "ERROR: generate_ir_operations is not yet implemented (NYI) in HATE_PYTHON_MODE."
+            COMMAND ${CMAKE_COMMAND} -E false
     )
 endif ()
 
+add_dependencies(generate_parser generate_ir_operations)
+
 add_library(alpha_parser_api INTERFACE)
 target_include_directories(alpha_parser_api INTERFACE
-    "${GENERATED_INCLUDE_DIR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/parser"
+        "${GENERATED_INCLUDE_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/parser"
 )
 target_link_libraries(alpha_parser_api INTERFACE
-    utils_api
+        utils_api
 )
- #TODO short in alphabetical order! (like in directory explorer tab)
+#TODO short in alphabetical order! (like in directory explorer tab)
 add_library(alpha_parser_impl STATIC
-    ${ALPHA_PARSER_OUTPUT_FILEPATH}
-    src/symbol_table.cpp
-    src/RELOCATE_backpatcher.cpp
-    src/L1_driver/semantic_system.cpp
-    src/L1_driver/semantic_system_support.cpp
-    src/L2_builders/lvalue_resolver.cpp
-    src/L2_builders/control_flow_managers.cpp
-    src/L2_builders/expr_builders.cpp
-    src/L2_builders/block_manager.cpp
+        ${ALPHA_PARSER_OUTPUT_FILEPATH}
+        src/symbol_table.cpp
+        src/RELOCATE_backpatcher.cpp
+        src/L1_driver/semantic_system.cpp
+        src/L1_driver/semantic_system_support.cpp
+        src/L2_builders/lvalue_resolver.cpp
+        src/L2_builders/control_flow_managers.cpp
+        src/L2_builders/expr_builders.cpp
+        src/L2_builders/block_manager.cpp
+        src/L3_ir_infra/expr_optimizer.cpp
 
 )
 target_include_directories(alpha_parser_impl PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/src"
-    "${GENERATED_INCLUDE_COMPONENT_DIR}"  # For Bison-generated .cpp to find its corresponding header
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${GENERATED_INCLUDE_COMPONENT_DIR}"  # For Bison-generated .cpp to find its corresponding header
 )
 target_link_libraries(alpha_parser_impl PRIVATE
-    alpha_parser_api
-    alpha_core_api
-    alpha_diagnostics_api
-    alpha_scanner_api
+        alpha_parser_api
+        alpha_core_api
+        alpha_diagnostics_api
+        alpha_scanner_api
 )

@@ -1,0 +1,76 @@
+AVAILABLE_OPTIMIZATIONS: [ fold, trim ]
+
+IR_OPS:
+  UMINUS:
+    args: 1
+    optimizations: [ fold ]
+
+  ADD:
+    args: 2
+    optimizations: [ fold, trim ]
+
+  SUB:
+    args: 2
+    optimizations: [ fold, trim ]
+
+  MUL:
+    args: 2
+    optimizations: [ fold, trim ]
+
+  DIV:
+    args: 2
+    optimizations: [ fold, trim ]
+
+  MOD:
+    args: 2
+    optimizations: [ fold, trim ]
+
+  NOT:
+    args: 1
+    optimizations: [ fold ]
+
+  AND:
+    args: 2
+    optimizations: [ fold ]
+
+  OR:
+    args: 2
+    optimizations: [ fold ]
+
+  IF_EQ:
+    args: 2
+    label: true
+    optimizations: [ fold, trim ]
+
+  IF_NEQ:
+    args: 2
+    label: true
+    optimizations: [ fold, trim ]
+
+  IF_LT:
+    args: 2
+    label: true
+    optimizations: [ fold ]
+
+  IF_LTE:
+    args: 2
+    label: true
+    optimizations: [ fold ]
+
+  IF_GT:
+    args: 2
+    label: true
+    optimizations: [ fold ]
+
+  IF_GTE:
+    args: 2
+    label: true
+    optimizations: [ fold ]
+
+  ASSIGN:
+    args: 2
+    optimizations: [ trim ]
+
+  JUMP:
+    args: 0
+    label: true

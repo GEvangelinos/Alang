@@ -37,10 +37,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # General warnings
 add_compile_options(
-    -Wall
-    -Wextra
-    -Wpedantic
-    -Wreorder
+        -Wall
+        -Wextra
+        -Wpedantic
+        -Wreorder
 )
 
 # Check if std::format is allowed
@@ -62,18 +62,18 @@ set(DEBUG_MODE ON) #TODO REMOVE!
 
 if (DEBUG_MODE)
     add_compile_options(
-        -g
-        -Wimplicit-fallthrough
+            -g
+            -Wimplicit-fallthrough
     )
     add_compile_definitions(DEBUG_MODE)
     message(WARNING "CMAKE: Running with DEBUG_MODE ON")
 endif ()
 
 if (OPTIMIZED_MODE)
-#    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) // TODO: determine why it causes error (it enables, LTO and WPO)
+    #    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) // TODO: determine why it causes error (it enables, LTO and WPO)
     add_compile_options(
-        -O3
-        -march=native
+            -O3
+            -march=native
     )
     add_compile_definitions(OPTIMIZED_MODE)
     message(WARNING "CMAKE: Running with OPTIMIZED_MODE ON")
@@ -85,10 +85,10 @@ if (ENABLE_IWYU)
         message(SEND_ERROR "CMAKE: include-what-you-use not found on system.")
     else ()
         set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE
-            "${IWYU_PATH}"
-            "-Xiwyu" # Any IWYU flag must be provided after -Xiwyu flag!
-            "--no_fwd_decls"
-            "--update_comments"
+                "${IWYU_PATH}"
+                "-Xiwyu" # Any IWYU flag must be provided after -Xiwyu flag!
+                "--no_fwd_decls"
+                "--update_comments"
         )
         message(WARNING "CMAKE: include-what-you-use enabled at ${IWYU_PATH}")
     endif ()
@@ -117,9 +117,10 @@ set(SCRIPTS_DIR "${CMAKE_SOURCE_DIR}/scripts")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/executables" CACHE PATH "Directory where compiled executables will be placed")
 ###############################################################################################################
 
-set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l") # <-- Modifying filename requires manual change.
-set(BISON_SPEC_FILENAME "alpha_parser_spec.y") # <-- Modifying filename requires manual change.
-set(DIAGNOSTICS_SPEC_FILENAME "diagnostics_spec.yaml") # <-- Modifying filename requires manual change.
+set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l")             # <-- Modifying filename requires manual change.
+set(BISON_SPEC_FILENAME "alpha_parser_spec.y")             # <-- Modifying filename requires manual change.
+set(DIAGNOSTICS_SPEC_FILENAME "diagnostics_spec.yaml")     # <-- Modifying filename requires manual change.
+set(IR_OPERATIONS_SPEC_FILENAME "ir_operations_spec.yaml") # <-- Modifying filename requires manual change.
 
 # Create directory that hosts code from CODE-GENERATORS (e.g. {log_injector, diagnostic_generator})
 set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/${AUTOGEN_DIRNAME}" CACHE PATH "Path to the root directory for auto-generated components")
@@ -143,11 +144,11 @@ make_dir_verbose("${AUTOGEN_ROOT_DIR_PATH}")
 
 function(add_regression_check_target target_name do_memcheck)
     set(regression_args
-        "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ALPHA_DRIVER_EXECUTABLE}"
-        "--golden-symbol-tables-dir" "${GOLDEN_SYMBOL_TABLES_DIR}"
-        "--golden-compile-errors-dir" "${GOLDEN_COMPILE_ERRORS_DIR}"
-        "--working-dir" "${WORKING_TESTS_DIR}"
-        "--error-dir" "${ERROR_TESTS_DIR}"
+            "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ALPHA_DRIVER_EXECUTABLE}"
+            "--golden-symbol-tables-dir" "${GOLDEN_SYMBOL_TABLES_DIR}"
+            "--golden-compile-errors-dir" "${GOLDEN_COMPILE_ERRORS_DIR}"
+            "--working-dir" "${WORKING_TESTS_DIR}"
+            "--error-dir" "${ERROR_TESTS_DIR}"
     )
     if (do_memcheck)
         if (VALGRIND_PATH)
@@ -158,10 +159,10 @@ function(add_regression_check_target target_name do_memcheck)
     endif ()
 
     add_custom_target(${target_name}
-        COMMAND "${Python3_EXECUTABLE}"
-        "-B"
-        "${CMAKE_SOURCE_DIR}/scripts/alpha_regression_runner.py"
-        ${regression_args}
+            COMMAND "${Python3_EXECUTABLE}"
+            "-B"
+            "${CMAKE_SOURCE_DIR}/scripts/alpha_regression_runner.py"
+            ${regression_args}
     )
 
     add_dependencies(${target_name} ${ALPHA_DRIVER_EXECUTABLE})

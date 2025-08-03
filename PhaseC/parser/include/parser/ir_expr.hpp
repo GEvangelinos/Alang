@@ -1,53 +1,16 @@
 #ifndef IR_HPP
 #define IR_HPP
 #include <vector>
+#include <parser/konstants.hpp>
 #include "core/basics.hpp"
 #include "core/numeric_types.hpp"
 #include "parser/symbols.hpp"
-#include <parser/konstants.hpp>
 
+#include "ir_iopcodes.hpp"
 #include "core/konstants.hpp"
-
-#define IOPCODES_WITH_LABEL \
-    X(IF_EQ)                \
-    X(IF_NEQ)               \
-    X(IF_LT)                \
-    X(IF_GT)                \
-    X(IF_LTE)               \
-    X(IF_GTE)               \
-    X(JUMP)
-
-#define IOPCODES_WITHOUT_LABEL \
-    X(ASSIGN)                  \
-    X(ADD)                     \
-    X(SUB)                     \
-    X(MUL)                     \
-    X(DIV)                     \
-    X(MOD)                     \
-    X(UMINUS)                  \
-    X(CALL)                    \
-    X(PARAM)                   \
-    X(RETURN)                  \
-    X(GETRETVAL)               \
-    X(FUNCSTART)               \
-    X(FUNCEND)                 \
-    X(TABLECREATE)             \
-    X(TABLEGETELEM)            \
-    X(TABLESETELEM)
-
-#define ALL_IOPCODES        \
-        IOPCODES_WITH_LABEL \
-        IOPCODES_WITHOUT_LABEL
 
 namespace Alpha
 {
-enum class IOPCode : u8
-{
-#define X(code) code,
-    ALL_IOPCODES
-#undef  X
-};
-
 enum class OperandSide : u8
 {
     UNARY,
@@ -55,20 +18,20 @@ enum class OperandSide : u8
     RIGHT
 };
 
-#define EXPR_TYPES  \
-X(ARITHMETIC_EXPR)  \
-X(ASSIGN_EXPR)      \
-X(BOOL_EXPR)        \
-X(CONST_BOOL)       \
-X(CONST_INT)        \
-X(CONST_FLOAT)      \
-X(CONST_STRING)     \
-X(CONST_NIL)        \
-X(LIBRARY_FUNCTION) \
-X(PROGRAM_FUNCTION) \
-X(NEW_TABLE)        \
-X(TABLE_ITEM)       \
-X(VARIABLE)
+#define EXPR_TYPES      \
+    X(ARITHMETIC_EXPR)  \
+    X(ASSIGN_EXPR)      \
+    X(BOOL_EXPR)        \
+    X(CONST_BOOL)       \
+    X(CONST_INT)        \
+    X(CONST_FLOAT)      \
+    X(CONST_STRING)     \
+    X(CONST_NIL)        \
+    X(LIBRARY_FUNCTION) \
+    X(PROGRAM_FUNCTION) \
+    X(NEW_TABLE)        \
+    X(TABLE_ITEM)       \
+    X(VARIABLE)
 
 struct Expr : private Immobile
 {
@@ -192,10 +155,7 @@ struct ConstStringExpr final : public ConstExpr
 
     ConstStringExpr(const SourceLocation loc, const char *const value)
         : ConstExpr(Type::CONST_STRING, loc, false),
-          value(Utils::cstrdup(REQUIRE_PTR(value)))
-    {
-        DEBUG_SMART_ASSERT(!!this->value);
-    }
+          value(Utils::cstrdup(REQUIRE_PTR(value))) { DEBUG_SMART_ASSERT(!!this->value); }
 
     ~ConstStringExpr()
     {
@@ -243,10 +203,7 @@ struct TableItemExpr final : public ExprWVarSymbol
 struct VariableExpr final : public ExprWVarSymbol
 {
     VariableExpr(const SourceLocation loc, const VarSymbol *const var)
-        : ExprWVarSymbol(Type::VARIABLE, loc, var)
-    {
-        DEBUG_SMART_ASSERT(var->is_variable());
-    }
+        : ExprWVarSymbol(Type::VARIABLE, loc, var) { DEBUG_SMART_ASSERT(var->is_variable()); }
 };
 
 struct Quad final
@@ -260,7 +217,6 @@ struct Quad final
     // First quad_label is always 1, (0 for backpatching)
     const SourceLocation location;
 };
-
 
 inline Expr::Type to_expr_type(const Symbol::Type symbol_type)
 {
