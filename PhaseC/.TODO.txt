@@ -479,3 +479,49 @@ already use comma for the multiple arguments.
 maybe we can solve this.. by adding parentheses around macro arguments.. and instead of counting commas...
 
 we count parenthses open-close, like: (func_call(1,2))
+
+Also a patch that can fix bug even for C, is checking if we opened a parentheses
+
+like if we detect ( then any `,`  inside the parenthses is considered text.
+So comma counter can be off, until all parentheses inside DEBUG_SMART_ASSERT are matched....
+
+and because function calls (which cause the problem... with their multiple arguments which require comma)
+we can count the parentheses and if not match we can report something like a syntax errors..
+although I suspect compiler would flag it as error (can't think of any exotic case it wouldn't)
+
+71) Check if you have static declare dfunction with [[nodiscard]] attribute
+
+if so asser they have static before [[nodiscard]] (C++ standard)
+
+this is not standard: [[nodiscard]] static method(args);
+
+
+72) REMEMBER To put HATE_PYTHON mode.. anything gneerated with python inside a cached source files..
+
+that can be used to fully compile the project.. if HATE_PYTHON mode is enabled... so no script ever runs..
+
+Actually it should be possible to fully compile with all subsystems even if python is not install on system!
+
+73) Make  ir a separate module. Decouple from parser
+
+74) Problem with constant propagation... We cant know if y is 5 or 10.. cause condition is runtime evaluated...
+
+Except if we can evaluate at compile time. ChatGpt says 1 solution is SSA (Static Single Assignment)
+
+So I guess not const condition, for/while loops and if statements must be checked..
+also returns of functions...
+
+
+
+  int y = 5;
+  if (cond)
+      y = 10;
+
+  int x = y + 1;  // y is rvalue here — but NOT constant!
+
+75) We could check if a function returns something  that can be evaluated in  compile time...
+even if it has runtime calls
+
+like input() and prints() but static analysis shows that these dont affect return type..
+
+or return type can be evaluated in compile time...
