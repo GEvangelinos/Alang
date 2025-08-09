@@ -2,18 +2,22 @@
 #include <parser/semantic_utils.hpp>
 #include <parser/L3_ir_infra/expr_optimizer.hpp>
 #include <parser/ir_opcode.hpp>
+#include <parser/ir_opcode_opt_traits.hpp>
+#include <parser/ir_opcode_info_traits.hpp>
+
+#include "L1_driver/semantic_system.hpp"
 
 namespace alpha
 {
-static [[nodiscard]] const Expr *
+[[nodiscard]] static const Expr *
 try_trim_add(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLocation add_loc);
-static [[nodiscard]] const Expr *
+[[nodiscard]] static const Expr *
 try_trim_sub(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLocation sub_loc);
-static [[nodiscard]] const Expr *
+[[nodiscard]] static const Expr *
 try_trim_mul(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLocation mul_loc);
-static [[nodiscard]] const Expr *
+[[nodiscard]] static const Expr *
 try_trim_div(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLocation div_loc);
-static [[nodiscard]] const Expr *
+[[nodiscard]] static const Expr *
 try_trim_mod(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLocation mod_loc);
 
 ExprOptimizer::ExprOptimizer(ExprOptimizer::Options &&options, ExprMaker *const expr_maker)
@@ -21,19 +25,17 @@ ExprOptimizer::ExprOptimizer(ExprOptimizer::Options &&options, ExprMaker *const 
       expr_folder_(Utils::require_ptr(expr_maker)),
       expr_trimmer_(Utils::require_ptr(expr_maker)) {}
 
-ExprFolder::ExprFolder(ExprFolder::Options &&options, ExprMaker *const expr_maker)
-    : options_(std::move(options)),
-      expr_maker_(Utils::require_ptr(expr_maker)) {}
+ExprFolder::ExprFolder(ExprMaker *const expr_maker)
+    : expr_maker_(Utils::require_ptr(expr_maker)) {}
 
-ExprTrimmer::ExprTrimmer(ExprTrimmer::Options &&options, ExprMaker *const expr_maker)
-    : options_(std::move(options)),
-      expr_maker_(expr_maker) {}
+ExprTrimmer::ExprTrimmer(ExprMaker *const expr_maker)
+    : expr_maker_(expr_maker) {}
 
 const Expr *
 ExprFolder::try_fold_arithmetic_uminus(const Expr *const expr, const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
-    if (!should_fold_arithmetic(expr))
+    if (!ExprFolder::should_fold_arithmetic(expr))
         return nullptr;
 
     switch (expr->type)
@@ -44,15 +46,15 @@ ExprFolder::try_fold_arithmetic_uminus(const Expr *const expr, const SourceLocat
     case Expr::Type::CONST_FLOAT:
         return expr_maker_->make_const_float_expr(
             result_loc, -static_cast<const ConstFloatExpr *>(expr)->value);
-    default: throw std::logic_error(ATTACH_CONTEXT("Needed const numeric expr."));
+    default: [[unlikely]] throw std::logic_error(ATTACH_CONTEXT("Needed const numeric expr."));
     }
 }
 
 const Expr *
 ExprFolder::try_fold_arithmetic_binary(
     const ir::Opcode opc,
-    const Expr *lhs,
-    const Expr *rhs,
+    const Expr *const lhs,
+    const Expr *const rhs,
     const SourceLocation result_loc)
 {
     const auto fold_arith_op = [this, opc, result_loc](const auto l, const auto r) -> const Expr *
@@ -68,15 +70,15 @@ ExprFolder::try_fold_arithmetic_binary(
                 return expr_maker_->make_const_int_expr(result_loc, l % r);
             else
                 return expr_maker_->make_const_float_expr(result_loc, std::fmod(l, r));
-            [[unlikely]] default: throw std::logic_error(ATTACH_CONTEXT("(Needed arithmetic IOPC"));
+        default: [[unlikely]] throw std::logic_error(ATTACH_CONTEXT("(Needed arithmetic IOPC"));
         }
     };
 
     DEBUG_SMART_ASSERT(
         !!lhs, !!rhs,
-        SemUtils::is_binary_arithmetic_iropcode(opc),
+        SemUtils::is_binary_arithmetic_opcode(opc)
     );
-    if (!should_fold_arithmetic(lhs, rhs))
+    if (!ExprFolder::should_fold_arithmetic(lhs, rhs))
         return nullptr;
 
     return lhs->type == Expr::Type::CONST_INT && rhs->type == Expr::Type::CONST_INT
@@ -113,7 +115,7 @@ ExprFolder::try_fold_relational_numeric(
         !!lhs, !!rhs,
         SemUtils::is_relational_numeric_iropcode(opc)
     );
-    if (!should_fold_relational_numeric(lhs, rhs))
+    if (!ExprFolder::should_fold_relational_numeric(lhs, rhs))
         return nullptr;
 
     return lhs->type == Expr::Type::CONST_INT && rhs->type == Expr::Type::CONST_INT
@@ -134,7 +136,7 @@ ExprFolder::try_fold_relational_equality(
         !!lhs, !!rhs,
         SemUtils::is_relational_equality_iropcode(opc)
     );
-    if (!should_fold_relational_equality(opc, lhs, rhs))
+    if (!should_fold_relational_equality(lhs, rhs))
         return nullptr;
 
     const bool lhs_value = SemUtils::as_bool(lhs);
@@ -153,7 +155,7 @@ ExprFolder::try_fold_logical_or(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    if (!should_fold_logical(lhs, rhs))
+    if (!ExprFolder::should_fold_logical(lhs, rhs))
         return nullptr;
 
     if (SemUtils::is_const_true_expr(lhs) || SemUtils::is_const_true_expr(rhs))
@@ -168,13 +170,14 @@ ExprFolder::try_fold_logical_or(
         "This function should not be used, if at least one operand is not ConstBoolExpr"));
 }
 
-const Expr *ExprFolder::try_fold_logical_and(
+const Expr *
+ExprFolder::try_fold_logical_and(
     const Expr *const lhs,
     const Expr *const rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    if (!should_fold_logical(lhs, rhs))
+    if (!ExprFolder::should_fold_logical(lhs, rhs))
         return nullptr;
 
     if (SemUtils::is_const_false_expr(lhs) || SemUtils::is_const_false_expr(rhs))
@@ -189,76 +192,37 @@ const Expr *ExprFolder::try_fold_logical_and(
         "This function should not be used, if at least one operand is not ConstBoolExpr"));
 }
 
-const Expr *ExprFolder::try_fold_logical_not(
+const Expr *
+ExprFolder::try_fold_logical_not(
     const Expr *const expr,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
-    if (!should_fold_logical(expr))
+    if (!ExprFolder::should_fold_logical(expr))
         return nullptr;
 
     return expr_maker_->make_const_bool_expr(
         result_loc, !static_cast<const ConstBoolExpr *>(expr)->value);
 }
 
-inline const Expr *
-ExprOptimizer::try_propagate_const(const Expr *const expr)
-{
-    #ifndef ALL_OPTIMIZATIONS_ENABLED_BUILD // TODO: Add as build option
-    if (!options_.constant_propagation)
-        return expr;
-    #endif
-    if (expr->type != Expr::Type::VARIABLE)
-        return expr;
-    const VarSymbol *const var_symbol = static_cast<const VariableExpr *>(expr)->var_symbol;
-    DEBUG_SMART_ASSERT(!!var_symbol); // All VariableExpr must be tied to a Variable(Symbol);
-    if (!var_symbol->has_const_value())
-        return expr;
-    return var_symbol->get_const_expr();
-}
-
-template<ir::Opcode opc, typename... Exprs>
 const Expr *
-ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &... exprs)
+ExprTrimmer::try_trim_binary_arithmetic(
+    const ir::Opcode opc,
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation result_loc)
 {
-    static_assert((std::is_same_v<Exprs, const Expr *> && ...), "all args must be const Expr *");
-    static_assert(ir::opt_traits::can_fold<opc>, "`folding`  not supported for this ir::Opcode");
-    static_assert(sizeof...(exprs) == ir::info_traits::arg_count<opc>, "arg count mismatch");
-
-    auto expr_tuple = std::forward_as_tuple(exprs);
-    if constexpr (ir::info_traits::arg_count<opc> == 1)
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    switch (opc)
     {
-        auto &unary_expr = std::get<0>(expr_tuple);
-        if constexpr (opc == ir::Opcode::UMINUS)
-            return expr_folder_.try_fold_arithmetic_uminus(unary_expr, result_loc);
-        else if constexpr (opc == ir::Opcode::NOT)
-            return expr_folder_.try_fold_logical_not(unary_expr, result_loc);
-        else
-            static_assert([]() { return false; }(),
-                          "try_fold_optimize: not sure how to optimize this unary ir::Opcode");
+    case ir::Opcode::ADD: return try_trim_add(expr_maker_, lhs, rhs, result_loc);
+    case ir::Opcode::SUB: return try_trim_sub(expr_maker_, lhs, rhs, result_loc);
+    case ir::Opcode::MUL: return try_trim_mul(expr_maker_, lhs, rhs, result_loc);
+    case ir::Opcode::DIV: return try_trim_div(expr_maker_, lhs, rhs, result_loc);
+    case ir::Opcode::MOD: return try_trim_mod(expr_maker_, lhs, rhs, result_loc);
+        [[unlikely]] default: throw std::logic_error(
+            ATTACH_CONTEXT("Expected a binary arithmetic ir::Opcode"));
     }
-    else if constexpr (ir::info_traits::arg_count<opc> == 2)
-    {
-        auto &lhs = std::get<0>(expr_tuple);
-        auto &rhs = std::get<1>(expr_tuple);
-
-        if constexpr (opc == ir::Opcode::ADD || opc == ir::Opcode::SUB ||
-                      opc == ir::Opcode::MUL || opc == ir::Opcode::DIV || opc == ir::Opcode::MOD)
-            return expr_folder_.try_fold_arithmetic_binary(lhs, rhs, result_loc);
-        else if constexpr (opc == ir::Opcode::AND)
-            return expr_folder_.try_fold_logical_and(lhs, rhs, result_loc);
-        else if constexpr (opc == ir::Opcode::OR)
-            return expr_folder_.try_fold_logical_or(lhs, rhs, result_loc);
-        else if constexpr (opc == ir::Opcode::IF_EQ || opc == ir::Opcode::IF_NEQ)
-            return expr_folder_.try_fold_relational_equality(lhs, rhs, result_loc);
-        else if constexpr (opc == ir::Opcode::IF_LT || opc == ir::Opcode::IF_LTE ||
-                           opc == ir::Opcode::IF_GT || opc == ir::Opcode::IF_GTE)
-            return expr_folder_.try_fold_relational_numeric(lhs, rhs, result_loc);
-        else
-            static_assert([]() { return false; }(),
-                          "try_fold_optimize: not sure how to optimize binary ir::Opcode");
-    }
-    else static_assert([] { return false; }(), "foldable ir::Opcode not handled.");
 }
 
 const Expr *
@@ -287,23 +251,19 @@ ExprTrimmer::try_trim_relational_equality(
 }
 
 const Expr *
-ExprTrimmer::try_trim_binary_arithmetic(
-    const ir::Opcode opc,
-    const Expr *const lhs,
-    const Expr *const rhs,
-    const SourceLocation result_loc)
+ExprOptimizer::try_propagate_const(const Expr *const expr)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    switch (opc)
-    {
-    case ir::Opcode::ADD: return try_trim_add(expr_maker_, lhs, rhs, result_loc);
-    case ir::Opcode::SUB: return try_trim_sub(expr_maker_, lhs, rhs, result_loc);
-    case ir::Opcode::MUL: return try_trim_mul(expr_maker_, lhs, rhs, result_loc);
-    case ir::Opcode::DIV: return try_trim_div(expr_maker_, lhs, rhs, result_loc);
-    case ir::Opcode::MOD: return try_trim_mod(expr_maker_, lhs, rhs, result_loc);
-        [[unlikely]] default: throw std::logic_error(
-            ATTACH_CONTEXT("Expected a binary arithmetic ir::Opcode"));
-    }
+    #ifndef ALL_OPTIMIZATIONS_ENABLED_BUILD // TODO: Add as build option
+    if (!options_.constant_propagation)
+        return expr;
+    #endif
+    if (expr->type != Expr::Type::VARIABLE)
+        return expr;
+    const VarSymbol *const var_symbol = static_cast<const VariableExpr *>(expr)->var_symbol;
+    DEBUG_SMART_ASSERT(!!var_symbol); // All VariableExpr must be tied to a Variable(Symbol);
+    if (!var_symbol->has_const_value())
+        return expr;
+    return var_symbol->get_const_expr();
 }
 
 const Expr *
@@ -338,6 +298,8 @@ try_trim_sub(
     );
     // x - 0 -> x
     if (SemUtils::is_const_0(rhs)) return expr_maker->clone_with_updated_location(sub_loc, lhs);
+    // 0 - x -> -x
+    if (SemUtils::is_const_0(lhs) return )
     return nullptr; // Trimming failed (most common scenario)
 }
 

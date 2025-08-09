@@ -19,6 +19,28 @@ get_filename_component(parser_extension ${BISON_SPEC_FILENAME} EXT)
 set(logged_file_marker "_LOGGED_")
 set(LOG_INJECTED_BISON_SPEC_FILENAME "${parser_basename}${logged_file_marker}${parser_extension}")
 
+set(FULLPATH_OF_IR_OPCODE_SPEC
+    "${CMAKE_CURRENT_SOURCE_DIR}/config/${IR_OPCODE_SPEC_FILENAME}")
+
+set(FULLPATH_OF_IR_OPCODE_HEADER
+    "${GENERATED_INCLUDE_COMPONENT_DIR}/${IR_OPCODE_HEADER_FILENAME}")
+set(FULLPATH_OF_IR_OPCODE_SOURCE
+    "${GENERATED_SRC_DIR}/${IR_OPCODE_SOURCE_FILENAME}")
+set(FULLPATH_OF_IR_OPCODE_INFO_TRAITS_HEADER
+    "${GENERATED_INCLUDE_COMPONENT_DIR}/${IR_OPCODE_INFO_TRAITS_HEADER_FILENAME}")
+set(FULLPATH_OF_IR_OPCODE_OPT_TRAITS_HEADER
+    "${GENERATED_INCLUDE_COMPONENT_DIR}/${IR_OPCODE_OPT_TRAITS_HEADER_FILENAME}")
+
+set(GENERATED_IR_OPCODE_HEADERS
+    ${FULLPATH_OF_IR_OPCODE_HEADER}
+    ${FULLPATH_OF_IR_OPCODE_INFO_TRAITS_HEADER}
+    ${FULLPATH_OF_IR_OPCODE_OPT_TRAITS_HEADER}
+)
+
+set(GENERATED_IR_OPCODE_SOURCES
+    ${FULLPATH_OF_IR_OPCODE_SOURCE}
+)
+
 if (NOT HATE_PYTHON_MODE)
     file(GLOB injector_files scripts/log_injector/*.py)
     add_custom_command(
@@ -37,27 +59,10 @@ if (NOT HATE_PYTHON_MODE)
 
     file(GLOB ir_operations_generator_files scripts/ir_opcode_generator/*.py)
 
-    set(FULLPATH_OF_IR_OPCODE_SPEC
-        "${CMAKE_CURRENT_SOURCE_DIR}/config/${IR_OPCODE_SPEC_FILENAME}")
-
-    set(FULLPATH_OF_IR_OPCODE_HEADER
-        "${GENERATED_INCLUDE_COMPONENT_DIR}/${IR_OPCODE_HEADER_FILENAME}")
-    set(FULLPATH_OF_IR_OPCODE_SOURCE
-        "${GENERATED_SRC_DIR}/${IR_OPCODE_SOURCE_FILENAME}")
-    set(FULLPATH_OF_IR_OPCODE_INFO_TRAITS_HEADER
-        "${GENERATED_INCLUDE_COMPONENT_DIR}/${IR_OPCODE_INFO_TRAITS_HEADER_FILENAME}")
-    set(FULLPATH_OF_IR_OPCODE_OPT_TRAITS_HEADER
-        "${GENERATED_INCLUDE_COMPONENT_DIR}/${IR_OPCODE_OPT_TRAITS_HEADER_FILENAME}")
-
-    set(GENERATED_IR_OPCODE_HEADERS
-        FULLPATH_OF_IR_OPCODE_HEADER
-        FULLPATH_OF_IR_OPCODE_SOURCE
-        FULLPATH_OF_IR_OPCODE_INFO_TRAITS_HEADER
-        FULLPATH_OF_IR_OPCODE_OPT_TRAITS_HEADER
-    )
-
     add_custom_command(
-        OUTPUT ${GENERATED_IR_OPCODE_HEADERS}
+        OUTPUT
+        ${GENERATED_IR_OPCODE_HEADERS}
+        ${GENERATED_IR_OPCODE_SOURCES}
         COMMAND
         ${Python3_EXECUTABLE}
         -B "${CMAKE_CURRENT_SOURCE_DIR}/scripts/ir_opcode_generator/main.py" # -B is used to disable .pyc (__pycache__)
@@ -99,9 +104,6 @@ if (NOT HATE_PYTHON_MODE)
         "${BISON_ALPHA_PARSER_OUTPUTS}"
         "${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
     )
-    add_custom_target(generate_ir_operations ALL DEPENDS
-        ${GENERATED_IR_OPCODE_HEADERS}
-    )
 else () # This is the case exists for when python is not allowed
     bison_target(ALPHA_PARSER
         "${CMAKE_CURRENT_SOURCE_DIR}/src/${BISON_SPEC_FILENAME}"
@@ -111,10 +113,6 @@ else () # This is the case exists for when python is not allowed
     add_custom_target(generate_parser ALL DEPENDS
         "${BISON_ALPHA_PARSER_OUTPUTS}"
         "src/${BISON_SPEC_FILENAME}"
-    )
-    add_custom_target(generate_ir_operations
-        COMMAND ${CMAKE_COMMAND} -E echo "ERROR: generate_ir_operations is not yet implemented (NYI) in HATE_PYTHON_MODE."
-        COMMAND ${CMAKE_COMMAND} -E false
     )
 endif ()
 
@@ -130,8 +128,8 @@ target_link_libraries(alpha_parser_api INTERFACE
 #TODO short in alphabetical order! (like in directory explorer tab)
 add_library(alpha_parser_impl STATIC
     ${ALPHA_PARSER_OUTPUT_FILEPATH} # <- Generated
-    ${FULLPATH_OF_IR_OPCODE_SOURCE} # <- Generated
     src/symbol_table.cpp
+    src/ir_expr.cpp
     src/RELOCATE_backpatcher.cpp
     src/L1_driver/semantic_system.cpp
     src/L1_driver/semantic_system_support.cpp
@@ -139,6 +137,7 @@ add_library(alpha_parser_impl STATIC
     src/L2_builders/control_flow_managers.cpp
     src/L2_builders/expr_builders.cpp
     src/L2_builders/block_manager.cpp
+    src/L3_ir_infra/expr_optimizer.cpp
 )
 target_include_directories(alpha_parser_impl PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
@@ -150,3 +149,7 @@ target_link_libraries(alpha_parser_impl PRIVATE
     alpha_diagnostics_api
     alpha_scanner_api
 )
+
+if (NOT HATE_PYTHON_MODE)
+    target_sources(alpha_parser_impl PRIVATE ${GENERATED_IR_OPCODE_SOURCES})
+endif ()

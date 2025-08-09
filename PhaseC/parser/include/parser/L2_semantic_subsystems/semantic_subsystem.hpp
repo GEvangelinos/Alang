@@ -14,7 +14,6 @@ protected:
     ExprMaker *const expr_maker_ = nullptr;
     ExprOptimizer*const expr_optimizer_ = nullptr;
     QuadHandler *const quad_handler_ = nullptr;
-    Backpatcher *const backpatcher_ = nullptr;
     SemanticSystemBridge *const ss_bridge_ = nullptr;
 
     explicit SemanticSubsystem(const SemanticSystemServices &ss_services)
@@ -24,7 +23,6 @@ protected:
           expr_maker_(REQUIRE_PTR(ss_services.expr_maker)),
           expr_optimizer_(REQUIRE_PTR(ss_services.expr_optimizer)),
           quad_handler_(REQUIRE_PTR(ss_services.quad_handler)),
-          backpatcher_(REQUIRE_PTR(ss_services.backpatcher)),
           ss_bridge_(REQUIRE_PTR(ss_services.ss_bridge)) {}
 
     virtual ~SemanticSubsystem() = 0;

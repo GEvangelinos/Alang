@@ -1,13 +1,14 @@
 #ifndef SEMANTIC_UTILS_HPP
 #define SEMANTIC_UTILS_HPP
 
+#include "../../../build/AUTOGEN/parser/include/parser/ir_opcode.hpp"
 #include "parser/ir_expr.hpp"
 #include "parser/ir_opcode.hpp"
 #include "utils/smart_assert.h"
 
 namespace alpha::SemUtils
 {
-[[nodiscard]] inline bool is_arithmetic_convertible_expr(const Expr *const e)
+[[nodiscard]] inline bool is_arithmetic_convertible_expr(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
     using ET = Expr::Type;
@@ -25,26 +26,27 @@ namespace alpha::SemUtils
     }
 }
 
-[[nodiscard]] inline bool is_func_expr(const Expr *const e)
+[[nodiscard]] inline bool is_func_expr(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
     return e->type == Expr::Type::LIBRARY_FUNCTION || e->type == Expr::Type::PROGRAM_FUNCTION;
 }
 
-[[nodiscard]] inline bool is_bool_or_const_bool_expr(const Expr *const e)
+[[nodiscard]] inline bool is_bool_or_const_bool_expr(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
     return e->type == Expr::Type::BOOL_EXPR || e->type == Expr::Type::CONST_BOOL;
 }
 
-[[nodiscard]] inline bool is_const_bool_expr(const Expr *const e)
+[[nodiscard]] inline bool is_const_bool_expr(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
     return e->type == Expr::Type::CONST_BOOL;
 }
 
-[[nodiscard]] bool inline is_const_0(const Expr *const e)
+[[nodiscard]] bool inline is_const_0(const Expr *const e) noexcept
 {
+    DEBUG_SMART_ASSERT(!!e);
     switch (e->type)
     {
     case Expr::Type::CONST_INT: return static_cast<const ConstIntExpr *>(e)->value == 0;
@@ -53,8 +55,9 @@ namespace alpha::SemUtils
     }
 }
 
-[[nodiscard]] bool inline is_const_1(const Expr *const e)
+[[nodiscard]] bool inline is_const_1(const Expr *const e) noexcept
 {
+    DEBUG_SMART_ASSERT(!!e);
     switch (e->type)
     {
     case Expr::Type::CONST_INT: return static_cast<const ConstIntExpr *>(e)->value == 1;
@@ -63,70 +66,73 @@ namespace alpha::SemUtils
     }
 }
 
-[[nodiscard]] inline bool is_const_true_expr(const Expr *const e)
+[[nodiscard]] inline bool is_const_true_expr(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
     return is_const_bool_expr(e) && static_cast<const ConstBoolExpr *>(e)->value == true;
 }
 
-[[nodiscard]] inline bool is_const_false_expr(const Expr *const e)
+[[nodiscard]] inline bool is_const_false_expr(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
     return is_const_bool_expr(e) && static_cast<const ConstBoolExpr *>(e)->value == false;
 }
 
-[[nodiscard]] inline bool is_const_arithmetic_expr(const Expr *const e)
+[[nodiscard]] inline bool is_const_arithmetic_expr(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
     return e->type == Expr::Type::CONST_INT || e->type == Expr::Type::CONST_FLOAT;
 }
 
-[[nodiscard]] inline bool is_const_expr(const Expr *const e)
+[[nodiscard]] inline bool is_const_expr(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
+    using ET = Expr::Type;
     switch (e->type)
     {
-    case Expr::Type::CONST_BOOL:
-    case Expr::Type::CONST_INT:
-    case Expr::Type::CONST_FLOAT:
-    case Expr::Type::CONST_STRING:
-    case Expr::Type::CONST_NIL: return true;
+    case ET::CONST_BOOL:
+    case ET::CONST_INT:
+    case ET::CONST_FLOAT:
+    case ET::CONST_STRING:
+    case ET::CONST_NIL: return true;
     default: return false;
     }
 }
 
-[[nodiscard]] inline bool is_lvalue_expr(const Expr *const e)
+[[nodiscard]] inline bool is_lvalue_expr(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
+    using ET = Expr::Type;
     switch (e->type)
     {
-    case Expr::Type::ASSIGN_EXPR:
-    case Expr::Type::TABLE_ITEM:
-    case Expr::Type::VARIABLE: return true;
+    case ET::ASSIGN_EXPR:
+    case ET::TABLE_ITEM:
+    case ET::VARIABLE: return true;
     default: return false;
     }
 }
 
-[[nodiscard]] inline bool is_rvalue_expr(const Expr *const e)
+[[nodiscard]] inline bool is_rvalue_expr(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
     return !is_lvalue_expr(e);
 }
 
-[[nodiscard]] inline bool is_static_expr(const Expr *const e)
+[[nodiscard]] inline bool is_static_expr(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
     return is_const_expr(e) || is_func_expr(e);
 }
 
-[[nodiscard]] inline bool is_expr_with_symbol(const Expr *const e)
+[[nodiscard]] inline bool is_expr_with_symbol(const Expr *const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
     return !is_const_expr(e);
 }
 
-[[nodiscard]] inline bool is_const_expr_true_or_1(const Expr *const e)
+[[nodiscard]] inline bool is_const_expr_true_or_1(const Expr *const e) noexcept
 {
+    DEBUG_SMART_ASSERT(!!e);
     using ET = Expr::Type;
     switch (e->type)
     {
@@ -137,7 +143,7 @@ namespace alpha::SemUtils
     }
 }
 
-[[nodiscard]] constexpr bool is_binary_arithmetic_iropcode(const ir::Opcode opc)
+[[nodiscard]] constexpr bool is_binary_arithmetic_opcode(const ir::Opcode opc)
 {
     switch (opc)
     {
@@ -152,7 +158,7 @@ namespace alpha::SemUtils
     }
 }
 
-[[nodiscard]] inline bool is_relational_iropcode(const ir::Opcode opc)
+[[nodiscard]] constexpr bool is_relational_iropcode(const ir::Opcode opc)
 {
     switch (opc)
     {
@@ -168,12 +174,12 @@ namespace alpha::SemUtils
     }
 }
 
-[[nodiscard]] inline bool is_relational_equality_iropcode(const ir::Opcode opc)
+[[nodiscard]] constexpr bool is_relational_equality_iropcode(const ir::Opcode opc)
 {
     return opc == ir::Opcode::IF_EQ || opc == ir::Opcode::IF_NEQ;
 }
 
-[[nodiscard]] inline bool is_relational_numeric_iropcode(const ir::Opcode opc)
+[[nodiscard]] constexpr bool is_relational_numeric_iropcode(const ir::Opcode opc)
 {
     return is_relational_iropcode(opc) && !is_relational_equality_iropcode(opc);
 }
@@ -197,7 +203,7 @@ namespace alpha::SemUtils
 
 [[nodiscard]] constexpr const char *arith_op_str(const ir::Opcode opc)
 {
-    DEBUG_SMART_ASSERT(is_binary_arithmetic_iropcode(opc));
+    DEBUG_SMART_ASSERT(is_binary_arithmetic_opcode(opc));
     switch (opc)
     {
     case ir::Opcode::ADD: return "+";
@@ -214,16 +220,16 @@ namespace alpha::SemUtils
 [[nodiscard]] inline bool as_bool(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e, is_static_expr(e));
+    using ET = Expr::Type;
     switch (e->type)
     {
-    case Expr::Type::CONST_BOOL: return static_cast<const ConstBoolExpr *>(e)->value;
-    case Expr::Type::CONST_INT: return static_cast<const ConstIntExpr *>(e)->value != 0;
-    case Expr::Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(e)->value != 0;
-    case Expr::Type::CONST_STRING:
-        return std::strlen(static_cast<const ConstStringExpr *>(e)->value) != 0;
-    case Expr::Type::CONST_NIL: return false;
-    case Expr::Type::LIBRARY_FUNCTION: return true;
-    case Expr::Type::PROGRAM_FUNCTION: return true;
+    case ET::CONST_BOOL: return static_cast<const ConstBoolExpr *>(e)->value;
+    case ET::CONST_INT: return static_cast<const ConstIntExpr *>(e)->value != 0;
+    case ET::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(e)->value != 0;
+    case ET::CONST_STRING: return std::strlen(static_cast<const ConstStringExpr *>(e)->value) != 0;
+    case ET::CONST_NIL: return false;
+    case ET::LIBRARY_FUNCTION: return true;
+    case ET::PROGRAM_FUNCTION: return true;
     default: throw std::logic_error(ATTACH_CONTEXT("Expected bool-convertable expr."));
     }
 }

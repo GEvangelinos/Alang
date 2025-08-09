@@ -1,27 +1,19 @@
-#ifndef EXPR_FOLDER_HPP
-#define EXPR_FOLDER_HPP
+#ifndef EXPR_OPTIMIZER_HPP
+#define EXPR_OPTIMIZER_HPP
 
 #include <type_traits>
 #include "expr_maker.hpp"
-#include "../../../../build/AUTOGEN/parser/include/parser/ir_opcode_info_traits.hpp"
+#include <parser/ir_opcode_info_traits.hpp>
 #include "core/source_location.hpp"
 #include "parser/ir_opcode.hpp"
-#include "parser/ir_opcode_info_traits.hpp"
-#include "parser/ir_opcode_opt_traits.hpp"
+#include <parser/ir_opcode_opt_traits.hpp>
 
 namespace alpha
 {
 class ExprFolder : private Immobile
 {
 public:
-    struct Options
-    {
-        bool fold_arithmetic;
-        bool fold_relational;
-        bool fold_logical;
-    };
-
-    ExprFolder(ExprFolder::Options &&options, ExprMaker *expr_maker);
+    explicit ExprFolder(ExprMaker *expr_maker);
 
     [[nodiscard]] const Expr *try_fold_arithmetic_uminus(
         const Expr *expr, SourceLocation result_loc);
@@ -38,34 +30,27 @@ public:
     [[nodiscard]] const Expr *try_fold_logical_not(const Expr *expr, SourceLocation result_loc);
 
 private:
-    const Options options_;
-
-    template<typename... Exprs>
-    [[nodiscard]] bool should_fold_arithmetic(const Exprs &... exprs);
-    template<typename... Εxprs>
-    [[nodiscard]] bool should_fold_relational_numeric(const Εxprs &... exprs);
-    template<typename... Εxprs>
-    [[nodiscard]] bool should_fold_relational_equality(const Εxprs &... exprs);
-    template<typename... Exprs>
-    [[nodiscard]] bool should_fold_logical(const Exprs &... exprs);
     ExprMaker *const expr_maker_;
+
+    [[nodiscard]] static bool should_fold_arithmetic(const Expr *expr);
+    [[nodiscard]] static bool should_fold_arithmetic(const Expr *lhs, const Expr *rhs);
+    [[nodiscard]] static bool should_fold_relational_numeric(const Expr *lhs, const Expr *rhs);
+    [[nodiscard]] static bool should_fold_relational_equality(const Expr *lhs, const Expr *rhs);
+    [[nodiscard]] static bool should_fold_logical(const Expr *expr);
+    [[nodiscard]] static bool should_fold_logical(const Expr *lhs, const Expr *rhs);
 };
 
 class ExprTrimmer : private Immobile
 {
 public:
-    struct Options {};
+    explicit ExprTrimmer(ExprMaker *expr_maker);
 
-    ExprTrimmer(ExprTrimmer &&options, ExprMaker *expr_maker);
-
-    [[nodiscard]] const Expr *try_trim_relational_equality(
-        ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *try_trim_binary_arithmetic(
+        ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+    [[nodiscard]] const Expr *try_trim_relational_equality(
         ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
 
 private:
-    const Options options_;
-
     ExprMaker *const expr_maker_;
 };
 
@@ -75,9 +60,8 @@ public:
     struct Options
     {
         bool constant_propagation;
-        bool fold_arithmetic;
-        bool fold_relational;
-        bool fold_logical;
+        bool expr_folding;
+        bool expr_trimming;
     };
 
     ExprOptimizer(ExprOptimizer::Options &&options, ExprMaker *expr_maker);
@@ -86,75 +70,55 @@ public:
     [[nodiscard]] const Expr *try_optimize(SourceLocation result_loc, Exprs... exprs);
 
 private:
-    const Expr *try_propagate_const(const Expr *expr);
-
-    template<ir::Opcode opc, typename... Exprs>
-    [[nodiscard]] const Expr *try_fold_optimize(SourceLocation result_loc, const Exprs &... exprs);
-
-    template<ir::Opcode opc, typename... Exprs>
-    [[nodiscard]] const Expr *try_trim_optimize(SourceLocation result_loc, const Exprs &... exprs);
-
     const Options options_;
     ExprFolder expr_folder_;
     ExprTrimmer expr_trimmer_;
+
+    [[nodiscard]] const Expr *try_propagate_const(const Expr *expr);
+
+    template<ir::Opcode opc, typename... Exprs>
+    [[nodiscard]] const Expr *try_fold_optimize(SourceLocation result_loc, const Exprs &... exprs);
+    template<ir::Opcode opc, typename... Exprs>
+    [[nodiscard]] const Expr *try_trim_optimize(SourceLocation result_loc, const Exprs &... exprs);
 };
 
-template<typename... Exprs>
-bool ExprFolder::should_fold_arithmetic(const Exprs &... exprs)
+inline bool ExprFolder::should_fold_arithmetic(const Expr *const expr)
 {
-    static_assert(sizeof...(Exprs) >= 1, "should_fold_arithmetic: expects at least 1 const Expr *");
-    static_assert(sizeof...(Exprs) <= 2, "should_fold_arithmetic: expects at max 2 const Expr *");
-    static_assert((std::is_same_v<Exprs, const Expr *> && ...),
-                  "should_fold_arithmetic: expects all arguments to be const Expr *");
-
-    // We fold the variadic exprs into a single `and` joined expression.
-    return options_.fold_arithmetic && (SemUtils::is_const_arithmetic_expr(exprs) && ...);
+    return SemUtils::is_const_arithmetic_expr(expr);
 }
 
-template<typename... Exprs>
-bool ExprFolder::should_fold_relational_numeric(const Exprs &... exprs)
+inline bool ExprFolder::should_fold_arithmetic(const Expr *const lhs, const Expr *const rhs)
 {
-    static_assert(sizeof...(Exprs) == 2,
-                  "should_fold_relational_arithmetic: expects exactly 2 const Expr *");
-    static_assert((std::is_same_v<Exprs, const Expr *> && ...),
-                  "should_fold_relational_arithmetic: expects all arguments to be const Expr *");
-
-    // We fold the variadic exprs into a single `and` joined expression.
-    return options_.fold_relational && (SemUtils::is_const_arithmetic_expr(exprs) && ...);
+    return SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs);
 }
 
-template<typename... Exprs>
-bool ExprFolder::should_fold_relational_equality(const Exprs &... exprs)
+inline bool ExprFolder::should_fold_relational_numeric(const Expr *const lhs, const Expr *const rhs)
 {
-    static_assert(sizeof...(Exprs) == 2,
-                  "should_fold_relational_equality: expects exactly 2 const Expr *");
-    static_assert((std::is_same_v<Exprs, const Expr *> && ...),
-                  "should_fold_relational_equality: expects all arguments to be const Expr *");
-
-    // We fold the variadic exprs into a single `and` joined expression.
-    return options_.fold_relational && (SemUtils::is_static_expr(exprs) && ...);
+    return SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs);
 }
 
-template<typename... Exprs>
-bool
-ExprFolder::should_fold_logical(const Exprs &... exprs)
+inline bool ExprFolder::should_fold_relational_equality(const Expr *lhs, const Expr *rhs)
 {
-    static_assert(sizeof...(Exprs) >= 1, "should_fold_logical: expects at least 1 const Expr *");
-    static_assert(sizeof...(Exprs) <= 2, "should_fold_logical: expects at max 2 const Expr *");
-    static_assert((std::is_same_v<Exprs, const Expr *> && ...),
-                  "should_fold_logical: expects all arguments to be const Expr *");
+    return SemUtils::is_static_expr(lhs) && SemUtils::is_static_expr(rhs);
+}
 
-    // We fold the variadic exprs into a single `or` joined expression.
-    // Why `or` because in logical operators AND, OR, we can even do partial folding.
-    // e.g.: true and var => var
-    return options_.fold_logical && (SemUtils::is_const_bool_expr(exprs) || ...);
+inline bool ExprFolder::should_fold_logical(const Expr *expr)
+{
+    return SemUtils::is_const_bool_expr(expr);
+}
+
+inline bool ExprFolder::should_fold_logical(const Expr *lhs, const Expr *rhs)
+{
+    return SemUtils::is_const_bool_expr(lhs) && SemUtils::is_const_bool_expr(rhs);
 }
 
 template<ir::Opcode opc, typename... Exprs>
 const Expr *ExprOptimizer::try_optimize(const SourceLocation result_loc, Exprs... exprs)
 {
+    static_assert((std::is_same_v<Exprs, const Expr *> && ...), "All args must be `const Expr *`");
+    static_assert(sizeof...(exprs) > 0, "Received 0 `const Expr *` args");
+
     ((exprs = try_propagate_const(exprs)), ...);
-    UNREACHABLE("REMOVE THIS LINE. But be sure when to do constant propagation valid is valid");
     if constexpr (ir::opt_traits::is_foldable(opc))
         if (const Expr *folded = try_fold_optimize<opc>(result_loc, exprs...))
             return folded;
@@ -166,11 +130,56 @@ const Expr *ExprOptimizer::try_optimize(const SourceLocation result_loc, Exprs..
 
 template<ir::Opcode opc, typename... Exprs>
 const Expr *
+ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &... exprs)
+{
+    static_assert((std::is_same_v<Exprs, const Expr *> && ...), "all args must be const Expr *");
+    static_assert(ir::opt_traits::is_foldable(opc), "`folding`  not supported for this ir::Opcode");
+    static_assert(sizeof...(exprs) == ir::info_traits::operands(opc), "exprs-operands mismatch");
+
+    auto expr_tuple = std::forward_as_tuple(exprs...);
+    if constexpr (ir::info_traits::operands(opc) == 1)
+    {
+        auto &unary_expr = std::get<0>(expr_tuple);
+        if constexpr (opc == ir::Opcode::UMINUS)
+            return expr_folder_.try_fold_arithmetic_uminus(unary_expr, result_loc);
+        else if constexpr (opc == ir::Opcode::NOT)
+            return expr_folder_.try_fold_logical_not(unary_expr, result_loc);
+        else
+            static_assert([]() { return false; }(),
+                          "try_fold_optimize: not sure how to optimize this unary ir::Opcode");
+    }
+    else if constexpr (ir::info_traits::operands(opc) == 2)
+    {
+        auto &lhs = std::get<0>(expr_tuple);
+        auto &rhs = std::get<1>(expr_tuple);
+
+        if constexpr (opc == ir::Opcode::ADD || opc == ir::Opcode::SUB ||
+                      opc == ir::Opcode::MUL || opc == ir::Opcode::DIV || opc == ir::Opcode::MOD)
+            return expr_folder_.try_fold_arithmetic_binary(opc, lhs, rhs, result_loc);
+        else if constexpr (opc == ir::Opcode::AND)
+            return expr_folder_.try_fold_logical_and(lhs, rhs, result_loc);
+        else if constexpr (opc == ir::Opcode::OR)
+            return expr_folder_.try_fold_logical_or(lhs, rhs, result_loc);
+        else if constexpr (opc == ir::Opcode::IF_EQ || opc == ir::Opcode::IF_NEQ)
+            return expr_folder_.try_fold_relational_equality(opc, lhs, rhs, result_loc);
+        else if constexpr (opc == ir::Opcode::IF_LT || opc == ir::Opcode::IF_LTE ||
+                           opc == ir::Opcode::IF_GT || opc == ir::Opcode::IF_GTE)
+            return expr_folder_.try_fold_relational_numeric(opc, lhs, rhs, result_loc);
+        else
+            static_assert([]() { return false; }(),
+                          "try_fold_optimize: not sure how to optimize binary ir::Opcode");
+    }
+    else static_assert([] { return false; }(), "foldable ir::Opcode not handled.");
+}
+
+template<ir::Opcode opc, typename... Exprs>
+const Expr *
 ExprOptimizer::try_trim_optimize(const SourceLocation result_loc, const Exprs &... exprs)
 {
     static_assert((std::is_same_v<Exprs, const Expr *> && ...), "all args must be const Expr *");
-    static_assert(ir::opt_traits::is_trimmable(opc), "`trimming` not supported for this ir::Opcode");
-    static_assert(sizeof...(exprs) == ir::info_traits::operands(opc), "arg count mismatch");
+    static_assert(ir::opt_traits::is_trimmable(opc),
+                  "`trimming` not supported for this ir::Opcode");
+    static_assert(sizeof...(exprs) == ir::info_traits::operands(opc), "exprs-operands mismatch");
 
     if constexpr (ir::info_traits::operands(opc) == 2)
     {
@@ -183,7 +192,7 @@ ExprOptimizer::try_trim_optimize(const SourceLocation result_loc, const Exprs &.
             return lhs == rhs ? lhs : nullptr; // expr = expr -> delete self-assignment (useless).
         if constexpr (opc == ir::Opcode::IF_EQ || opc == ir::Opcode::IF_NEQ)
             return expr_trimmer_.try_trim_relational_equality(opc, lhs, rhs, result_loc);
-        else if constexpr (SemUtils::is_binary_arithmetic_iropcode(opc))
+        else if constexpr (SemUtils::is_binary_arithmetic_opcode(opc))
             return expr_trimmer_.try_trim_binary_arithmetic(opc, lhs, rhs, result_loc);
         else
             return nullptr; // We don't have any trim optimizations yet.
@@ -192,4 +201,4 @@ ExprOptimizer::try_trim_optimize(const SourceLocation result_loc, const Exprs &.
 }
 } // namespace alpha
 
-#endif //EXPR_FOLDER_HPP
+#endif // EXPR_OPTIMIZER_HPP

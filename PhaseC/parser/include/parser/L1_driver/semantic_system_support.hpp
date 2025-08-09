@@ -45,8 +45,6 @@ private:
     QuadHandler *const quad_handler_ = nullptr;
 };
 
-class Backpatcher; // Forward-Decl to avoid cyclic Includes
-
 struct SemanticSystemServices
 {
     ParseCtx *const parse_ctx = nullptr;
@@ -55,7 +53,6 @@ struct SemanticSystemServices
     ExprMaker *const expr_maker = nullptr;
     ExprOptimizer *const expr_optimizer = nullptr;
     QuadHandler *const quad_handler = nullptr;
-    Backpatcher *const backpatcher = nullptr;
     SemanticSystemBridge *const ss_bridge = nullptr;
 };
 } // namespace alpha

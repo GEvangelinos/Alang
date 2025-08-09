@@ -260,7 +260,7 @@ public:
     FunctionCtxHandler func_ctx_handler;
     NameGenerator name_generator;
 
-    ParseCtx(SymbolTable &st, DiagnosticEngine &diagnostic_engine);
+    explicit ParseCtx(SymbolTable &st);
 
     ~ParseCtx() = default;
 
@@ -268,7 +268,6 @@ public:
 
 private:
     SymbolTable &st_;
-    DiagnosticEngine &diagnostic_engine_;
 };
 
 inline SpaceHandler::SpaceHandler()
@@ -373,9 +372,10 @@ inline FunctionCtxHandler::~FunctionCtxHandler()
     );
 }
 
-// Label of jump is for jumping over the function is runtime...
-inline void FunctionCtxHandler::enter_function(const FuncSymbol *function_symbol,
-                                               const u32 label_of_jump)
+// Label of jump is for jumping over the function in runtime...
+inline void FunctionCtxHandler::enter_function(
+    const FuncSymbol *const function_symbol,
+    const u32 label_of_jump)
 {
     // #ifdef DEBUG_MODE
     //     DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting);
@@ -508,8 +508,8 @@ inline std::string NameGenerator::new_anonymous()
     return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
 }
 
-inline ParseCtx::ParseCtx(SymbolTable &st, DiagnosticEngine &diagnostic_engine)
-    : func_ctx_handler(this), st_(st), diagnostic_engine_(diagnostic_engine) {}
+inline ParseCtx::ParseCtx(SymbolTable &st)
+    : func_ctx_handler(this), st_(st) {}
 
 inline const VarSymbol *ParseCtx::new_temp()
 {

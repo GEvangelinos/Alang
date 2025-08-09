@@ -22,7 +22,7 @@
     #include "parser/L1_driver/semantic_system.hpp"
 }
 
-%define api.prefix { alpha_yy }
+%define api.prefix {alpha_yy}
 %define parse.lac full
 %define parse.error verbose /* Enables verbose error messages */
 %define api.location.type { alpha::SourceLocation }
@@ -222,7 +222,7 @@ and_op:
   AND
   {
     $lhs = ss.call<"convert_to_bool_expr">($lhs);
-    ss.call<"mark_short_circuit_jump_point">();
+    ss.call<"basic_builder.mark_short_circuit_jump_point">();
   }
   expr[rhs]
   {
@@ -236,7 +236,7 @@ or_op:
   OR
   {
     $lhs = ss.call<"convert_to_bool_expr">($lhs);
-    ss.call<"mark_short_circuit_jump_point">();
+    ss.call<"basic_builder.mark_short_circuit_jump_point">();
   }
   expr[rhs]
   {

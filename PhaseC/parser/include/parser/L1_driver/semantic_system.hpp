@@ -27,9 +27,8 @@ class SemanticSystem : private Immobile
 public:
     struct Options
     {
-        const bool fold_arithmetic;
-        const bool fold_relational;
-        const bool fold_logical;
+        const bool expr_folding;
+        const bool expr_trimming;
         const bool propagate_constants;
         const bool propagate_const_return;
     };
@@ -85,7 +84,6 @@ private:
 
     // -- Direct methods-- // TODO: maybe package inside a module? // Dont if to unrelatable!
     const Expr *convert_to_bool_expr(const Expr *expr);
-    void mark_short_circuit_jump_point();
     void reset_stmt_context() noexcept;
     void finalize_bool_expr(const Expr *expr);
 

@@ -73,9 +73,11 @@ struct FixedString
         return starts_with(FixedString<M>(substr));
     }
 
-
+    // `prefix` is unused as a value; it's only passed so we can deduce M,
+    // the compile-time length of the prefix (including the null terminator).
     template<decltype(N) M>
-    consteval auto without_prefix(const char (&prefix)[M]) const
+    consteval auto without_prefix([[maybe_unused]] const char (&prefix)[M])
+    const
     {
         constexpr decltype(N) prefix_len = M - 1; // exclude null terminator
         constexpr decltype(N) remaining = N - prefix_len;

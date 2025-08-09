@@ -162,7 +162,7 @@ private:
 
         std::stack<LabelID> short_circuit_jump_stack_;
 
-        Restricted(const SemanticSystemServices &ss_services);
+        explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
 
         void mark_short_circuit_jump_point();
@@ -206,6 +206,7 @@ private:
     BasicBuilder(const SemanticSystemServices &ss_services);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
+    DISPATCH_SLAVE_METHOD_CALL(mark_short_circuit_jump_point);
     DISPATCH_SLAVE_METHOD_CALL(build_uminus);
     DISPATCH_SLAVE_METHOD_CALL(build_arithmetic);
     DISPATCH_SLAVE_METHOD_CALL(build_relational);
@@ -754,7 +755,7 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
     if (SemUtils::is_arithmetic_convertible_expr(expr))
         return true;
 
-    if (SemUtils::is_binary_arithmetic_iropcode(opc))
+    if (SemUtils::is_binary_arithmetic_opcode(opc))
         dr_->report_arith_op_nonarith_operand(op_side, SemUtils::arith_op_str(opc), expr->type, expr->loc);
     else if (opc == ir::Opcode::UMINUS)
         dr_->report_uminus_nonarith_operand(expr->type, expr->loc);

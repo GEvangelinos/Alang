@@ -58,10 +58,9 @@ ExprOptimizer::Options
 SemanticSystem::get_expr_optimizer_options(const Options &options)
 {
     return {
-        .fold_arithmetic = options.fold_arithmetic,
-        .fold_relational = options.fold_relational,
-        .fold_logical = options.fold_logical,
-        .constant_propagation = options.propagate_constants
+        .constant_propagation = options.propagate_constants,
+        .expr_folding = options.expr_folding,
+        .expr_trimming = options.expr_trimming,
     };
 }
 

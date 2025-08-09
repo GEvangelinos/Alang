@@ -95,6 +95,7 @@ class CPPGenerator:
     def write_ir_opcode_to_string_impl(self, fout: TextIO):
         fout.write(
             f'#include <parser/{os.path.basename(self._config_args.out_opcode_header_filepath)}>\n'
+            f'#include <utils/misc.hpp>\n'
             f"namespace {CPPGenerator.IR_NAMESPACE}\n"
             f"{{\n"
             f"std::string to_string(const {self._opcode_enum_name} opc) noexcept\n"
