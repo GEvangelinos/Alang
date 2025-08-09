@@ -8,7 +8,7 @@
 #include "core/numeric_types.hpp" // for u32
 #include "utils/misc.hpp"
 
-namespace Alpha
+namespace alpha
 {
 // Classes defined here:
 struct SourceLocation; // IWYU pragma: keep
@@ -58,5 +58,5 @@ private:
 
     [[nodiscard]] u32 find_line(u32 index) const;
 };
-} // namespace Alpha
+} // namespace alpha
 #endif // SOURCE_LOCATION_HPP

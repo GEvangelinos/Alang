@@ -4,7 +4,7 @@
 #include <iosfwd> // for stringstream
 #include <string> // for string, basic_string
 #include "core/source_location.hpp"
-namespace Alpha
+namespace alpha
 {
         struct alpha_token_t
         {

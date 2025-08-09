@@ -12,14 +12,17 @@ _generated_file_header = (
 
 _source_location_header_path = r"core/source_location.hpp"
 
-_namespace = "Alpha"
+_namespace = "alpha"
 
 _diagnostic_reporter_class_name = 'DiagnosticReporter'
 
 _tab = "    "  # 4 spaces
 
 
+
+
 class CppGenerator:
+    TO_STRING_DISPATCHER = "convert_to_string"
 
     def __init__(self, cli_args, diagnostics: list[Diagnostic]):
         self.diagnostics = diagnostics
@@ -93,7 +96,7 @@ class CppGenerator:
             ret_type = "void"
             impl_func_name = "report_" + d.name.lower() + "_impl"
             func_name = "report_" + d.name.lower()
-            message_args = ', '.join(f"to_string({arg})" for arg in CppGenerator._merge_message_args(d))
+            message_args = ', '.join(f"this->{CppGenerator.TO_STRING_DISPATCHER}({arg})" for arg in CppGenerator._merge_message_args(d))
             location_args = ', '.join(CppGenerator._merge_locations_args(d))
             definition = f"\t{template}\n" if typenames else ""  # If typename list is empty (aka. no message args) we don't template the function
             definition += f"\t{ret_type} {func_name}({templated_arg_list})\n"
@@ -183,6 +186,20 @@ class CppGenerator:
             f"{adapter_method_definitions}"
             f"\n"
             f"private:\n"
+            f"\ttemplate<typename T>\n"
+            f"\tstd::string convert_to_string(T &val)\n"
+            f"\t{{\n"
+            f"\t\tif constexpr (requires {{ to_string(val); }})\n"
+            f"\t\t\treturn to_string(val);\n"
+            f"\t\telse if constexpr (requires {{ val.to_string(); }})\n"
+            f"\t\t\treturn val.to_string();\n"
+            f"\t\telse if constexpr(requires {{std::to_string(val);}})\n"
+            f"\t\t\treturn std::to_string(val);\n"
+            f"\t\telse if constexpr(requires {{std::string(val);}})\n"
+            f"\t\t\treturn std::string(val);\n"
+            f"\t\telse static_assert([]() {{ return false; }}(), \"No to_string() available for this type\");\n"
+            f"\t}}\n"
+
             f"{impl_method_declarations}"
             f"\n"
             f"\tDiagnosticEngine *const diagnostic_engine_;\n"

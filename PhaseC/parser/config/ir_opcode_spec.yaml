@@ -1,76 +1,98 @@
-AVAILABLE_OPTIMIZATIONS: [ fold, trim ]
+IROPCODE_INFO:
+  operands: int    # Implicit default is 0 (if not specified).
+  uses_label: bool # Implicit default is false (if not specified).
 
-IR_OPS:
+IROPCODE_OPTIMIZATION_FLAGS: [ foldable, trimmable ]
+
+IROPCODE_LIST:
+  ASSIGN:
+    operands: 2
+    optimizations: [ trimmable ]
+
   UMINUS:
-    args: 1
-    optimizations: [ fold ]
+    operands: 1
+    optimizations: [ foldable ]
 
   ADD:
-    args: 2
-    optimizations: [ fold, trim ]
+    operands: 2
+    optimizations: [ foldable, trimmable ]
 
   SUB:
-    args: 2
-    optimizations: [ fold, trim ]
+    operands: 2
+    optimizations: [ foldable, trimmable ]
 
   MUL:
-    args: 2
-    optimizations: [ fold, trim ]
+    operands: 2
+    optimizations: [ foldable, trimmable ]
 
   DIV:
-    args: 2
-    optimizations: [ fold, trim ]
+    operands: 2
+    optimizations: [ foldable, trimmable ]
 
   MOD:
-    args: 2
-    optimizations: [ fold, trim ]
+    operands: 2
+    optimizations: [ foldable, trimmable ]
 
   NOT:
-    args: 1
-    optimizations: [ fold ]
+    operands: 1
+    optimizations: [ foldable ]
 
   AND:
-    args: 2
-    optimizations: [ fold ]
+    operands: 2
+    optimizations: [ foldable ]
 
   OR:
-    args: 2
-    optimizations: [ fold ]
+    operands: 2
+    optimizations: [ foldable ]
 
   IF_EQ:
-    args: 2
-    label: true
-    optimizations: [ fold, trim ]
+    operands: 2
+    uses_label: true
+    optimizations: [ foldable, trimmable ]
 
   IF_NEQ:
-    args: 2
-    label: true
-    optimizations: [ fold, trim ]
+    operands: 2
+    uses_label: true
+    optimizations: [ foldable, trimmable ]
 
   IF_LT:
-    args: 2
-    label: true
-    optimizations: [ fold ]
+    operands: 2
+    uses_label: true
+    optimizations: [ foldable ]
 
   IF_LTE:
-    args: 2
-    label: true
-    optimizations: [ fold ]
+    operands: 2
+    uses_label: true
+    optimizations: [ foldable ]
 
   IF_GT:
-    args: 2
-    label: true
-    optimizations: [ fold ]
+    operands: 2
+    uses_label: true
+    optimizations: [ foldable ]
 
   IF_GTE:
-    args: 2
-    label: true
-    optimizations: [ fold ]
-
-  ASSIGN:
-    args: 2
-    optimizations: [ trim ]
+    operands: 2
+    uses_label: true
+    optimizations: [ foldable ]
 
   JUMP:
-    args: 0
-    label: true
+    uses_label: true
+      
+  TABLECREATE:
+
+  TABLESETELEM:
+    operands: 2
+
+  TABLEGETELEM:
+    operands: 2
+
+  FUNCSTART:
+
+  FUNCEND:
+
+#      define IOPCODES_WITHOUT_LABEL \
+#      X(CALL)                    \
+#      X(PARAM)                   \
+#      X(RETURN)                  \
+#      X(GETRETVAL)               \
+

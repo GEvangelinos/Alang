@@ -3,7 +3,7 @@
 #include "parser/symbol_table.hpp"
 
 // TODO: remove file (too little use)
-namespace Alpha::Backpatcher
+namespace alpha::Backpatcher
 {
     void set_function_local_variable_count(
         const FuncSymbol *function_symbol,

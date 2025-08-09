@@ -11,7 +11,7 @@
 #include <L1_driver/semantic_system_gateway.hpp>
 
 
-namespace Alpha
+namespace alpha
 {
 class Issue
 {
@@ -105,6 +105,6 @@ private:
 
     friend class DiagnosticReporter;
 };
-} // namespace Alpha
+} // namespace alpha
 
 #endif // DIAGNOSTIC_ENGINE_HPP

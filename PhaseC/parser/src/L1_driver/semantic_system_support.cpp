@@ -4,9 +4,9 @@
 #include  "core/konstants.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
 
-#include "ir.hpp"
+#include <parser/ir_opcode.hpp>
 
-namespace Alpha
+namespace alpha
 {
 SemanticSystemBridge::SemanticSystemBridge(
     ParseCtx *const parse_ctx,
@@ -26,7 +26,7 @@ SemanticSystemBridge::emit_tablegetelem_if_table_item(const Expr *const expr)
     const auto *const ti_expr = static_cast<const TableItemExpr *>(expr);
     const auto *const temp_var = expr_maker_->make_variable_expr(expr->loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(
-        IOPCode::TABLEGETELEM, temp_var, ti_expr, ti_expr->index, ti_expr->loc);
+        ir::Opcode::TABLEGETELEM, temp_var, ti_expr, ti_expr->index, ti_expr->loc);
     return temp_var;
 }
-} // namespace Alpha
+} // namespace alpha

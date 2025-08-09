@@ -34,21 +34,21 @@ extern ALPHA_YYLEX_SIGNATURE;
         } while (0)
 
 static void alpha_yyerror(
-    [[maybe_unused]] Alpha::LocationTracker &lt,
-    Alpha::DiagnosticEngine &diagnostic_engine,
-    [[maybe_unused]] Alpha::LexerCtx &lexer_ctx,
-    [[maybe_unused]] Alpha::SemanticSystem &ss,
+    [[maybe_unused]] alpha::LocationTracker &lt,
+    alpha::DiagnosticReporter &dr,
+    [[maybe_unused]] alpha::LexerCtx &lexer_ctx,
+    [[maybe_unused]] alpha::SemanticSystem &ss,
     std::string error_message)
 {
     static constexpr char k_prefix[] = "syntax error, ";
     if (error_message.rfind(k_prefix, 0) == 0) // does it start with that?
         error_message.erase(0, strlen(k_prefix)); // remove it
-    extern Alpha::SourceLocation alpha_yylloc;
+    extern alpha::SourceLocation alpha_yylloc;
     // TODO: uncomment and adjust it to new DiagnosticEngine.
     // diagnostic_engine.report(
-    //     Alpha::Issue::Type::ERROR,
+    //     alpha::Issue::Type::ERROR,
     //     error_message,
-    //     Alpha::SourceLocation{
+    //     alpha::SourceLocation{
     //         .first_index = alpha_yylloc.first_index,
     //         .last_index = alpha_yylloc.last_index
     //     }

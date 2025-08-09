@@ -13,9 +13,9 @@
 #include <array>
 #include <memory>
 #include "parser/symbols.hpp"
-#include "parser/ir.hpp"
+#include "parser/ir_opcode.hpp"
 
-namespace Alpha
+namespace alpha
 {
 // Classes defined here:
 class SymbolTable; // IWYU pragma: keep
@@ -86,5 +86,5 @@ private:
     [[nodiscard]] const SymbolKind *insert_symbol(
         const std::string &name, u32 scope, Args &&... args);
 };
-} // namespace Alpha
+} // namespace alpha
 #endif // SYMBOL_TABLE_HPP

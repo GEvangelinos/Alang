@@ -3,7 +3,6 @@
 
 #include <core/source_location.hpp>
 #include <diagnostics/diagnostic_reporter.gen.hpp>
-#include <parser/ir.hpp>
 #include <parser/parser_context.hpp>
 #include <parser/symbol_table.hpp>
 #include <parser/L3_ir_infra/expr_maker.hpp>
@@ -12,7 +11,7 @@
 
 #include "semantic_subsystem.hpp"
 
-namespace Alpha
+namespace alpha
 {
 class LvalueResolver
 {
@@ -40,22 +39,18 @@ private:
 
     explicit LvalueResolver(const SemanticSystemServices &ss_services);
 
-    DISPATCH_DECLARE_HANDLER();
-};
-
-DISPATCH_DEFINE_HANDLER_BEGIN(LvalueResolver);
-    DISPATCH_BEGIN_CALLS();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(resolve_id);
     DISPATCH_SLAVE_METHOD_CALL(resolve_local_id);
     DISPATCH_SLAVE_METHOD_CALL(resolve_global_id);
     DISPATCH_SLAVE_METHOD_CALL(resolve_lvalue_to_rvalue);
-    DISPATCH_END_CALLS();
-DISPATCH_DEFINE_HANDLER_END(LvalueResolver);
+    DISPATCH_DEFINE_HANDLER_END();
+};
 
 inline const Expr *
 LvalueResolver::Restricted::resolve_lvalue_to_rvalue(const Expr *const lvalue)
 {
     return ss_bridge_->emit_tablegetelem_if_table_item(lvalue);
 }
-} // namespace Alpha
+} // namespace alpha
 #endif // LVALUE_RESOLVER_HPP

@@ -1,13 +1,17 @@
 #ifndef EXPR_FOLDER_HPP
 #define EXPR_FOLDER_HPP
 
+#include <type_traits>
 #include "expr_maker.hpp"
+#include "../../../../build/AUTOGEN/parser/include/parser/ir_opcode_info_traits.hpp"
 #include "core/source_location.hpp"
-#include "parser/ir.hpp"
+#include "parser/ir_opcode.hpp"
+#include "parser/ir_opcode_info_traits.hpp"
+#include "parser/ir_opcode_opt_traits.hpp"
 
-namespace Alpha
+namespace alpha
 {
-class ExprFolder
+class ExprFolder : private Immobile
 {
 public:
     struct Options
@@ -22,11 +26,11 @@ public:
     [[nodiscard]] const Expr *try_fold_arithmetic_uminus(
         const Expr *expr, SourceLocation result_loc);
     [[nodiscard]] const Expr *try_fold_arithmetic_binary(
-        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+        ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *try_fold_relational_numeric(
-        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+        ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *try_fold_relational_equality(
-        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+        ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *try_fold_logical_or(
         const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *try_fold_logical_and(
@@ -47,7 +51,7 @@ private:
     ExprMaker *const expr_maker_;
 };
 
-class ExprTrimmer
+class ExprTrimmer : private Immobile
 {
 public:
     struct Options {};
@@ -55,9 +59,9 @@ public:
     ExprTrimmer(ExprTrimmer &&options, ExprMaker *expr_maker);
 
     [[nodiscard]] const Expr *try_trim_relational_equality(
-        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+        ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *try_trim_binary_arithmetic(
-        IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+        ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
 
 private:
     const Options options_;
@@ -65,11 +69,12 @@ private:
     ExprMaker *const expr_maker_;
 };
 
-class ExprOptimizer
+class ExprOptimizer : private Immobile
 {
 public:
     struct Options
     {
+        bool constant_propagation;
         bool fold_arithmetic;
         bool fold_relational;
         bool fold_logical;
@@ -77,19 +82,21 @@ public:
 
     ExprOptimizer(ExprOptimizer::Options &&options, ExprMaker *expr_maker);
 
-    template<IOPCode iopc, typename... Exprs>
-    [[nodiscard]] const Expr *try_optimize(SourceLocation result_loc, const Exprs &... exprs);
+    template<ir::Opcode opc, typename... Exprs>
+    [[nodiscard]] const Expr *try_optimize(SourceLocation result_loc, Exprs... exprs);
 
 private:
-    template<IOPCode iopc, typename... Exprs>
+    const Expr *try_propagate_const(const Expr *expr);
+
+    template<ir::Opcode opc, typename... Exprs>
     [[nodiscard]] const Expr *try_fold_optimize(SourceLocation result_loc, const Exprs &... exprs);
 
-    template<IOPCode iopc, typename... Exprs>
+    template<ir::Opcode opc, typename... Exprs>
     [[nodiscard]] const Expr *try_trim_optimize(SourceLocation result_loc, const Exprs &... exprs);
 
     const Options options_;
-    const ExprFolder expr_folder_;
-    const ExprTrimmer expr_trimmer_;
+    ExprFolder expr_folder_;
+    ExprTrimmer expr_trimmer_;
 };
 
 template<typename... Exprs>
@@ -143,41 +150,46 @@ ExprFolder::should_fold_logical(const Exprs &... exprs)
     return options_.fold_logical && (SemUtils::is_const_bool_expr(exprs) || ...);
 }
 
-template<IOPCode iopc, typename... Exprs>
-const Expr *ExprOptimizer::try_optimize(const SourceLocation result_loc, const Exprs &... exprs)
+template<ir::Opcode opc, typename... Exprs>
+const Expr *ExprOptimizer::try_optimize(const SourceLocation result_loc, Exprs... exprs)
 {
-    if (const Expr* folded = try_fold_optimize<iopc>(result_loc, exprs...))
-        return folded;
-    if (const Expr* trimmed = try_trim_optimize<iopc>(result_loc, exprs...) )
-        return trimmed;
+    ((exprs = try_propagate_const(exprs)), ...);
+    UNREACHABLE("REMOVE THIS LINE. But be sure when to do constant propagation valid is valid");
+    if constexpr (ir::opt_traits::is_foldable(opc))
+        if (const Expr *folded = try_fold_optimize<opc>(result_loc, exprs...))
+            return folded;
+    if constexpr (ir::opt_traits::is_trimmable(opc))
+        if (const Expr *trimmed = try_trim_optimize<opc>(result_loc, exprs...))
+            return trimmed;
     return nullptr;
 }
 
-template<IOPCode iopc, typename... Exprs>
+template<ir::Opcode opc, typename... Exprs>
 const Expr *
 ExprOptimizer::try_trim_optimize(const SourceLocation result_loc, const Exprs &... exprs)
 {
-    static_assert((std::is_same_v<Exprs, const Expr *> && ...),
-                  "try_trim_optimize: expects all arguments to be const Expr *");
+    static_assert((std::is_same_v<Exprs, const Expr *> && ...), "all args must be const Expr *");
+    static_assert(ir::opt_traits::is_trimmable(opc), "`trimming` not supported for this ir::Opcode");
+    static_assert(sizeof...(exprs) == ir::info_traits::operands(opc), "arg count mismatch");
 
-    auto expr_tuple = std::forward_as_tuple(exprs);
-    auto &lhs = std::get<0>(expr_tuple);
-    auto &rhs = std::get<1>(expr_tuple);
+    if constexpr (ir::info_traits::operands(opc) == 2)
+    {
+        // NOTE: Move expr_tuple outside this block if needed for other constexpr branches later.
+        auto expr_tuple = std::forward_as_tuple(exprs...);
+        auto &lhs = std::get<0>(expr_tuple);
+        auto &rhs = std::get<1>(expr_tuple);
 
-    if constexpr (iopc == IOPCode::IF_EQ || iopc == IOPCode::IF_NEQ)
-        return expr_trimmer_.try_trim_relational_equality(iopc, lhs, rhs, result_loc);
-    else if constexpr (SemUtils::is_binary_arithmetic_iopcode(iopc))
-        return expr_trimmer_.try_trim_binary_arithmetic(iopc, lhs, rhs, result_loc);
-    else
-        return nullptr; // We don't have any trim optimizations yet.
+        if constexpr (opc == ir::Opcode::ASSIGN)
+            return lhs == rhs ? lhs : nullptr; // expr = expr -> delete self-assignment (useless).
+        if constexpr (opc == ir::Opcode::IF_EQ || opc == ir::Opcode::IF_NEQ)
+            return expr_trimmer_.try_trim_relational_equality(opc, lhs, rhs, result_loc);
+        else if constexpr (SemUtils::is_binary_arithmetic_iropcode(opc))
+            return expr_trimmer_.try_trim_binary_arithmetic(opc, lhs, rhs, result_loc);
+        else
+            return nullptr; // We don't have any trim optimizations yet.
+    }
+    else static_assert([] { return false; }(), "trimmable ir::Opcode not handled.");
 }
-// GUARD-FALLBACK
-// template<IOPCode iopc, typename... Exprs>
-// const Expr *ExprOptimizer::try_optimize(SourceLocation result_loc, const Exprs &... exps)
-// {
-//     static_assert([]() { return false; }(), "IOPCode not supported by try_optimize");
-//     return nullptr;
-// }
-} // namespace Alpha
+} // namespace alpha
 
 #endif //EXPR_FOLDER_HPP

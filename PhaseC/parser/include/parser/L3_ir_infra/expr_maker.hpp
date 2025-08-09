@@ -1,14 +1,13 @@
 #ifndef ALPHA_EXPR_MAKER_HPP
 #define ALPHA_EXPR_MAKER_HPP
 
-#include "expr_snitch.hpp"
-#include "ir.hpp"
+#include "ir_expr.hpp"
 #include "semantic_utils.hpp"
 #include "core/basics.hpp"
 #include "core/source_location.hpp"
 #include "parser/parser_context.hpp"
 
-namespace Alpha
+namespace alpha
 {
 class ExprMaker : private Immobile
 {
@@ -246,5 +245,5 @@ inline const Expr *ExprMaker::clone_with_updated_location(
             "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(donor->type)));
     }
 }
-} // namespace Alpha
+} // namespace alpha
 #endif //ALPHA_EXPR_MAKER_HPP

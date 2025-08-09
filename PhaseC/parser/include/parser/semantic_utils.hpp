@@ -1,10 +1,11 @@
 #ifndef SEMANTIC_UTILS_HPP
 #define SEMANTIC_UTILS_HPP
 
-#include "parser/ir.hpp"
+#include "parser/ir_expr.hpp"
+#include "parser/ir_opcode.hpp"
 #include "utils/smart_assert.h"
 
-namespace Alpha::SemUtils
+namespace alpha::SemUtils
 {
 [[nodiscard]] inline bool is_arithmetic_convertible_expr(const Expr *const e)
 {
@@ -30,7 +31,7 @@ namespace Alpha::SemUtils
     return e->type == Expr::Type::LIBRARY_FUNCTION || e->type == Expr::Type::PROGRAM_FUNCTION;
 }
 
-[[nodiscard]] inline bool is_in_bool_form(const Expr *const e)
+[[nodiscard]] inline bool is_bool_or_const_bool_expr(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
     return e->type == Expr::Type::BOOL_EXPR || e->type == Expr::Type::CONST_BOOL;
@@ -136,97 +137,77 @@ namespace Alpha::SemUtils
     }
 }
 
-[[nodiscard]] constexpr bool  is_binary_arithmetic_iopcode(const IOPCode iopc)
+[[nodiscard]] constexpr bool is_binary_arithmetic_iropcode(const ir::Opcode opc)
 {
-    switch (iopc)
+    switch (opc)
     {
-    case IOPCode::ADD:
-    case IOPCode::SUB:
-    case IOPCode::MUL:
-    case IOPCode::DIV:
-    case IOPCode::MOD:
+    case ir::Opcode::ADD:
+    case ir::Opcode::SUB:
+    case ir::Opcode::MUL:
+    case ir::Opcode::DIV:
+    case ir::Opcode::MOD:
         return true;
     default:
         return false;
     }
 }
 
-[[nodiscard]] inline bool is_relational_iopcode(const IOPCode iopc)
+[[nodiscard]] inline bool is_relational_iropcode(const ir::Opcode opc)
 {
-    switch (iopc)
+    switch (opc)
     {
-    case IOPCode::IF_EQ:
-    case IOPCode::IF_NEQ:
-    case IOPCode::IF_GT:
-    case IOPCode::IF_GTE:
-    case IOPCode::IF_LT:
-    case IOPCode::IF_LTE:
+    case ir::Opcode::IF_EQ:
+    case ir::Opcode::IF_NEQ:
+    case ir::Opcode::IF_GT:
+    case ir::Opcode::IF_GTE:
+    case ir::Opcode::IF_LT:
+    case ir::Opcode::IF_LTE:
         return true;
     default:
         return false;
     }
 }
 
-[[nodiscard]] inline bool is_relational_equality_iopcode(const IOPCode iopc)
+[[nodiscard]] inline bool is_relational_equality_iropcode(const ir::Opcode opc)
 {
-    return iopc == IOPCode::IF_EQ || iopc == IOPCode::IF_NEQ;
+    return opc == ir::Opcode::IF_EQ || opc == ir::Opcode::IF_NEQ;
 }
 
-[[nodiscard]] inline bool is_relational_numeric_iopcode(const IOPCode iopc)
+[[nodiscard]] inline bool is_relational_numeric_iropcode(const ir::Opcode opc)
 {
-    return is_relational_iopcode(iopc) && !is_relational_equality_iopcode(iopc);
+    return is_relational_iropcode(opc) && !is_relational_equality_iropcode(opc);
 }
 
-[[nodiscard]] constexpr const char *rel_op_to_str(const IOPCode iopc)
+[[nodiscard]] constexpr const char *rel_op_to_str(const ir::Opcode opc)
 {
-    DEBUG_SMART_ASSERT(is_relational_iopcode(iopc));
-    switch (iopc)
+    DEBUG_SMART_ASSERT(is_relational_iropcode(opc));
+    switch (opc)
     {
-    case IOPCode::IF_LT: return "<";
-    case IOPCode::IF_GT: return ">";
-    case IOPCode::IF_LTE: return "<=";
-    case IOPCode::IF_GTE: return ">=";
-    case IOPCode::IF_EQ: return "==";
-    case IOPCode::IF_NEQ: return "!=";
+    case ir::Opcode::IF_LT: return "<";
+    case ir::Opcode::IF_GT: return ">";
+    case ir::Opcode::IF_LTE: return "<=";
+    case ir::Opcode::IF_GTE: return ">=";
+    case ir::Opcode::IF_EQ: return "==";
+    case ir::Opcode::IF_NEQ: return "!=";
     default:
         throw std::logic_error(ATTACH_CONTEXT(
-            "Expected strictly an IOPCode corresponding to a relational operator"));
+            "Expected strictly an ir::Opcode corresponding to a relational operator"));
     }
 }
 
-[[nodiscard]] constexpr const char *arith_iopc_to_str_symbol(const IOPCode iopc)
+[[nodiscard]] constexpr const char *arith_op_str(const ir::Opcode opc)
 {
-    DEBUG_SMART_ASSERT(is_binary_arithmetic_iopcode(iopc));
-    switch (iopc)
+    DEBUG_SMART_ASSERT(is_binary_arithmetic_iropcode(opc));
+    switch (opc)
     {
-    case IOPCode::ADD: return "+";
-    case IOPCode::SUB: return "-";
-    case IOPCode::MUL: return "*";
-    case IOPCode::DIV: return "/";
-    case IOPCode::MOD: return "%";
+    case ir::Opcode::ADD: return "+";
+    case ir::Opcode::SUB: return "-";
+    case ir::Opcode::MUL: return "*";
+    case ir::Opcode::DIV: return "/";
+    case ir::Opcode::MOD: return "%";
     default:
         throw std::logic_error(ATTACH_CONTEXT(
-            "Expected strictly an IOPCode corresponding to an arithmetic operator"));
-    }
-}
-
-[[nodiscard]] inline bool iopcode_requires_label(const IOPCode iopc) noexcept
-{
-    switch (iopc)
-    {
-#define X(iopcode)                \
-    case Alpha::IOPCode::iopcode: \
-        return true;
-    IOPCODES_WITH_LABEL
-#undef X
-#define X(iopcode)                \
-    case Alpha::IOPCode::iopcode: \
-        return false;
-    IOPCODES_WITHOUT_LABEL
-#undef X
-    default:
-        UNREACHABLE(
-            FMT::format("Unknown IOPCode. IOPCode's int value = {}.", static_cast<int>(iopc)));
+            "Expected strictly an ir::Opcode corresponding to an arithmetic operator"));
     }
 }
 
@@ -255,5 +236,5 @@ namespace Alpha::SemUtils
         return static_cast<const ConstIntExpr *>(e)->value;
     throw std::logic_error(ATTACH_CONTEXT("Expected CONST_INT or CONST_FLOAT Expr::Type"));
 }
-} // namespace Alpha::SemanticUtils
+} // namespace alpha::SemanticUtils
 #endif // SEMANTIC_UTILS_HPP

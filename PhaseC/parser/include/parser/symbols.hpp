@@ -8,7 +8,7 @@
 #include "core/konstants.hpp"
 #include "core/source_location.hpp"
 
-namespace Alpha
+namespace alpha
 {
 struct ConstExpr; // FWD declared
 // Classes defined here:
@@ -176,5 +176,5 @@ FuncSymbol::FuncSymbol(
         type == Symbol::Type::PROGRAM_FUNCTION //
     );
 }
-} // namespace Alpha
+} // namespace alpha
 #endif // ALPHA_SYMBOLS_HPP

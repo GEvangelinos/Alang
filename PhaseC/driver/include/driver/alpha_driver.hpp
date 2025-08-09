@@ -11,7 +11,7 @@
 #include "parser/symbol_table.hpp"     // for SymbolTable
 #include "scanner/scanner_context.hpp" // for LexerCtx
 
-namespace Alpha
+namespace alpha
 {
 static constexpr char k_symbol_table_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
 static constexpr char k_compile_error_exports_dirname[] = "COMPILE_ERROR_EXPORTS";
@@ -67,4 +67,4 @@ private:
         void export_compile_errors_impl() const;
         void export_quads_impl() const;
 };
-} // namespace Alpha
+} // namespace alpha

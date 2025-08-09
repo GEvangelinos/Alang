@@ -11,15 +11,8 @@
 #include <core/fixed_string.hpp>
 
 #define NOP static_assert(true)
-
 #define CALL_STR call_string
-
 #define DISPATCH_TARGET restricted_
-
-#define DISPATCH_DECLARE_HANDLER()                   \
-    template<FixedString CALL_STR, typename... Args> \
-    auto call(Args... args);                         \
-    NOP // Absorbs trailing `;`.
 
 #define DISPATCH_DEFINE_HANDLER_BEGIN()              \
     template<FixedString CALL_STR, typename... Args> \

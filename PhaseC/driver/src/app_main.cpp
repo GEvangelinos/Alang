@@ -75,12 +75,12 @@ static Arguinator::Parser launch_cli_parser(int argc, const char *const *const a
 int main(const int argc, char **argv)
 {
         const Arguinator::Parser cli_parser = launch_cli_parser(argc, argv);
-        std::unique_ptr<Alpha::Driver> driver;
+        std::unique_ptr<alpha::Driver> driver;
         try
         {
                 const std::string &source_filename = cli_parser[flag_input_file].get_input();
                 const bool show_parser_trace = cli_parser[flag_show_parser_trace].is_provided();
-                driver = std::make_unique<Alpha::Driver>(source_filename, show_parser_trace);
+                driver = std::make_unique<alpha::Driver>(source_filename, show_parser_trace);
         }
         catch(Arguinator::CLIHelp)
         {

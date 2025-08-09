@@ -7,7 +7,7 @@
 #include "scanner/scanner_token.hpp"
 #include "utils/misc.hpp"
 
-namespace Alpha
+namespace alpha
 {
         class LexerCtx : private Immobile
         {

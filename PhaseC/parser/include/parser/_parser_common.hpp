@@ -4,7 +4,7 @@
 #include <string>
 #include "core/source_location.hpp"
 
-namespace Alpha
+namespace alpha
 {
 struct Expr;
 using ExprList = std::vector<const Expr *>;
@@ -20,5 +20,5 @@ public:
     Parameter(const std::string &name, const SourceLocation loc)
         : name(name), loc(loc) {}
 };
-} // namespace Alpha
+} // namespace alpha
 #endif //_PARSER_COMMON_HPP

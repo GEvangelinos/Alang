@@ -44,7 +44,7 @@ std::string expand_tabs(const std::string_view line, const int tab_width = 8)
     std::string result;
     result.reserve(line.size() + std::count(line.begin(), line.end(), '\t') * (tab_width - 1));
 
-    Alpha::uf64 col = 0;
+    alpha::uf64 col = 0;
     for (const char ch: line)
     {
         if (ch == '\t')
@@ -64,17 +64,17 @@ std::string expand_tabs(const std::string_view line, const int tab_width = 8)
 
 int compute_visual_caret_offset(
     const std::string_view line,
-    const Alpha::uf64 raw_offset,
+    const alpha::uf64 raw_offset,
     const int tab_width = 8)
 {
-    Alpha::uf64 col = 0;
-    for (Alpha::uf64 i = 0; i < raw_offset; ++i)
+    alpha::uf64 col = 0;
+    for (alpha::uf64 i = 0; i < raw_offset; ++i)
         col += line[i] == '\t' ? tab_width - col % tab_width : 1;
     return col;
 }
 } // namespace
 
-namespace Alpha
+namespace alpha
 {
 Issue::Issue(const Type type, const std::string &description, const SourceLocation loc)
     : type(type), desc(description), loc(loc) {}
@@ -228,4 +228,4 @@ void DiagnosticEngine::store(std::unique_ptr<const Diagnostic> diagnostic)
     default: UNREACHABLE("Unknown Issue::Type.");
     }
 }
-} // namespace Alpha
+} // namespace alpha

@@ -6,7 +6,7 @@
 #include <sstream>   // for basic_ostream, basic_stringstream, operator<<
 #include <stdexcept> // for overflow_error, runtime_error, underflow_error
 
-namespace Alpha
+namespace alpha
 {
         /*** STARTOF: Local to the file (static) definitions: ***/
         [[maybe_unused]] static std::string toUpperCase(const std::string &input)

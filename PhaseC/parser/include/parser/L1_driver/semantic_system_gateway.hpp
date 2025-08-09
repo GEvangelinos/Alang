@@ -1,7 +1,7 @@
 #ifndef SEMANTIC_SYSTEM_GATEWAY_HPP
 #define SEMANTIC_SYSTEM_GATEWAY_HPP
 
-namespace Alpha
+namespace alpha
 {
 enum class SemanticSystemStatus :std::uint8_t { OK, ERROR };
 
@@ -19,5 +19,5 @@ private:
 
     friend class SemanticSystem;
 };
-} // namespace Alpha
+} // namespace alpha
 #endif // SEMANTIC_SYSTEM_GATEWAY_HPP

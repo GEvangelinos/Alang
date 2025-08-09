@@ -1,16 +1,17 @@
 #ifndef EXPR_BUILDERS_HPP
 #define EXPR_BUILDERS_HPP
+
 #include <functional>
 #include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 #include "L1_driver/semantic_system_support.hpp"
-#include "L3_ir_infra/expr_folder.hpp"
+#include "L3_ir_infra/expr_optimizer.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
-#include "parser/ir.hpp"
 #include "parser/semantic_utils.hpp"
 #include "semantic_subsystem.hpp"
+#include <parser/ir_opcode.hpp>
 
-namespace Alpha
+namespace alpha
 {
 class AggregateBuilder
 {
@@ -78,14 +79,14 @@ private:
 
         struct IncPolicy
         {
-            static constexpr auto iopc = IOPCode::ADD;
+            static constexpr auto opc = ir::Opcode::ADD;
             static constexpr char op_name[] = "increment";
             static constexpr char op_symbol[] = "++";
         };
 
         struct DecPolicy
         {
-            static constexpr auto iopc = IOPCode::SUB;
+            static constexpr auto opc = ir::Opcode::SUB;
             static constexpr char op_name[] = "decrement";
             static constexpr char op_symbol[] = "--";
         };
@@ -138,14 +139,6 @@ class BasicBuilder
     friend class SemanticSystem;
 
 private:
-    struct Options
-    {
-        bool fold_arithmetic;
-        bool fold_relational;
-        bool fold_logical;
-        bool constant_propagation;
-    };
-
     class Restricted final : private SemanticSubsystem
     {
         friend class BasicBuilder;
@@ -167,18 +160,17 @@ private:
             static auto &assign_list(const BoolExpr *e) { return e->true_list; }
         };
 
-        const Options options_;
         std::stack<LabelID> short_circuit_jump_stack_;
 
-        Restricted(Options &&options, const SemanticSystemServices &ss_services);
+        Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
 
         void mark_short_circuit_jump_point();
         [[nodiscard]] const Expr *build_uminus(const Expr *expr, SourceLocation result_loc);
         [[nodiscard]] const Expr *build_arithmetic(
-            IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+            ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
         [[nodiscard]] const Expr *build_relational(
-            IOPCode iopc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+            ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
         [[nodiscard]] const Expr *build_logical_not(const Expr *expr, SourceLocation result_loc);
         [[nodiscard]] const Expr *build_logical_and(
             const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
@@ -189,23 +181,29 @@ private:
         [[nodiscard]] const Expr *build_short_circuit_bool_expr(
             const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
 
-        [[nodiscard]] bool should_propagate_const();
-
-        [[nodiscard]] static const Expr *try_propagate_const(const Expr *expr);
-
         [[nodiscard]] bool validate_arithmetic_expr(
-            IOPCode iopc, const Expr *expr, OperandSide op_side);
+            ir::Opcode opc, const Expr *expr, OperandSide op_side);
         [[nodiscard]] bool validate_relational_expr(
-            IOPCode iopc, const Expr *expr, OperandSide op_side);
+            ir::Opcode opc, const Expr *expr, OperandSide op_side);
         [[nodiscard]] bool validate_possible_division(
-            IOPCode iopc, const Expr *rhs, SourceLocation division_loc);
+            ir::Opcode iropcode, const Expr *rhs, SourceLocation division_loc);
+
+        // When I built the compile-time call dispatcher for Bison, I didn’t add support for template args.
+        // Later, I made the optimizer fully templated. Rather than making it runtime-based,
+        // I use a clean runtime to compile-time dipatcher for expr_optimizer's try_optimize()
+        // Only arithmetic and relational builders take ir::Opcode as a runtime arg,
+        // since they share logic with the opcode being the only varying part.
+        [[nodiscard]] const Expr *try_optimize_arithmetic_expr(
+            ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+        [[nodiscard]] const Expr *try_optimize_relational_expr(
+            ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
 
         void warn_if_lossy_conversion_int_to_float(AlphaInt value, SourceLocation conversion_loc);
     };
 
     Restricted DISPATCH_TARGET;
 
-    BasicBuilder(Options &&options, const SemanticSystemServices &ss_services);
+    BasicBuilder(const SemanticSystemServices &ss_services);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(build_uminus);
@@ -363,21 +361,21 @@ AggregateBuilder::Restricted::build_table_list_consuming(
     DEBUG_SMART_ASSERT(!!elist);
     auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
 
-    const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
-    qh->emit_next(IOPCode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
+    const NewTableExpr *const newtable_expr = expr_maker_->make_new_table_expr(table_list_loc);
+    qh->emit_next(ir::Opcode::TABLECREATE, newtable_expr, nullptr, nullptr, table_list_loc);
 
     // Emit list's items.
     u32 list_index = 0;
     for (auto expr_it = elist->crbegin(); expr_it != elist->crend(); ++expr_it)
     {
-        const Expr *index_expr = expr_maker_->make_const_int_expr((*expr_it)->loc, list_index++);
-        qh->emit_next(IOPCode::TABLESETELEM, new_table_expr, index_expr, *expr_it, (*expr_it)->loc);
+        const Expr *idx_expr = expr_maker_->make_const_int_expr((*expr_it)->loc, list_index++);
+        qh->emit_next(ir::Opcode::TABLESETELEM, newtable_expr, idx_expr, *expr_it, (*expr_it)->loc);
     }
 
     // Delete elist after use — it must not be used again
     delete_expr_list(elist);
 
-    return new_table_expr;
+    return newtable_expr;
 }
 
 inline const Expr *
@@ -388,17 +386,18 @@ AggregateBuilder::Restricted::build_table_dict_consuming(
     DEBUG_SMART_ASSERT(!!dlist);
     auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
 
-    const Expr *const new_table_expr = expr_maker_->make_new_table_expr(table_dict_loc);
-    qh->emit_next(IOPCode::TABLECREATE, nullptr, nullptr, new_table_expr, table_dict_loc);
+    const Expr *const newtable_expr = expr_maker_->make_new_table_expr(table_dict_loc);
+    qh->emit_next(ir::Opcode::TABLECREATE, nullptr, nullptr, newtable_expr, table_dict_loc);
 
     // Emit dict's items.
     for (auto it = dlist->crbegin(); it != dlist->crend(); ++it)
-        qh->emit_next(IOPCode::TABLESETELEM, (*it)->first, (*it)->second, new_table_expr, k_no_loc);
+        qh->emit_next(
+            ir::Opcode::TABLESETELEM, (*it)->first, (*it)->second, newtable_expr, k_no_loc);
 
     // Delete elist after use — it must not be used again
     delete_dict_list(dlist);
 
-    return new_table_expr;
+    return newtable_expr;
 }
 
 inline const Expr *
@@ -499,7 +498,7 @@ AssignBuilder::Restricted::handle_table_item_assignment(
     DEBUG_SMART_ASSERT(lvalue->type == Expr::Type::TABLE_ITEM);
 
     const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
-    quad_handler_->emit_next(IOPCode::TABLESETELEM, rvalue, ti, ti->index, result_loc);
+    quad_handler_->emit_next(ir::Opcode::TABLESETELEM, rvalue, ti, ti->index, result_loc);
     const Expr *temp_var = ss_bridge_->emit_tablegetelem_if_table_item(lvalue); // !CERTAIN EMIT!
     DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
     const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
@@ -519,8 +518,8 @@ AssignBuilder::Restricted::handle_direct_assignment(
 
     // TODO: check todo 52 (on how to make this only when needed)
     const Expr *const temp = expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());
-    quad_handler_->emit_next(IOPCode::ASSIGN, lvalue, rvalue, nullptr, result_loc);
-    quad_handler_->emit_next(IOPCode::ASSIGN, temp, lvalue, nullptr, result_loc);
+    quad_handler_->emit_next(ir::Opcode::ASSIGN, lvalue, rvalue, nullptr, result_loc);
+    quad_handler_->emit_next(ir::Opcode::ASSIGN, temp, lvalue, nullptr, result_loc);
     return temp;
 }
 
@@ -557,8 +556,8 @@ AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *lvalue, const SourceLo
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
         result = ss_bridge_->emit_tablegetelem_if_table_item(ti_lvalue); // EMITS!
-        qh->emit_next(Policy::iopc, result, result, &k_static_int_1_expr, result_loc);
-        qh->emit_next(IOPCode::TABLESETELEM, result, ti_lvalue, ti_lvalue->index, result_loc);
+        qh->emit_next(Policy::opc, result, result, &k_static_int_1_expr, result_loc);
+        qh->emit_next(ir::Opcode::TABLESETELEM, result, ti_lvalue, ti_lvalue->index, result_loc);
     }
     else
     {
@@ -567,8 +566,8 @@ AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *lvalue, const SourceLo
         // only if inside assignment. NOTE! ONLY ENABLE THIS OPTIMIZATION IFF optimization options is passed.
         // DO NOT make it standard behavior.. you may get fucked in examination :D
         result = expr_maker_->make_arithmetic_expr(result_loc);
-        qh->emit_next(Policy::iopc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
-        qh->emit_next(IOPCode::ASSIGN, result, lvalue, nullptr, result_loc);
+        qh->emit_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
+        qh->emit_next(ir::Opcode::ASSIGN, result, lvalue, nullptr, result_loc);
     }
     return DEBUG_REQUIRE_PTR(result); // Check because we initialized with nullptr.
 }
@@ -586,14 +585,14 @@ AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue, const SourceL
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
         const Expr *ti = ss_bridge_->emit_tablegetelem_if_table_item(lvalue); // EMITS!
-        qh->emit_next(IOPCode::ASSIGN, result, ti, nullptr, result_loc);
-        qh->emit_next(Policy::iopc, ti, ti, &k_static_int_1_expr, result_loc);
-        qh->emit_next(IOPCode::TABLESETELEM, ti, ti_lvalue, ti_lvalue->index, result_loc);
+        qh->emit_next(ir::Opcode::ASSIGN, result, ti, nullptr, result_loc);
+        qh->emit_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
+        qh->emit_next(ir::Opcode::TABLESETELEM, ti, ti_lvalue, ti_lvalue->index, result_loc);
     }
     else
     {
-        qh->emit_next(IOPCode::ASSIGN, result, lvalue, nullptr, result_loc);
-        qh->emit_next(Policy::iopc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
+        qh->emit_next(ir::Opcode::ASSIGN, result, lvalue, nullptr, result_loc);
+        qh->emit_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
     }
     return result;
 }
@@ -610,84 +609,65 @@ BasicBuilder::Restricted::build_uminus(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
-    expr_snitch_->validate_arithmetic_expr(IOPCode::UMINUS, expr, OperandSide::UNARY);
-
-    if (should_propagate_const())
-        expr = try_propagate_const(expr);
-    if (should_fold_arithmetic(expr))
-        return expr_folder_->fold_uminus(expr, result_loc);
+    if (!validate_arithmetic_expr(ir::Opcode::UMINUS, expr, OperandSide::UNARY))
+        return nullptr;
+    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::UMINUS>(result_loc, expr))
+        return optimized;
 
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
-    quad_handler_->emit_next(IOPCode::UMINUS, arithmetic_expr, expr, nullptr, result_loc);
+    quad_handler_->emit_next(ir::Opcode::UMINUS, arithmetic_expr, expr, nullptr, result_loc);
     return arithmetic_expr;
 }
 
 inline const Expr *
 BasicBuilder::Restricted::build_arithmetic(
-    const IOPCode iopc,
+    const ir::Opcode opc,
     const Expr *lhs,
     const Expr *rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    if (!validate_arithmetic_expr(iopc, lhs, OperandSide::LEFT)) return nullptr;
-    if (!validate_arithmetic_expr(iopc, rhs, OperandSide::RIGHT)) return nullptr;
-    if (!validate_possible_division(iopc, rhs, result_loc)) return nullptr;
+    if (!validate_arithmetic_expr(opc, lhs, OperandSide::LEFT)) return nullptr;
+    if (!validate_arithmetic_expr(opc, rhs, OperandSide::RIGHT)) return nullptr;
+    if (!validate_possible_division(opc, rhs, result_loc)) return nullptr;
 
-    if (should_propagate_const())
-    {
-        lhs = try_propagate_const(lhs);
-        rhs = try_propagate_const(rhs);
-    }
-    if (should_fold_arithmetic(lhs, rhs))
-        return expr_folder_->fold_arithmetic(iopc, lhs, rhs, result_loc);
+    if (const auto optimized = this->try_optimize_arithmetic_expr(opc, lhs, rhs, result_loc))
+        return optimized;
 
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
-    quad_handler_->emit_next(iopc, arithmetic_expr, lhs, rhs, result_loc);
+    quad_handler_->emit_next(opc, arithmetic_expr, lhs, rhs, result_loc);
     return arithmetic_expr;
 }
 
 inline const Expr *
 BasicBuilder::Restricted::build_relational(
-    const IOPCode iopc,
+    const ir::Opcode opc,
     const Expr *lhs,
     const Expr *rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    if (!validate_relational_expr(iopc, lhs, OperandSide::LEFT)) return nullptr;
-    if (!validate_relational_expr(iopc, rhs, OperandSide::RIGHT)) return nullptr;
+    if (!validate_relational_expr(opc, lhs, OperandSide::LEFT)) return nullptr;
+    if (!validate_relational_expr(opc, rhs, OperandSide::RIGHT)) return nullptr;
 
-    if (should_propagate_const())
-    {
-        lhs = try_propagate_const(lhs);
-        rhs = try_propagate_const(rhs);
-    }
-    if (should_fold_relational_arithmetic(iopc, lhs, rhs))
-        return expr_folder_->fold_relational_arithmetic(iopc, lhs, rhs, result_loc);
-    if (should_fold_relational_equality(iopc, lhs, rhs))
-        return expr_folder_->fold_relational_equality(iopc, lhs, rhs, result_loc);
-    if (const Expr *simplified = expr_folder_->try_simplify_relational_equality(
-        iopc, lhs, rhs, result_loc))
-        return simplified;
+    if (const auto optimized = this->try_optimize_relational_expr(opc, lhs, rhs, result_loc))
+        return optimized;
 
     const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
     result_expr->true_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(iopc, nullptr, lhs, rhs, result_loc);
+    quad_handler_->emit_labelless(opc, nullptr, lhs, rhs, result_loc);
     result_expr->false_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, result_loc);
+    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, result_loc);
     return result_expr;
 }
 
 inline const Expr *
 BasicBuilder::Restricted::build_logical_not(const Expr *expr, const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr, SemUtils::is_in_bool_form(expr));
+    DEBUG_SMART_ASSERT(!!expr, SemUtils::is_bool_or_const_bool_expr(expr));
 
-    if (should_propagate_const())
-        expr = try_propagate_const(expr);
-    if (should_fold_logical(expr))
-        return expr_folder_->fold_logical_not(expr, result_loc);
+    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::NOT>(result_loc, expr))
+        return optimized;
 
     const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
     bool_result_expr->true_list = static_cast<const BoolExpr *>(expr)->false_list;
@@ -703,18 +683,12 @@ BasicBuilder::Restricted::build_logical_and(
 {
     DEBUG_SMART_ASSERT(
         !!lhs, !!rhs,
-        SemUtils::is_in_bool_form(lhs),
-        SemUtils::is_in_bool_form(rhs)
+        SemUtils::is_bool_or_const_bool_expr(lhs),
+        SemUtils::is_bool_or_const_bool_expr(rhs)
     );
 
-    if (should_propagate_const())
-    {
-        lhs = try_propagate_const(lhs);
-        rhs = try_propagate_const(rhs);
-    }
-    if (should_fold_logical(lhs, rhs))
-        return expr_folder_->fold_logical_and(lhs, rhs, result_loc);
-
+    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::AND>(result_loc, lhs, rhs))
+        return optimized;
     return build_short_circuit_bool_expr<AndShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
@@ -726,31 +700,13 @@ BasicBuilder::Restricted::build_logical_or(
 {
     DEBUG_SMART_ASSERT(
         !!lhs, !!rhs,
-        SemUtils::is_in_bool_form(lhs),
-        SemUtils::is_in_bool_form(rhs)
+        SemUtils::is_bool_or_const_bool_expr(lhs),
+        SemUtils::is_bool_or_const_bool_expr(rhs)
     );
 
-    if (should_propagate_const())
-    {
-        lhs = try_propagate_const(lhs);
-        rhs = try_propagate_const(rhs);
-    }
-    if (should_fold_logical(lhs, rhs))
-        return expr_folder_->fold_logical_or(lhs, rhs, result_loc);
-
+    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(result_loc, lhs, rhs))
+        return optimized;
     return build_short_circuit_bool_expr<OrShortCircuitPolicy>(lhs, rhs, result_loc);
-}
-
-inline const Expr *
-BasicBuilder::Restricted::try_propagate_const(const Expr *const expr)
-{
-    if (expr->type != Expr::Type::VARIABLE)
-        return expr;
-    const VarSymbol *const var_symbol = static_cast<const VariableExpr *>(expr)->var_symbol;
-    DEBUG_SMART_ASSERT(!!var_symbol); // All VariableExpr must be tied to a Variable(Symbol);
-    if (!var_symbol->has_const_value())
-        return expr;
-    return var_symbol->get_const_expr();
 }
 
 template<typename Policy>
@@ -789,17 +745,8 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
 }
 
 inline bool
-BasicBuilder::Restricted::should_propagate_const()
-{
-    #ifndef ALL_OPTIMIZATIONS_ENABLED_BUILD
-    return true;
-    #endif
-    return options_.constant_propagation;
-}
-
-inline bool
 BasicBuilder::Restricted::validate_arithmetic_expr(
-    const IOPCode iopc,
+    const ir::Opcode opc,
     const Expr *expr,
     const OperandSide op_side)
 {
@@ -807,47 +754,85 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
     if (SemUtils::is_arithmetic_convertible_expr(expr))
         return true;
 
-    if (SemUtils::is_binary_arithmetic_iopcode(iopc))
-        dr_->report_arith_op_nonarith_operand(
-            op_side, SemUtils::arith_iopc_to_str_symbol(iopc), expr->type, expr->loc);
-    else if (iopc == IOPCode::UMINUS)
+    if (SemUtils::is_binary_arithmetic_iropcode(opc))
+        dr_->report_arith_op_nonarith_operand(op_side, SemUtils::arith_op_str(opc), expr->type, expr->loc);
+    else if (opc == ir::Opcode::UMINUS)
         dr_->report_uminus_nonarith_operand(expr->type, expr->loc);
     else
-        throw std::logic_error(ATTACH_CONTEXT("Expected arithmetic IOPCode (bin arith or uminus)"));
+        throw std::logic_error(ATTACH_CONTEXT(
+            "Expected arithmetic ir::Opcode (bin arith or uminus)"));
     return false;
 }
 
 inline bool
 BasicBuilder::Restricted::validate_relational_expr(
-    const IOPCode iopc,
+    const ir::Opcode opc,
     const Expr *const expr,
     const OperandSide op_side)
 {
     DEBUG_SMART_ASSERT(!!expr,);
     // In Alpha everything is convertible to bool.
     // And operators == and != convert their operands to bool.
-    if (SemUtils::is_relational_equality_iopcode(iopc))
+    if (SemUtils::is_relational_equality_iropcode(opc))
         return true;
     // If here relational operator is:  < <= > >=
     if (SemUtils::is_arithmetic_convertible_expr(expr))
         return true;
-    dr_->report_rel_op_nonarith_operand(
-        op_side, SemUtils::rel_op_to_str(iopc), expr->type, expr->loc);
+    dr_->report_rel_op_nonarith_operand(op_side, SemUtils::rel_op_to_str(opc),expr->type, expr->loc);
     return false;
 }
 
 inline bool
 BasicBuilder::Restricted::validate_possible_division(
-    const IOPCode iopc,
+    const ir::Opcode iropcode,
     const Expr *const rhs,
     const SourceLocation division_loc)
 {
-    if (iopc != IOPCode::DIV && iopc != IOPCode::MOD)
+    if (iropcode != ir::Opcode::DIV && iropcode != ir::Opcode::MOD)
         return true;
     if (!SemUtils::is_const_0(rhs))
         return true;
     dr_->report_division_by_zero(division_loc);
     return false;
+}
+
+inline const Expr *
+BasicBuilder::Restricted::try_optimize_arithmetic_expr(
+    const ir::Opcode opc,
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation result_loc)
+{
+    using Op = ir::Opcode;
+    switch (opc)
+    {
+    case Op::ADD: return expr_optimizer_->try_optimize<Op::ADD>(result_loc, lhs, rhs);
+    case Op::SUB: return expr_optimizer_->try_optimize<Op::SUB>(result_loc, lhs, rhs);
+    case Op::MUL: return expr_optimizer_->try_optimize<Op::MUL>(result_loc, lhs, rhs);
+    case Op::DIV: return expr_optimizer_->try_optimize<Op::DIV>(result_loc, lhs, rhs);
+    case Op::MOD: return expr_optimizer_->try_optimize<Op::MOD>(result_loc, lhs, rhs);
+    default: [[unlikely]] UNREACHABLE(FMT::format("Unexpected opcode: {}", static_cast<int>(opc)));
+    }
+}
+
+inline const Expr *
+BasicBuilder::Restricted::try_optimize_relational_expr(
+    const ir::Opcode opc,
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation result_loc)
+{
+    using Op = ir::Opcode;
+    switch (opc)
+    {
+    case Op::IF_EQ: return expr_optimizer_->try_optimize<Op::IF_EQ>(result_loc, lhs, rhs);
+    case Op::IF_NEQ: return expr_optimizer_->try_optimize<Op::IF_NEQ>(result_loc, lhs, rhs);
+    case Op::IF_LT: return expr_optimizer_->try_optimize<Op::IF_LT>(result_loc, lhs, rhs);
+    case Op::IF_LTE: return expr_optimizer_->try_optimize<Op::IF_LTE>(result_loc, lhs, rhs);
+    case Op::IF_GT: return expr_optimizer_->try_optimize<Op::IF_GT>(result_loc, lhs, rhs);
+    case Op::IF_GTE: return expr_optimizer_->try_optimize<Op::IF_GTE>(result_loc, lhs, rhs);
+    default: [[unlikely]] UNREACHABLE(FMT::format("Unexpected opcode: {}", static_cast<int>(opc)));
+    }
 }
 
 inline void
@@ -906,5 +891,5 @@ FunctionBuilder::Restricted::begin_anonymous(
     function_draft.location = anonymous_loc;
     parse_ctx_->space_handler.enter_space();
 }
-} // namespace Alpha
+} // namespace alpha
 #endif // EXPR_BUILDERS_HPP

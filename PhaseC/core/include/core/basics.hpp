@@ -3,7 +3,7 @@
 #include "utils/debug_tools.hpp"
 #include "utils/format_adapter.hpp"
 
-namespace Alpha
+namespace alpha
 {
 /// @brief A mixin that prevents copying, moving, or reassigning derived classes.
 /// @details
@@ -96,6 +96,6 @@ private:
     T value_;
     bool assigned_ = false;
 };
-} // namespace Alpha
+} // namespace alpha
 
 #endif //ALPHA_BASICS_HPP

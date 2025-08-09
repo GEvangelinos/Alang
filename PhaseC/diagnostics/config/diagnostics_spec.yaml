@@ -83,7 +83,7 @@
 - Diagnostic: OPERATOR_REQUIRES_LVALUE
   Type: ERROR
   Primary:
-    - Message: "{0} operator {1} requires an lvalue operand"
+    - Message: "`{0}` `operator{1}` requires an lvalue operand"
       Args: [ op_name, op_symbol ]
       Location: full_expr_loc
 
@@ -100,3 +100,35 @@
     - Message: "symbol `::{0}` not found in global scope"
       Args: [ symbol_name ]
       Location: symbol_use_loc
+
+- Diagnostic: UNCLOSED_COMMENT
+  Type: ERROR
+  Primary:
+    - Message: "unclosed comment, expected terminating `*/` character"
+      Location: comment_end_loc
+  Notes:
+    - Message: "comment starts here"
+      Location: comment_start_loc
+
+- Diagnostic: UNCLOSED_STRING
+  Type: ERROR
+  Primary:
+    - Message: "unclosed string literal, expected terminating `\"` character"
+      Location: string_end_loc
+  Notes:
+    - Message: "string literal starts here"
+      Location: string_start_loc
+
+- Diagnostic: INVALID_ESCAPE_CODE
+  Type: ERROR
+  Primary:
+    - Message: "invalid escape code `{0}` in string"
+      Args: [ escape_code_str ]
+      Location: escape_code_loc
+
+- Diagnostic: INVALID_CHARACTER
+  Type: ERROR
+  Primary:
+    - Message: "character `{0}` is invalid"
+      Args: [ char_str ]
+      Location: char_loc

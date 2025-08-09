@@ -9,15 +9,13 @@
 #include "parser/L2_semantic_subsystems/control_flow_managers.hpp"
 #include "parser/L2_semantic_subsystems/expr_builders.hpp"
 #include "parser/L2_semantic_subsystems/lvalue_resolver.hpp"
-#include "L3_ir_infra/expr_folder.hpp"
+#include "L3_ir_infra/expr_optimizer.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
-#include "L3_ir_infra/expr_snitch.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
 #include "parser/parser_context.hpp"
 #include "parser/symbol_table.hpp"
 
-
-namespace Alpha
+namespace alpha
 {
 // Order of initialization is intentional.
 // As the subsystems of semantic driver utilize its internal state,
@@ -25,6 +23,7 @@ namespace Alpha
 class SemanticSystem : private Immobile
 {
     friend class SemanticSystemBridge;
+
 public:
     struct Options
     {
@@ -41,16 +40,28 @@ public:
         SymbolTable *symbol_table,
         DiagnosticEngine *diagnostic_engine);
 
-    DISPATCH_DECLARE_HANDLER();
-
     // TODO make a function that user calls before destructor call that basically extracts all this
     // alpha drivers would want (like the generated quads).
     [[nodiscard]] const auto &retrieve_quads() const noexcept { return quad_handler_->quads(); }
     [[nodiscard]] bool good() const noexcept { return ss_status_ == SemanticSystemStatus::OK; }
 
+    DISPATCH_DEFINE_HANDLER_BEGIN();
+    DISPATCH_MASTER_METHOD_CALL(convert_to_bool_expr);
+    DISPATCH_MASTER_METHOD_CALL(mark_short_circuit_jump_point);
+    DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
+    DISPATCH_MASTER_METHOD_CALL(finalize_bool_expr);
+    DISPATCH_MASTER_MODULE_CALL(aggregate_builder);
+    DISPATCH_MASTER_MODULE_CALL(assign_builder);
+    DISPATCH_MASTER_MODULE_CALL(basic_builder);
+    DISPATCH_MASTER_MODULE_CALL(block_manager);
+    DISPATCH_MASTER_MODULE_CALL(const_builder);
+    DISPATCH_MASTER_MODULE_CALL(loop_manager);
+    DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
+    DISPATCH_DEFINE_HANDLER_END();
+
 private:
     // Gateway class for DiagnosticEngine to set SemanticSystem's error state.
-    SemanticSystemStatus ss_status_;
+    SemanticSystemStatus ss_status_ = SemanticSystemStatus::OK;
     SemanticSystemGateway ss_gateway_;
     // Must be initialized first -- used by subsystems during their construction.
     // Defaulted to nullptr to trigger safe asserts if construction order is violated.
@@ -59,18 +70,10 @@ private:
     DiagnosticEngine *const diagnostic_engine_ = nullptr;
     // -- Layer 3 subsystems --
     // We use unique_ptr instead of normal vars, in order to detect wrong initialization order
-    std::unique_ptr<ExprSnitch> expr_snitch_;
     std::unique_ptr<ExprMaker> expr_maker_;
-    std::unique_ptr<ExprFolder> expr_folder_;
     std::unique_ptr<QuadHandler> quad_handler_;
+    std::unique_ptr<ExprOptimizer> expr_optimizer_;
     SemanticSystemBridge sd_bridge_;
-
-    SemanticSystemServices export_semantic_system_services();
-
-    static AssignBuilder::Options get_assign_builder_options(const Options &options);
-
-    static BasicBuilder::Options get_basic_builder_options(const Options &options);
-
     // --Layer 2 subsystems -- No trailing underscores here, as these are directly used in dispatch mechanisms.
     AggregateBuilder aggregate_builder;
     AssignBuilder assign_builder;
@@ -85,27 +88,14 @@ private:
     void mark_short_circuit_jump_point();
     void reset_stmt_context() noexcept;
     void finalize_bool_expr(const Expr *expr);
+
+    SemanticSystemServices export_semantic_system_services();
+
+    static AssignBuilder::Options get_assign_builder_options(const Options &options);
+    static ExprOptimizer::Options get_expr_optimizer_options(const Options &options);
 };
-
-DISPATCH_DEFINE_HANDLER_BEGIN(SemanticSystem);
-    DISPATCH_BEGIN_CALLS();
-
-    DISPATCH_MASTER_METHOD_CALL(convert_to_bool_expr);
-    DISPATCH_MASTER_METHOD_CALL(mark_short_circuit_jump_point);
-    DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
-    DISPATCH_MASTER_METHOD_CALL(finalize_bool_expr);
-    DISPATCH_MASTER_MODULE_CALL(aggregate_builder);
-    DISPATCH_MASTER_MODULE_CALL(assign_builder);
-    DISPATCH_MASTER_MODULE_CALL(basic_builder);
-    DISPATCH_MASTER_MODULE_CALL(block_manager);
-    DISPATCH_MASTER_MODULE_CALL(const_builder);
-    DISPATCH_MASTER_MODULE_CALL(loop_manager);
-    DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
-    DISPATCH_END_CALLS();
-DISPATCH_DEFINE_HANDLER_END(SemanticSystem);
-
 
 inline void
 SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->name_generator.reset_temp_names(); }
-} // namespace Alpha
+} // namespace alpha
 #endif // SEMANTIC_DRIVER_HPP

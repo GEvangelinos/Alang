@@ -7,7 +7,7 @@
 #include "parser/RELOCATE_backpatcher.hpp"
 #include "parser/semantic_utils.hpp"
 
-namespace Alpha
+namespace alpha
 {
 static const std::list<Parameter> k_empty_parameter_list;
 
@@ -245,4 +245,4 @@ SymbolTable::attach_const_expr(
     DEBUG_SMART_ASSERT(!!const_expr, SemUtils::is_const_expr(const_expr));
     var_symbol->const_expr_ = const_expr;
 }
-} // namespace Alpha
+} // namespace alpha

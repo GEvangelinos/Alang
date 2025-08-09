@@ -1,6 +1,6 @@
 #include "parser/L2_semantic_subsystems/lvalue_resolver.hpp"
 
-namespace Alpha
+namespace alpha
 {
 LvalueResolver::LvalueResolver(const SemanticSystemServices &ss_services)
     : DISPATCH_TARGET(ss_services) {}
@@ -98,4 +98,4 @@ LvalueResolver::Restricted::ensure_reachable_symbol(
         symbol->loc);
     return false;
 }
-} // namespace Alpha
+} // namespace alpha

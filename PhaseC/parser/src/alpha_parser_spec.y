@@ -9,7 +9,7 @@
     #include "parser/parser_context.hpp"    // for ParseCtx
     #include "scanner/scanner_context.hpp"  // for LexerCtx
     #include "parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
-    using A_IOPC = Alpha::IOPCode; // TODO:
+    using Op = alpha::ir::Opcode;
 }
 
 %code requires
@@ -22,20 +22,20 @@
     #include "parser/L1_driver/semantic_system.hpp"
 }
 
-%define api.prefix {alpha_yy}
+%define api.prefix { alpha_yy }
 %define parse.lac full
 %define parse.error verbose /* Enables verbose error messages */
-%define api.location.type {Alpha::SourceLocation}
+%define api.location.type { alpha::SourceLocation }
 %locations
 
-%parse-param {Alpha::LocationTracker &location_tracker}
-%parse-param {Alpha::DiagnosticEngine &diagnostic_engine}
-%parse-param {Alpha::LexerCtx &lexer_ctx}
-%parse-param {Alpha::SemanticSystem &ss}
+%parse-param { alpha::LocationTracker &location_tracker }
+%parse-param { alpha::DiagnosticReporter &dr }
+%parse-param { alpha::LexerCtx &lexer_ctx }
+%parse-param  {alpha::SemanticSystem &ss }
 
-%lex-param {Alpha::LocationTracker &location_tracker}
-%lex-param {Alpha::DiagnosticEngine &diagnostic_engine}
-%lex-param {Alpha::LexerCtx &lexer_ctx}
+%lex-param { alpha::LocationTracker &location_tracker }
+%lex-param { alpha::DiagnosticReporter &dr }
+%lex-param { alpha::LexerCtx &lexer_ctx }
 
 // Here I declare the trivial types that can be used in union.
 // More complex types are stores in ParseCache of ParseCtx.
@@ -45,15 +45,15 @@
 %union{
     char *cstring;
     bool const_bool;
-    Alpha::AlphaInt const_int;
-    Alpha::AlphaFloat const_float;
-    const Alpha::FuncSymbol *const_func_symbol_ptr;
-    const Alpha::Expr *const_expr_ptr;
-    Alpha::ExprList *expr_list_ptr;
-    const Alpha::ExprPair *const_expr_pair_ptr;
-    Alpha::DictList *dict_list_ptr;
+    alpha::AlphaInt const_int;
+    alpha::AlphaFloat const_float;
+    const alpha::FuncSymbol *const_func_symbol_ptr;
+    const alpha::Expr *const_expr_ptr;
+    alpha::ExprList *expr_list_ptr;
+    const alpha::ExprPair *const_expr_pair_ptr;
+    alpha::DictList *dict_list_ptr;
 
-    Alpha::BlockSourceLocation block_location;
+    alpha::BlockSourceLocation block_location;
 }
 
 %type  <const_expr_ptr> const
@@ -248,17 +248,17 @@ or_op:
 expr[out]:
   assignExpr { $out = $assignExpr; }
 | term       { $out = $term; }
-| expr[lhs] PLUS  expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(A_IOPC::ADD,    $lhs, $rhs, @out); }
-| expr[lhs] MINUS expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(A_IOPC::SUB,    $lhs, $rhs, @out); }
-| expr[lhs] MUL   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(A_IOPC::MUL,    $lhs, $rhs, @out); }
-| expr[lhs] DIV   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(A_IOPC::DIV,    $lhs, $rhs, @out); }
-| expr[lhs] MOD   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(A_IOPC::MOD,    $lhs, $rhs, @out); }
-| expr[lhs] GT    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_GT,  $lhs, $rhs, @out); }
-| expr[lhs] GTE   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_GTE, $lhs, $rhs, @out); }
-| expr[lhs] LT    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_LT,  $lhs, $rhs, @out); }
-| expr[lhs] LTE   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_LTE, $lhs, $rhs, @out); }
-| expr[lhs] EQ    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_EQ,  $lhs, $rhs, @out); }
-| expr[lhs] NEQ   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(A_IOPC::IF_NEQ, $lhs, $rhs, @out); }
+| expr[lhs] PLUS  expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::ADD,    $lhs, $rhs, @out); }
+| expr[lhs] MINUS expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::SUB,    $lhs, $rhs, @out); }
+| expr[lhs] MUL   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::MUL,    $lhs, $rhs, @out); }
+| expr[lhs] DIV   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::DIV,    $lhs, $rhs, @out); }
+| expr[lhs] MOD   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::MOD,    $lhs, $rhs, @out); }
+| expr[lhs] EQ    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_EQ,  $lhs, $rhs, @out); }
+| expr[lhs] NEQ   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_NEQ, $lhs, $rhs, @out); }
+| expr[lhs] LT    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_LT,  $lhs, $rhs, @out); }
+| expr[lhs] LTE   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_LTE, $lhs, $rhs, @out); }
+| expr[lhs] GT    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_GT,  $lhs, $rhs, @out); }
+| expr[lhs] GTE   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_GTE, $lhs, $rhs, @out); }
 | and_op { $out = $and_op; }
 | or_op  { $out = $or_op; }
 ;

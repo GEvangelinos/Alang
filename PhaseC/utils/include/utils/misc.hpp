@@ -46,15 +46,15 @@ template<typename T>
                              const std::source_location loc = std::source_location::current())
 {
     if (ptr) [[likely]]
-        return ptr;
+            return ptr;
     std::cerr << FMT::format(
-            "ERROR: nullptr caught (expected valid pointer)\n"
-            "{}:{}:{} -> {}: ",
-            loc.file_name(),
-            loc.line(),
-            loc.column(),
-            loc.function_name())
-        << std::endl;
+                "ERROR: nullptr caught (expected valid pointer)\n"
+                "{}:{}:{} -> {}: ",
+                loc.file_name(),
+                loc.line(),
+                loc.column(),
+                loc.function_name())
+            << std::endl;
     std::abort();
 }
 
@@ -63,7 +63,7 @@ template<typename T>
 [[nodiscard]] ALWAYS_INLINE T *require_ptr_fast(T *const ptr)
 {
     if (ptr) [[likely]]
-        return ptr;
+            return ptr;
     std::abort();
 }
 

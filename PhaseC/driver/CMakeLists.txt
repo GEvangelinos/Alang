@@ -1,3 +1,6 @@
+get_filename_component(CURRENT_COMPONENT_NAME "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
+set(GENERATED_INCLUDE_DIR "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/include")
+
 # === alpha_driver_api: Interface (public headers only) ===
 add_library(alpha_driver_api INTERFACE)
 target_include_directories(alpha_driver_api INTERFACE
@@ -15,7 +18,7 @@ add_library(alpha_driver_impl STATIC
     src/alpha_driver.cpp
 )
 target_include_directories(alpha_driver_impl PRIVATE
-    "${AUTOGEN_INCLUDE_DIR_PATH}"
+    "${GENERATED_INCLUDE_DIR}"
 )
 target_link_libraries(alpha_driver_impl PRIVATE
     alpha_driver_api

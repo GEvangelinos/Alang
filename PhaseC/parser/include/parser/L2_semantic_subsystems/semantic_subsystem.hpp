@@ -3,7 +3,7 @@
 
 #include <L1_driver/semantic_system_support.hpp>
 
-namespace Alpha
+namespace alpha
 {
 class SemanticSubsystem : private Immobile
 {
@@ -12,8 +12,7 @@ protected:
     SymbolTable *const symbol_table_ = nullptr;
     DiagnosticReporter *const dr_ = nullptr;
     ExprMaker *const expr_maker_ = nullptr;
-    ExprFolder *const expr_folder_ = nullptr;
-    ExprSnitch *const expr_snitch_ = nullptr;
+    ExprOptimizer*const expr_optimizer_ = nullptr;
     QuadHandler *const quad_handler_ = nullptr;
     Backpatcher *const backpatcher_ = nullptr;
     SemanticSystemBridge *const ss_bridge_ = nullptr;
@@ -23,8 +22,7 @@ protected:
           symbol_table_(REQUIRE_PTR(ss_services.symbol_table)),
           dr_(REQUIRE_PTR(ss_services.dr)),
           expr_maker_(REQUIRE_PTR(ss_services.expr_maker)),
-          expr_folder_(REQUIRE_PTR(ss_services.expr_folder)),
-          expr_snitch_(REQUIRE_PTR(ss_services.expr_snitch)),
+          expr_optimizer_(REQUIRE_PTR(ss_services.expr_optimizer)),
           quad_handler_(REQUIRE_PTR(ss_services.quad_handler)),
           backpatcher_(REQUIRE_PTR(ss_services.backpatcher)),
           ss_bridge_(REQUIRE_PTR(ss_services.ss_bridge)) {}
@@ -33,5 +31,5 @@ protected:
 };
 
 inline SemanticSubsystem::~SemanticSubsystem() = default;
-} // namespace Alpha
+} // namespace alpha
 #endif // SEMANTIC_SUBSYSTEM_HPP

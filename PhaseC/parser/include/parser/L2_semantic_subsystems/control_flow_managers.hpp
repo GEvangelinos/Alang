@@ -1,16 +1,17 @@
 #ifndef CONTROL_FLOW_HANDLERS_HPP
 #define CONTROL_FLOW_HANDLERS_HPP
-#include <diagnostics/diagnostic_reporter.gen.hpp>
 
+#include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 #include "parser_context.hpp"
 #include "core/source_location.hpp"
 #include "L1_driver/semantic_system_support.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
 
+#include  <parser/ir_opcode.hpp>
 #include "semantic_subsystem.hpp"
 
-namespace Alpha
+namespace alpha
 {
 class LoopManager
 {
@@ -19,9 +20,22 @@ class LoopManager
 private:
     enum class LoopKeyword { CONTINUE, BREAK };
 
+    // to_string() function is declared outside class LoopManager so its visible by ADL, to be used by DiagnosticReporter.
+    friend const char *to_string(const LoopKeyword lk)
+    {
+        switch (lk)
+        {
+        case LoopKeyword::BREAK: return "break";
+        case LoopKeyword::CONTINUE: return "continue";
+        default: UNREACHABLE(FMT::format("Unknown `LoopKeyword`: int(lk) = ", static_cast<int>(lk)))
+            ;
+        }
+    }
+
     class Restricted final : private SemanticSubsystem
     {
         friend class LoopManager;
+
     private:
         explicit Restricted(const SemanticSystemServices &ss_services);
 
@@ -32,20 +46,17 @@ private:
 
         template<LoopKeyword keyword>
         void process_loop_keyword(SourceLocation keyword_loc);
-        static const char *to_string(LoopKeyword lk);
     };
+
     Restricted DISPATCH_TARGET;
 
-    explicit LoopManager(const SemanticSystemServices & ss_services);
-    DISPATCH_DECLARE_HANDLER();
-};
+    explicit LoopManager(const SemanticSystemServices &ss_services);
 
-DISPATCH_DEFINE_HANDLER_BEGIN(LoopManager);
-    DISPATCH_BEGIN_CALLS();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(process_break);
     DISPATCH_SLAVE_METHOD_CALL(process_continue);
-    DISPATCH_END_CALLS();
-DISPATCH_DEFINE_HANDLER_END(LoopManager);
+    DISPATCH_DEFINE_HANDLER_END();
+};
 
 inline void
 LoopManager::Restricted::process_break(const SourceLocation break_loc)
@@ -67,7 +78,7 @@ void LoopManager::Restricted::process_loop_keyword(const SourceLocation keyword_
 {
     if (!is_in_loop())
     {
-        dr_->report_loop_ctrl_keyword_outside_loop(to_string(keyword), keyword_loc);
+        dr_->report_loop_ctrl_keyword_outside_loop(keyword, keyword_loc);
         return;
     }
     if constexpr (keyword == LoopKeyword::BREAK)
@@ -77,7 +88,7 @@ void LoopManager::Restricted::process_loop_keyword(const SourceLocation keyword_
     else
         static_assert([]() { return false; }(), "Unknown keyword");
 
-    quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, keyword_loc);
+    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, keyword_loc);
 }
-} // namespace Alpha
+} // namespace alpha
 #endif // CONTROL_FLOW_HANDLERS_HPP

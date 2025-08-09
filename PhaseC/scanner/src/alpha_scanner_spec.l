@@ -103,7 +103,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 "."             { return DOT; }
 ".."            { return METHOD_CALL; }
 
-{id}            { alpha_yylval.cstring = Alpha::TokenID::refreshLastId(yytext); return ID; } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
+{id}            { alpha_yylval.cstring = alpha::TokenID::refreshLastId(yytext); return ID; } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
 {float}         { alpha_yylval.const_float = std::stod(yytext); return FLOAT; }
 {int}           { alpha_yylval.const_int = std::stol(yytext); return INT; }
 {lineComment}   { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
@@ -112,7 +112,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 
 {commentBeginRule} {
         BEGIN(INSIDE_COMMENT_BLOCK);
-        Alpha::TokenComment::setStartingLocation(alpha_yylloc);
+        alpha::TokenComment::setStartingLocation(alpha_yylloc);
 } /* No return until complete token or EOF. */
 <INSIDE_COMMENT_BLOCK>{commentEndRule} {
                 BEGIN(INITIAL);
@@ -122,64 +122,36 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_COMMENT_BLOCK>{anyCharacterButNewLine} { /* Just eat up any character use see. */ }
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-      // TODO: uncomment and adjust to nw diagnostic engine
-      //  diagnostics.report(
-        //        Alpha::Issue::Type::ERROR,
-          //      "unclosed comment, expected terminating `*/` character",
-            //    alpha_yylloc,
-              //  std::list{Alpha::Note{"comment starts here",
-                //Alpha::TokenComment::getStartingLocation()
-         //       }}
-        //);
+        dr.report_unclosed_comment(alpha_yylloc, alpha::TokenComment::getStartingLocation());
         return EOF;
 }
 
 {stringBeginRule} {
         BEGIN(INSIDE_STRING);
-        Alpha::TokenString::setStartingLocation(alpha_yylloc);
+        alpha::TokenString::setStartingLocation(alpha_yylloc);
 }
 <INSIDE_STRING>{newline} {
         lt.append_line(lexer_ctx.index_);
 }
 <INSIDE_STRING>{stringValidInnerPart} {
-        Alpha::TokenString::appendToAssemblingBuffer(yytext);
+        alpha::TokenString::appendToAssemblingBuffer(yytext);
 }
 <INSIDE_STRING>{stringInvalidEscapeCode} {
-        Alpha::TokenString::appendToAssemblingBuffer(yytext);
-      // TODO: uncomment and adjust to nw diagnostic engine
-      //  diagnostics.report(
-        //        Alpha::Issue::Type::ERROR,
-          //      FMT::format("invalid escape code {} in string", yytext),
-            //    alpha_yylloc
-        //);
-        /* Do not stop scanning, but register lexer error. */
+        alpha::TokenString::appendToAssemblingBuffer(yytext);
+        dr.report_invalid_escape_code(yytext, alpha_yylloc);
 }
 <INSIDE_STRING><<EOF>> {
-      // TODO: uncomment and adjust to nw diagnostic engine
-      //  diagnostics.report(
-        //        Alpha::Issue::Type::ERROR,
-          //      "unclosed string literal, expected terminating `\"` character",
-            //    alpha_yylloc,
-              //  std::list{Alpha::Note{
-                //"string literal starts here",
-               // Alpha::TokenString::getStartingLocation()
-                //}}
-        //);
+        dr.report_unclosed_string(alpha_yylloc, alpha::TokenString::getStartingLocation());
         return EOF;
 }
 <INSIDE_STRING>{stringEndRule} {
         BEGIN(INITIAL);
-        Alpha::TokenString::exportStringToken(&alpha_yylval.cstring);
+        alpha::TokenString::exportStringToken(&alpha_yylval.cstring);
         return STRING;
 }
 
 {anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
-      // TODO: uncomment and adjust to nw diagnostic engine
-      //  diagnostics.report(
-        //        Alpha::Issue::Type::ERROR,
-          //      FMT::format("character {} is invalid", yytext),
-            //    alpha_yylloc
-       // );
+        dr.report_invalid_character(yytext, alpha_yylloc);
 }
 
 <<EOF>>          {return ALPHA_YYEOF;}

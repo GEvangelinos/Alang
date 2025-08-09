@@ -6,7 +6,7 @@
 #include "core/konstants.hpp" // for k_no_line
 #include "utils/smart_assert.h"     // for DEBUG_SMART_ASSERT
 
-namespace Alpha
+namespace alpha
 {
     SourceLocation SourceLocation::merge(
         const SourceLocation left, const SourceLocation right)
@@ -117,4 +117,4 @@ namespace Alpha
             throw std::logic_error(ATTACH_CONTEXT("BUG: Invalid computed line index."));
         return static_cast<u32>(line);
     }
-} // namespace Alpha
+} // namespace alpha

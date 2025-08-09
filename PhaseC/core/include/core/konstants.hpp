@@ -4,7 +4,7 @@
 #include "core/numeric_types.hpp"
 #include "core/source_location.hpp"
 
-namespace Alpha
+namespace alpha
 {
 // ParseCtx's constants
 static constexpr u32 k_max_function_nesting = 256; // Function nesting sanity limit.

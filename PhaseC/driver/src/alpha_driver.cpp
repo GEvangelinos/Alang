@@ -11,7 +11,8 @@
 #include "utils/cli_color.h"        // for COLOR_ASCII_BLUE, SGR_RESET
 #include "utils/format_adapter.hpp" // for format, FMT
 #include "utils/smart_assert.h"     // for SMART_ASSERT
-#include "parser/ir.hpp"
+#include "parser/ir_expr.hpp"
+#include <parser/ir_opcode_info_traits.hpp>
 #include <parser/semantic_utils.hpp>
 
 static constexpr unsigned k_flex_eof_padding = 2;
@@ -28,9 +29,9 @@ void enter_export_directory(std::string_view dirname);
 
 void exit_export_directory(const std::filesystem::path &original_path);
 
-void expr_validator(const Alpha::Expr *e);
+void expr_validator(const alpha::Expr *e);
 
-std::string expr_printer(const Alpha::Expr *expr);
+std::string expr_printer(const alpha::Expr *expr);
 
 template<unsigned column, unsigned column_width, typename T>
 std::string color_column(T &&value);
@@ -39,8 +40,8 @@ template<bool colorize, unsigned column, unsigned column_width, typename T>
 std::string format_column(T &&value);
 
 template<bool colorize, typename Stream>
-void print_quads(Stream &out, const std::vector<Alpha::Quad> &quads,
-                 const Alpha::LocationTracker &lt);
+void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
+                 const alpha::LocationTracker &lt);
 
 std::ifstream open_alpha_source_file(const std::string &filepath)
 {
@@ -58,18 +59,15 @@ void create_export_directory(std::string_view dirname)
     std::filesystem::create_directories(dirname);
 }
 
-void enter_export_directory(std::string_view dirname)
-{
-    std::filesystem::current_path(dirname);
-}
+void enter_export_directory(std::string_view dirname) { std::filesystem::current_path(dirname); }
 
 void exit_export_directory(const std::filesystem::path &original_path)
 {
     std::filesystem::current_path(original_path);
 }
 
-void expr_validator(const Alpha::Expr *e)
-{
+void expr_validator(const alpha::Expr *e)
+{ // TODO: Do we remove??
     SMART_ASSERT(!!e);
     //      auto has_loc = [](const Alpha::Expr *e) -> bool { return e->location != Alpha::k_no_loc; };
     //      auto has_symbol = [](const Alpha::Expr *e) -> bool { return e->symbol; };
@@ -100,9 +98,9 @@ void expr_validator(const Alpha::Expr *e)
     //     }
 }
 
-std::string expr_printer(const Alpha::Expr *expr)
+std::string expr_printer(const alpha::Expr *expr)
 {
-    using namespace Alpha;
+    using namespace alpha;
     if (!expr)
         return "";
 #ifdef DEBUG_MODE
@@ -167,14 +165,14 @@ std::string format_column(T &&value)
 }
 
 template<bool Colorize, typename Stream>
-void print_quads(Stream &out, const std::vector<Alpha::Quad> &quads,
-                 const Alpha::LocationTracker &lt)
+void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
+                 const alpha::LocationTracker &lt)
 {
-    constexpr Alpha::u32 widths[] = {10, 15, 20, 20, 20, 10, 10};
-    constexpr Alpha::u32 quad_header_width = [&widths]() constexpr
+    constexpr alpha::u32 widths[] = {10, 15, 20, 20, 20, 10, 10};
+    constexpr alpha::u32 quad_header_width = [&widths]() constexpr
     {
-        Alpha::u32 width = 0;
-        for (Alpha::u32 i = 0; i < std::size(widths); ++i)
+        alpha::u32 width = 0;
+        for (alpha::u32 i = 0; i < std::size(widths); ++i)
             width += widths[i];
         width += std::size(widths) - 1; // One space between each column
         return width;
@@ -196,22 +194,22 @@ void print_quads(Stream &out, const std::vector<Alpha::Quad> &quads,
 
     // Write quads.
     const auto quads_size = quads.size();
-    for (Alpha::u32 i = 0; i < quads_size; i++)
+    for (alpha::u32 i = 0; i < quads_size; i++)
     {
-        const Alpha::Quad &q = quads[i];
+        const alpha::Quad &q = quads[i];
 
         auto quad_line_num = lt.find_first_line(q.location);
-        std::string quad_line_str = quad_line_num == Alpha::k_no_line
-                                    ? Alpha::k_not_available_marker
+        std::string quad_line_str = quad_line_num == alpha::k_no_line
+                                    ? alpha::k_not_available_marker
                                     : std::to_string(quad_line_num);
-        std::string quad_label_str = Alpha::SemUtils::iopcode_requires_label(quads[i].iopcode)
+        std::string quad_label_str = alpha::ir::info_traits::uses_label(quads[i].opcode)
                                      ? std::to_string(q.label)
-                                     : Alpha::k_not_available_marker;
+                                     : alpha::k_not_available_marker;
 
         out << FMT::format(
             "{} {} {} {} {} {} {}\n",
             format_column<Colorize, 0, widths[0]>(i + 1),
-            format_column<Colorize, 1, widths[1]>(to_string(q.iopcode)),
+            format_column<Colorize, 1, widths[1]>(to_string(q.opcode)),
             format_column<Colorize, 2, widths[2]>(expr_printer(q.result)),
             format_column<Colorize, 3, widths[3]>(expr_printer(q.arg1)),
             format_column<Colorize, 4, widths[4]>(expr_printer(q.arg2)),
@@ -225,7 +223,7 @@ void print_quads(Stream &out, const std::vector<Alpha::Quad> &quads,
 }
 } // namespace
 
-namespace Alpha
+namespace alpha
 {
 Driver::Driver(const std::string &source_filepath, bool show_parser_trace)
     : source_filepath_(source_filepath),
@@ -243,14 +241,11 @@ Driver::Driver(const std::string &source_filepath, bool show_parser_trace)
     g_show_parser_trace = show_parser_trace;
 }
 
-Driver::~Driver()
-{
-    alpha_yylex_destroy();
-}
+Driver::~Driver() { alpha_yylex_destroy(); }
 
 void Driver::run_alpha_parser()
 {
-    parser_retval_ = alpha_yyparse(lt_, diagnostic_engine_, lexer_ctx_, semantic_system_);
+    parser_retval_ = alpha_yyparse(lt_, diagnostic_engine_.dr, lexer_ctx_, semantic_system_);
 }
 
 void Driver::show_symbol_table() const
@@ -408,4 +403,4 @@ void Driver::export_quads_impl() const
 
     // print_quads<false>(outfile, parse_ctx_.quad_handler.quads(), lt_);
 }
-} // namespace Alpha
+} // namespace alpha

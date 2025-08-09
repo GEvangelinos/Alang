@@ -26,12 +26,11 @@
 #define SEMANTIC_DRIVER_SERVICES_HPP
 
 #include "parser/parser_context.hpp"
-#include "parser/ir.hpp"
-#include "L3_ir_infra/expr_folder.hpp"
+#include "L3_ir_infra/expr_optimizer.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
 
-namespace Alpha
+namespace alpha
 {
 class SemanticSystemBridge
 {
@@ -54,12 +53,11 @@ struct SemanticSystemServices
     SymbolTable *const symbol_table = nullptr;
     DiagnosticReporter *const dr = nullptr;
     ExprMaker *const expr_maker = nullptr;
-    ExprFolder *const expr_folder = nullptr;
-    ExprSnitch *const expr_snitch = nullptr;
+    ExprOptimizer *const expr_optimizer = nullptr;
     QuadHandler *const quad_handler = nullptr;
     Backpatcher *const backpatcher = nullptr;
     SemanticSystemBridge *const ss_bridge = nullptr;
 };
-} // namespace Alpha
+} // namespace alpha
 
 #endif //SEMANTIC_DRIVER_SERVICES_HPP

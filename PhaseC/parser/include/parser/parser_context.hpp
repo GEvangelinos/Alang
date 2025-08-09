@@ -22,7 +22,7 @@
 #include "utils/misc.hpp"
 #include "utils/smart_assert.h"
 
-namespace Alpha
+namespace alpha
 {
 class ParseCtx;
 /**
@@ -537,5 +537,5 @@ inline const VarSymbol *ParseCtx::new_temp()
     DEBUG_SMART_ASSERT(symbol->is_variable());
     return static_cast<const VarSymbol *>(symbol);
 }
-} // namespace Alpha
+} // namespace alpha
 #endif // PARSER_CONTEXT_HPP

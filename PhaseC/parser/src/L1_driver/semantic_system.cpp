@@ -1,6 +1,6 @@
 #include "L1_driver/semantic_system.hpp"
 
-namespace Alpha
+namespace alpha
 {
 SemanticSystem::SemanticSystem(
     const Options &options,
@@ -13,17 +13,19 @@ SemanticSystem::SemanticSystem(
       symbol_table_(Utils::require_ptr(symbol_table)),
       diagnostic_engine_(Utils::require_ptr(diagnostic_engine)),
 
-      // private resources, used by public servicers.
-      expr_snitch_(std::make_unique<ExprSnitch>(&diagnostic_engine_->dr)),
+      // private resources, used by public submodules.
       expr_maker_(std::make_unique<ExprMaker>(parse_ctx_)),
-      expr_folder_(std::make_unique<ExprFolder>(expr_maker_.get(), expr_snitch_.get())),
       quad_handler_(std::make_unique<QuadHandler>()),
+      expr_optimizer_(std::make_unique<ExprOptimizer>(
+          get_expr_optimizer_options(options),
+          expr_maker_.get()
+      )),
       sd_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
 
       // public servicers, used by users of semantic driver.
       aggregate_builder(export_semantic_system_services()),
       assign_builder(get_assign_builder_options(options), export_semantic_system_services()),
-      basic_builder(get_basic_builder_options(options), export_semantic_system_services()),
+      basic_builder(export_semantic_system_services()),
       block_manager(export_semantic_system_services()),
       const_builder(export_semantic_system_services()),
       loop_manager(export_semantic_system_services()),
@@ -37,8 +39,7 @@ SemanticSystem::export_semantic_system_services()
         .symbol_table = REQUIRE_PTR(symbol_table_),
         .dr = &REQUIRE_PTR(diagnostic_engine_)->dr,
         .expr_maker = REQUIRE_PTR(expr_maker_.get()),
-        .expr_folder = REQUIRE_PTR(expr_folder_.get()),
-        .expr_snitch = REQUIRE_PTR(expr_snitch_.get()),
+        .expr_optimizer = REQUIRE_PTR(expr_optimizer_.get()),
         .quad_handler = REQUIRE_PTR(quad_handler_.get()),
         .ss_bridge = &sd_bridge_,
     };
@@ -48,12 +49,13 @@ AssignBuilder::Options
 SemanticSystem::get_assign_builder_options(const Options &options)
 {
     return {
+        // constant propagation requires constant recording
         .record_constant_variables = options.propagate_constants
     };
 }
 
-BasicBuilder::Options
-SemanticSystem::get_basic_builder_options(const Options &options)
+ExprOptimizer::Options
+SemanticSystem::get_expr_optimizer_options(const Options &options)
 {
     return {
         .fold_arithmetic = options.fold_arithmetic,
@@ -77,9 +79,9 @@ SemanticSystem::convert_to_bool_expr(const Expr *const expr)
 
     const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
     bool_expr->true_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(IOPCode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc);
+    quad_handler_->emit_labelless(ir::Opcode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc);
     bool_expr->false_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc);
+    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc);
 
     return bool_expr;
 }
@@ -97,9 +99,9 @@ SemanticSystem::finalize_bool_expr(const Expr *const expr)
     DEBUG_SMART_ASSERT(!!bool_expr->var_symbol);
 
     qh->patch_list(bool_expr->true_list, qh->next_quad_label());
-    qh->emit_next(IOPCode::ASSIGN, expr, &k_static_true_expr, nullptr, expr->loc);
-    qh->emit_next(IOPCode::JUMP, nullptr, nullptr, nullptr, expr->loc, 2);
+    qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_true_expr, nullptr, expr->loc);
+    qh->emit_next(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc, 2);
     qh->patch_list(bool_expr->false_list, quad_handler_->next_quad_label());
-    qh->emit_next(IOPCode::ASSIGN, expr, &k_static_false_expr, nullptr, expr->loc);
+    qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_false_expr, nullptr, expr->loc);
 }
-} // namespace Alpha
+} // namespace alpha

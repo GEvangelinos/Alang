@@ -1,6 +1,6 @@
 #include "parser/RELOCATE_backpatcher.hpp"
 
-namespace Alpha::Backpatcher
+namespace alpha::Backpatcher
 {
 
     //TODO reallocate? Am I even needed?

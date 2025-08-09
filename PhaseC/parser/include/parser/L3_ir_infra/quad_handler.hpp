@@ -2,10 +2,10 @@
 #define QUAD_HANDLER_HPP
 
 #include <vector>
-#include "parser/ir.hpp"
+#include "parser/ir_opcode.hpp"
 #include "parser/konstants.hpp"
 
-namespace Alpha
+namespace alpha
 {
 class QuadHandler : private Immobile
 {
@@ -14,7 +14,7 @@ public:
     ~QuadHandler() = default;
 
     void emit_next(
-        IOPCode iopc,
+        ir::Opcode iropcode,
         const Expr *result,
         const Expr *arg1,
         const Expr *arg2,
@@ -22,7 +22,7 @@ public:
         LabelID label_offset = 0);
 
     void emit_labelless(
-        IOPCode iopc,
+        ir::Opcode iropcode,
         const Expr *result,
         const Expr *arg1,
         const Expr *arg2,
@@ -39,7 +39,7 @@ private:
     std::vector<Quad> quads_;
 
     void emit(
-        IOPCode iopc,
+        ir::Opcode iropcode,
         const Expr *result,
         const Expr *arg1,
         const Expr *arg2,
@@ -50,7 +50,7 @@ private:
 
 inline void
 QuadHandler::emit(
-    const IOPCode iopc,
+    const ir::Opcode iropcode,
     const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
@@ -59,7 +59,7 @@ QuadHandler::emit(
 {
     DEBUG_SMART_ASSERT(quads_.size() + 1 == next_quad_label_);
     quads_.emplace_back(Quad{
-        .iopcode = iopc,
+        .opcode = iropcode,
         .arg1 = arg1,
         .arg2 = arg2,
         .result = result,
@@ -71,25 +71,25 @@ QuadHandler::emit(
 
 inline void
 QuadHandler::emit_next(
-    const IOPCode iopc,
+    const ir::Opcode iropcode,
     const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
     const SourceLocation loc,
     const LabelID label_offset)
 {
-    emit(iopc, result, arg1, arg2, next_quad_label_ + label_offset, loc);
+    emit(iropcode, result, arg1, arg2, next_quad_label_ + label_offset, loc);
 }
 
 inline void
 QuadHandler::emit_labelless(
-    const IOPCode iopc,
+    const ir::Opcode opc,
     const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
     const SourceLocation loc)
 {
-    emit(iopc, result, arg1, arg2, k_no_label, loc);
+    emit(opc, result, arg1, arg2, k_no_label, loc);
 }
 
 inline void
@@ -112,5 +112,5 @@ QuadHandler::patch_list(const std::vector<LabelID> &patch_list, const LabelID de
     for (const LabelID target_quad_label: patch_list)
         patch_quad(target_quad_label, destination_label);
 }
-} // namespace Alpha
+} // namespace alpha
 #endif // QUAD_HANDLER_HPP

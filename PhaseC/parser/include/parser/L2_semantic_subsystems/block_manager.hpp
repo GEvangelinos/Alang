@@ -1,9 +1,10 @@
 #ifndef BLOCK_MANAGER_HPP
 #define BLOCK_MANAGER_HPP
+
 #include "semantic_subsystem.hpp"
 #include "L1_driver/semantic_system_dispatcher_dsl.hpp"
 
-namespace Alpha
+namespace alpha
 {
 class BlockManager
 {
@@ -28,16 +29,12 @@ private:
 
     explicit BlockManager(const SemanticSystemServices &ss_services);
 
-    DISPATCH_DECLARE_HANDLER();
-};
-
-DISPATCH_DEFINE_HANDLER_BEGIN(BlockManager);
-    DISPATCH_BEGIN_CALLS();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(enter_block);
     DISPATCH_SLAVE_METHOD_CALL(exit_block);
     DISPATCH_SLAVE_METHOD_CALL(make_block_location);
-    DISPATCH_END_CALLS();
-DISPATCH_DEFINE_HANDLER_END(BlockManager);
+    DISPATCH_DEFINE_HANDLER_END();
+};
 
 inline void
 BlockManager::Restricted::enter_block() noexcept { parse_ctx_->scope_handler.enter_scope(); }
@@ -59,5 +56,5 @@ BlockManager::Restricted::make_block_location(
         .end = end,
     };
 }
-} // namespace Alpha
+} // namespace alpha
 #endif //BLOCK_MANAGER_HPP

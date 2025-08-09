@@ -6,10 +6,10 @@
 #include "core/numeric_types.hpp"
 #include "parser/symbols.hpp"
 
-#include "ir_iopcodes.hpp"
 #include "core/konstants.hpp"
+#include "parser/ir_opcode.hpp"
 
-namespace Alpha
+namespace alpha
 {
 enum class OperandSide : u8
 {
@@ -17,6 +17,8 @@ enum class OperandSide : u8
     LEFT,
     RIGHT
 };
+
+const char *to_string(OperandSide pos) noexcept;
 
 #define EXPR_TYPES      \
     X(ARITHMETIC_EXPR)  \
@@ -37,14 +39,15 @@ struct Expr : private Immobile
 {
     enum class Type : u8
     {
-            #define X(expr_type) expr_type,
+        #define X(expr_type) expr_type,
         EXPR_TYPES
-            #undef  X
+        #undef  X
     };
 
     const Type type;
     const SourceLocation loc;
     DEBUG(const bool has_symbol);
+
 
 protected:
     ALWAYS_INLINE Expr(const Type type, const SourceLocation loc, const bool has_symbol = false)
@@ -52,6 +55,8 @@ protected:
           loc(loc)
           DEBUG(, has_symbol(has_symbol)) {}
 };
+
+const char *to_string(Expr::Type type) noexcept; // We keep outside of Expr, so ADL finds it.
 
 struct ExprWSymbol : public Expr
 {
@@ -208,7 +213,7 @@ struct VariableExpr final : public ExprWVarSymbol
 
 struct Quad final
 {
-    const IOPCode iopcode;
+    const ir::Opcode opcode;
     const Expr *arg1;
     const Expr *arg2;
     const Expr *result;
@@ -218,7 +223,8 @@ struct Quad final
     const SourceLocation location;
 };
 
-inline Expr::Type to_expr_type(const Symbol::Type symbol_type)
+inline Expr::Type
+to_expr_type(const Symbol::Type symbol_type)
 {
     switch (symbol_type)
     {
@@ -227,7 +233,9 @@ inline Expr::Type to_expr_type(const Symbol::Type symbol_type)
     case Symbol::Type::LOCAL_VARIABLE: return Expr::Type::VARIABLE;
     case Symbol::Type::LIBRARY_FUNCTION: return Expr::Type::LIBRARY_FUNCTION;
     case Symbol::Type::PROGRAM_FUNCTION: return Expr::Type::PROGRAM_FUNCTION;
-    default: UNREACHABLE("Unknown Symbol::Type");
+    default:
+        [[unlikely]] UNREACHABLE(FMT::format(
+            "Unknown Symbol::Type. int(symbol_type) = {}", static_cast<int>(symbol_type)));
     }
 }
 
@@ -237,5 +245,5 @@ inline Expr::Type to_expr_type(const Symbol::Type symbol_type)
 inline static const ConstIntExpr k_static_int_1_expr{k_no_loc, 1};
 inline static const ConstBoolExpr k_static_true_expr{k_no_loc, true};
 inline static const ConstBoolExpr k_static_false_expr{k_no_loc, false};
-} // namespace Alpha
+} // namespace alpha
 #endif // IR_HPP
