@@ -1,3 +1,10 @@
+/// Grammar integration
+/// -------------------
+/// All semantic actions delegate through the constexpr dispatcher, e.g.:
+///   ss.call<"basic_builder.build_arithmetic">(Op::ADD, $lhs, $rhs, @out);
+/// This keeps grammar rules declarative while preserving compile-time routing to the
+/// correct subsystem method, with early-exit on error via SemanticSystem::good().
+
 %code top
 {
    // IWYU pragma: no_include <features.h>
@@ -73,8 +80,9 @@
 %type  <const_expr_pair_ptr> dict_entry
 %type  <dict_list_ptr> dict_list
 %type  <const_expr_ptr> table_literal
+%type  <const_expr_ptr> table_host
+%type  <const_expr_ptr> table_item
 /********************************************************
-%type  <expr_ptr> tableItem
 %type  <expr_ptr> member
 %type  <expr_ptr> call
 %type  <expr_ptr> objectDef
@@ -293,17 +301,24 @@ primary
 ;
 
 lvalue:
-  ID        { $lvalue = ss.call<"lvalue_resolver.resolve_id">($ID, @ID); }
-| LOCAL ID  { $lvalue = ss.call<"lvalue_resolver.resolve_local_id">($ID, @ID); }
-| GLOBAL ID { $lvalue = ss.call<"lvalue_resolver.resolve_global_id">($ID, @ID); }
-| tableItem
+  table_item { $lvalue = $table_item; }
+| ID         { $lvalue = ss.call<"lvalue_resolver.resolve_id">($ID, @ID); }
+| LOCAL ID   { $lvalue = ss.call<"lvalue_resolver.resolve_local_id">($ID, @ID); }
+| GLOBAL ID  { $lvalue = ss.call<"lvalue_resolver.resolve_global_id">($ID, @ID); }
 ;
 
-tableItem:
-  lvalue DOT ID
-| lvalue LEFT_BRACKET expr RIGHT_BRACKET
-| call DOT ID
-| call LEFT_BRACKET expr RIGHT_BRACKET
+table_host:
+  lvalue { $table_host = $lvalue; }
+| call   { $table_host = $call; }
+
+table_item:
+  table_host DOT ID[member]
+  { $table_item = ss.call<"table_access_builder.build_member_access">($table_host, $member, @member, @table_item); }
+| table_host LEFT_BRACKET expr[index] RIGHT_BRACKET
+  {
+    ss.call<"finalize_bool_expr">($index);
+    $table_item = ss.call<"table_access_builder.build_index_access">($table_host, $index, @table_item);
+  }
 ;
 
 methodCallId:
@@ -336,6 +351,10 @@ expr_list:
 | comma_separated_exprs { $expr_list = $comma_separated_exprs; }
 ;
 
+/* TODO: IS this premature finalization ? like what if you do {a && b or f : x and y and z } */
+/* TODO: Should we add expr finalization after color and RIGHT brace as anchor points? */
+/* TODO: For some reason.. it seems more right.. But I know i have thought of that before.. and i came */
+/* TODO: To the realization that this was bettter... Only that I didnt document it.. and now I still dont know for certain. */
 dict_entry:
   LEFT_BRACE
   expr[key]   { ss.call<"finalize_bool_expr">($key); }
@@ -377,7 +396,7 @@ block_loc:
 ;
 
 funcPrefix:
-  FUNCTION {}
+  FUNCTION
 | FUNCTION ID
 ;
 

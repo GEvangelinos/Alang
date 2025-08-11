@@ -1,11 +1,19 @@
+IROPCODE_INFO_ENUMS:
+  Need: [ NONE, OPTIONAL, REQUIRED ]
+  TEST: [ t1, T4, test2 ]
+
 IROPCODE_INFO:
-  operands: int    # Implicit default is 0 (if not specified).
-  uses_label: bool # Implicit default is false (if not specified).
+  requires_result: bool # Must provide a non-null `result` operand when emitting this opcode (false if omitted)
+  requires_arg1: Need # Must provide a non-null `arg1`   operand when emitting this opcode (false if omitted)
+  requires_arg2: Need # Must provide a non-null `arg2`   operand when emitting this opcode (false if omitted)
+  operands: int  # Number of explicit source operands, not counting `result` (0 if omitted)
+  uses_label: bool # Instruction expects a valid jump/branch label (false if omitted)
 
 IROPCODE_OPTIMIZATION_FLAGS: [ foldable, trimmable ]
 
 IROPCODE_LIST:
   ASSIGN:
+    requires_arg1: OPTIONAL
     operands: 2
     optimizations: [ trimmable ]
 
@@ -77,7 +85,7 @@ IROPCODE_LIST:
 
   JUMP:
     uses_label: true
-      
+
   TABLECREATE:
 
   TABLESETELEM:
@@ -86,13 +94,16 @@ IROPCODE_LIST:
   TABLEGETELEM:
     operands: 2
 
+  PARAM:
+    operands: 1
+
+  CALL:
+
+  GETRETVAL:
+
+  RETURN:
+
   FUNCSTART:
 
   FUNCEND:
-
-#      define IOPCODES_WITHOUT_LABEL \
-#      X(CALL)                    \
-#      X(PARAM)                   \
-#      X(RETURN)                  \
-#      X(GETRETVAL)               \
 

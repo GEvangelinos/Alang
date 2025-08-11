@@ -50,7 +50,7 @@ private:
 inline const Expr *
 LvalueResolver::Restricted::resolve_lvalue_to_rvalue(const Expr *const lvalue)
 {
-    return ss_bridge_->emit_tablegetelem_if_table_item(lvalue);
+    return ss_bridge_->materialize_lvalue_base(lvalue);
 }
 } // namespace alpha
 #endif // LVALUE_RESOLVER_HPP

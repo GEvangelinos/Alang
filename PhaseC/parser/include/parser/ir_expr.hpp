@@ -46,14 +46,10 @@ struct Expr : private Immobile
 
     const Type type;
     const SourceLocation loc;
-    DEBUG(const bool has_symbol);
-
 
 protected:
-    ALWAYS_INLINE Expr(const Type type, const SourceLocation loc, const bool has_symbol = false)
-        : type(type),
-          loc(loc)
-          DEBUG(, has_symbol(has_symbol)) {}
+    ALWAYS_INLINE Expr(const Type type, const SourceLocation loc)
+        : type(type), loc(loc) {}
 };
 
 const char *to_string(Expr::Type type) noexcept; // We keep outside of Expr, so ADL finds it.
@@ -68,7 +64,7 @@ protected:
         const Type type,
         const SourceLocation loc,
         const Symbol *const symbol)
-        : Expr(type, loc, true),
+        : Expr(type, loc),
           symbol(REQUIRE_PTR(symbol)) {}
 };
 
@@ -82,7 +78,7 @@ protected:
         const Type type,
         const SourceLocation loc,
         const VarSymbol *const var_symbol)
-        : Expr(type, loc, true),
+        : Expr(type, loc),
           var_symbol(REQUIRE_PTR(var_symbol)) {}
 };
 
@@ -96,7 +92,7 @@ protected:
         const Type type,
         const SourceLocation loc,
         const FuncSymbol *const func_symbol)
-        : Expr(type, loc, true),
+        : Expr(type, loc),
           func_symbol(REQUIRE_PTR(func_symbol)) {}
 };
 
@@ -132,7 +128,7 @@ struct ConstBoolExpr final : public ConstExpr
     bool value;
 
     ConstBoolExpr(const SourceLocation loc, const bool value)
-        : ConstExpr(Type::CONST_BOOL, loc, false),
+        : ConstExpr(Type::CONST_BOOL, loc),
           value(value) {}
 };
 
@@ -141,7 +137,7 @@ struct ConstIntExpr final : public ConstExpr
     const AlphaInt value;
 
     ConstIntExpr(const SourceLocation loc, const AlphaInt value)
-        : ConstExpr(Type::CONST_INT, loc, false),
+        : ConstExpr(Type::CONST_INT, loc),
           value(value) {}
 };
 
@@ -150,7 +146,7 @@ struct ConstFloatExpr final : public ConstExpr
     const AlphaFloat value;
 
     ConstFloatExpr(const SourceLocation loc, const AlphaFloat value)
-        : ConstExpr(Type::CONST_FLOAT, loc, false),
+        : ConstExpr(Type::CONST_FLOAT, loc),
           value(value) {}
 };
 
@@ -159,7 +155,7 @@ struct ConstStringExpr final : public ConstExpr
     const char *value;
 
     ConstStringExpr(const SourceLocation loc, const char *const value)
-        : ConstExpr(Type::CONST_STRING, loc, false),
+        : ConstExpr(Type::CONST_STRING, loc),
           value(Utils::cstrdup(REQUIRE_PTR(value))) { DEBUG_SMART_ASSERT(!!this->value); }
 
     ~ConstStringExpr()
@@ -172,7 +168,7 @@ struct ConstStringExpr final : public ConstExpr
 struct ConstNilExpr final : public ConstExpr
 {
     explicit ConstNilExpr(const SourceLocation loc)
-        : ConstExpr(Type::CONST_NIL, loc, false) {}
+        : ConstExpr(Type::CONST_NIL, loc) {}
 };
 
 struct LibFuncExpr final : public ExprWFuncSymbol

@@ -16,15 +16,21 @@ SemanticSystemBridge::SemanticSystemBridge(
       expr_maker_(REQUIRE_PTR(expr_maker)),
       quad_handler_(REQUIRE_PTR(quad_handler)) {}
 
-
+/// Materialize an lvalue base for further member/index access.
+/// If `lvalue` is a TABLE_ITEM, emits IR (TABLEGETELEM) and returns a temp variable;
+/// otherwise returns `lvalue` unchanged.
+/// @note Deprecated name: emit_if_table_item (kept below as a wrapper for migration).
 const Expr *
-SemanticSystemBridge::emit_tablegetelem_if_table_item(const Expr *const expr)
+SemanticSystemBridge::materialize_lvalue_base(const Expr *const lvalue)
 {
-    DEBUG_SMART_ASSERT(!!expr);
-    if (expr->type != Expr::Type::TABLE_ITEM)
-        return expr;
-    const auto *const ti_expr = static_cast<const TableItemExpr *>(expr);
-    const auto *const temp_var = expr_maker_->make_variable_expr(expr->loc, parse_ctx_->new_temp());
+    DEBUG_SMART_ASSERT(
+        !!lvalue,
+        SemUtils::is_lvalue_expr(lvalue)
+    );
+    if (lvalue->type != Expr::Type::TABLE_ITEM)
+        return lvalue;
+    const auto *const ti_expr = static_cast<const TableItemExpr *>(lvalue);
+    const auto *const temp_var = expr_maker_->make_variable_expr(lvalue->loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(
         ir::Opcode::TABLEGETELEM, temp_var, ti_expr, ti_expr->index, ti_expr->loc);
     return temp_var;

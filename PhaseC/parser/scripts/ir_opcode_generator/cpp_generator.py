@@ -2,7 +2,7 @@ import os
 from functools import partial
 from typing import TextIO
 from shared_config import ConfigArguments
-from yaml_parser import IROpcodeInfo, YamlParserProducts, InfoFieldTypes
+from yaml_parser import IROpcodeInfo, YamlParserProducts, InfoFieldTypes, attach_context
 from pathlib import Path
 
 
@@ -24,6 +24,7 @@ class CPPGenerator:
         self._iropcode_dict = yaml_parser_products.opcode_dict
         self._available_optimization_set = yaml_parser_products.available_opts
         self._available_info_set = yaml_parser_products.available_info_set
+        self._available_info_enums = yaml_parser_products.available_info_enums
 
     @property
     def out_header_filename(self):
@@ -113,18 +114,25 @@ class CPPGenerator:
             f"}} // namespace {CPPGenerator.IR_NAMESPACE}\n"
         )
 
-    def write_constexpr_info_check_function(self, fout: TextIO, info_trait: InfoFieldTypes):
-        DEFAULT_RET_TYPE = (
-            "false" if info_trait.type == "bool"
-            else "0" if info_trait.type == "int"
-            else '""' if info_trait.type == "str"
-            else "UNKNOWN"
-        )
+    def write_primitive_constexpr_info_check_function(self, fout:TextIO, info_trait: InfoFieldTypes):
+        if info_trait.type == "bool":
+            default_ret_type = "false"
+        elif info_trait.type == "int":
+            default_ret_type = "0"
+        elif info_trait.type == "str":
+            default_ret_type = '""'
+        else:
+            raise RuntimeError(attach_context(f"unknown info_tait.type: `{info_trait.type}`"))
 
-        RETURN_TYPE = 'const char *' if info_trait.type == "str" else info_trait.type
+        return_type = 'const char *' if info_trait.type == "str" else info_trait.type
 
         fout.write(
-            f"[[nodiscard]] constexpr {RETURN_TYPE} {info_trait.name}(const {self._opcode_enum_name} opc)\n"
+            f"// Follows definitions of all info Traits-Functions of {self._opcode_enum_name}\n"
+            f"namespace {CPPGenerator.INFO_TRAITS_NAMESPACE}\n"
+            f"{{\n"
+        )
+        fout.write(
+            f"[[nodiscard]] constexpr {return_type} {info_trait.name}(const {self._opcode_enum_name} opc)\n"
             f"{{\n"
             f"\tusing enum {CPPGenerator.IR_NAMESPACE}::{self._opcode_enum_name};\n"
             f"\tswitch(opc)\n"
@@ -137,11 +145,48 @@ class CPPGenerator:
                     fout.write(f"\tcase {opc_name}: return {info_field.value};\n")
 
         fout.write(
-            f"\tdefault: return {DEFAULT_RET_TYPE};\n"
+            f"\tdefault: return {default_ret_type};\n"
             f"\t}}\n"
             f"}}\n"
             f"\n"
         )
+        fout.write(
+            f"}} // namespace {CPPGenerator.INFO_TRAITS_NAMESPACE}\n"
+        )
+
+    def write_enum_constexpr_info_check_function(self, fout:TextIO, info_trait:InfoFieldTypes):
+        fout.write(
+            f"// Follows definitions of all info Traits-Functions of {self._opcode_enum_name}\n"
+            f"namespace {CPPGenerator.INFO_TRAITS_NAMESPACE}\n"
+            f"{{\n"
+        )
+        fout.write(
+            f"[[nodiscard]] constexpr {info_trait.type} {info_trait.name}(const {self._opcode_enum_name} opc)\n"
+            f"{{\n"
+            f"\tusing enum {CPPGenerator.IR_NAMESPACE}::{self._opcode_enum_name};\n"
+            f"\tswitch(opc)\n"
+            f"\t{{\n"
+        )
+        for opc_name, opc_info in self._iropcode_dict.items():
+            for info_field in opc_info.info_field_set:
+                if info_field.type == info_trait.type:
+                    fout.write(f"case {opc_name}: return {info_field.value};\n")
+
+        fout.write(
+            f"\t}}\n"
+            f"}}\n"
+            f"\n"
+        )
+        fout.write(
+            f"}} // namespace {CPPGenerator.INFO_TRAITS_NAMESPACE}\n"
+        )
+
+    def write_constexpr_info_check_function(self, fout: TextIO, info_trait: InfoFieldTypes):
+        if info_trait.type in self._available_info_enums:
+            self.write_enum_constexpr_info_check_function(fout, info_trait)
+        else:
+            self.write_primitive_constexpr_info_check_function(fout, info_trait)
+
 
     def write_constexpr_optim_flag_function(self, fout: TextIO, opt_name):
         fout.write(
@@ -164,24 +209,28 @@ class CPPGenerator:
             f"\n"
         )
 
-    def write_ir_info_traits_definitions(self, fout: TextIO):
+    @staticmethod
+    def write_info_trait_enum(fout:TextIO, enum_name:str, enum_values:set[str]):
         fout.write(
-            f"// Follows definitions of all info Traits-Functions of {self._opcode_enum_name}\n"
-            f"namespace {CPPGenerator.INFO_TRAITS_NAMESPACE}\n"
+            f"enum class {enum_name}\n"
             f"{{\n"
         )
+        for value in enum_values:
+            fout.write(
+                f"\t{value},\n"
+            )
 
+        fout.write(
+            f"}}\n"
+        )
+
+    def write_ir_info_traits_definitions(self, fout: TextIO):
         sorted_available_info_set = sorted(
             self._available_info_set,
             key=lambda info: info.name
         )
         for info_trait in sorted_available_info_set:
             self.write_constexpr_info_check_function(fout, info_trait)
-
-        fout.write(
-            f"}} // namespace {CPPGenerator.INFO_TRAITS_NAMESPACE}\n"
-        )
-
 
     def write_ir_optim_trait_definitions(self, fout: TextIO):
         fout.write(
@@ -196,6 +245,10 @@ class CPPGenerator:
         fout.write(
             f"}} // namespace {CPPGenerator.OPT_TRAITS_NAMESPACE}\n"
         )
+
+    def write_ir_info_trait_enum_definitions(self, fout:TextIO):
+        for enum_name, enum_values in self._available_info_enums.items():
+            CPPGenerator.write_info_trait_enum(fout, enum_name, enum_values)
 
 
     def run(self):
@@ -230,6 +283,7 @@ class CPPGenerator:
                 partial(CPPGenerator.write_header_opening, fout, CPPGenerator.include_guard(
                     self._config_args.out_opcode_info_traits_header_filepath)),
                 partial(self.write_opcode_def_inclusion, fout),
+                partial(self.write_ir_info_trait_enum_definitions, fout),
                 partial(self.write_ir_info_traits_definitions, fout),
                 partial(CPPGenerator.write_header_closing, fout, CPPGenerator.include_guard(
                     self._config_args.out_opcode_info_traits_header_filepath)),

@@ -184,7 +184,7 @@ namespace alpha::SemUtils
     return is_relational_iropcode(opc) && !is_relational_equality_iropcode(opc);
 }
 
-[[nodiscard]] constexpr const char *rel_op_to_str(const ir::Opcode opc)
+[[nodiscard]] constexpr const char *relop_str(const ir::Opcode opc)
 {
     DEBUG_SMART_ASSERT(is_relational_iropcode(opc));
     switch (opc)

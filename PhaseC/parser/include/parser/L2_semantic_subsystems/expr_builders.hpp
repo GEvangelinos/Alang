@@ -40,7 +40,7 @@ private:
         void static delete_dict_list(DictList *&dlist);
 
         [[nodiscard]] const Expr *build_table_list_consuming(
-            ExprList *elist, SourceLocation table_list_loc);
+            ExprList *&elist, SourceLocation table_list_loc);
         [[nodiscard]] const Expr *build_table_dict_consuming(
             DictList *&dlist, SourceLocation table_dict_loc);
     };
@@ -190,7 +190,7 @@ private:
 
         // When I built the compile-time call dispatcher for Bison, I didn’t add support for template args.
         // Later, I made the optimizer fully templated. Rather than making it runtime-based,
-        // I use a clean runtime to compile-time dipatcher for expr_optimizer's try_optimize()
+        // I use a clean runtime to compile-time dispatcher for expr_optimizer's try_optimize()
         // Only arithmetic and relational builders take ir::Opcode as a runtime arg,
         // since they share logic with the opcode being the only varying part.
         [[nodiscard]] const Expr *try_optimize_arithmetic_expr(
@@ -215,6 +215,39 @@ private:
     DISPATCH_SLAVE_METHOD_CALL(build_logical_and);
     DISPATCH_SLAVE_METHOD_CALL(build_logical_or);
     DISPATCH_DEFINE_HANDLER_END();
+};
+
+class CallBuilder
+{
+    class Restricted final : private SemanticSubsystem
+    {
+        const Expr *build_call(
+            const Expr *const lvalue,
+            ExprList *&elist,
+            const SourceLocation call_loc)
+        {
+            const Expr *expr = ss_bridge_->materialize_lvalue_base(lvalue);
+            for (const Expr *e: *elist)
+                quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, e, nullptr, e->loc);
+
+            DEBUG_SMART_ASSERT(!!expr.);
+
+            quad_handler_->emit_next(ir::Opcode::CALL, func_expr, nullptr, nullptr, call_loc);
+
+            Expr *getretval_expr = parse_ctx_.expr_handler.make_expr_variable(parse_ctx_.new_temp(),
+                k_no_location //
+            );
+
+            parse_ctx_.quad_handler.emit_quad(
+                IOPCode::GETRETVAL, nullptr, nullptr, getretval_expr,
+                k_no_location);
+            // We could pass call_location, but we follow strict policy: temps have
+            // no location
+
+            delete_expr_list(elist);
+            return getretval_expr;
+        }
+    };
 };
 
 class ConstBuilder
@@ -274,6 +307,8 @@ private:
         ~Restricted() override = default;
 
         void begin_anonymous(SourceLocation anonymous_loc, const char *id_name = "");
+        [[nodiscard]] const Expr *build_program_function(
+            const FuncSymbol *func_symbol, SourceLocation result_loc);
     };
 
     Restricted DISPATCH_TARGET;
@@ -282,6 +317,38 @@ private:
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(begin_anonymous);
+    DISPATCH_DEFINE_HANDLER_END();
+};
+
+class TableAccessBuilder
+{
+    friend class SemanticSystem;
+
+private:
+    class Restricted final : private SemanticSubsystem
+    {
+        friend class TableAccessBuilder;
+
+    private:
+        [[nodiscard]] const Expr *build_member_access(
+            const Expr *lvalue,
+            const char *member_id,
+            SourceLocation member_id_loc,
+            SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_index_access(
+            const Expr *lvalue, const Expr *index, SourceLocation result_loc);
+
+        explicit Restricted(const SemanticSystemServices &ss_services);
+        ~Restricted() override = default;
+    };
+
+    Restricted DISPATCH_TARGET;
+
+    explicit TableAccessBuilder(const SemanticSystemServices &ss_services);
+
+    DISPATCH_DEFINE_HANDLER_BEGIN();
+    DISPATCH_SLAVE_METHOD_CALL(build_member_access);
+    DISPATCH_SLAVE_METHOD_CALL(build_index_access);
     DISPATCH_DEFINE_HANDLER_END();
 };
 
@@ -356,7 +423,7 @@ AggregateBuilder::Restricted::delete_dict_list(DictList *&dlist)
 
 inline const Expr *
 AggregateBuilder::Restricted::build_table_list_consuming(
-    ExprList *elist,
+    ExprList *&elist,
     const SourceLocation table_list_loc)
 {
     DEBUG_SMART_ASSERT(!!elist);
@@ -451,7 +518,7 @@ AssignBuilder::Restricted::validate_lvalue_assignment(
         dr_->report_assign_lhs_not_lvalue(lvalue->type, lvalue->loc);
         return false;
     }
-    DEBUG_SMART_ASSERT(lvalue->has_symbol); // If here. Its Lvalue and all lvalues have symbols.
+    // If here. Its Lvalue and all lvalues have symbols.
     const Symbol *const lv_symbol = static_cast<const ExprWSymbol *>(lvalue)->symbol;
     if (lv_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
     {
@@ -500,7 +567,7 @@ AssignBuilder::Restricted::handle_table_item_assignment(
 
     const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
     quad_handler_->emit_next(ir::Opcode::TABLESETELEM, rvalue, ti, ti->index, result_loc);
-    const Expr *temp_var = ss_bridge_->emit_tablegetelem_if_table_item(lvalue); // !CERTAIN EMIT!
+    const Expr *temp_var = ss_bridge_->materialize_lvalue_base(lvalue); // !CERTAIN EMIT!
     DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
     const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
     return expr_maker_->make_assign_expr(result_loc, temp_symbol);
@@ -556,7 +623,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *lvalue, const SourceLo
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
-        result = ss_bridge_->emit_tablegetelem_if_table_item(ti_lvalue); // EMITS!
+        result = ss_bridge_->materialize_lvalue_base(ti_lvalue); // EMITS!
         qh->emit_next(Policy::opc, result, result, &k_static_int_1_expr, result_loc);
         qh->emit_next(ir::Opcode::TABLESETELEM, result, ti_lvalue, ti_lvalue->index, result_loc);
     }
@@ -585,7 +652,7 @@ AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue, const SourceL
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
-        const Expr *ti = ss_bridge_->emit_tablegetelem_if_table_item(lvalue); // EMITS!
+        const Expr *ti = ss_bridge_->materialize_lvalue_base(lvalue); // EMITS!
         qh->emit_next(ir::Opcode::ASSIGN, result, ti, nullptr, result_loc);
         qh->emit_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
         qh->emit_next(ir::Opcode::TABLESETELEM, ti, ti_lvalue, ti_lvalue->index, result_loc);
@@ -756,7 +823,8 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
         return true;
 
     if (SemUtils::is_binary_arithmetic_opcode(opc))
-        dr_->report_arith_op_nonarith_operand(op_side, SemUtils::arith_op_str(opc), expr->type, expr->loc);
+        dr_->report_arith_op_nonarith_operand(op_side, SemUtils::arith_op_str(opc), expr->type,
+                                              expr->loc);
     else if (opc == ir::Opcode::UMINUS)
         dr_->report_uminus_nonarith_operand(expr->type, expr->loc);
     else
@@ -779,7 +847,7 @@ BasicBuilder::Restricted::validate_relational_expr(
     // If here relational operator is:  < <= > >=
     if (SemUtils::is_arithmetic_convertible_expr(expr))
         return true;
-    dr_->report_rel_op_nonarith_operand(op_side, SemUtils::rel_op_to_str(opc),expr->type, expr->loc);
+    dr_->report_rel_op_nonarith_operand(op_side, SemUtils::relop_str(opc), expr->type, expr->loc);
     return false;
 }
 
@@ -891,6 +959,40 @@ FunctionBuilder::Restricted::begin_anonymous(
     function_draft.id = id_name[0] != '\0' ? id_name : parse_ctx_->name_generator.new_anonymous();
     function_draft.location = anonymous_loc;
     parse_ctx_->space_handler.enter_space();
+}
+
+inline const Expr *
+FunctionBuilder::Restricted::build_program_function(
+    const FuncSymbol *const func_symbol,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!func_symbol);
+    // We make a program function, as library functions are read from source code. They are builtins.
+    return expr_maker_->make_prog_func_expr(result_loc, func_symbol);
+}
+
+inline const Expr *
+TableAccessBuilder::Restricted::build_member_access(
+    const Expr *const lvalue,
+    const char *const member_id,
+    const SourceLocation member_id_loc,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!lvalue, !!member_id);
+    const Expr *const normalized_lvalue = ss_bridge_->materialize_lvalue_base(lvalue);
+    const Expr *const index = expr_maker_->make_const_string_expr(member_id_loc, member_id);
+    return expr_maker_->make_table_item_expr(result_loc, normalized_lvalue, index);
+}
+
+inline const Expr *
+TableAccessBuilder::Restricted::build_index_access(
+    const Expr *const lvalue,
+    const Expr *const index,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!lvalue, !!index);
+    const Expr *const normalized_lvalue = ss_bridge_->materialize_lvalue_base(lvalue);
+    return expr_maker_->make_table_item_expr(result_loc, normalized_lvalue, index);
 }
 } // namespace alpha
 #endif // EXPR_BUILDERS_HPP

@@ -298,8 +298,6 @@ try_trim_sub(
     );
     // x - 0 -> x
     if (SemUtils::is_const_0(rhs)) return expr_maker->clone_with_updated_location(sub_loc, lhs);
-    // 0 - x -> -x
-    if (SemUtils::is_const_0(lhs) return )
     return nullptr; // Trimming failed (most common scenario)
 }
 

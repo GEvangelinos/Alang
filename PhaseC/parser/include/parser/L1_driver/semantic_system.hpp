@@ -1,3 +1,27 @@
+/**
+* SemanticSystem overview
+ *
+ * Acts as the top-level coordinator for all semantic actions. It owns/initializes the
+ * L3 infrastructure (ExprMaker/QuadHandler/ExprOptimizer) and the L2 subsystems
+ * (Aggregate/Assign/Basic/Block/Const/Loop/Lvalue). The class exposes a single
+ * compile-time dispatcher `call<"module.method">(args...)` (see DSL below).
+ *
+ * The dispatcher routes strings like "basic_builder.build_arithmetic" to the
+ * corresponding subsystem method, while first checking `good()` to short-circuit
+ * error paths. Only the dispatcher is “friended” by the parser; each subsystem
+ * hides its internals in a nested `Restricted` class (friendship is non-commutative),
+ * so SemanticSystem exposes only what its Builders choose to surface.
+ * ------------------------------------------------------------------------------------
+ * Layer 3 subsystems — stored as unique_ptr on purpose:
+ *  - detects bad initialization order at runtime: semantic-subsystem-based
+ *    builders call require_ptr(...) in their constructor to assert these core services
+ *    are set before use.
+ *  - no performance loss versus references: even a reference is compiled as
+ *    an underlying const pointer, so there’s still one indirection.
+ *  - explicit dereference syntax (`ptr->member`) makes it obvious when an
+ *    access involves a pointer, unlike references where `obj.member` hides it.
+ */
+
 #ifndef SEMANTIC_DRIVER_HPP
 #define SEMANTIC_DRIVER_HPP
 
@@ -39,7 +63,7 @@ public:
         SymbolTable *symbol_table,
         DiagnosticEngine *diagnostic_engine);
 
-    // TODO make a function that user calls before destructor call that basically extracts all this
+    // TODO: make a function that user calls before destructor call that basically extracts all this
     // alpha drivers would want (like the generated quads).
     [[nodiscard]] const auto &retrieve_quads() const noexcept { return quad_handler_->quads(); }
     [[nodiscard]] bool good() const noexcept { return ss_status_ == SemanticSystemStatus::OK; }
@@ -56,24 +80,28 @@ public:
     DISPATCH_MASTER_MODULE_CALL(const_builder);
     DISPATCH_MASTER_MODULE_CALL(loop_manager);
     DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
+    DISPATCH_MASTER_MODULE_CALL(table_access_builder);
     DISPATCH_DEFINE_HANDLER_END();
 
 private:
-    // Gateway class for DiagnosticEngine to set SemanticSystem's error state.
     SemanticSystemStatus ss_status_ = SemanticSystemStatus::OK;
+
+    // Gateway class for DiagnosticEngine to set SemanticSystem's error state.
     SemanticSystemGateway ss_gateway_;
+
     // Must be initialized first -- used by subsystems during their construction.
     // Defaulted to nullptr to trigger safe asserts if construction order is violated.
     ParseCtx *const parse_ctx_ = nullptr;
     SymbolTable *const symbol_table_ = nullptr;
     DiagnosticEngine *const diagnostic_engine_ = nullptr;
-    // -- Layer 3 subsystems --
-    // We use unique_ptr instead of normal vars, in order to detect wrong initialization order
+
+    // -- Layer 3 subsystems -- We use unique_ptr instead of normal vars, in order to detect wrong initialization order
     std::unique_ptr<ExprMaker> expr_maker_;
     std::unique_ptr<QuadHandler> quad_handler_;
     std::unique_ptr<ExprOptimizer> expr_optimizer_;
     SemanticSystemBridge sd_bridge_;
-    // --Layer 2 subsystems -- No trailing underscores here, as these are directly used in dispatch mechanisms.
+
+    // -- Layer 2 subsystems -- No trailing underscores here, as these are directly used in dispatch mechanisms.
     AggregateBuilder aggregate_builder;
     AssignBuilder assign_builder;
     BasicBuilder basic_builder;
@@ -81,6 +109,7 @@ private:
     ConstBuilder const_builder;
     LoopManager loop_manager;
     LvalueResolver lvalue_resolver;
+    TableAccessBuilder table_access_builder;
 
     // -- Direct methods-- // TODO: maybe package inside a module? // Dont if to unrelatable!
     const Expr *convert_to_bool_expr(const Expr *expr);

@@ -54,11 +54,14 @@ def main():
         config_args = _parse_config_arguments()
         yaml_parser = YamlParser(
             config_args,
+            "IROPCODE_INFO_ENUMS",
             "IROPCODE_INFO",
             "IROPCODE_OPTIMIZATION_FLAGS",
             "IROPCODE_LIST"
         )
         yaml_parser_products = yaml_parser.run()
+        print(yaml_parser_products)
+
         cpp_generator = CPPGenerator(
             config_args,
             yaml_parser_products,

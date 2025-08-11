@@ -1,12 +1,38 @@
 #ifndef SEMANTIC_SYSTEM_DISPATCHER_DSL_HPP
 #define SEMANTIC_SYSTEM_DISPATCHER_DSL_HPP
 
-/// ========== [ Semantic Dispatch System DSL ] ==========
-/// This system allows templated compile-time dispatch of all semantic actions,
-/// providing a clean, declarative, zero-runtime-cost way to route operations.
-///
-/// Think: ss.call<"module.method">(args...)
-///
+/**
+ * ============================== [ Semantic Dispatch System DSL ] ==============================
+ *
+ * Purpose
+ * -------
+ * Provide constexpr, zero-runtime-overhead routing of semantic actions by a
+ * string-like key: `ss.call<"module.method">(args...)`.
+ *
+ * How it works
+ * ------------
+ * - DISPATCH_DEFINE_HANDLER_BEGIN/END define a templated `call<FixedString>()`.
+ * - *_MASTER_* macros are used by SemanticSystem (top-level):
+ *     - `DISPATCH_MASTER_METHOD_CALL(name)` forwards to a direct member `name`.
+ *     - `DISPATCH_MASTER_MODULE_CALL(module)` forwards to `module.call<...>()`.
+ *   Both master macros inject `_RETURN_IF_MAIN_DISPATCHER_IS_NOT_GOOD()` to bail
+ *   out early when `good()==false`, returning a sensible default (void / nullptr /
+ *   value-initialized) while keeping the deduced `auto` return type consistent.
+ * - *_SLAVE_* macros are used inside Builders:
+ *     - They forward into the private nested `Restricted` via `DISPATCH_TARGET`
+ *       (aliased to `restricted_`), keeping all implementation details hidden.
+ *
+ * Ergonomics & diagnostics
+ * ------------------------
+ * - Return type is deduced at compile time (`return_type` alias in each branch).
+ * - If no branch matches, `UnknownCallStr<...>` triggers a clear compile-time error
+ *   that prints the offending key (helps spot typos or wrong module routing).
+ *
+ * Example
+ * -------
+ *   ss.call<"basic_builder.build_arithmetic">(Op::ADD, lhs, rhs, @out);
+ *   ss.call<"lvalue_resolver.resolve_id">(token, @token);
+ */
 
 #include <core/fixed_string.hpp>
 
@@ -87,18 +113,19 @@
     else                                               \
         return module_name.call<subcall_str>(args...); \
     NOP // Absorbs trailing `;`.
-
-/// Ensures safe and consistent return type deduction in dispatcher logic.
-///
-/// In particular, for pointer-returning handlers (e.g., `const Expr*`),
-/// we explicitly cast `nullptr` to `return_type` to avoid type mismatch issues.
-/// Without the cast, `nullptr` would be deduced as `std::nullptr_t`, which
-/// conflicts with `auto` return types when the dispatcher infers the return
-/// type from `_SELECT_METHOD_CALL(...)`.
-///
-/// Placed immediately before `_FORWARD_METHOD_CALL`, this macro ensures that
-/// all control paths return a value of the same deduced type — a requirement
-/// for `auto` return functions.
+/**
+ * Ensures safe and consistent return type deduction in dispatcher logic.
+ *
+ * In particular, for pointer-returning handlers (e.g., `const Expr*`),
+ * we explicitly cast `nullptr` to `return_type` to avoid type mismatch issues.
+ * Without the cast, `nullptr` would be deduced as `std::nullptr_t`, which
+ * conflicts with `auto` return types when the dispatcher infers the return
+ * type from `_SELECT_METHOD_CALL(...)`.
+ *
+ * Placed immediately before `_FORWARD_METHOD_CALL`, this macro ensures that
+ * all control paths return a value of the same deduced type — a requirement
+ * for `auto` return functions.
+ */
 #define _RETURN_IF_MAIN_DISPATCHER_IS_NOT_GOOD()                              \
     if (!good())                                                              \
     {                                                                         \
@@ -134,16 +161,18 @@
     _FORWARD_INTERNAL_MODULE_CALL(module_name); \
     NOP // Absorbs trailing `;`.
 
-/// This templated struct is an intentional hack 😄
-/// It's designed to be instantiated in the final `else` branch
-/// of a constexpr if/else chain, when no valid match is found.
-///
-/// If all `if constexpr` conditions fail, and an unknown or incorrect
-/// call_str is provided, this struct gets instantiated—triggering a
-/// compile-time error with a clear diagnostic message.
-///
-/// Used to signal that a dispatcher call was made with an unrecognized key.
-/// We also circle the static_assert() error message with RED emojis to be eye catching and hint ERROR.
+/**
+ * This templated struct is an intentional hack 😄
+ * It's designed to be instantiated in the final `else` branch
+ * of a constexpr if/else chain, when no valid match is found.
+ *
+ * If all `if constexpr` conditions fail, and an unknown or incorrect
+ * call_str is provided, this struct gets instantiated—triggering a
+ * compile-time error with a clear diagnostic message.
+ *
+ * Used to signal that a dispatcher call was made with an unrecognized key.
+ * We also circle the static_assert() error message with RED emojis to be eye catching and hint ERROR.
+ */
 template<FixedString unused_dummy>
 struct UnknownCallStr
 {

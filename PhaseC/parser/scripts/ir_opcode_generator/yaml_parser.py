@@ -30,13 +30,13 @@ class IROpcodeInfo:
     info_field_set: set[InfoField]
     optimizations: set[str]
 
+
 @dataclass(frozen=True)
 class YamlParserProducts:
     opcode_dict: dict[str, IROpcodeInfo]
     available_opts: set[str]
     available_info_set: set[InfoFieldTypes]
-
-
+    available_info_enums: dict[str, set[str]]
 
 
 _CPP_ID = r"[_a-zA-Z][_a-zA-Z0-9]*"
@@ -57,6 +57,8 @@ class YamlParser:
     OPTIMIZATIONS_FIELD_NAME = "optimizations"
 
     class IndentLevel(Enum):
+        IROPCODE_INFO_ENUM_LABEL = 0
+        IROPCODE_INFO_ENUM_LIST = 1
         IROPCODE_INFO_LABEL = 0
         IROPCODE_INFO_FIELD = 1
         IROPCODE_OPTIMIZATION_FLAGS_LABEL = 0
@@ -67,6 +69,7 @@ class YamlParser:
     def __init__(
             self,
             config_args: ConfigArguments,
+            iropcode_info_enum_label: str,
             iropcode_info_label: str,
             iropcode_opt_flags_label: str,
             iropcode_listing_label: str,
@@ -74,10 +77,12 @@ class YamlParser:
         self._parse_lines_buffer: Optional[list[str]] = None
         self._current_line_idx: Optional[int] = None
         self._ir_spec_filename = None
+        self._iropcode_info_enum_label = iropcode_info_enum_label
         self._iropcode_info_label = iropcode_info_label
         self._iropcode_opt_flags_label = iropcode_opt_flags_label
         self._iropcode_listing_label = iropcode_listing_label
         self._available_optimization_set: set[str] = set()
+        self._available_enums_dict: dict[str, set[str]] = dict()
         self._available_info_field_set: set[InfoFieldTypes] = set()
         self._irop_dict: dict[str, IROpcodeInfo] = dict()
 
@@ -106,7 +111,10 @@ class YamlParser:
     @property
     def _current_line(self):
         if self._current_line_idx < len(self._parse_lines_buffer):
-            return self._parse_lines_buffer[self._current_line_idx]
+            return_line = self._parse_lines_buffer[self._current_line_idx]
+            if return_line.endswith("\r\n"):
+                return_line = return_line.rstrip("\r\n") + "\n"
+            return return_line
         return None  # EOF
 
     def _consume_current_line(self):
@@ -129,6 +137,65 @@ class YamlParser:
     @staticmethod
     def _expected_indent(level: IndentLevel) -> str:
         return YamlParser.INDENT * level.value
+
+    def _parse_iropcode_info_enum_label(self):
+        self._skip_non_code_lines()
+        code_line = self._current_line
+
+        if code_line is None:
+            raise RuntimeError(attach_context(
+                f"[{self._ir_spec_filename}]: EOF reached while looking for enums (optionally at top of file)"))
+
+        expected_indent = YamlParser._expected_indent(
+            YamlParser.IndentLevel.IROPCODE_INFO_ENUM_LABEL)
+        iropcode_info_enum_label_pattern = rf"{self._iropcode_info_enum_label}\s*:\s*(?:#.*)?\n?"
+
+        if match := re.fullmatch(
+                rf"{expected_indent}{iropcode_info_enum_label_pattern}", code_line):
+            self._consume_current_line()
+            return
+        if re.match(f"{iropcode_info_enum_label_pattern}", code_line):
+            raise RuntimeError(attach_context(
+                f"[{self._ir_spec_filename}:{self._current_line}]: "
+                f"`{self._iropcode_info_enum_label}` is wrongly indented."
+                f"Expected {YamlParser.IndentLevel.IROPCODE_INFO_ENUM_LABEL} indentation(s)"))
+
+    def _parse_iropcode_info_enum_list(self):
+        expected_indent = YamlParser._expected_indent(
+            YamlParser.IndentLevel.IROPCODE_INFO_ENUM_LIST)
+        iropcode_info_enum_list_pattern = rf"({_CPP_ID})\s*:\s*\[\s*({_CPP_ID_LIST})\s*\]\s*(?:#.*)?\n?"
+
+        while True:
+            self._skip_non_code_lines()
+            code_line = self._current_line
+            if code_line is None:
+                raise RuntimeError(attach_context(
+                    f"[{self._ir_spec_filename}]: EOF reached while looking for enum-listings (optionally at top of file)"))
+
+            if match := re.fullmatch(
+                    rf"{expected_indent}{iropcode_info_enum_list_pattern}", code_line):
+                enum_name = match.group(1)
+                enum_values = [enum.strip() for enum in match.group(2).split(",")]
+                if len(enum_values) != len(set(enum_values)):
+                    raise RuntimeError(attach_context(
+                        f"[{self._ir_spec_filename}:{self._current_line}]: "
+                        f"Enum: {enum_name} contains duplicate values."
+                    ))
+                if enum_name in self._available_enums_dict:
+                    raise RuntimeError(attach_context(
+                        f"[{self._ir_spec_filename}:{self._current_line}]: "
+                        f"Redefinition of enum: {enum_name}."
+                    ))
+                self._available_enums_dict[enum_name] = set(enum_values)
+                self._consume_current_line()
+            elif match := re.match(rf"{iropcode_info_enum_list_pattern}", code_line):
+                enum_name = match.group(1)
+                raise RuntimeError(attach_context(
+                    f"[{self._ir_spec_filename}:{self._current_line}]: "
+                    f"Enum `{enum_name}` is wrongly indented."
+                    f"Expected {YamlParser.IndentLevel.IROPCODE_INFO_LABEL} indentation(s)"))
+            else:
+                break
 
     def _parse_iropcode_info_label_list(self):
         self._skip_non_code_lines()
@@ -158,14 +225,21 @@ class YamlParser:
                 f"[{self._ir_spec_filename}]: EOF reached whiles looking for available info fields of opcodes"))
 
         expected_indent = YamlParser._expected_indent(YamlParser.IndentLevel.IROPCODE_INFO_FIELD)
-        info_field_pattern = rf"({_CPP_ID})\s*:\s*(int|bool|str)\s*(?:#.*)?\n?"
+        info_field_pattern = rf"({_CPP_ID})\s*:\s*({_CPP_ID})\s*(?:#.*)?\n?"
         while True:
             self._skip_non_code_lines()
             code_line = self._current_line
             if code_line is None:
                 return
             if match := re.fullmatch(rf"{expected_indent}{info_field_pattern}", code_line):
-                current_info_field = InfoFieldTypes(match.group(1), match.group(2))
+                field_name = match.group(1)
+                field_type = match.group(2)
+                allowed_types = {"bool", "int", "str"} | self._available_enums_dict.keys()
+                if field_type not in allowed_types:
+                    raise RuntimeError(attach_context(
+                        f"[{self._ir_spec_filename}:{self._current_line}]: "
+                        f"Unknown type: {field_type}"))
+                current_info_field = InfoFieldTypes(field_name, field_type)
                 if current_info_field in self._available_info_field_set:
                     raise RuntimeError(attach_context(
                         f"[{self._ir_spec_filename}]: InfoField: {current_info_field}, is a duplicate"))
@@ -318,8 +392,9 @@ class YamlParser:
         string_pattern = r'"(?:[^"\\]|\\.)*"'
         bool_pattern = r"\btrue\b|\bfalse\b"
         int_pattern = r"[-+]?\d+"
+        enum_value_pattern = rf"\b{_CPP_ID}\b"
         info_field_name_pattern = rf"({_CPP_ID})"
-        info_field_pattern = rf"{info_field_name_pattern}\s*:\s*(?:(?:{bool_pattern})|(?:{int_pattern})|(?:{string_pattern}))\s*(?:#.*)?\n?"
+        info_field_pattern = rf"{info_field_name_pattern}\s*:\s*(?:(?:{bool_pattern})|(?:{int_pattern})|(?:{string_pattern})|(?:{enum_value_pattern}))\s*(?:#.*)?\n?"
         while True:
             self._skip_non_code_lines()
             code_line = self._current_line
@@ -339,17 +414,23 @@ class YamlParser:
                         f"Field: {match.group(1)} is not declared under {self._iropcode_info_label}"
                     )
                 if matched_field.type == "bool":
-                    info_field_content_pattern = rf"({bool_pattern})"
+                    info_field_content_pattern = rf"{bool_pattern}"
                 elif matched_field.type == "int":
-                    info_field_content_pattern = rf"({int_pattern})"
+                    info_field_content_pattern = rf"{int_pattern}"
                 elif matched_field.type == "str":
-                    info_field_content_pattern = rf"({string_pattern})"
+                    info_field_content_pattern = rf"{string_pattern}"
+                elif matched_field.type in self._available_enums_dict.keys():
+                    info_field_content_pattern = rf"{enum_value_pattern}"
                 else:
                     raise RuntimeError(attach_context(
                         f"[{self._ir_spec_filename}:{self._current_line}]: unknown info_field type"))
-                fpattern = rf"{expected_indent}{info_field_name_pattern}\s*:\s*{info_field_content_pattern}\s*(?:#.*)?\n?"
+                fpattern = rf"{expected_indent}{info_field_name_pattern}\s*:\s*({info_field_content_pattern})\s*(?:#.*)?\n?"
                 if match := re.fullmatch(fpattern, code_line):
-                    info_field_set.add(InfoField(match.group(1), matched_field.type, match.group(2)))
+                    if matched_field.type in self._available_enums_dict.keys():
+                        if match.group(2) not in self._available_enums_dict[matched_field.type]:
+                            raise RuntimeError(attach_context(f"`{match.group(2)}` not part of enum: `{matched_field.type}`"))
+                    info_field_set.add(
+                        InfoField(match.group(1), matched_field.type, match.group(2)))
                     self._consume_current_line()
                     continue
                 else:
@@ -372,9 +453,12 @@ class YamlParser:
 
     def run(self) -> YamlParserProducts:
         """Executes the parser."""
+        self._parse_iropcode_info_enum_label()
+        self._parse_iropcode_info_enum_list()
         self._parse_iropcode_info_label_list()
         self._parse_legal_iropcode_info_fields()
         self._parse_optimizations_flags()
         self._parse_iropcode_listing_label()
         self._parse_irops()
-        return YamlParserProducts(self._irop_dict, self._available_optimization_set, self._available_info_field_set)
+        return YamlParserProducts(self._irop_dict, self._available_optimization_set,
+                                  self._available_info_field_set, self._available_enums_dict)

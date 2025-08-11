@@ -28,6 +28,7 @@ protected:
     virtual ~SemanticSubsystem() = 0;
 };
 
+// Destructor is always called, even if pure virtual, so we need to explicitly define it.
 inline SemanticSubsystem::~SemanticSubsystem() = default;
 } // namespace alpha
 #endif // SEMANTIC_SUBSYSTEM_HPP

@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 # Detect and set the preferred C++ compiler
-find_program(CMAKE_CXX_COMPILER_CLANG NAMES clang++)
-find_program(CMAKE_CXX_COMPILER_GCC NAMES g++)
+find_program(CMAKE_CXX_COMPILER_CLANG NAMES g++)
+find_program(CMAKE_CXX_COMPILER_GCC NAMES g++) # Remember to convert to clang++ (we use g++ to use some debug compiler options)
 
 # Configure the preferred C++ compiler before invoking project().
 # CMake finalizes the compiler selection during the project() call.
@@ -37,10 +37,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # General warnings
 add_compile_options(
-        -Wall
-        -Wextra
-        -Wpedantic
-        -Wreorder
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wreorder
 )
 
 # Check if std::format is allowed
@@ -62,8 +62,15 @@ set(DEBUG_MODE ON) #TODO REMOVE!
 
 if (DEBUG_MODE)
     add_compile_options(
-            -g
-            -Wimplicit-fallthrough
+        -g
+        -Wimplicit-fallthrough
+        -Wunused-result
+        -Wnull-dereference
+        -Wsuggest-override
+        -Wlogical-op
+        -Wuseless-cast
+        -Wduplicated-cond
+        -Wmissing-declarations
     )
     add_compile_definitions(DEBUG_MODE)
     message(WARNING "CMAKE: Running with DEBUG_MODE ON")
@@ -72,8 +79,8 @@ endif ()
 if (OPTIMIZED_MODE)
     # set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) // TODO: determine why it causes error (it enables, LTO and WPO)
     add_compile_options(
-            -O3
-            -march=native
+        -O3
+        -march=native
     )
     add_compile_definitions(OPTIMIZED_MODE)
     message(WARNING "CMAKE: Running with OPTIMIZED_MODE ON")
@@ -85,10 +92,10 @@ if (ENABLE_IWYU)
         message(SEND_ERROR "CMAKE: include-what-you-use not found on system.")
     else ()
         set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE
-                "${IWYU_PATH}"
-                "-Xiwyu" # Any IWYU flag must be provided after -Xiwyu flag!
-                "--no_fwd_decls"
-                "--update_comments"
+            "${IWYU_PATH}"
+            "-Xiwyu" # Any IWYU flag must be provided after -Xiwyu flag!
+            "--no_fwd_decls"
+            "--update_comments"
         )
         message(WARNING "CMAKE: include-what-you-use enabled at ${IWYU_PATH}")
     endif ()
@@ -152,11 +159,11 @@ make_dir_verbose("${AUTOGEN_ROOT_DIR_PATH}")
 
 function(add_regression_check_target target_name do_memcheck)
     set(regression_args
-            "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ALPHA_DRIVER_EXECUTABLE}"
-            "--golden-symbol-tables-dir" "${GOLDEN_SYMBOL_TABLES_DIR}"
-            "--golden-compile-errors-dir" "${GOLDEN_COMPILE_ERRORS_DIR}"
-            "--working-dir" "${WORKING_TESTS_DIR}"
-            "--error-dir" "${ERROR_TESTS_DIR}"
+        "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ALPHA_DRIVER_EXECUTABLE}"
+        "--golden-symbol-tables-dir" "${GOLDEN_SYMBOL_TABLES_DIR}"
+        "--golden-compile-errors-dir" "${GOLDEN_COMPILE_ERRORS_DIR}"
+        "--working-dir" "${WORKING_TESTS_DIR}"
+        "--error-dir" "${ERROR_TESTS_DIR}"
     )
     if (do_memcheck)
         if (VALGRIND_PATH)
@@ -167,10 +174,10 @@ function(add_regression_check_target target_name do_memcheck)
     endif ()
 
     add_custom_target(${target_name}
-            COMMAND "${Python3_EXECUTABLE}"
-            "-B"
-            "${CMAKE_SOURCE_DIR}/scripts/alpha_regression_runner.py"
-            ${regression_args}
+        COMMAND "${Python3_EXECUTABLE}"
+        "-B"
+        "${CMAKE_SOURCE_DIR}/scripts/alpha_regression_runner.py"
+        ${regression_args}
     )
 
     add_dependencies(${target_name} ${ALPHA_DRIVER_EXECUTABLE})
