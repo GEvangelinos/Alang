@@ -56,9 +56,6 @@ public:
     void N(Location n_loc, const int N_index);
     void M();
     void forHeader__for_lparen_elist_semicolon_m_expr_semicolon(Expr *expr, Location expr_loc);
-    void methodCallId__methodcall_id(const char *id, Location id_loc, Location method_call_loc);
-    void funcPrefix__function(Location anonymous_loc);
-    void funcPrefix__function_id(const char *id_name, Location id_loc);
     void funcSignature__funcPrefix_funcArgList(const Function *&funcSignature);
     void funcDef__funcSignature_block(const BlockLocation &block_loc) noexcept;
     void funcArgs__id(const char *id_name, Location id_loc);
@@ -164,32 +161,6 @@ inline bool SemanticManager::reported_parameter_name_conflict(const u32 current_
         return true;
     }
     return false;
-}
-
-inline void SemanticManager::methodCallId__methodcall_id(const char *id, const Location id_loc,
-                                                         const Location method_call_loc)
-{
-    parse_ctx_.cache.method_call_id.id = id;
-    parse_ctx_.cache.method_call_id.id_location = id_loc;
-    parse_ctx_.cache.method_call_id.method_call_location = method_call_loc;
-}
-
-inline void SemanticManager::funcPrefix__function(const Location anonymous_loc)
-{
-    // Update ParseCache:
-    parse_ctx_.cache.func_prefix.id = parse_ctx_.name_generator.new_anonymous();
-    parse_ctx_.cache.func_prefix.location = anonymous_loc;
-
-    parse_ctx_.space_handler.enter_space();
-}
-
-inline void SemanticManager::funcPrefix__function_id(const char *id_name, const Location id_loc)
-{
-    // Update ParseCache
-    parse_ctx_.cache.func_prefix.id = id_name;
-    parse_ctx_.cache.func_prefix.location = id_loc;
-
-    parse_ctx_.space_handler.enter_space();
 }
 
 /// Handles a function signature’s prefix + argument list.

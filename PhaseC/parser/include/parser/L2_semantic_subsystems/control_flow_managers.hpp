@@ -8,7 +8,7 @@
 #include "L1_driver/semantic_system_support.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
 
-#include  <parser/ir_opcode.hpp>
+#include  <parser/ir_opcode.gen.hpp>
 #include "semantic_subsystem.hpp"
 
 namespace alpha
@@ -27,8 +27,7 @@ private:
         {
         case LoopKeyword::BREAK: return "break";
         case LoopKeyword::CONTINUE: return "continue";
-        default: UNREACHABLE(FMT::format("Unknown `LoopKeyword`: int(lk) = ", static_cast<int>(lk)))
-            ;
+        default: UNREACHABLE(FMT::format("Unknown `LoopKeyword`: int(lk)=", static_cast<int>(lk)));
         }
     }
 

@@ -3,10 +3,10 @@
 
 #include <type_traits>
 #include "expr_maker.hpp"
-#include <parser/ir_opcode_info_traits.hpp>
+#include <parser/ir_opcode_info_traits.gen.hpp>
 #include "core/source_location.hpp"
-#include "parser/ir_opcode.hpp"
-#include <parser/ir_opcode_opt_traits.hpp>
+#include "parser/ir_opcode.gen.hpp"
+#include <parser/ir_opcode_opt_traits.gen.hpp>
 
 namespace alpha
 {
@@ -133,11 +133,12 @@ const Expr *
 ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &... exprs)
 {
     static_assert((std::is_same_v<Exprs, const Expr *> && ...), "all args must be const Expr *");
-    static_assert(ir::opt_traits::is_foldable(opc), "`folding`  not supported for this ir::Opcode");
-    static_assert(sizeof...(exprs) == ir::info_traits::operands(opc), "exprs-operands mismatch");
+    static_assert(ir::opt_traits::is_foldable(opc), "`folding` not supported for this Opcode");
+    static_assert(sizeof...(exprs) == ir::info_traits::opt_operands(opc),
+                  "exprs-opt_operands mismatch");
 
     auto expr_tuple = std::forward_as_tuple(exprs...);
-    if constexpr (ir::info_traits::operands(opc) == 1)
+    if constexpr (ir::info_traits::opt_operands(opc) == 1)
     {
         auto &unary_expr = std::get<0>(expr_tuple);
         if constexpr (opc == ir::Opcode::UMINUS)
@@ -148,7 +149,7 @@ ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &.
             static_assert([]() { return false; }(),
                           "try_fold_optimize: not sure how to optimize this unary ir::Opcode");
     }
-    else if constexpr (ir::info_traits::operands(opc) == 2)
+    else if constexpr (ir::info_traits::opt_operands(opc) == 2)
     {
         auto &lhs = std::get<0>(expr_tuple);
         auto &rhs = std::get<1>(expr_tuple);
@@ -177,11 +178,11 @@ const Expr *
 ExprOptimizer::try_trim_optimize(const SourceLocation result_loc, const Exprs &... exprs)
 {
     static_assert((std::is_same_v<Exprs, const Expr *> && ...), "all args must be const Expr *");
-    static_assert(ir::opt_traits::is_trimmable(opc),
-                  "`trimming` not supported for this ir::Opcode");
-    static_assert(sizeof...(exprs) == ir::info_traits::operands(opc), "exprs-operands mismatch");
+    static_assert(ir::opt_traits::is_trimmable(opc), "`trimming` not supported for this Opcode");
+    static_assert(sizeof...(exprs) == ir::info_traits::opt_operands(opc),
+                  "Expr* argument count does not match Opcode's expected opt_operand count");
 
-    if constexpr (ir::info_traits::operands(opc) == 2)
+    if constexpr (ir::info_traits::opt_operands(opc) == 2)
     {
         // NOTE: Move expr_tuple outside this block if needed for other constexpr branches later.
         auto expr_tuple = std::forward_as_tuple(exprs...);

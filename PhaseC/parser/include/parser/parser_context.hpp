@@ -112,31 +112,18 @@ public:
     ~FunctionCtxHandler();
 
     void enter_loop() noexcept;
-
     void exit_loop() noexcept;
-
     void add_function_parameter(const std::string &name, SourceLocation loc);
-
     void clear_function_parameters() noexcept;
-
     void add_local() noexcept;
-
     void enter_function(const FuncSymbol *function_symbol, u32 label_of_jump);
-
     [[nodiscard]] FunctionBackpatchInfo exit_function() noexcept;
-
     [[nodiscard]] u32 function_nesting_depth() const noexcept;
-
     [[nodiscard]] u32 current_function_scope() const noexcept;
-
     [[nodiscard]] const std::string &current_function_name() const noexcept;
-
     [[nodiscard]] SourceLocation current_function_location() const noexcept;
-
     [[nodiscard]] u32 loop_depth() const noexcept;
-
     [[nodiscard]] const std::list<Parameter> &function_parameters() const noexcept;
-
     [[nodiscard]] u32 next_function_address() noexcept { return next_function_address_++; }
 
     [[nodiscard]] const std::vector<u32> &get_breaklist() // TODO CLEANUP

@@ -9,48 +9,48 @@
 
 #include "ir_opcode.hpp"
 
-enum class Need
+namespace alpha::ir::info_traits
 {
-	NONE,
+enum class Requirement
+{
 	REQUIRED,
+	NONE,
 	OPTIONAL,
-}
+};
+} // namespace alpha::ir::info_traits
 
 // Follows definitions of all info Traits-Functions of Opcode
 namespace alpha::ir::info_traits
 {
-[[nodiscard]] constexpr Need arg1(const Opcode opc)
+[[nodiscard]] constexpr Requirement arg1(const Opcode opc)
 {
 	using enum alpha::ir::Opcode;
 	switch(opc)
 	{
-	case ASSIGN: return REQUIRED;
-	case UMINUS: return REQUIRED;
-	case ADD: return REQUIRED;
-	case SUB: return REQUIRED;
-	case MUL: return REQUIRED;
-	case DIV: return REQUIRED;
-	case MOD: return REQUIRED;
-	case NOT: return REQUIRED;
-	case AND: return REQUIRED;
-	case OR: return REQUIRED;
-	case IF_EQ: return REQUIRED;
-	case IF_NEQ: return REQUIRED;
-	case IF_LT: return REQUIRED;
-	case IF_LTE: return REQUIRED;
-	case IF_GT: return REQUIRED;
-	case IF_GTE: return REQUIRED;
-	case JUMP: return REQUIRED;
-	case TABLECREATE: return REQUIRED;
-	case TABLESETELEM: return REQUIRED;
-	case TABLEGETELEM: return REQUIRED;
-	case PARAM: return REQUIRED;
-	case CALL: return REQUIRED;
-	case GETRETVAL: return REQUIRED;
-	case RETURN: return REQUIRED;
-	case FUNCSTART: return REQUIRED;
-	case FUNCEND: return REQUIRED;
-	default: return NONE;
+	case ASSIGN: return Requirement::REQUIRED;
+	case UMINUS: return Requirement::REQUIRED;
+	case ADD: return Requirement::REQUIRED;
+	case SUB: return Requirement::REQUIRED;
+	case MUL: return Requirement::REQUIRED;
+	case DIV: return Requirement::REQUIRED;
+	case MOD: return Requirement::REQUIRED;
+	case IF_EQ: return Requirement::REQUIRED;
+	case IF_NEQ: return Requirement::REQUIRED;
+	case IF_LT: return Requirement::REQUIRED;
+	case IF_LTE: return Requirement::REQUIRED;
+	case IF_GT: return Requirement::REQUIRED;
+	case IF_GTE: return Requirement::REQUIRED;
+	case JUMP: return Requirement::NONE;
+	case TABLECREATE: return Requirement::NONE;
+	case TABLESETELEM: return Requirement::REQUIRED;
+	case TABLEGETELEM: return Requirement::REQUIRED;
+	case PARAM: return Requirement::REQUIRED;
+	case CALL: return Requirement::REQUIRED;
+	case GETRETVAL: return Requirement::NONE;
+	case RETURN: return Requirement::REQUIRED;
+	case FUNCSTART: return Requirement::NONE;
+	case FUNCEND: return Requirement::NONE;
+	default: return Requirement::NONE;
 	}
 }
 
@@ -58,38 +58,35 @@ namespace alpha::ir::info_traits
 // Follows definitions of all info Traits-Functions of Opcode
 namespace alpha::ir::info_traits
 {
-[[nodiscard]] constexpr Need arg2(const Opcode opc)
+[[nodiscard]] constexpr Requirement arg2(const Opcode opc)
 {
 	using enum alpha::ir::Opcode;
 	switch(opc)
 	{
-	case ASSIGN: return REQUIRED;
-	case UMINUS: return REQUIRED;
-	case ADD: return REQUIRED;
-	case SUB: return REQUIRED;
-	case MUL: return REQUIRED;
-	case DIV: return REQUIRED;
-	case MOD: return REQUIRED;
-	case NOT: return REQUIRED;
-	case AND: return REQUIRED;
-	case OR: return REQUIRED;
-	case IF_EQ: return REQUIRED;
-	case IF_NEQ: return REQUIRED;
-	case IF_LT: return REQUIRED;
-	case IF_LTE: return REQUIRED;
-	case IF_GT: return REQUIRED;
-	case IF_GTE: return REQUIRED;
-	case JUMP: return REQUIRED;
-	case TABLECREATE: return REQUIRED;
-	case TABLESETELEM: return REQUIRED;
-	case TABLEGETELEM: return REQUIRED;
-	case PARAM: return REQUIRED;
-	case CALL: return REQUIRED;
-	case GETRETVAL: return REQUIRED;
-	case RETURN: return REQUIRED;
-	case FUNCSTART: return REQUIRED;
-	case FUNCEND: return REQUIRED;
-	default: return NONE;
+	case ASSIGN: return Requirement::NONE;
+	case UMINUS: return Requirement::NONE;
+	case ADD: return Requirement::REQUIRED;
+	case SUB: return Requirement::REQUIRED;
+	case MUL: return Requirement::REQUIRED;
+	case DIV: return Requirement::REQUIRED;
+	case MOD: return Requirement::REQUIRED;
+	case IF_EQ: return Requirement::REQUIRED;
+	case IF_NEQ: return Requirement::REQUIRED;
+	case IF_LT: return Requirement::REQUIRED;
+	case IF_LTE: return Requirement::REQUIRED;
+	case IF_GT: return Requirement::REQUIRED;
+	case IF_GTE: return Requirement::REQUIRED;
+	case JUMP: return Requirement::NONE;
+	case TABLECREATE: return Requirement::NONE;
+	case TABLESETELEM: return Requirement::REQUIRED;
+	case TABLEGETELEM: return Requirement::REQUIRED;
+	case PARAM: return Requirement::NONE;
+	case CALL: return Requirement::NONE;
+	case GETRETVAL: return Requirement::NONE;
+	case RETURN: return Requirement::REQUIRED;
+	case FUNCSTART: return Requirement::NONE;
+	case FUNCEND: return Requirement::NONE;
+	default: return Requirement::NONE;
 	}
 }
 
@@ -97,46 +94,7 @@ namespace alpha::ir::info_traits
 // Follows definitions of all info Traits-Functions of Opcode
 namespace alpha::ir::info_traits
 {
-[[nodiscard]] constexpr Need result(const Opcode opc)
-{
-	using enum alpha::ir::Opcode;
-	switch(opc)
-	{
-	case ASSIGN: return REQUIRED;
-	case UMINUS: return REQUIRED;
-	case ADD: return REQUIRED;
-	case SUB: return REQUIRED;
-	case MUL: return REQUIRED;
-	case DIV: return REQUIRED;
-	case MOD: return REQUIRED;
-	case NOT: return REQUIRED;
-	case AND: return REQUIRED;
-	case OR: return REQUIRED;
-	case IF_EQ: return REQUIRED;
-	case IF_NEQ: return REQUIRED;
-	case IF_LT: return REQUIRED;
-	case IF_LTE: return REQUIRED;
-	case IF_GT: return REQUIRED;
-	case IF_GTE: return REQUIRED;
-	case JUMP: return REQUIRED;
-	case TABLECREATE: return REQUIRED;
-	case TABLESETELEM: return REQUIRED;
-	case TABLEGETELEM: return REQUIRED;
-	case PARAM: return REQUIRED;
-	case CALL: return REQUIRED;
-	case GETRETVAL: return REQUIRED;
-	case RETURN: return REQUIRED;
-	case FUNCSTART: return REQUIRED;
-	case FUNCEND: return REQUIRED;
-	default: return NONE;
-	}
-}
-
-} // namespace alpha::ir::info_traits
-// Follows definitions of all info Traits-Functions of Opcode
-namespace alpha::ir::info_traits
-{
-[[nodiscard]] constexpr bool uses_label(const Opcode opc)
+[[nodiscard]] constexpr bool is_branching(const Opcode opc)
 {
 	using enum alpha::ir::Opcode;
 	switch(opc)
@@ -149,6 +107,76 @@ namespace alpha::ir::info_traits
 	case IF_GTE: return true;
 	case JUMP: return true;
 	default: return false;
+	}
+}
+
+} // namespace alpha::ir::info_traits
+// Follows definitions of all info Traits-Functions of Opcode
+namespace alpha::ir::info_traits
+{
+[[nodiscard]] constexpr bool is_non_emittable(const Opcode opc)
+{
+	using enum alpha::ir::Opcode;
+	switch(opc)
+	{
+	case NOT: return true;
+	case AND: return true;
+	case OR: return true;
+	default: return false;
+	}
+}
+
+} // namespace alpha::ir::info_traits
+// Follows definitions of all info Traits-Functions of Opcode
+namespace alpha::ir::info_traits
+{
+[[nodiscard]] constexpr bool is_non_executable(const Opcode opc)
+{
+	using enum alpha::ir::Opcode;
+	switch(opc)
+	{
+	case NOT: return true;
+	case AND: return true;
+	case OR: return true;
+	case FUNCSTART: return true;
+	case FUNCEND: return true;
+	default: return false;
+	}
+}
+
+} // namespace alpha::ir::info_traits
+// Follows definitions of all info Traits-Functions of Opcode
+namespace alpha::ir::info_traits
+{
+[[nodiscard]] constexpr Requirement result(const Opcode opc)
+{
+	using enum alpha::ir::Opcode;
+	switch(opc)
+	{
+	case ASSIGN: return Requirement::REQUIRED;
+	case UMINUS: return Requirement::REQUIRED;
+	case ADD: return Requirement::REQUIRED;
+	case SUB: return Requirement::REQUIRED;
+	case MUL: return Requirement::REQUIRED;
+	case DIV: return Requirement::REQUIRED;
+	case MOD: return Requirement::REQUIRED;
+	case IF_EQ: return Requirement::NONE;
+	case IF_NEQ: return Requirement::NONE;
+	case IF_LT: return Requirement::NONE;
+	case IF_LTE: return Requirement::NONE;
+	case IF_GT: return Requirement::NONE;
+	case IF_GTE: return Requirement::NONE;
+	case JUMP: return Requirement::NONE;
+	case TABLECREATE: return Requirement::REQUIRED;
+	case TABLESETELEM: return Requirement::REQUIRED;
+	case TABLEGETELEM: return Requirement::REQUIRED;
+	case PARAM: return Requirement::NONE;
+	case CALL: return Requirement::NONE;
+	case GETRETVAL: return Requirement::REQUIRED;
+	case RETURN: return Requirement::REQUIRED;
+	case FUNCSTART: return Requirement::REQUIRED;
+	case FUNCEND: return Requirement::REQUIRED;
+	default: return Requirement::NONE;
 	}
 }
 

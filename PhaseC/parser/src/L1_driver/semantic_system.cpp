@@ -27,9 +27,12 @@ SemanticSystem::SemanticSystem(
       assign_builder(get_assign_builder_options(options), export_semantic_system_services()),
       basic_builder(export_semantic_system_services()),
       block_manager(export_semantic_system_services()),
+      call_builder(export_semantic_system_services()),
       const_builder(export_semantic_system_services()),
       loop_manager(export_semantic_system_services()),
-      lvalue_resolver(export_semantic_system_services()) {}
+      lvalue_resolver(export_semantic_system_services()),
+      function_builder(export_semantic_system_services()),
+      table_access_builder(export_semantic_system_services()) {}
 
 SemanticSystemServices
 SemanticSystem::export_semantic_system_services()

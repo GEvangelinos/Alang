@@ -33,7 +33,7 @@
 # +------------------------------------------------------------------------------+
 
 IROPCODE_INFO_ENUMS:
-  Need: [ NONE, OPTIONAL, REQUIRED ], DEFAULT: NONE
+  Requirement: [ NONE, OPTIONAL, REQUIRED ], DEFAULT: NONE
 
 
   # Negated flag by design: this is the less common case, so we name it negatively
@@ -41,12 +41,13 @@ IROPCODE_INFO_ENUMS:
   # 'false' for most opcodes, and only mark 'true' in the rare cases where an opcode
   # is non-emittable.
 IROPCODE_INFO:
-  result: Need
-  arg1: Need
-  arg2: Need
+  result: Requirement
+  arg1: Requirement
+  arg2: Requirement
   is_branching: bool # Instruction expects a valid jump/branch label.
   is_non_emittable: bool  # True if opcode is compile-time only and never generated into IR; operands must be NONE or omitted.
   is_non_executable: bool # True if VM never executes this opcode; operands must be NONE or omitted.
+  opt_operands: int
 
 IROPCODE_OPTIMIZATION_FLAGS: [ foldable, trimmable ]
 
@@ -61,63 +62,74 @@ IROPCODE_LIST:
     result: REQUIRED
     arg1: REQUIRED
     arg2: NONE
+    opt_operands: 2
     optimizations: [ trimmable ]
 
   UMINUS: # ✔
     result: REQUIRED
     arg1: REQUIRED
     arg2: NONE
+    opt_operands: 1
     optimizations: [ foldable ]
 
   ADD: # ✔
     result: REQUIRED
     arg1: REQUIRED
     arg2: REQUIRED
+    opt_operands: 2
     optimizations: [ foldable, trimmable ]
 
   SUB: # ✔
     result: REQUIRED
     arg1: REQUIRED
     arg2: REQUIRED
+    opt_operands: 2
     optimizations: [ foldable, trimmable ]
 
   MUL: # ✔
     result: REQUIRED
     arg1: REQUIRED
     arg2: REQUIRED
+    opt_operands: 2
     optimizations: [ foldable, trimmable ]
 
   DIV: # ✔
     result: REQUIRED
     arg1: REQUIRED
     arg2: REQUIRED
+    opt_operands: 2
     optimizations: [ foldable, trimmable ]
 
   MOD: # ✔
     result: REQUIRED
     arg1: REQUIRED
     arg2: REQUIRED
+    opt_operands: 2
     optimizations: [ foldable, trimmable ]
 
   NOT: # ✔
     is_non_emittable: true
     is_non_executable: true
+    opt_operands: 1
     optimizations: [ foldable ]
 
   AND: # ✔
     is_non_emittable: true
     is_non_executable: true
+    opt_operands: 2
     optimizations: [ foldable ]
 
   OR: # ✔
     is_non_emittable: true
     is_non_executable: true
+    opt_operands: 2
     optimizations: [ foldable ]
 
   IF_EQ: # ✔
     result: NONE
     arg1: REQUIRED
     arg2: REQUIRED
+    opt_operands: 2
     is_branching: true
     optimizations: [ foldable, trimmable ]
 
@@ -126,6 +138,7 @@ IROPCODE_LIST:
     arg1: REQUIRED
     arg2: REQUIRED
     is_branching: true
+    opt_operands: 2
     optimizations: [ foldable, trimmable ]
 
   IF_LT: # ✔
@@ -133,6 +146,7 @@ IROPCODE_LIST:
     arg1: REQUIRED
     arg2: REQUIRED
     is_branching: true
+    opt_operands: 2
     optimizations: [ foldable ]
 
   IF_LTE: # ✔
@@ -140,6 +154,7 @@ IROPCODE_LIST:
     arg1: REQUIRED
     arg2: REQUIRED
     is_branching: true
+    opt_operands: 2
     optimizations: [ foldable ]
 
   IF_GT: # ✔
@@ -147,6 +162,7 @@ IROPCODE_LIST:
     arg1: REQUIRED
     arg2: REQUIRED
     is_branching: true
+    opt_operands: 2
     optimizations: [ foldable ]
 
   IF_GTE: # ✔
@@ -154,6 +170,7 @@ IROPCODE_LIST:
     arg1: REQUIRED
     arg2: REQUIRED
     is_branching: true
+    opt_operands: 2
     optimizations: [ foldable ]
 
   JUMP: # ✔
@@ -187,7 +204,7 @@ IROPCODE_LIST:
     arg1: REQUIRED
     arg2: NONE
 
-  GETRETVAL:
+  GETRETVAL: # ✔
     result: REQUIRED
     arg1: NONE
     arg2: NONE

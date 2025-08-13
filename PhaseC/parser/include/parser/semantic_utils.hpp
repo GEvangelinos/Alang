@@ -1,9 +1,8 @@
 #ifndef SEMANTIC_UTILS_HPP
 #define SEMANTIC_UTILS_HPP
 
-#include "../../../build/AUTOGEN/parser/include/parser/ir_opcode.hpp"
+#include <parser/ir_opcode.gen.hpp>
 #include "parser/ir_expr.hpp"
-#include "parser/ir_opcode.hpp"
 #include "utils/smart_assert.h"
 
 namespace alpha::SemUtils

@@ -1,6 +1,6 @@
 %{
         #include <string>                             // for basic_string, stod, stol
-        #include <parser/alpha_parser.hpp>                   // for alpha_yylloc, alpha_yyt...
+        #include <parser/alpha_parser.gen.hpp>                   // for alpha_yylloc, alpha_yyt...
         #include "diagnostics/diagnostic_engine.hpp"               // for CTError, ErrorTracker
         #include "core/source_location.hpp"            // for LocationTracker
         #include "core/shared_interface.hpp"    // for ALPHA_YYLEX_SIGNATURE

@@ -5,14 +5,14 @@
 #include <stdexcept> // for runtime_error, invalid_argument
 #include <string>
 #include <vector>                   // for vector
-#include "parser/alpha_parser.hpp"         // for alpha_yyparse
+#include "parser/alpha_parser.gen.hpp"         // for alpha_yyparse
 #include "core/konstants.hpp" // for k_global_scope
 #include "core/numeric_types.hpp"     // for u32
 #include "utils/cli_color.h"        // for COLOR_ASCII_BLUE, SGR_RESET
 #include "utils/format_adapter.hpp" // for format, FMT
 #include "utils/smart_assert.h"     // for SMART_ASSERT
 #include "parser/ir_expr.hpp"
-#include <parser/ir_opcode_info_traits.hpp>
+#include <parser/ir_opcode_info_traits.gen.hpp>
 #include <parser/semantic_utils.hpp>
 
 static constexpr unsigned k_flex_eof_padding = 2;
@@ -202,7 +202,7 @@ void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
         std::string quad_line_str = quad_line_num == alpha::k_no_line
                                     ? alpha::k_not_available_marker
                                     : std::to_string(quad_line_num);
-        std::string quad_label_str = alpha::ir::info_traits::uses_label(quads[i].opcode)
+        std::string quad_label_str = alpha::ir::info_traits::is_branching(quads[i].opcode)
                                      ? std::to_string(q.label)
                                      : alpha::k_not_available_marker;
 

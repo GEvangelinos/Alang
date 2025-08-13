@@ -2,7 +2,8 @@
 #define QUAD_HANDLER_HPP
 
 #include <vector>
-#include "parser/ir_opcode.hpp"
+#include "parser/ir_opcode.gen.hpp"
+#include "parser/ir_opcode_info_traits.gen.hpp"
 #include "parser/konstants.hpp"
 
 namespace alpha
@@ -56,30 +57,32 @@ QuadHandler::emit_impl(
     const LabelID label,
     const SourceLocation loc)
 {
-    auto need_matches_ptr = [&]() -> bool
-    {
+    DEBUG(
+        namespace ii = ir::info_traits;
+        using Requirement = ii::Requirement;
+        auto requirement_matches = [](const Requirement req, const Expr *const expr) -> bool
+        {
+        return req == Requirement::OPTIONAL ||
+        (req == Requirement::NONE && !expr) ||
+        (req == Requirement::REQUIRED && !!expr);
+        };
 
-    }
-    DEBUG_SMART_ASSERT(
-        quads_.size() + 1 == next_quad_label_,
-        ir::info_traits::is_non_emittable(opc) == false,
-        ir::info_traits::result(opc) == ir::info_traits::Need::OPTIONAL ||
-        ir::info_traits::result(opc) == ir::info_traits::Need::NONE && result == nullptr ||
-        ir::info_traits::result(opc) == ir::info_traits::Need::REQUIRED && result != nullptr,
-        ir::info_traits::arg1(opc) == ir::info_traits::Need::OPTIONAL ||
-        ir::info_traits::arg1(opc) == ir::info_traits::Need::NONE && arg1 == nullptr ||
-        ir::info_traits::arg1(opc) == ir::info_traits::Need::REQUIRED && arg1 != nullptr,
-        ir::info_traits::arg2(opc) == ir::info_traits::Need::OPTIONAL ||
-        ir::info_traits::arg2(opc) == ir::info_traits::Need::NONE && arg2 == nullptr ||
-        ir::info_traits::arg2(opc) == ir::info_traits::Need::REQUIRED && arg2 != nullptr
+        SMART_ASSERT(
+            quads_.size() + 1 == next_quad_label_,
+            !ir::info_traits::is_non_emittable(opc),
+            requirement_matches(ii::result(opc), result),
+            requirement_matches(ii::arg1(opc), arg1),
+            requirement_matches(ii::arg2(opc), arg2),
+        );
     );
+
     quads_.emplace_back(Quad{
-        .opcode = opc,
+        .location = loc,
+        .result = result,
         .arg1 = arg1,
         .arg2 = arg2,
-        .result = result,
         .label = label,
-        .location = loc,
+        .opcode = opc,
     });
     ++next_quad_label_;
 }

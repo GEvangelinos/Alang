@@ -9,7 +9,7 @@
 #include "L3_ir_infra/quad_handler.hpp"
 #include "parser/semantic_utils.hpp"
 #include "semantic_subsystem.hpp"
-#include <parser/ir_opcode.hpp>
+#include <parser/ir_opcode.gen.hpp>
 
 namespace alpha
 {
@@ -203,7 +203,7 @@ private:
 
     Restricted DISPATCH_TARGET;
 
-    BasicBuilder(const SemanticSystemServices &ss_services);
+    explicit BasicBuilder(const SemanticSystemServices &ss_services);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(mark_short_circuit_jump_point);
@@ -231,11 +231,12 @@ private:
         {
             std::string id;
             SourceLocation id_loc;
-        } method_call_draft;
+        } method_call_draft_;
 
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
 
+        void update_method_call_draft(const char *id, SourceLocation id_loc);
         [[nodiscard]] const Expr *build_call_consuming(
             const Expr *callable_lvalue, ExprList *&param_list, SourceLocation call_loc);
         [[nodiscard]] const Expr *build_method_call_consuming(
@@ -248,10 +249,13 @@ private:
 
     Restricted DISPATCH_TARGET;
 
-    CallBuilder(const SemanticSystemServices &&ss_services);
+    explicit CallBuilder(const SemanticSystemServices &ss_services);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
+    DISPATCH_SLAVE_METHOD_CALL(update_method_call_draft);
     DISPATCH_SLAVE_METHOD_CALL(build_call_consuming);
+    DISPATCH_SLAVE_METHOD_CALL(build_iife_call_consuming);
+    DISPATCH_SLAVE_METHOD_CALL(build_method_call_consuming);
     DISPATCH_DEFINE_HANDLER_END();
 };
 
@@ -306,12 +310,16 @@ private:
         {
             std::string id;
             SourceLocation loc;
-        } function_draft;
+            std::vector<Parameter> parameter_list;
+        } function_draft_;
 
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
 
-        void begin_anonymous(SourceLocation anonymous_loc, const char *id_name = "");
+        void update_function_draft(SourceLocation function_loc);
+        void update_function_draft(const std::string &id, SourceLocation function_loc);
+        void collect_function_parameter(const std::string &id, SourceLocation id_loc);
+
         [[nodiscard]] const Expr *build_program_function(
             const FuncSymbol *func_symbol, SourceLocation result_loc);
     };
@@ -321,7 +329,9 @@ private:
     explicit FunctionBuilder(const SemanticSystemServices &ss_services);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
-    DISPATCH_SLAVE_METHOD_CALL(begin_anonymous);
+    DISPATCH_SLAVE_METHOD_CALL(update_function_draft);
+    DISPATCH_SLAVE_METHOD_CALL(collect_function_parameter);
+    DISPATCH_SLAVE_METHOD_CALL(build_program_function);
     DISPATCH_DEFINE_HANDLER_END();
 };
 
@@ -925,6 +935,15 @@ BasicBuilder::Restricted::warn_if_lossy_conversion_int_to_float(
         dr_->report_implicit_int_to_float_loss(conversion_loc);
 }
 
+inline void
+CallBuilder::Restricted::update_method_call_draft(
+    const char *const id,
+    const SourceLocation id_loc)
+{
+    method_call_draft_.id = id;
+    method_call_draft_.id_loc = id_loc;
+}
+
 inline const Expr *
 CallBuilder::Restricted::build_call_consuming(
     const Expr *const callable_lvalue,
@@ -954,13 +973,13 @@ inline const Expr *
 CallBuilder::Restricted::build_method_call_consuming(
     const Expr *const callable_lvalue, ExprList *&elist, const SourceLocation call_loc)
 {
-    // TODO: Make ExprList (elist) and DictList(dlist) self-managable (either methods)
+    // TODO: Make ExprList (elist) and DictList(dlist) self-manageable (either methods)
     // or using ADL.
     auto lvalue = ss_bridge_->materialize_lvalue_base(callable_lvalue);
     elist->push_back(lvalue);
 
     const Expr *const method_index = expr_maker_->make_const_string_expr(
-        method_call_draft.id_loc, method_call_draft.id.c_str());
+        method_call_draft_.id_loc, method_call_draft_.id.c_str());
     const Expr *const hosting_var = expr_maker_->make_table_item_expr(
         k_no_loc, lvalue, method_index);
 
@@ -976,10 +995,10 @@ CallBuilder::Restricted::build_iife_call_consuming(
     return build_call_consuming(func_expr, elist, call_loc);
 }
 
-inline void delete_expr_list(ExprList *&elist)
+inline void CallBuilder::Restricted::delete_expr_list(ExprList *&param_list)
 {
-    delete elist;
-    elist = nullptr;
+    delete param_list;
+    param_list = nullptr;
 }
 
 inline const Expr *
@@ -1019,17 +1038,26 @@ ConstBuilder::Restricted::build_nil_expr(const SourceLocation loc)
 }
 
 inline void
-FunctionBuilder::Restricted::begin_anonymous(
-    const SourceLocation anonymous_loc,
-    const char *const id_name)
+FunctionBuilder::Restricted::update_function_draft(
+    const SourceLocation function_loc)
 {
-    // TODO: this function is bad.. why does anonymous is given a name? UHHH? (in paramter list)
-    DEBUG_SMART_ASSERT(!!id_name);
+    update_function_draft(parse_ctx_->name_generator.new_anonymous(), function_loc);
+}
 
-    function_draft.id = id_name[0] != '\0' ? id_name : parse_ctx_->name_generator.new_anonymous();
-    function_draft.loc = anonymous_loc;
+inline void
+FunctionBuilder::Restricted::update_function_draft(
+    const std::string &id,
+    const SourceLocation function_loc)
+{
+    function_draft_.id = id;
+    function_draft_.loc = function_loc;
     parse_ctx_->space_handler.enter_space();
 }
+
+inline void
+FunctionBuilder::Restricted::collect_function_parameter(
+    const std::string &id,
+    const SourceLocation id_loc) { function_draft_.parameter_list.emplace_back(id, id_loc); }
 
 inline const Expr *
 FunctionBuilder::Restricted::build_program_function(

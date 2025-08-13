@@ -36,6 +36,7 @@
 	X(FUNCEND) 
 
 #include <cstdint>
+#include <array>
 
 namespace alpha::ir
 {
@@ -44,6 +45,35 @@ enum class Opcode: std::uint8_t
 	#define X(iropcode) iropcode,
 	ALPHA_IROPCODES
 	#undef  X
+};
+
+constexpr std::array<Opcode, 26> all_opcodes_array = {
+	Opcode::ASSIGN,
+	Opcode::UMINUS,
+	Opcode::ADD,
+	Opcode::SUB,
+	Opcode::MUL,
+	Opcode::DIV,
+	Opcode::MOD,
+	Opcode::NOT,
+	Opcode::AND,
+	Opcode::OR,
+	Opcode::IF_EQ,
+	Opcode::IF_NEQ,
+	Opcode::IF_LT,
+	Opcode::IF_LTE,
+	Opcode::IF_GT,
+	Opcode::IF_GTE,
+	Opcode::JUMP,
+	Opcode::TABLECREATE,
+	Opcode::TABLESETELEM,
+	Opcode::TABLEGETELEM,
+	Opcode::PARAM,
+	Opcode::CALL,
+	Opcode::GETRETVAL,
+	Opcode::RETURN,
+	Opcode::FUNCSTART,
+	Opcode::FUNCEND
 };
 } // namespace alpha::ir
 

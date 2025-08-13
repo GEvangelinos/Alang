@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.18)
 # Detect and set the preferred C++ compiler
 find_program(CMAKE_CXX_COMPILER_CLANG NAMES g++)
-find_program(CMAKE_CXX_COMPILER_GCC NAMES g++) # Remember to convert to clang++ (we use g++ to use some debug compiler options)
+find_program(CMAKE_CXX_COMPILER_GCC NAMES clang++) # TODO: Remember to convert to clang++ (we use g++ to use some debug compiler options)
 
 # Configure the preferred C++ compiler before invoking project().
 # CMake finalizes the compiler selection during the project() call.
@@ -64,13 +64,13 @@ if (DEBUG_MODE)
     add_compile_options(
         -g
         -Wimplicit-fallthrough
-        -Wunused-result
-        -Wnull-dereference
-        -Wsuggest-override
-        -Wlogical-op
-        -Wuseless-cast
-        -Wduplicated-cond
-        -Wmissing-declarations
+#        -Wunused-result
+#        -Wnull-dereference
+#        -Wsuggest-override
+#        -Wlogical-op
+#        -Wuseless-cast
+#        -Wduplicated-cond
+#        -Wmissing-declarations
     )
     add_compile_definitions(DEBUG_MODE)
     message(WARNING "CMAKE: Running with DEBUG_MODE ON")
@@ -111,6 +111,14 @@ endif ()
 option(ENABLE_IWYU "Enable include-what-you-use integration" OFF)
 option(DEBUG_MODE "DEBUG_MODE: enables extra sanity checking inside the code" OFF)
 option(DEBUG_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable parser trace" OFF)
+
+function(dot_gen_applier [filename])
+    get_filename_component(basename filename NAME_WLE)
+    get_filename_component(extension filename NAME_WLE)
+
+
+
+endfunction()
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
 set(ALPHA_DRIVER_EXECUTABLE alang.out CACHE STRING "Name of the main executable (e.g., the syntax analyzer)")

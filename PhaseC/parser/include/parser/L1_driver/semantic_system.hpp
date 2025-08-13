@@ -77,9 +77,11 @@ public:
     DISPATCH_MASTER_MODULE_CALL(assign_builder);
     DISPATCH_MASTER_MODULE_CALL(basic_builder);
     DISPATCH_MASTER_MODULE_CALL(block_manager);
+    DISPATCH_MASTER_MODULE_CALL(call_builder);
     DISPATCH_MASTER_MODULE_CALL(const_builder);
     DISPATCH_MASTER_MODULE_CALL(loop_manager);
     DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
+    DISPATCH_MASTER_MODULE_CALL(function_builder);
     DISPATCH_MASTER_MODULE_CALL(table_access_builder);
     DISPATCH_DEFINE_HANDLER_END();
 
@@ -106,9 +108,11 @@ private:
     AssignBuilder assign_builder;
     BasicBuilder basic_builder;
     BlockManager block_manager;
+    CallBuilder call_builder;
     ConstBuilder const_builder;
     LoopManager loop_manager;
     LvalueResolver lvalue_resolver;
+    FunctionBuilder function_builder;
     TableAccessBuilder table_access_builder;
 
     // -- Direct methods-- // TODO: maybe package inside a module? // Dont if to unrelatable!

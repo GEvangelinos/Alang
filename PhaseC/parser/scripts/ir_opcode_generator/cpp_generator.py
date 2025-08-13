@@ -73,9 +73,12 @@ class CPPGenerator:
             fout.write(f'\tX({iropcode_name}) {suffix}\n')
 
     def write_ir_opcodes(self, fout: TextIO):
+        opcode_count = len(self._iropcode_dict.keys())
+        opcodes_str = ",\n".join(f"\t{self._opcode_enum_name}::{opc}" for opc in self._iropcode_dict)
 
         fout.write(
             f"#include <cstdint>\n"
+            f"#include <array>\n"
             f"\n"
             f"namespace {CPPGenerator.IR_NAMESPACE}\n"
             f"{{\n"
@@ -84,6 +87,10 @@ class CPPGenerator:
             f"\t#define X(iropcode) iropcode,\n"
             f"\t{CPPGenerator.ALPHA_IR_OPCODES_MACRO}\n"
             f"\t#undef  X\n"
+            f"}};\n"
+            f"\n"
+            f"constexpr std::array<{self._opcode_enum_name}, {opcode_count}> all_opcodes_array = {{\n"
+            f"{opcodes_str}\n"
             f"}};\n"
             f"}} // namespace {CPPGenerator.IR_NAMESPACE}\n"
         )

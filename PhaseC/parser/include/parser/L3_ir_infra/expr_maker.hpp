@@ -185,9 +185,12 @@ ExprMaker::make_table_item_expr(
         SemUtils::is_lvalue_expr(lvalue),
         SemUtils::is_expr_with_symbol(lvalue)
     );
-    const auto *const expr_w_symbol = static_cast<const ExprWSymbol *>(REQUIRE_PTR(lvalue));
-    DEBUG_SMART_ASSERT(expr_w_symbol->symbol->is_variable()); // TODO remove after you certain
-    const auto *const lvalue_symbol = static_cast<const VarSymbol *>(expr_w_symbol->symbol);
+    // TODO POLISH
+    DEBUG_SMART_ASSERT(
+        lvalue->type == Expr::Type::VARIABLE &&
+        "if it fails then we must check for lib and prog, assign , tableitem ");
+    const auto *const expr_w_var_symbol = static_cast<const ExprWVarSymbol *>(REQUIRE_PTR(lvalue));
+    const auto *const lvalue_symbol = static_cast<const VarSymbol *>(expr_w_var_symbol->var_symbol);
     const auto *const table_item_expr = new const TableItemExpr(expr_loc, lvalue_symbol, index);
     expr_sink_.push_back(table_item_expr);
     return table_item_expr;
@@ -221,13 +224,16 @@ inline const Expr *ExprMaker::clone_with_updated_location(
     case ET::CONST_INT:
         return make_const_int_expr(new_loc, static_cast<const ConstIntExpr *>(donor_Expr)->value);
     case ET::CONST_FLOAT:
-        return make_const_float_expr(new_loc, static_cast<const ConstFloatExpr *>(donor_Expr)->value);
+        return make_const_float_expr(
+            new_loc, static_cast<const ConstFloatExpr *>(donor_Expr)->value);
     case ET::CONST_STRING:
-        return make_const_string_expr(new_loc, static_cast<const ConstStringExpr *>(donor_Expr)->value);
+        return make_const_string_expr(
+            new_loc, static_cast<const ConstStringExpr *>(donor_Expr)->value);
     case ET::CONST_NIL:
         return make_nil_expr(new_loc);
     case ET::LIBRARY_FUNCTION:
-        return make_lib_func_expr(new_loc, static_cast<const LibFuncExpr *>(donor_Expr)->func_symbol);
+        return make_lib_func_expr(
+            new_loc, static_cast<const LibFuncExpr *>(donor_Expr)->func_symbol);
     case ET::PROGRAM_FUNCTION:
         return make_prog_func_expr(
             new_loc, static_cast<const ProgFuncExpr *>(donor_Expr)->func_symbol);
@@ -239,7 +245,8 @@ inline const Expr *ExprMaker::clone_with_updated_location(
         return make_table_item_expr(new_loc, donor_Expr, index);
     }
     case ET::VARIABLE:
-        return make_variable_expr(new_loc, static_cast<const VariableExpr *>(donor_Expr)->var_symbol);
+        return make_variable_expr(
+            new_loc, static_cast<const VariableExpr *>(donor_Expr)->var_symbol);
     default:
         UNREACHABLE(FMT::format(
             "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(donor_Expr->type)));

@@ -13,7 +13,6 @@
 #include <array>
 #include <memory>
 #include "parser/symbols.hpp"
-#include "parser/ir_opcode.hpp"
 
 namespace alpha
 {

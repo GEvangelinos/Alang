@@ -82,13 +82,14 @@
 %type  <const_expr_ptr> table_literal
 %type  <const_expr_ptr> table_host
 %type  <const_expr_ptr> table_item
+
+%type  <const_func_symbol_ptr> func_def
 /********************************************************
 %type  <expr_ptr> member
 %type  <expr_ptr> call
 %type  <expr_ptr> objectDef
 
 
-%type  <const_func_symbol_ptr> funcDef
 %type  <const_func_symbol_ptr> funcSignature
 
 *******************************************************/
@@ -204,7 +205,7 @@ stmt:
 | returnStmt SEMICOLON
 | loopCtrlStmt SEMICOLON
 | block_loc
-| funcDef
+| func_def
 | SEMICOLON
 | error SEMICOLON     { yyerrok; } // Syntax error recovery hook.
 | error RIGHT_PAREN   { yyerrok; } // Syntax error recovery hook.
@@ -273,9 +274,11 @@ expr[out]:
 
 term
 : primary { $term = $primary; }
-| LEFT_PAREN expr RIGHT_PAREN { /*TODO : We most likely have to finalize_bool_expr here tOO! test it out!!!
- OR.. maybe not... as it becomes a term and term and expr and when expr become stmt we finalize it ... */
-  $term = $expr; }
+| LEFT_PAREN expr RIGHT_PAREN
+  {
+    ss.call<"finalize_bool_expr">($expr);
+    $term = $expr;
+  }
 | not_op { /* TODO: Can we put this under the `expr` rule? */   $term = $not_op; }
 | MINUS expr %prec UMINUS { $term = ss.call<"basic_builder.build_uminus">($expr, @term); }
 | INC expr { $term = ss.call<"assign_builder.build_pre_inc">($expr, @term); }
@@ -297,7 +300,7 @@ primary
 | table_literal { $primary = $table_literal; }
 | lvalue        { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($lvalue); }
 | call          { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($call); }
-| LEFT_PAREN funcDef RIGHT_PAREN
+| LEFT_PAREN func_def RIGHT_PAREN { $primary = ss.call<"function_builder.build_program_function">($func_def, @primary); }
 ;
 
 lvalue:
@@ -322,15 +325,18 @@ table_item:
 ;
 
 methodCallId:
-  METHOD_CALL ID 
+  METHOD_CALL ID { ss.call<"call_builder.update_method_call_draft">($ID, @ID);  }
 ;
 
-//*TODO: ADD normal_call and Method_call and pass needed variable trhoguh a Call struct!! */
 call[invocation]:
-  call[callable] LEFT_PAREN expr_list RIGHT_PAREN // <------------------------------------ CHAIN_CALL
-| lvalue LEFT_PAREN expr_list RIGHT_PAREN // <-------------------------------------------- NORMAL_CALL
-| lvalue methodCallId LEFT_PAREN expr_list RIGHT_PAREN // <------------------------------- METHOD_CALL
-| LEFT_PAREN funcDef RIGHT_PAREN LEFT_PAREN expr_list RIGHT_PAREN // <---------------------IIFE_CALL
+  call[callable] LEFT_PAREN expr_list RIGHT_PAREN
+  { $invocation = ss.call<"call_builder.build_call_consuming">($callable, $expr_list, @invocation); }
+| lvalue LEFT_PAREN expr_list RIGHT_PAREN
+  { $invocation = ss.call<"call_builder.build_call_consuming">($lvalue, $expr_list, @invocation); }
+| lvalue methodCallId LEFT_PAREN expr_list RIGHT_PAREN
+  { $invocation = ss.call<"call_builder.build_method_call_consuming">($lvalue, $expr_list, @invocation); }
+| LEFT_PAREN func_def RIGHT_PAREN LEFT_PAREN expr_list RIGHT_PAREN
+  { $invocation = ss.call<"call_builder.build_iife_call_consuming">($func_def, $expr_list, @invocation); }
 ;
 
 comma_separated_exprs[out]:
@@ -395,14 +401,14 @@ block_loc:
   block_begin block_body block_end { ss.call<"block_manager.make_block_location">(@block_begin, @block_end); }
 ;
 
-funcPrefix:
-  FUNCTION
-| FUNCTION ID
+func_prefix:
+  FUNCTION    { ss.call<"function_builder.update_function_draft">(@func_prefix); }
+| FUNCTION ID { ss.call<"function_builder.update_function_draft">($ID, @func_prefix); }
 ;
 
 funcArgs:
-  ID
-| ID COMMA funcArgs
+  ID                { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
+| ID COMMA funcArgs { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
 ;
 
 funcArgList:
@@ -411,11 +417,11 @@ funcArgList:
 ;
 
 funcSignature:
-  funcPrefix funcArgList
+  func_prefix funcArgList
 ;
 
-funcDef:
-  funcSignature block_loc
+func_def:
+  funcSignature block_loc {$$ = nullptr;}
 ;
 
 const

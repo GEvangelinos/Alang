@@ -60,7 +60,6 @@ def main():
             "IROPCODE_LIST"
         )
         yaml_parser_products = yaml_parser.run()
-        print(yaml_parser_products)
 
         cpp_generator = CPPGenerator(
             config_args,

@@ -4,7 +4,7 @@
 #include  "core/konstants.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
 
-#include <parser/ir_opcode.hpp>
+#include <parser/ir_opcode.gen.hpp>
 
 namespace alpha
 {

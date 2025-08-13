@@ -1,10 +1,7 @@
 #include <cmath>
+#include <parser/ir_opcode.gen.hpp>
 #include <parser/semantic_utils.hpp>
 #include <parser/L3_ir_infra/expr_optimizer.hpp>
-#include <parser/ir_opcode.hpp>
-#include <parser/ir_opcode_opt_traits.hpp>
-#include <parser/ir_opcode_info_traits.hpp>
-
 #include "L1_driver/semantic_system.hpp"
 
 namespace alpha

@@ -44,27 +44,37 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.TODO_BLACKWHOLE.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.cached_files/OLD_semantic_builder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/.cached_files/OLD_semantic_builder.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.cached_files/OLD_semantic_builder.hpp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/test.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/test.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/source_location.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/source_location.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/src/source_location.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/source_location.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/config/ir_opcode_spec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/parser/config/ir_opcode_spec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_support.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_support.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_managers.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_managers.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_maker.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_maker.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_optimizer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_optimizer.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/quad_handler.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/quad_handler.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/scripts/ir_opcode_generator/..ir_opcode_info_traits.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/semantic_utils.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/semantic_utils.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/scripts/ir_opcode_generator/cpp_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/parser/scripts/ir_opcode_generator/cpp_generator.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/scripts/ir_opcode_generator/ir_opcode.cpp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/scripts/ir_opcode_generator/ir_opcode.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/scripts/ir_opcode_generator/ir_opcode_info_traits.hpp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/scripts/ir_opcode_generator/ir_opcodes_opts_traits.hpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/scripts/ir_opcode_generator/yaml_parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/parser/scripts/ir_opcode_generator/yaml_parser.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/scripts/ir_opcode_generator/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/parser/scripts/ir_opcode_generator/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system_support.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system_support.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L3_ir_infra/expr_optimizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L3_ir_infra/expr_optimizer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -113,6 +123,9 @@
   &quot;associatedIndex&quot;: 7
 }</component>
   <component name="ProjectId" id="2yQBIeVsOM6zkRUZivNYUMOiV4E" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="1" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -139,7 +152,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "editor.preferences.smartKeys",
+    "settings.editor.selected.configurable": "preferences.keymap",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -156,9 +169,9 @@
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.alang.out">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="alang.out" type="CMakeRunConfiguration" factoryName="Application" nameIsGenerated="true" PROGRAM_PARAMS="--input-file ./.tests/test.asc --show-quads" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang.out" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang.out">
@@ -282,7 +295,8 @@
       <workItem from="1754748754975" duration="204000" />
       <workItem from="1754748985683" duration="48000" />
       <workItem from="1754749066439" duration="40858000" />
-      <workItem from="1754835741961" duration="65826000" />
+      <workItem from="1754835741961" duration="92052000" />
+      <workItem from="1755109822986" duration="5761000" />
     </task>
     <servers />
   </component>
@@ -306,16 +320,6 @@
           <url>file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders_RENAME_CONTEXT_CHANGED.hpp</url>
           <line>337</line>
           <option name="timeStamp" value="12" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="CMakeLineBreakpoint">
-          <url>file://$PROJECT_DIR$/parser/CMakeLists.txt</url>
-          <line>140</line>
-          <option name="timeStamp" value="13" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="CMakeLineBreakpoint">
-          <url>file://$PROJECT_DIR$/parser/CMakeLists.txt</url>
-          <line>139</line>
-          <option name="timeStamp" value="16" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
