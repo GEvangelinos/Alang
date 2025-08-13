@@ -113,29 +113,28 @@ option(DEBUG_MODE "DEBUG_MODE: enables extra sanity checking inside the code" OF
 option(DEBUG_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable parser trace" OFF)
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
-###############################################################################################################
 set(ALPHA_DRIVER_EXECUTABLE alang.out CACHE STRING "Name of the main executable (e.g., the syntax analyzer)")
 
 set(AUTOGEN_DIRNAME "AUTOGEN" CACHE STRING "Name of the directory where auto-generated files are stored")
 
-set(FLEX_OUTPUT_FILENAME "alpha_scanner.cpp" CACHE STRING "Filename of the Flex-generated C++ source file")
-set(FLEX_HEADER_FILENAME "alpha_scanner.hpp" CACHE STRING "Filename of the Flex-generated header file")
+set(FLEX_OUTPUT_FILENAME "alpha_scanner.gen.cpp" CACHE STRING "Filename of the Flex-generated C++ source file")
+set(FLEX_HEADER_FILENAME "alpha_scanner.gen.hpp" CACHE STRING "Filename of the Flex-generated header file")
 
-set(BISON_OUTPUT_FILENAME "alpha_parser.cpp" CACHE STRING "Filename of the Bison-generated C++ source file")
-set(BISON_HEADER_FILENAME "alpha_parser.hpp" CACHE STRING "Filename of the Bison-generated header file")
+set(BISON_OUTPUT_FILENAME "alpha_parser.gen.cpp" CACHE STRING "Filename of the Bison-generated C++ source file")
+set(BISON_HEADER_FILENAME "alpha_parser.gen.hpp" CACHE STRING "Filename of the Bison-generated header file")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/executables" CACHE PATH "Directory where compiled executables will be placed")
 
-set(IR_OPCODE_HEADER_FILENAME "ir_opcode.hpp" CACHE STRING "Filename of the IR opcode header file")
-set(IR_OPCODE_SOURCE_FILENAME "ir_opcode.cpp" CACHE STRING "Filename of the IR opcode source file")
-set(IR_OPCODE_INFO_TRAITS_HEADER_FILENAME "ir_opcode_info_traits.hpp" CACHE STRING "Filename of the IR opcode info traits header file")
-set(IR_OPCODE_OPT_TRAITS_HEADER_FILENAME "ir_opcode_opt_traits.hpp" CACHE STRING "Filename of the IR opcode opt traits header file")
+set(IR_OPCODE_HEADER_FILENAME "ir_opcode.gen.hpp" CACHE STRING "Filename of the IR opcode header file")
+set(IR_OPCODE_SOURCE_FILENAME "ir_opcode.gen.cpp" CACHE STRING "Filename of the IR opcode source file")
+set(IR_OPCODE_INFO_TRAITS_HEADER_FILENAME "ir_opcode_info_traits.gen.hpp" CACHE STRING "Filename of the IR opcode info traits header file")
+set(IR_OPCODE_OPT_TRAITS_HEADER_FILENAME "ir_opcode_opt_traits.gen.hpp" CACHE STRING "Filename of the IR opcode opt traits header file")
 ###############################################################################################################
 
-set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l")             # <-- Modifying filename requires manual change.
-set(BISON_SPEC_FILENAME "alpha_parser_spec.y")             # <-- Modifying filename requires manual change.
-set(DIAGNOSTICS_SPEC_FILENAME "diagnostics_spec.yaml")     # <-- Modifying filename requires manual change.
-set(IR_OPCODE_SPEC_FILENAME "ir_opcode_spec.yaml")     # <-- Modifying filename requires manual change.
+set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l")          # <-- Modifying filename requires manual change.
+set(BISON_SPEC_FILENAME "alpha_parser_spec.y")          # <-- Modifying filename requires manual change.
+set(DIAGNOSTICS_SPEC_FILENAME "diagnostics_spec.yaml")  # <-- Modifying filename requires manual change.
+set(IR_OPCODE_SPEC_FILENAME "ir_opcode_spec.yaml")      # <-- Modifying filename requires manual change.
 
 # Create directory that hosts code from CODE-GENERATORS (e.g. {log_injector, diagnostic_generator})
 set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/${AUTOGEN_DIRNAME}" CACHE PATH "Path to the root directory for auto-generated components")

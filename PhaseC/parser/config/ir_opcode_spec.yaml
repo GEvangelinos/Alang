@@ -1,109 +1,210 @@
-IROPCODE_INFO_ENUMS:
-  Need: [ NONE, OPTIONAL, REQUIRED ]
-  TEST: [ t1, T4, test2 ]
+# +------------------------------------------------------------------------------+
+# | NOTE: THIS IS NOT STANDARD YAML                                              |
+# | This is a custom DSL that is only inspired by YAML (about 80% syntax match). |
+# | In YAML terms, the layout of the following fields would not fully make sense |
+# | to an actual YAML parser.                                                    |
+# | The structure and semantics exist entirely in our parser -- a real YAML      |
+# | parser would not make sense of this file. Treat it as source code for the    |
+# | code generator.                                                              |
+# +------------------------------------------------------------------------------+
+# | INFO_ENUMS OVERVIEW                                                          |
+# | Supported types: bool, int, str, or custom enum types.                       |
+# | Custom enums are declared under IROPCODE_INFO_ENUMS.                         |
+# | Each custom enum has:                                                        |
+# |   - A name                                                                   |
+# |   - A list of allowed values                                                 |
+# |   - A DEFAULT value (must be one of the listed values)                       |
+# |                                                                              |
+# | Example:                                                                     |
+# |   IROPCODE_INFO_ENUMS:                                                       |
+# |     ENUM_1: [ VAL1, VAL2, VAL3 ], DEFAULT: VAL1                              |
+# |     ENUM_2: [ VAL4, VAL5, VAL6 ], DEFAULT: VAL5                              |
+# |     ENUM_X: [ VALA, VALB, VALC ], DEFAULT: VALC                              |
+# +------------------------------------------------------------------------------+
+# | USAGE RULES                                                                  |
+# | - An IROPCODE info field using an enum type may be explicitly set in         |
+# |   IROPCODE_INFO.                                                             |
+# | - If omitted, the enum field will implicitly take its declared DEFAULT value.|
+# | - Built-in types (bool, int, str) follow normal parsing rules.               |
+# | - DEFAULT for int  is 0.                                                     |
+# | - DEFAULT for bool is false.                                                 |
+# | - DEFAULT for str  is "" (empty string, converted to const char* in CPP      |
+# |   generator).                                                                |
+# +------------------------------------------------------------------------------+
 
+IROPCODE_INFO_ENUMS:
+  Need: [ NONE, OPTIONAL, REQUIRED ], DEFAULT: NONE
+
+
+  # Negated flag by design: this is the less common case, so we name it negatively
+  # to exploit the default bool value of false. That way we avoid explicitly writing
+  # 'false' for most opcodes, and only mark 'true' in the rare cases where an opcode
+  # is non-emittable.
 IROPCODE_INFO:
-  requires_result: bool # Must provide a non-null `result` operand when emitting this opcode (false if omitted)
-  requires_arg1: Need # Must provide a non-null `arg1`   operand when emitting this opcode (false if omitted)
-  requires_arg2: Need # Must provide a non-null `arg2`   operand when emitting this opcode (false if omitted)
-  operands: int  # Number of explicit source operands, not counting `result` (0 if omitted)
-  uses_label: bool # Instruction expects a valid jump/branch label (false if omitted)
+  result: Need
+  arg1: Need
+  arg2: Need
+  is_branching: bool # Instruction expects a valid jump/branch label.
+  is_non_emittable: bool  # True if opcode is compile-time only and never generated into IR; operands must be NONE or omitted.
+  is_non_executable: bool # True if VM never executes this opcode; operands must be NONE or omitted.
 
 IROPCODE_OPTIMIZATION_FLAGS: [ foldable, trimmable ]
 
+# TODO:
+#invariants:
+# if is_branching -> result is not used because branches never save
+# arg1 and arg2 can be required...
+# but not always (for example JUMP) but rule of thumb is branching OPcode should not provide result
+
 IROPCODE_LIST:
-  ASSIGN:
-    requires_arg1: OPTIONAL
-    operands: 2
+  ASSIGN: # ✔
+    result: REQUIRED
+    arg1: REQUIRED
+    arg2: NONE
     optimizations: [ trimmable ]
 
-  UMINUS:
-    operands: 1
+  UMINUS: # ✔
+    result: REQUIRED
+    arg1: REQUIRED
+    arg2: NONE
     optimizations: [ foldable ]
 
-  ADD:
-    operands: 2
+  ADD: # ✔
+    result: REQUIRED
+    arg1: REQUIRED
+    arg2: REQUIRED
     optimizations: [ foldable, trimmable ]
 
-  SUB:
-    operands: 2
+  SUB: # ✔
+    result: REQUIRED
+    arg1: REQUIRED
+    arg2: REQUIRED
     optimizations: [ foldable, trimmable ]
 
-  MUL:
-    operands: 2
+  MUL: # ✔
+    result: REQUIRED
+    arg1: REQUIRED
+    arg2: REQUIRED
     optimizations: [ foldable, trimmable ]
 
-  DIV:
-    operands: 2
+  DIV: # ✔
+    result: REQUIRED
+    arg1: REQUIRED
+    arg2: REQUIRED
     optimizations: [ foldable, trimmable ]
 
-  MOD:
-    operands: 2
+  MOD: # ✔
+    result: REQUIRED
+    arg1: REQUIRED
+    arg2: REQUIRED
     optimizations: [ foldable, trimmable ]
 
-  NOT:
-    operands: 1
+  NOT: # ✔
+    is_non_emittable: true
+    is_non_executable: true
     optimizations: [ foldable ]
 
-  AND:
-    operands: 2
+  AND: # ✔
+    is_non_emittable: true
+    is_non_executable: true
     optimizations: [ foldable ]
 
-  OR:
-    operands: 2
+  OR: # ✔
+    is_non_emittable: true
+    is_non_executable: true
     optimizations: [ foldable ]
 
-  IF_EQ:
-    operands: 2
-    uses_label: true
+  IF_EQ: # ✔
+    result: NONE
+    arg1: REQUIRED
+    arg2: REQUIRED
+    is_branching: true
     optimizations: [ foldable, trimmable ]
 
-  IF_NEQ:
-    operands: 2
-    uses_label: true
+  IF_NEQ: # ✔
+    result: NONE
+    arg1: REQUIRED
+    arg2: REQUIRED
+    is_branching: true
     optimizations: [ foldable, trimmable ]
 
-  IF_LT:
-    operands: 2
-    uses_label: true
+  IF_LT: # ✔
+    result: NONE
+    arg1: REQUIRED
+    arg2: REQUIRED
+    is_branching: true
     optimizations: [ foldable ]
 
-  IF_LTE:
-    operands: 2
-    uses_label: true
+  IF_LTE: # ✔
+    result: NONE
+    arg1: REQUIRED
+    arg2: REQUIRED
+    is_branching: true
     optimizations: [ foldable ]
 
-  IF_GT:
-    operands: 2
-    uses_label: true
+  IF_GT: # ✔
+    result: NONE
+    arg1: REQUIRED
+    arg2: REQUIRED
+    is_branching: true
     optimizations: [ foldable ]
 
-  IF_GTE:
-    operands: 2
-    uses_label: true
+  IF_GTE: # ✔
+    result: NONE
+    arg1: REQUIRED
+    arg2: REQUIRED
+    is_branching: true
     optimizations: [ foldable ]
 
-  JUMP:
-    uses_label: true
+  JUMP: # ✔
+    result: NONE
+    arg1: NONE
+    arg2: NONE
+    is_branching: true
 
-  TABLECREATE:
+  TABLECREATE: # ✔
+    result: REQUIRED
+    arg1: NONE
+    arg2: NONE
 
-  TABLESETELEM:
-    operands: 2
+  TABLESETELEM: # ✔
+    result: REQUIRED
+    arg1: REQUIRED
+    arg2: REQUIRED
 
-  TABLEGETELEM:
-    operands: 2
+  TABLEGETELEM: # ✔
+    result: REQUIRED
+    arg1: REQUIRED
+    arg2: REQUIRED
 
-  PARAM:
-    operands: 1
+  PARAM: # ✔
+    result: NONE
+    arg1: REQUIRED
+    arg2: NONE
 
-  CALL:
+  CALL: # ✔
+    result: NONE
+    arg1: REQUIRED
+    arg2: NONE
 
   GETRETVAL:
+    result: REQUIRED
+    arg1: NONE
+    arg2: NONE
 
   RETURN:
+    result: REQUIRED
+    arg1: REQUIRED
+    arg2: REQUIRED
 
   FUNCSTART:
+    result: REQUIRED
+    arg1: NONE
+    arg2: NONE
+    is_non_executable: true
 
   FUNCEND:
-
+    result: REQUIRED
+    arg1: NONE
+    arg2: NONE
+    is_non_executable: true

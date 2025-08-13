@@ -35,9 +35,11 @@
 	X(FUNCSTART) \
 	X(FUNCEND) 
 
+#include <cstdint>
+
 namespace alpha::ir
 {
-enum class Opcode
+enum class Opcode: std::uint8_t
 {
 	#define X(iropcode) iropcode,
 	ALPHA_IROPCODES

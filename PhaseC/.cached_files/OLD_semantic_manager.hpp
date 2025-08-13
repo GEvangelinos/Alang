@@ -516,7 +516,7 @@ inline void SemanticManager::returnStmt__return_expr(Expr *expr, Location return
     et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
 }
 
-} // namespace Alpha
+} // namespace alpha
 
 #endif /* SEMANTIC_MANAGER_HPP */
 

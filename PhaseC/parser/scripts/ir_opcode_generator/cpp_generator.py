@@ -24,7 +24,7 @@ class CPPGenerator:
         self._iropcode_dict = yaml_parser_products.opcode_dict
         self._available_optimization_set = yaml_parser_products.available_opts
         self._available_info_set = yaml_parser_products.available_info_set
-        self._available_info_enums = yaml_parser_products.available_info_enums
+        self._available_enum_set = yaml_parser_products.available_enum_set
 
     @property
     def out_header_filename(self):
@@ -73,10 +73,13 @@ class CPPGenerator:
             fout.write(f'\tX({iropcode_name}) {suffix}\n')
 
     def write_ir_opcodes(self, fout: TextIO):
+
         fout.write(
+            f"#include <cstdint>\n"
+            f"\n"
             f"namespace {CPPGenerator.IR_NAMESPACE}\n"
             f"{{\n"
-            f"enum class {self._opcode_enum_name}\n"
+            f"enum class {self._opcode_enum_name}{': std::uint8_t' if len(self._iropcode_dict.keys()) < 2**8 else ''}\n"
             f"{{\n"
             f"\t#define X(iropcode) iropcode,\n"
             f"\t{CPPGenerator.ALPHA_IR_OPCODES_MACRO}\n"
@@ -93,6 +96,7 @@ class CPPGenerator:
             f"[[nodiscard]] std::string to_string({self._opcode_enum_name} opc) noexcept;\n"
             f"}} // namespace {CPPGenerator.IR_NAMESPACE}\n"
         )
+
     def write_ir_opcode_to_string_impl(self, fout: TextIO):
         fout.write(
             f'#include <parser/{os.path.basename(self._config_args.out_opcode_header_filepath)}>\n'
@@ -114,7 +118,8 @@ class CPPGenerator:
             f"}} // namespace {CPPGenerator.IR_NAMESPACE}\n"
         )
 
-    def write_primitive_constexpr_info_check_function(self, fout:TextIO, info_trait: InfoFieldTypes):
+    def write_primitive_constexpr_info_check_function(
+            self, fout: TextIO,info_trait: InfoFieldTypes):
         if info_trait.type == "bool":
             default_ret_type = "false"
         elif info_trait.type == "int":
@@ -122,7 +127,7 @@ class CPPGenerator:
         elif info_trait.type == "str":
             default_ret_type = '""'
         else:
-            raise RuntimeError(attach_context(f"unknown info_tait.type: `{info_trait.type}`"))
+            raise RuntimeError(attach_context(f"unknown info_tait.type: `{info_trait.type}`\n"))
 
         return_type = 'const char *' if info_trait.type == "str" else info_trait.type
 
@@ -154,7 +159,7 @@ class CPPGenerator:
             f"}} // namespace {CPPGenerator.INFO_TRAITS_NAMESPACE}\n"
         )
 
-    def write_enum_constexpr_info_check_function(self, fout:TextIO, info_trait:InfoFieldTypes):
+    def write_enum_constexpr_info_check_function(self, fout: TextIO, info_trait: InfoFieldTypes):
         fout.write(
             f"// Follows definitions of all info Traits-Functions of {self._opcode_enum_name}\n"
             f"namespace {CPPGenerator.INFO_TRAITS_NAMESPACE}\n"
@@ -169,10 +174,22 @@ class CPPGenerator:
         )
         for opc_name, opc_info in self._iropcode_dict.items():
             for info_field in opc_info.info_field_set:
-                if info_field.type == info_trait.type:
-                    fout.write(f"case {opc_name}: return {info_field.value};\n")
+                if info_field.name == info_trait.name:
+                    fout.write(f"\tcase {opc_name}: return {info_field.type}::{info_field.value};\n")
+
+        # Find enum which info_trait.type is equal to enum.name
+
+        default_return_value = None
+        for e in self._available_enum_set:
+            if e.name == info_trait.type:
+                default_return_value = e.default_value
+
+        if default_return_value is None:
+            raise AssertionError(attach_context(
+                "There is some logic error, this  above should always return a default value\n"))
 
         fout.write(
+            f"\tdefault: return {info_trait.type}::{default_return_value};\n"
             f"\t}}\n"
             f"}}\n"
             f"\n"
@@ -182,11 +199,10 @@ class CPPGenerator:
         )
 
     def write_constexpr_info_check_function(self, fout: TextIO, info_trait: InfoFieldTypes):
-        if info_trait.type in self._available_info_enums:
+        if info_trait.type in {enum.name for enum in self._available_enum_set}:
             self.write_enum_constexpr_info_check_function(fout, info_trait)
         else:
             self.write_primitive_constexpr_info_check_function(fout, info_trait)
-
 
     def write_constexpr_optim_flag_function(self, fout: TextIO, opt_name):
         fout.write(
@@ -200,7 +216,7 @@ class CPPGenerator:
             if opc_info.optimizations is None:
                 continue
             if opt_name in opc_info.optimizations:
-                    fout.write(f"\tcase {opc_name}: return true;\n")
+                fout.write(f"\tcase {opc_name}: return true;\n")
 
         fout.write(
             f"\tdefault: return false;\n"
@@ -210,8 +226,10 @@ class CPPGenerator:
         )
 
     @staticmethod
-    def write_info_trait_enum(fout:TextIO, enum_name:str, enum_values:set[str]):
+    def write_info_trait_enum(fout: TextIO, enum_name: str, enum_values: set[str]):
         fout.write(
+            f"namespace {CPPGenerator.INFO_TRAITS_NAMESPACE}\n"
+            f"{{\n"
             f"enum class {enum_name}\n"
             f"{{\n"
         )
@@ -221,7 +239,10 @@ class CPPGenerator:
             )
 
         fout.write(
-            f"}}\n"
+            f"}};\n"
+        )
+        fout.write(
+            f"}} // namespace {CPPGenerator.INFO_TRAITS_NAMESPACE}\n"
         )
 
     def write_ir_info_traits_definitions(self, fout: TextIO):
@@ -246,10 +267,9 @@ class CPPGenerator:
             f"}} // namespace {CPPGenerator.OPT_TRAITS_NAMESPACE}\n"
         )
 
-    def write_ir_info_trait_enum_definitions(self, fout:TextIO):
-        for enum_name, enum_values in self._available_info_enums.items():
-            CPPGenerator.write_info_trait_enum(fout, enum_name, enum_values)
-
+    def write_ir_info_trait_enum_definitions(self, fout: TextIO):
+        for enum in self._available_enum_set:
+            CPPGenerator.write_info_trait_enum(fout, enum.name, enum.values)
 
     def run(self):
         def run_generation_calls(fout: TextIO, calls):

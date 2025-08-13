@@ -22,9 +22,10 @@ struct SourceLocation
 
     bool operator==(const SourceLocation &) const noexcept = default;
     bool operator!=(const SourceLocation &) const noexcept = default;
-
-    static SourceLocation merge(SourceLocation left, SourceLocation right);
 };
+
+// Promoted to free function, instead of static inside the SourceLocation, so we can enable Argument-Dependent-Lookup
+SourceLocation merge(SourceLocation left, SourceLocation right);
 
 struct BlockSourceLocation
 {

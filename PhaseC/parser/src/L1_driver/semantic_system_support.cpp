@@ -30,7 +30,8 @@ SemanticSystemBridge::materialize_lvalue_base(const Expr *const lvalue)
     if (lvalue->type != Expr::Type::TABLE_ITEM)
         return lvalue;
     const auto *const ti_expr = static_cast<const TableItemExpr *>(lvalue);
-    const auto *const temp_var = expr_maker_->make_variable_expr(lvalue->loc, parse_ctx_->new_temp());
+    const auto *const temp_var = expr_maker_->make_variable_expr(
+        lvalue->loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(
         ir::Opcode::TABLEGETELEM, temp_var, ti_expr, ti_expr->index, ti_expr->loc);
     return temp_var;

@@ -14,7 +14,7 @@ public:
     ~QuadHandler() = default;
 
     void emit_next(
-        ir::Opcode iropcode,
+        ir::Opcode opc,
         const Expr *result,
         const Expr *arg1,
         const Expr *arg2,
@@ -22,7 +22,7 @@ public:
         LabelID label_offset = 0);
 
     void emit_labelless(
-        ir::Opcode iropcode,
+        ir::Opcode opc,
         const Expr *result,
         const Expr *arg1,
         const Expr *arg2,
@@ -38,28 +38,43 @@ private:
     LabelID next_quad_label_ = k_first_label;
     std::vector<Quad> quads_;
 
-    void emit(
-        ir::Opcode iropcode,
+    void emit_impl(
+        ir::Opcode opc,
         const Expr *result,
         const Expr *arg1,
         const Expr *arg2,
         LabelID label,
         SourceLocation loc);
-
 };
 
 inline void
-QuadHandler::emit(
-    const ir::Opcode iropcode,
+QuadHandler::emit_impl(
+    const ir::Opcode opc,
     const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
     const LabelID label,
     const SourceLocation loc)
 {
-    DEBUG_SMART_ASSERT(quads_.size() + 1 == next_quad_label_);
+    auto need_matches_ptr = [&]() -> bool
+    {
+
+    }
+    DEBUG_SMART_ASSERT(
+        quads_.size() + 1 == next_quad_label_,
+        ir::info_traits::is_non_emittable(opc) == false,
+        ir::info_traits::result(opc) == ir::info_traits::Need::OPTIONAL ||
+        ir::info_traits::result(opc) == ir::info_traits::Need::NONE && result == nullptr ||
+        ir::info_traits::result(opc) == ir::info_traits::Need::REQUIRED && result != nullptr,
+        ir::info_traits::arg1(opc) == ir::info_traits::Need::OPTIONAL ||
+        ir::info_traits::arg1(opc) == ir::info_traits::Need::NONE && arg1 == nullptr ||
+        ir::info_traits::arg1(opc) == ir::info_traits::Need::REQUIRED && arg1 != nullptr,
+        ir::info_traits::arg2(opc) == ir::info_traits::Need::OPTIONAL ||
+        ir::info_traits::arg2(opc) == ir::info_traits::Need::NONE && arg2 == nullptr ||
+        ir::info_traits::arg2(opc) == ir::info_traits::Need::REQUIRED && arg2 != nullptr
+    );
     quads_.emplace_back(Quad{
-        .opcode = iropcode,
+        .opcode = opc,
         .arg1 = arg1,
         .arg2 = arg2,
         .result = result,
@@ -71,14 +86,14 @@ QuadHandler::emit(
 
 inline void
 QuadHandler::emit_next(
-    const ir::Opcode iropcode,
+    const ir::Opcode opc,
     const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
     const SourceLocation loc,
     const LabelID label_offset)
 {
-    emit(iropcode, result, arg1, arg2, next_quad_label_ + label_offset, loc);
+    emit_impl(opc, result, arg1, arg2, next_quad_label_ + label_offset, loc);
 }
 
 inline void
@@ -87,10 +102,7 @@ QuadHandler::emit_labelless(
     const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
-    const SourceLocation loc)
-{
-    emit(opc, result, arg1, arg2, k_no_label, loc);
-}
+    const SourceLocation loc) { emit_impl(opc, result, arg1, arg2, k_no_label, loc); }
 
 inline void
 QuadHandler::patch_quad(const LabelID target_quad_label, const LabelID destination_label)

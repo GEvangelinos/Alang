@@ -521,7 +521,29 @@ also returns of functions...
 
 75) We could check if a function returns something  that can be evaluated in  compile time...
 even if it has runtime calls
-
 like input() and prints() but static analysis shows that these dont affect return type..
-
 or return type can be evaluated in compile time...
+
+76) make python script add bolding or highlighting diagnostic strings, the area where text is inside  backsticks
+like: `TEXT` could be converted to \033BOLD_TEXT_\033_SGRCLEAR (pseudo-ascii escapes here.. (just for example)
+
+77) What happens if we do x - 17 - 16
+        but if we do x +(-17) + (-16)
+
+        we can do x + (-33) -> x-33
+
+78)
+# TODO: What should you do with constant propagation ?
+# Question might be ... which opcode take arguments? which do they use them as rvalue?
+# Does the Expr type given to them matter?
+# Like for constant propagation so far we expect Expr to be VariableExpr
+
+79) try calling method with global and local operator//keyword
+
+like ::func();
+
+and ::value..method();
+
+does it work correctly?
+
+if NOT check if ID is overwritten.. something smells!

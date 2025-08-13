@@ -54,20 +54,6 @@ protected:
 
 const char *to_string(Expr::Type type) noexcept; // We keep outside of Expr, so ADL finds it.
 
-struct ExprWSymbol : public Expr
-{
-public:
-    const Symbol *const symbol;
-
-protected:
-    ALWAYS_INLINE ExprWSymbol(
-        const Type type,
-        const SourceLocation loc,
-        const Symbol *const symbol)
-        : Expr(type, loc),
-          symbol(REQUIRE_PTR(symbol)) {}
-};
-
 struct ExprWVarSymbol : public Expr
 {
 public:
@@ -207,16 +193,14 @@ struct VariableExpr final : public ExprWVarSymbol
         : ExprWVarSymbol(Type::VARIABLE, loc, var) { DEBUG_SMART_ASSERT(var->is_variable()); }
 };
 
-struct Quad final
+struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
 {
-    const ir::Opcode opcode;
+    const SourceLocation location;
+    const Expr *result;
     const Expr *arg1;
     const Expr *arg2;
-    const Expr *result;
-    u32 label;
-
-    // First quad_label is always 1, (0 for backpatching)
-    const SourceLocation location;
+    u32 label; // First quad_label is always 1, (0 for backpatching)
+    const ir::Opcode opcode;
 };
 
 inline Expr::Type

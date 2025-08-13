@@ -219,35 +219,40 @@ private:
 
 class CallBuilder
 {
+    friend class SemanticSystem;
+
+private:
     class Restricted final : private SemanticSubsystem
     {
-        const Expr *build_call(
-            const Expr *const lvalue,
-            ExprList *&elist,
-            const SourceLocation call_loc)
+        friend class CallBuilder;
+
+    private:
+        struct
         {
-            const Expr *expr = ss_bridge_->materialize_lvalue_base(lvalue);
-            for (const Expr *e: *elist)
-                quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, e, nullptr, e->loc);
+            std::string id;
+            SourceLocation id_loc;
+        } method_call_draft;
 
-            DEBUG_SMART_ASSERT(!!expr.);
+        explicit Restricted(const SemanticSystemServices &ss_services);
+        ~Restricted() override = default;
 
-            quad_handler_->emit_next(ir::Opcode::CALL, func_expr, nullptr, nullptr, call_loc);
+        [[nodiscard]] const Expr *build_call_consuming(
+            const Expr *callable_lvalue, ExprList *&param_list, SourceLocation call_loc);
+        [[nodiscard]] const Expr *build_method_call_consuming(
+            const Expr *callable_lvalue, ExprList *&elist, SourceLocation call_loc);
+        [[nodiscard]] const Expr *build_iife_call_consuming(
+            const FuncSymbol *func_symbol, ExprList *&elist, SourceLocation call_loc);
 
-            Expr *getretval_expr = parse_ctx_.expr_handler.make_expr_variable(parse_ctx_.new_temp(),
-                k_no_location //
-            );
-
-            parse_ctx_.quad_handler.emit_quad(
-                IOPCode::GETRETVAL, nullptr, nullptr, getretval_expr,
-                k_no_location);
-            // We could pass call_location, but we follow strict policy: temps have
-            // no location
-
-            delete_expr_list(elist);
-            return getretval_expr;
-        }
+        static void delete_expr_list(ExprList *&param_list);
     };
+
+    Restricted DISPATCH_TARGET;
+
+    CallBuilder(const SemanticSystemServices &&ss_services);
+
+    DISPATCH_DEFINE_HANDLER_BEGIN();
+    DISPATCH_SLAVE_METHOD_CALL(build_call_consuming);
+    DISPATCH_DEFINE_HANDLER_END();
 };
 
 class ConstBuilder
@@ -300,7 +305,7 @@ private:
         struct
         {
             std::string id;
-            SourceLocation location;
+            SourceLocation loc;
         } function_draft;
 
         explicit Restricted(const SemanticSystemServices &ss_services);
@@ -378,7 +383,7 @@ AggregateBuilder::Restricted::delete_expr_list(ExprList *&elist)
 {
     // Note: Do NOT delete the expressions in ExprList -- those are handler by ExprMaker.
     delete elist;
-    DEBUG_NULLIFY(elist);
+    elist = nullptr;
 }
 
 inline const ExprPair *
@@ -429,21 +434,23 @@ AggregateBuilder::Restricted::build_table_list_consuming(
     DEBUG_SMART_ASSERT(!!elist);
     auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
 
-    const NewTableExpr *const newtable_expr = expr_maker_->make_new_table_expr(table_list_loc);
-    qh->emit_next(ir::Opcode::TABLECREATE, newtable_expr, nullptr, nullptr, table_list_loc);
+    const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
+    qh->emit_next(ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
 
-    // Emit list's items.
+    // Emit exprlist's items.
     u32 list_index = 0;
     for (auto expr_it = elist->crbegin(); expr_it != elist->crend(); ++expr_it)
     {
-        const Expr *idx_expr = expr_maker_->make_const_int_expr((*expr_it)->loc, list_index++);
-        qh->emit_next(ir::Opcode::TABLESETELEM, newtable_expr, idx_expr, *expr_it, (*expr_it)->loc);
+        const Expr *const list_item = *expr_it;
+        const SourceLocation list_item_loc = list_item->loc;
+        const Expr *const idx_expr = expr_maker_->make_const_int_expr(list_item_loc, list_index++);
+        qh->emit_next(ir::Opcode::TABLESETELEM, new_table_expr, idx_expr, list_item, list_item_loc);
     }
 
     // Delete elist after use — it must not be used again
-    delete_expr_list(elist);
+    AggregateBuilder::Restricted::delete_expr_list(elist);
 
-    return newtable_expr;
+    return new_table_expr;
 }
 
 inline const Expr *
@@ -454,18 +461,22 @@ AggregateBuilder::Restricted::build_table_dict_consuming(
     DEBUG_SMART_ASSERT(!!dlist);
     auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
 
-    const Expr *const newtable_expr = expr_maker_->make_new_table_expr(table_dict_loc);
-    qh->emit_next(ir::Opcode::TABLECREATE, nullptr, nullptr, newtable_expr, table_dict_loc);
+    const Expr *const new_table_expr = expr_maker_->make_new_table_expr(table_dict_loc);
+    qh->emit_next(ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_dict_loc);
 
     // Emit dict's items.
     for (auto it = dlist->crbegin(); it != dlist->crend(); ++it)
-        qh->emit_next(
-            ir::Opcode::TABLESETELEM, (*it)->first, (*it)->second, newtable_expr, k_no_loc);
+    {
+        const Expr *const key = (*it)->first;
+        const Expr *const value = (*it)->second;
+        const SourceLocation pair_loc = merge(key->loc, value->loc);
+        qh->emit_next(ir::Opcode::TABLESETELEM, new_table_expr, key, value, pair_loc);
+    }
 
     // Delete elist after use — it must not be used again
     delete_dict_list(dlist);
 
-    return newtable_expr;
+    return new_table_expr;
 }
 
 inline const Expr *
@@ -519,15 +530,16 @@ AssignBuilder::Restricted::validate_lvalue_assignment(
         return false;
     }
     // If here. Its Lvalue and all lvalues have symbols.
-    const Symbol *const lv_symbol = static_cast<const ExprWSymbol *>(lvalue)->symbol;
-    if (lv_symbol->type == Symbol::Type::LIBRARY_FUNCTION)
+    if (lvalue->type == Expr::Type::LIBRARY_FUNCTION)
     {
-        dr_->report_assign_to_libfunc(lv_symbol->name, assign_loc);
+        const auto *const func_symbol = static_cast<const LibFuncExpr *>(lvalue)->func_symbol;
+        dr_->report_assign_to_libfunc(func_symbol->name, assign_loc);
         return false;
     }
-    if (lv_symbol->type == Symbol::Type::PROGRAM_FUNCTION)
+    if (lvalue->type == Expr::Type::PROGRAM_FUNCTION)
     {
-        dr_->report_assign_to_func(lv_symbol->name, assign_loc, lv_symbol->loc);
+        const auto *const func_symbol = static_cast<const ProgFuncExpr *>(lvalue)->func_symbol;
+        dr_->report_assign_to_func(func_symbol->name, assign_loc, func_symbol->loc);
         return false;
     }
     return true;
@@ -914,6 +926,63 @@ BasicBuilder::Restricted::warn_if_lossy_conversion_int_to_float(
 }
 
 inline const Expr *
+CallBuilder::Restricted::build_call_consuming(
+    const Expr *const callable_lvalue,
+    ExprList *&param_list,
+    const SourceLocation call_loc)
+{
+    DEBUG_SMART_ASSERT(!!callable_lvalue, !!param_list);
+
+    const Expr *func_expr = ss_bridge_->materialize_lvalue_base(callable_lvalue);
+    for (const Expr *e: *param_list)
+        quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, e, nullptr, e->loc);
+
+    quad_handler_->emit_next(ir::Opcode::CALL, nullptr, func_expr, nullptr, call_loc);
+
+    const Expr *getretval_expr = expr_maker_->make_variable_expr(
+        k_no_loc, parse_ctx_->new_temp());
+
+    quad_handler_->emit_next(
+        ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
+
+    CallBuilder::Restricted::delete_expr_list(param_list);
+
+    return getretval_expr;
+}
+
+inline const Expr *
+CallBuilder::Restricted::build_method_call_consuming(
+    const Expr *const callable_lvalue, ExprList *&elist, const SourceLocation call_loc)
+{
+    // TODO: Make ExprList (elist) and DictList(dlist) self-managable (either methods)
+    // or using ADL.
+    auto lvalue = ss_bridge_->materialize_lvalue_base(callable_lvalue);
+    elist->push_back(lvalue);
+
+    const Expr *const method_index = expr_maker_->make_const_string_expr(
+        method_call_draft.id_loc, method_call_draft.id.c_str());
+    const Expr *const hosting_var = expr_maker_->make_table_item_expr(
+        k_no_loc, lvalue, method_index);
+
+    lvalue = ss_bridge_->materialize_lvalue_base(hosting_var);
+    return build_call_consuming(lvalue, elist, call_loc);
+}
+
+inline const Expr *
+CallBuilder::Restricted::build_iife_call_consuming(
+    const FuncSymbol *const func_symbol, ExprList *&elist, const SourceLocation call_loc)
+{
+    const Expr *func_expr = expr_maker_->make_prog_func_expr(call_loc, func_symbol);
+    return build_call_consuming(func_expr, elist, call_loc);
+}
+
+inline void delete_expr_list(ExprList *&elist)
+{
+    delete elist;
+    elist = nullptr;
+}
+
+inline const Expr *
 ConstBuilder::Restricted::build_true_expr(const SourceLocation loc)
 {
     return expr_maker_->make_const_bool_expr(loc, true);
@@ -954,10 +1023,11 @@ FunctionBuilder::Restricted::begin_anonymous(
     const SourceLocation anonymous_loc,
     const char *const id_name)
 {
+    // TODO: this function is bad.. why does anonymous is given a name? UHHH? (in paramter list)
     DEBUG_SMART_ASSERT(!!id_name);
 
     function_draft.id = id_name[0] != '\0' ? id_name : parse_ctx_->name_generator.new_anonymous();
-    function_draft.location = anonymous_loc;
+    function_draft.loc = anonymous_loc;
     parse_ctx_->space_handler.enter_space();
 }
 

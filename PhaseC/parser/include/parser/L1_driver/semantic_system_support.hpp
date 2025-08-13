@@ -32,6 +32,7 @@
 
 namespace alpha
 {
+
 class SemanticSystemBridge
 {
 public:
