@@ -547,3 +547,23 @@ and ::value..method();
 does it work correctly?
 
 if NOT check if ID is overwritten.. something smells!
+
+80) func fact (see what i did there :D <3)
+Add this to your report:
+in diagnostic_spec.yaml if you have the same argument name more than 1 time..
+then the python generator is smart enough to generate CPP report functions that ask only for 1 time
+
+for example, the generated report_ function of DR is only asking func_name once! (check it out)
+although we need it one time for the error and one time for the note:
+
+- Diagnostic: REDEFINITION_OF_FUNC
+  Type: ERROR
+  Primary:
+    - Message: "redefinition of function `{0}`"
+      Args: [ func_name ]
+      Location: redef_loc
+  Notes:
+    - Message: "initial definition of function `{0}` here"
+      Args: [ func_name ]
+      Location: initial_def_loc
+

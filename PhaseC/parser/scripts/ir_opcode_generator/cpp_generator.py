@@ -114,7 +114,7 @@ class CPPGenerator:
             f"{{\n"
             f"\tswitch (opc)\n"
             f"\t{{\n"
-            f"\t\t#define X(opc) case {self._opcode_enum_name}::opc: return Utils::str_to_lower(#opc);\n"
+            f"\t\t#define X(opc) case {self._opcode_enum_name}::opc: return utils::str_to_lower(#opc);\n"
             f"\t\t{CPPGenerator.ALPHA_IR_OPCODES_MACRO}\n"
             f"\t\t#undef  X\n"
             f"\t\tdefault:\n"

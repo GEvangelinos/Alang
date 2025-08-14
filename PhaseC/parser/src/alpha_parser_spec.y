@@ -83,14 +83,12 @@
 %type  <const_expr_ptr> table_host
 %type  <const_expr_ptr> table_item
 
+%type  <const_func_symbol_ptr> func_signature
 %type  <const_func_symbol_ptr> func_def
 /********************************************************
 %type  <expr_ptr> member
 %type  <expr_ptr> call
 %type  <expr_ptr> objectDef
-
-
-%type  <const_func_symbol_ptr> funcSignature
 
 *******************************************************/
 %type  <block_location> block_loc
@@ -416,12 +414,12 @@ funcArgList:
 | LEFT_PAREN funcArgs  RIGHT_PAREN
 ;
 
-funcSignature:
-  func_prefix funcArgList
+func_signature:
+  func_prefix funcArgList  { $func_signature = ss.call<"function_builder.build_program_function_entry">(@func_signature);}
 ;
 
 func_def:
-  funcSignature block_loc {$$ = nullptr;}
+  func_signature block_loc { $func_def = ss.call<"function_builder.build_program_function_exit">($block_loc); }
 ;
 
 const

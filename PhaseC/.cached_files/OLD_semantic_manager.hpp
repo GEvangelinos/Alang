@@ -22,31 +22,6 @@
 #include "utils/misc.hpp"                  // for DEBUG_ALWAYS_INLINE
 #include "utils/smart_assert.h"            // for DEBUG_SMART_ASSERT
 
-namespace // (Anonymous)
-{
-namespace Loop
-{
-    enum class Keyword
-    {
-        BREAK,
-        CONTINUE,
-    };
-
-    [[nodiscard]] std::string to_string(const Keyword keyword) noexcept
-    {
-        switch (keyword)
-        {
-        case Keyword::BREAK: return "break";
-        case Keyword::CONTINUE:
-            return "continue";
-            [[unlikely]]
-        default:
-            SMART_ASSERT(false);
-        }
-    }
-}; // namespace Loop
-}  // namespace
-
 namespace Alpha
 {
 class SemanticManager
@@ -56,9 +31,6 @@ public:
     void N(Location n_loc, const int N_index);
     void M();
     void forHeader__for_lparen_elist_semicolon_m_expr_semicolon(Expr *expr, Location expr_loc);
-    void funcSignature__funcPrefix_funcArgList(const Function *&funcSignature);
-    void funcDef__funcSignature_block(const BlockLocation &block_loc) noexcept;
-    void funcArgs__id(const char *id_name, Location id_loc);
     void ifPrefix__if_lparen_expr_rparen(Expr *expr, Location expr_loc);
     void ifStmt__ifPrefix_stmt_then();
     void elsePrefix__else(Location else_loc);
@@ -73,167 +45,7 @@ public:
     void funcCtrlStmt__return(Location return_loc);
     void returnStmt__return(Location returnStmt_loc, Location return_loc);
     void returnStmt__return_expr(Expr *expr, Location returnStmt_loc, Location return_loc);
-
-private:
-    [[nodiscard]] bool reported_function_name_conflict(const std::string &function_name,
-                                                       u32 current_scope, Location id_loc);
-    void insert_gathered_function_parameters();
-    [[nodiscard]] bool reported_parameter_name_conflict(u32 current_scope,
-                                                        const Parameter &parameter);
 }; // class SemanticManager
-
-inline bool SemanticManager::reported_function_name_conflict(const std::string &function_name,
-                                                             const u32 current_scope,
-                                                             const Location id_loc)
-{
-    if (st_.is_lib_function(function_name))
-    {
-        const std::string error =
-                FMT::format("redefinition of library function `{}`", function_name);
-        et_.report_error(CTError::Type::SEMANTIC, error, id_loc);
-        return true;
-    }
-
-    const Symbol *found_symbol = st_.lookup_local(function_name, current_scope);
-    if (!found_symbol)
-        return false;
-    if (found_symbol->is_function())
-    {
-        const std::string error =
-                FMT::format("redefinition of `function {}`", function_name);
-        const std::string note =
-                FMT::format("previous definition of `function {}` here", function_name);
-        et_.report_error(CTError::Type::SEMANTIC, error, id_loc, note,
-                         found_symbol->location);
-    }
-    else if (found_symbol->is_variable())
-    {
-        const std::string error =
-                FMT::format("`{}` redefined as a function", function_name);
-        const std::string note =
-                FMT::format("`{}` previously defined as a variable here", function_name);
-        et_.report_error(CTError::Type::SEMANTIC, error, id_loc, note,
-                         found_symbol->location);
-    }
-    return true;
-}
-
-inline void SemanticManager::insert_gathered_function_parameters()
-{
-    auto current_scope = parse_ctx_.scope_handler.scope();
-    constexpr auto space = Variable::Space::FORMAL_ARGUMENT;
-    DEBUG_SMART_ASSERT(parse_ctx_.space_handler.space() == Variable::Space::FORMAL_ARGUMENT);
-
-    for (const Parameter &param: parse_ctx_.function_ctx_handler.function_parameters())
-        if (!reported_parameter_name_conflict(current_scope, param))
-            st_.insert_variable(param.name, current_scope,
-                                Variable::Type::FORMAL_ARGUMENT, space,
-                                parse_ctx_.space_handler.next_offset(), param.loc);
-}
-
-inline bool SemanticManager::reported_parameter_name_conflict(const u32 current_scope,
-                                                              const Parameter &parameter)
-{
-    // Library‐function conflict
-    if (st_.is_lib_function(parameter.name))
-    {
-        const std::string error = FMT::format(
-            "`{}` is a library function, can't declare it as formal", parameter.name);
-        et_.report_error(CTError::Type::SEMANTIC, error, parameter.loc);
-        return true;
-    }
-    const Symbol *formal_symbol = st_.lookup_local(parameter.name, current_scope);
-    // Parameter‐redeclared conflict
-    if (formal_symbol)
-    {
-        // Parameter should produce name conflicts only with themselves.
-        DEBUG_SMART_ASSERT(                                  //
-            !!dynamic_cast<const Variable *>(formal_symbol), //
-            formal_symbol->is_variable()                     //
-        );
-
-        const std::string error =
-                FMT::format("redefinition of parameter `{}`", parameter.name);
-        const std::string note =
-                FMT::format("previous definition of `{}` here", parameter.name);
-        et_.report_error(CTError::Type::SEMANTIC, error, parameter.loc, note,
-                         formal_symbol->location);
-        return true;
-    }
-    return false;
-}
-
-/// Handles a function signature’s prefix + argument list.
-///
-/// If a name conflict is detected, we still need to call
-/// enter_function() (to keep our frame‐stack balanced), but
-/// we must *not* back-patch the local-variable count or we
-/// ’ll end up polluting the original function’s frame with
-/// local_variable_count from the redefinition.
-inline void SemanticManager::funcSignature__funcPrefix_funcArgList(const Function *&funcSignature)
-{
-    const Location func_loc = parse_ctx_.cache.func_prefix.location;
-    bool conflicting_name = reported_function_name_conflict(
-        parse_ctx_.cache.func_prefix.id, parse_ctx_.scope_handler.scope(), func_loc);
-
-    // TODO: TRY putting jump only when there is no name_conflict...
-    // as now we jump for no reason. But thenwe throw error.
-    // So quads dont really matter.. But anyway. Tidy thisfunction up.
-    // Its pure eye-pain.
-
-    const u32 label_of_jump = parse_ctx_.quad_handler.next_quad_label();
-    parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr,
-                                                func_loc);
-    const Function *function_symbol = nullptr;
-    if (!conflicting_name)
-    {
-        function_symbol = st_.insert_function(
-            parse_ctx_.cache.func_prefix.id, parse_ctx_.scope_handler.scope(),
-            parse_ctx_.function_ctx_handler.next_function_address(),
-            parse_ctx_.function_ctx_handler.function_parameters(), func_loc);
-
-        parse_ctx_.quad_handler.emit_quad(
-            IOPCode::FUNCSTART, nullptr, nullptr,
-            parse_ctx_.expr_handler.make_expr_variable(function_symbol, func_loc),
-            func_loc);
-    }
-
-    parse_ctx_.function_ctx_handler.enter_function(function_symbol, label_of_jump);
-    insert_gathered_function_parameters();
-    parse_ctx_.function_ctx_handler.clear_function_parameters();
-    parse_ctx_.space_handler
-              .enter_space(); // IMPORTANT: This line is after parameter insertion!
-
-    funcSignature = function_symbol;
-}
-
-inline void SemanticManager::funcDef__funcSignature_block(const BlockLocation &block_loc) noexcept
-{
-    parse_ctx_.quad_handler.patch_list(parse_ctx_.function_ctx_handler.get_returnlist(),
-                                       parse_ctx_.quad_handler.next_quad_label());
-    auto fbi = parse_ctx_.function_ctx_handler.exit_function();
-    if (!!fbi.function_symbol)
-    {
-        Backpatcher::set_function_local_variable_count(fbi.function_symbol,
-                                                       fbi.local_variable_count);
-
-        parse_ctx_.quad_handler.emit_quad(
-            IOPCode::FUNCEND, nullptr, nullptr,
-            parse_ctx_.expr_handler.make_expr_variable(
-                fbi.function_symbol, k_no_location), // TODO: what location here?
-            block_loc.end);
-    }
-
-    parse_ctx_.quad_handler.patch_quad(fbi.label_to_jump,
-                                       parse_ctx_.quad_handler.next_quad_label());
-
-    parse_ctx_.space_handler.exit_space();
-}
-
-inline void SemanticManager::funcArgs__id(const char *id_name, const Location id_loc)
-{
-    parse_ctx_.function_ctx_handler.add_function_parameter(id_name, id_loc);
-}
 
 inline void SemanticManager::ifPrefix__if_lparen_expr_rparen(Expr *expr, const Location expr_loc)
 {

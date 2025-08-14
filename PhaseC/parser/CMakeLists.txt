@@ -131,7 +131,6 @@ add_library(alpha_parser_impl STATIC
     ${ALPHA_PARSER_OUTPUT_FILEPATH} # <- Generated
     src/symbol_table.cpp
     src/ir_expr.cpp
-    src/RELOCATE_backpatcher.cpp
     src/L1_driver/semantic_system.cpp
     src/L1_driver/semantic_system_support.cpp
     src/L2_builders/lvalue_resolver.cpp

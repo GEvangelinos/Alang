@@ -90,7 +90,7 @@ LvalueResolver::Restricted::ensure_reachable_symbol(
             symbol->scope == parse_ctx_->func_ctx_handler.current_function_scope();
     if (reachable)
         return true;
-    dr_->report_inaccessible_variable_in_func(
+    dr_->report_inaccessible_var_in_func(
         id_name,
         parse_ctx_->func_ctx_handler.current_function_name(),
         id_loc,

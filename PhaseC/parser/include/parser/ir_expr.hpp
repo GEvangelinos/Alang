@@ -142,7 +142,7 @@ struct ConstStringExpr final : public ConstExpr
 
     ConstStringExpr(const SourceLocation loc, const char *const value)
         : ConstExpr(Type::CONST_STRING, loc),
-          value(Utils::cstrdup(REQUIRE_PTR(value))) { DEBUG_SMART_ASSERT(!!this->value); }
+          value(utils::cstrdup(REQUIRE_PTR(value))) { DEBUG_SMART_ASSERT(!!this->value); }
 
     ~ConstStringExpr()
     {

@@ -9,9 +9,9 @@ SemanticSystem::SemanticSystem(
     DiagnosticEngine *const diagnostic_engine)
     : ss_gateway_(ss_status_),
       // External resources, required to initialize class.
-      parse_ctx_(Utils::require_ptr(parse_ctx)),
-      symbol_table_(Utils::require_ptr(symbol_table)),
-      diagnostic_engine_(Utils::require_ptr(diagnostic_engine)),
+      parse_ctx_(utils::require_ptr(parse_ctx)),
+      symbol_table_(utils::require_ptr(symbol_table)),
+      diagnostic_engine_(utils::require_ptr(diagnostic_engine)),
 
       // private resources, used by public submodules.
       expr_maker_(std::make_unique<ExprMaker>(parse_ctx_)),

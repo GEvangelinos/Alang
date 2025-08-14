@@ -67,6 +67,12 @@ public:
         assigned_ = true;
     }
 
+    const Once &operator=(const T &value)
+    {
+        set(value);
+        return *this;
+    }
+
     template<typename U = T>
     std::enable_if_t<std::is_pointer_v<U>, U> operator->() { return get(); }
 

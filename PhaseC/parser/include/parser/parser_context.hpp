@@ -101,8 +101,8 @@ public:
         const std::string name;
         const u32 scope;
         const SourceLocation location;
-        const u32 local_variable_count;
-        const FuncSymbol *function_symbol;
+        const u32 local_var_count;
+        const FuncSymbol *func_symbol;
         const u32 label_to_jump; // label to jump over function def in runtime.. TODO:
         // please rename its ugly
     };
@@ -123,10 +123,10 @@ public:
     [[nodiscard]] const std::string &current_function_name() const noexcept;
     [[nodiscard]] SourceLocation current_function_location() const noexcept;
     [[nodiscard]] u32 loop_depth() const noexcept;
-    [[nodiscard]] const std::list<Parameter> &function_parameters() const noexcept;
+    [[nodiscard]] const std::vector<Parameter> &function_parameters() const noexcept;
     [[nodiscard]] u32 next_function_address() noexcept { return next_function_address_++; }
 
-    [[nodiscard]] const std::vector<u32> &get_breaklist() // TODO CLEANUP
+    [[nodiscard]] const std::vector<LabelID> &break_list() // TODO CLEANUP
     {
         DEBUG_SMART_ASSERT(!frame_stack_.empty());
         // We must be in a LOOP
@@ -135,7 +135,7 @@ public:
         return frame_stack_.top().function_breaklist_stack.top();
     }
 
-    [[nodiscard]] const std::vector<u32> &get_continuelist() // TODO CLEANUP
+    [[nodiscard]] const std::vector<LabelID> &continue_list() // TODO CLEANUP
     {
         DEBUG_SMART_ASSERT(!frame_stack_.empty());
         // We must be in a LOOP
@@ -144,7 +144,7 @@ public:
         return frame_stack_.top().function_continuelist_stack.top();
     }
 
-    void add_label_to_breaklist(u32 jump_label) // Quad label of jump used to break.
+    void add_label_to_breaklist(LabelID jump_label) // Quad label of jump used to break.
     {
         DEBUG_SMART_ASSERT(!frame_stack_.empty()); // TODO replace 1 (due to global frame)
         // We must be in a LOOP
@@ -154,7 +154,7 @@ public:
         frame_stack_.top().function_breaklist_stack.top().push_back(jump_label);
     }
 
-    void add_label_to_continuelist(u32 jump_label) // Quad label of jump used to break.
+    void add_label_to_continuelist(LabelID jump_label) // Quad label of jump used to break.
     {
         // TODO repetitive code (same as continue.. DRY it out).
         DEBUG_SMART_ASSERT(!frame_stack_.empty()); // TODO replace 1 (due to global frame)
@@ -166,7 +166,7 @@ public:
         frame_stack_.top().function_continuelist_stack.top().push_back(jump_label);
     }
 
-    [[nodiscard]] const std::vector<u32> &get_returnlist() // TODO CLEANUP
+    [[nodiscard]] const std::vector<LabelID> &return_list() // TODO CLEANUP
     {
         // We must be in a function. // Note at size 1. it global dataframe
         // So calling this function while there is only 1 framestack is a logic issue.
@@ -174,7 +174,7 @@ public:
         return frame_stack_.top().function_returnlist;
     }
 
-    void add_label_to_returnlist(const u32 jump_label) // Quad label of jump used to break.
+    void add_label_to_returnlist(const LabelID jump_label) // Quad label of jump used to break.
     {
         // We must be in function
         DEBUG_SMART_ASSERT(frame_stack_.size() > 1); // TODO replace 1 (due to global frame)
@@ -193,14 +193,14 @@ private:
         u32 loop_nesting_count = 0;
 
         // This is labels of breaks per loop in function
-        std::stack<std::vector<u32> > function_breaklist_stack;
+        std::stack<std::vector<LabelID> > function_breaklist_stack;
         // This is labels of continue of loops per loop in function
-        std::stack<std::vector<u32> > function_continuelist_stack;
+        std::stack<std::vector<LabelID> > function_continuelist_stack;
 
         // This is labels returns per function (in this FunctionDataFrame).
-        std::vector<u32> function_returnlist;
+        std::vector<LabelID> function_returnlist;
 
-        const u32 label_of_jump; // used to go over function definition in runtime.
+        const LabelID label_of_jump; // used to go over function definition in runtime.
 
         u32 local_variable_count = 0;
 
@@ -218,7 +218,7 @@ private:
     };
 
     std::stack<FunctionDataFrame> frame_stack_;
-    std::list<Parameter> function_parameters_;
+    std::vector<Parameter> function_parameters_;
     u32 next_function_address_ = 0;
 
     ParseCtx *const parse_ctx_;
@@ -276,7 +276,7 @@ inline void SpaceHandler::exit_space()
 
     DEBUG_SMART_ASSERT(                                     //
         variable_offset_stack_.size() > spaces_for_closure, //
-        Utils::is_odd(variable_offset_stack_.size())        //
+        utils::is_odd(variable_offset_stack_.size())        //
     );
 
     #pragma unroll
@@ -291,7 +291,7 @@ inline VarSymbol::Space SpaceHandler::space() const noexcept
 
     if (frame_index == k_initial_space)
         return VarSymbol::Space::PROGRAM_VAR;
-    if (Utils::is_odd(frame_index))
+    if (utils::is_odd(frame_index))
         return VarSymbol::Space::FORMAL_ARGUMENT;
     return VarSymbol::Space::FUNCTION_LOCAL;
 }
@@ -339,7 +339,7 @@ inline void ScopeHandler::exit_scope() noexcept
 }
 
 inline FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const parse_ctx)
-    : parse_ctx_(Utils::require_ptr(parse_ctx))
+    : parse_ctx_(utils::require_ptr(parse_ctx))
 {
     // We push a stack-frame, for loops that might occur outside functions.
     // So every frame corresponds to a function except the first.
@@ -361,6 +361,32 @@ inline FunctionCtxHandler::~FunctionCtxHandler()
 
 // Label of jump is for jumping over the function in runtime...
 inline void FunctionCtxHandler::enter_function(
+
+
+// HERE,, DO BOTH ENTER AND EXIT FUNCTION!!
+// REMEMBER NOT TO UPDATE LOCAL_VARABLE_COUNT(STACKFRAME_SLOT_COUNT)
+// if definition was bad.. (we dont want to pollute valid functions with the variable of redefinition)
+,
+,
+,
+// HERE,, DO BOTH ENTER AND EXIT FUNCTION!!
+// REMEMBER NOT TO UPDATE LOCAL_VARABLE_COUNT(STACKFRAME_SLOT_COUNT)
+// if definition was bad.. (we dont want to pollute valid functions with the variable of redefinition)
+,
+,
+,
+// HERE,, DO BOTH ENTER AND EXIT FUNCTION!!
+// REMEMBER NOT TO UPDATE LOCAL_VARABLE_COUNT(STACKFRAME_SLOT_COUNT)
+// if definition was bad.. (we dont want to pollute valid functions with the variable of redefinition)
+,
+,
+,
+// HERE,, DO BOTH ENTER AND EXIT FUNCTION!!
+// REMEMBER NOT TO UPDATE LOCAL_VARABLE_COUNT(STACKFRAME_SLOT_COUNT)
+// if definition was bad.. (we dont want to pollute valid functions with the variable of redefinition)
+,
+,
+,
     const FuncSymbol *const function_symbol,
     const u32 label_of_jump)
 {
@@ -473,7 +499,7 @@ inline void FunctionCtxHandler::add_function_parameter(const std::string &name, 
     function_parameters_.emplace_back(name, loc);
 }
 
-inline const std::list<Parameter> &FunctionCtxHandler::function_parameters() const noexcept
+inline const std::vector<Parameter> &FunctionCtxHandler::function_parameters() const noexcept
 {
     return function_parameters_;
 }

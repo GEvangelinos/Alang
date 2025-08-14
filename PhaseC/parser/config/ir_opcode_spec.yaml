@@ -209,19 +209,19 @@ IROPCODE_LIST:
     arg1: NONE
     arg2: NONE
 
-  RETURN:
-    result: REQUIRED
+  RETURN: # ✔
+    result: OPTIONAL
     arg1: REQUIRED
     arg2: REQUIRED
 
-  FUNCSTART:
-    result: REQUIRED
-    arg1: NONE
+  FUNCSTART: # ✔
+    result: NONE
+    arg1: REQUIRED
     arg2: NONE
     is_non_executable: true
 
-  FUNCEND:
-    result: REQUIRED
-    arg1: NONE
+  FUNCEND: # ✔
+    result: NONE
+    arg1: REQUIRED
     arg2: NONE
     is_non_executable: true

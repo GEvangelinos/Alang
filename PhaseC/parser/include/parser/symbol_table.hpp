@@ -48,7 +48,7 @@ public:
         const std::string &name,
         u32 scope,
         u32 address,
-        const std::list<Parameter> &parameter_list,
+        const std::vector<Parameter> &parameter_list,
         SourceLocation location);
 
     const VarSymbol *insert_variable(

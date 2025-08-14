@@ -53,7 +53,7 @@ private:
 
 inline
 ExprMaker::ExprMaker(ParseCtx *const parse_ctx)
-    : parse_ctx_(Utils::require_ptr(parse_ctx)) {}
+    : parse_ctx_(utils::require_ptr(parse_ctx)) {}
 
 inline ExprMaker::~ExprMaker() noexcept
 {

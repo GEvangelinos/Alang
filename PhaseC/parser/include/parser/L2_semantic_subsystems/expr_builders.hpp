@@ -311,7 +311,11 @@ private:
             std::string id;
             SourceLocation loc;
             std::vector<Parameter> parameter_list;
+
+            void reset() { id = std::string(), loc = k_no_loc, parameter_list.clear(); }
         } function_draft_;
+
+        u32 next_function_address_;
 
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
@@ -319,9 +323,15 @@ private:
         void update_function_draft(SourceLocation function_loc);
         void update_function_draft(const std::string &id, SourceLocation function_loc);
         void collect_function_parameter(const std::string &id, SourceLocation id_loc);
-
         [[nodiscard]] const Expr *build_program_function(
             const FuncSymbol *func_symbol, SourceLocation result_loc);
+        [[nodiscard]] const FuncSymbol *build_program_function_entry(SourceLocation entry_loc);
+        [[nodiscard]] const FuncSymbol *build_program_function_exit(BlockSourceLocation block_loc);
+
+        void register_function_parameters();
+        [[nodiscard]] bool validate_funcdef_name(
+            const std::string &func_name, SourceLocation funcname_loc);
+        [[nodiscard]] bool validate_formal_param_name(const Parameter &param);
     };
 
     Restricted DISPATCH_TARGET;
@@ -332,6 +342,8 @@ private:
     DISPATCH_SLAVE_METHOD_CALL(update_function_draft);
     DISPATCH_SLAVE_METHOD_CALL(collect_function_parameter);
     DISPATCH_SLAVE_METHOD_CALL(build_program_function);
+    DISPATCH_SLAVE_METHOD_CALL(build_program_function_entry);
+    DISPATCH_SLAVE_METHOD_CALL(build_program_function_exit);
     DISPATCH_DEFINE_HANDLER_END();
 };
 
@@ -931,7 +943,7 @@ BasicBuilder::Restricted::warn_if_lossy_conversion_int_to_float(
     const AlphaInt value,
     const SourceLocation conversion_loc)
 {
-    if (!Utils::is_lossless_int_to_float<AlphaFloat>(value))
+    if (!utils::is_lossless_int_to_float<AlphaFloat>(value))
         dr_->report_implicit_int_to_float_loss(conversion_loc);
 }
 
@@ -958,14 +970,10 @@ CallBuilder::Restricted::build_call_consuming(
 
     quad_handler_->emit_next(ir::Opcode::CALL, nullptr, func_expr, nullptr, call_loc);
 
-    const Expr *getretval_expr = expr_maker_->make_variable_expr(
-        k_no_loc, parse_ctx_->new_temp());
-
-    quad_handler_->emit_next(
-        ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
+    const Expr *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
+    quad_handler_->emit_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
 
     CallBuilder::Restricted::delete_expr_list(param_list);
-
     return getretval_expr;
 }
 
@@ -991,8 +999,9 @@ inline const Expr *
 CallBuilder::Restricted::build_iife_call_consuming(
     const FuncSymbol *const func_symbol, ExprList *&elist, const SourceLocation call_loc)
 {
-    const Expr *func_expr = expr_maker_->make_prog_func_expr(call_loc, func_symbol);
-    return build_call_consuming(func_expr, elist, call_loc);
+    DEBUG_SMART_ASSERT(!!func_symbol);
+    const auto *const prog_func_expr = expr_maker_->make_prog_func_expr(call_loc, func_symbol);
+    return build_call_consuming(prog_func_expr, elist, call_loc);
 }
 
 inline void CallBuilder::Restricted::delete_expr_list(ExprList *&param_list)
@@ -1059,14 +1068,158 @@ FunctionBuilder::Restricted::collect_function_parameter(
     const std::string &id,
     const SourceLocation id_loc) { function_draft_.parameter_list.emplace_back(id, id_loc); }
 
+inline void
+FunctionBuilder::Restricted::register_function_parameters()
+{
+    constexpr auto space = VarSymbol::Space::FORMAL_ARGUMENT;
+    DEBUG_SMART_ASSERT(
+        parse_ctx_->space_handler.space() == VarSymbol::Space::FORMAL_ARGUMENT
+    );
+
+    for (const Parameter &p: function_draft_.parameter_list)
+        if (validate_formal_param_name(p))
+            symbol_table_->insert_variable(
+                p.name,
+                parse_ctx_->scope_handler.scope(),
+                VarSymbol::Type::FORMAL_ARGUMENT,
+                space,
+                parse_ctx_->space_handler.next_offset(),
+                p.loc
+            );
+}
+
+inline bool
+FunctionBuilder::Restricted::validate_funcdef_name(
+    const std::string &func_name,
+    const SourceLocation funcname_loc)
+{
+    if (symbol_table_->is_libfunc_name(func_name))
+    {
+        dr_->report_redefinition_of_libfunc(func_name, funcname_loc);
+        return false;
+    }
+
+    const auto curr_scope = parse_ctx_->scope_handler.scope();
+    if (const Symbol *const found_symbol = symbol_table_->lookup_local(func_name, curr_scope))
+    {
+        if (found_symbol->is_function())
+        {
+            dr_->report_redefinition_of_func(func_name, funcname_loc, found_symbol->loc);
+            return false;
+        }
+        if (found_symbol->is_variable())
+        {
+            dr_->report_var_redefined_as_func(func_name, funcname_loc, found_symbol->loc);
+            return false;
+        }
+    }
+    return true;
+}
+
+inline bool
+FunctionBuilder::Restricted::validate_formal_param_name(const Parameter &param)
+{
+    // Library‐function conflict
+    if (symbol_table_->is_libfunc_name(param.name))
+    {
+        dr_->report_libfunc_redefined_as_formal_parameter(param.name, param.loc);
+        return false;
+    }
+
+    const auto curr_scope = parse_ctx_->scope_handler.scope();
+    if (const Symbol *const formal_symbol = symbol_table_->lookup_local(param.name, curr_scope))
+    {
+        // Parameter should produce name conflicts only with themselves.
+        DEBUG_SMART_ASSERT(
+            !!dynamic_cast<const VarSymbol *>(formal_symbol), // non-nullptr == valid conversion
+            formal_symbol->is_variable(),
+            formal_symbol->type == VarSymbol::Type::FORMAL_ARGUMENT
+        );
+        dr_->report_redefinition_of_formal_parameter(param.name, param.loc, formal_symbol->loc);
+        return false;
+    }
+    return true;
+}
+
 inline const Expr *
 FunctionBuilder::Restricted::build_program_function(
     const FuncSymbol *const func_symbol,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!func_symbol);
-    // We make a program function, as library functions are read from source code. They are builtins.
     return expr_maker_->make_prog_func_expr(result_loc, func_symbol);
+}
+
+/// Handles a function signature’s prefix + argument list.
+///
+/// If a name conflict is detected, we still need to call
+/// enter_function() (to keep our frame‐stack balanced), but
+/// we must *NOT* back-patch the local-variable count,
+/// or we’ll end up polluting the original function’s frame with
+/// local_variable_count from the redefinition. TODO: DO WE POLLUTE CURRENTLY?
+inline const FuncSymbol *
+FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation entry_loc)
+{
+    const SourceLocation func_loc = function_draft_.loc;
+    const bool validated_funcname = validate_funcdef_name(function_draft_.id, func_loc);
+
+    // TODO: Why is this needed (observe generated IR)
+    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_loc);
+    const FuncSymbol *func_symbol = nullptr;
+    if (validated_funcname)
+    {
+        func_symbol = symbol_table_->insert_function(
+            function_draft_.id,
+            parse_ctx_->scope_handler.scope(),
+            next_function_address_,
+            function_draft_.parameter_list,
+            func_loc
+        );
+
+        quad_handler_->emit_next(
+            ir::Opcode::FUNCSTART,
+            nullptr,
+            expr_maker_->make_prog_func_expr(entry_loc, func_symbol),
+            nullptr,
+            func_loc
+        );
+    }
+    DEBUG_SMART_ASSERT(utils::logical_xnor(validated_funcname, !!func_symbol)); // Sanity check
+
+    // TODO: Wtf is this label of jump?
+    const u32 label_of_jump = quad_handler_->next_quad_label();
+    parse_ctx_->func_ctx_handler.enter_function(func_symbol, label_of_jump); // New func_ctx frame.
+    register_function_parameters();
+    function_draft_.reset(); // Mandatory to support nested functions in the upcoming func-block.
+    parse_ctx_->space_handler.enter_space(); // New var space -- must be after param registration.
+
+    return func_symbol;
+}
+
+//TODO reallocate? Am I even needed?
+
+inline const FuncSymbol *
+FunctionBuilder::Restricted::build_program_function_exit(const BlockSourceLocation block_loc)
+{
+    quad_handler_->patch_list(
+        parse_ctx_->func_ctx_handler.return_list(), quad_handler_->next_quad_label());
+
+    const auto fbi = parse_ctx_->func_ctx_handler.exit_function();
+    if (!!fbi.func_symbol)
+    {
+        fbi.func_symbol->stackframe_slot_count = fbi.local_var_count;
+
+        quad_handler_->emit_next(
+            ir::Opcode::FUNCEND,
+            nullptr,
+            expr_maker_->make_prog_func_expr(block_loc.end, fbi.func_symbol),
+            nullptr,
+            block_loc.end);
+    }
+    quad_handler_->patch_quad(fbi.label_to_jump, quad_handler_->next_quad_label());
+    parse_ctx_->space_handler.exit_space();
+
+    return fbi.func_symbol;
 }
 
 inline const Expr *

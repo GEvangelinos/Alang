@@ -94,16 +94,17 @@ class FuncSymbol final : public Symbol
 {
 public:
     const u32 address;
-    const std::list<Parameter> parameter_list; // TODO: change to vector (cache friendly...)
-    Once<u32> local_variable_count;
+    const std::vector<Parameter> parameter_list; // TODO: change to vector (cache friendly...)
 
+    // Is declared mutable, as we backpatch it after function's complete definition.
+    mutable Once<u32> stackframe_slot_count;
 
     FuncSymbol(
         const std::string &name,
         u32 scope,
         Type type,
         u32 address,
-        const std::list<Parameter> &parameter_list,
+        const std::vector<Parameter> &parameter_list,
         SourceLocation location);
     ~FuncSymbol() override = default;
 
@@ -165,7 +166,7 @@ FuncSymbol::FuncSymbol(
     const u32 scope,
     const Type type,
     const u32 address,
-    const std::list<Parameter> &parameter_list,
+    const std::vector<Parameter> &parameter_list,
     const SourceLocation location)
     : Symbol(name, scope, type, location),
       address(address),

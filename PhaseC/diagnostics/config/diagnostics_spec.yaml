@@ -59,7 +59,7 @@
       Args: [ operand_expr_type ]
       Location: operand_loc
 
-- Diagnostic: INACCESSIBLE_VARIABLE_IN_FUNC
+- Diagnostic: INACCESSIBLE_VAR_IN_FUNC
   Type: ERROR
   Primary:
     - Message: "variable `{0}` is not accessible in function `{1}`"
@@ -132,3 +132,50 @@
     - Message: "character `{0}` is invalid"
       Args: [ char_str ]
       Location: char_loc
+
+- Diagnostic: REDEFINITION_OF_LIBFUNC
+  Type: ERROR
+  Primary:
+    - Message: "redefinition of library function `{0}`"
+      Args: [ libfunc_name ]
+      Location: redef_loc
+
+- Diagnostic: REDEFINITION_OF_FUNC
+  Type: ERROR
+  Primary:
+    - Message: "redefinition of function `{0}`"
+      Args: [ func_name ]
+      Location: redef_loc
+  Notes:
+    - Message: "initial definition of function `{0}` here"
+      Args: [ func_name ]
+      Location: initial_def_loc
+
+- Diagnostic: VAR_REDEFINED_AS_FUNC
+  Type: ERROR
+  Primary:
+    - Message: "`{0}` redefined as a function"
+      Args: [ func_name ]
+      Location: redef_loc
+  Notes:
+    - Message: "`{0}` initially defined as a variable here"
+      Args: [ func_name ]
+      Location: var_def_loc
+
+- Diagnostic: LIBFUNC_REDEFINED_AS_FORMAL_PARAMETER
+  Type: ERROR
+  Primary:
+    - Message: "`{0}` is a library function, can't declare it as formal parameter"
+      Args: [ libfunc_name ]
+      Location: formal_param_loc
+
+- Diagnostic: REDEFINITION_OF_FORMAL_PARAMETER
+  Type: ERROR
+  Primary:
+    - Message: "redefinition of formal parameter `{0}`"
+      Args: [param_name]
+      Location: param_loc
+  Notes:
+    - Message: "initial definition of `{0}` here"
+      Args: [param_name]
+      Location: initial_param_loc

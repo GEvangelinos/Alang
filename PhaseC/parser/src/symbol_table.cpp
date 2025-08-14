@@ -4,12 +4,11 @@
 #include "utils/format_adapter.hpp"  // for format, FMT
 #include "utils/smart_assert.h"      // for DEBUG_SMART_ASSERT
 #include <utility>                   // for move, pair, forward
-#include "parser/RELOCATE_backpatcher.hpp"
 #include "parser/semantic_utils.hpp"
 
 namespace alpha
 {
-static const std::list<Parameter> k_empty_parameter_list;
+inline constexpr std::vector<Parameter> k_empty_parameter_list;
 
 namespace // (Anonymous)
 {
@@ -75,7 +74,7 @@ SymbolTable::insert_symbol(
 // Explicit instantiations for insert_symbol()
 template const FuncSymbol *
 SymbolTable::insert_symbol<FuncSymbol>(
-    const std::string &, u32, FuncSymbol::Type &&, u32 &&, const std::list<Parameter> &,
+    const std::string &, u32, FuncSymbol::Type &&, u32 &&, const std::vector<Parameter> &,
     SourceLocation &&);
 
 template const VarSymbol *
@@ -99,9 +98,7 @@ SymbolTable::SymbolTable()
             k_no_loc);
         library_function_set_.insert(name);
 
-        Backpatcher::set_function_local_variable_count(
-            function_symbol,
-            k_libfunc_local_variable_count);
+        function_symbol->stackframe_slot_count.set(k_libfunc_local_variable_count);
     }
 }
 
@@ -111,7 +108,7 @@ SymbolTable::insert_function(
     const std::string &name,
     const u32 scope,
     const u32 address,
-    const std::list<Parameter> &parameter_list,
+    const std::vector<Parameter> &parameter_list,
     const SourceLocation location)
 {
     return insert_symbol<FuncSymbol>(
@@ -231,10 +228,7 @@ SymbolTable::is_libfunc_name(const std::string &name) const
 ///   it's *their bug*. This method trusts that the pipeline is well-formed.
 
 void
-SymbolTable::clear_const_expr(const VarSymbol *var_symbol)
-{
-    var_symbol->const_expr_ = nullptr;
-}
+SymbolTable::clear_const_expr(const VarSymbol *var_symbol) { var_symbol->const_expr_ = nullptr; }
 
 // Related method — refer to rationale above
 void
