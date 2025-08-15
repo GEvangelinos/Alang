@@ -2,9 +2,9 @@
 
 namespace alpha
 {
-LoopManager::LoopManager(const SemanticSystemServices &ss_services)
+ControlFlowManager::ControlFlowManager(const SemanticSystemServices &ss_services)
     :DISPATCH_TARGET(ss_services) {}
 
-LoopManager::Restricted::Restricted(const SemanticSystemServices &ss_services)
+ControlFlowManager::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
 } // namespace alpha

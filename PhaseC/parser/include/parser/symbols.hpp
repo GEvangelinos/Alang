@@ -96,7 +96,7 @@ public:
     const u32 address;
     const std::vector<Parameter> parameter_list; // TODO: change to vector (cache friendly...)
 
-    // Is declared mutable, as we backpatch it after function's complete definition.
+    // Declared mutable, as we backpatch it after the function’s complete definition.
     mutable Once<u32> stackframe_slot_count;
 
     FuncSymbol(

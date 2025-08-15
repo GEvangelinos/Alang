@@ -133,11 +133,11 @@
 %token ASSIGN    "assignment operator ="
 %token PLUS      "+"
 %token MINUS     "-"
-%token MUL      "*"
+%token MUL       "*"
 %token DIV       "/"
 %token MOD       "%"
-%token LT        ">"
-%token GT        "<"
+%token LT        "<"
+%token GT        ">"
 %token GTE       ">="
 %token LTE       "<="
 %token EQ        "=="
@@ -197,10 +197,10 @@ multiStmt:
 
 stmt:
   expr SEMICOLON { ss.call<"finalize_bool_expr">($expr); }
-| ifStmt
-| whileStmt
+| if_stmt
+| while_stmt
 | forStmt
-| returnStmt SEMICOLON
+| return_stmt SEMICOLON
 | loopCtrlStmt SEMICOLON
 | block_loc
 | func_def
@@ -212,8 +212,8 @@ stmt:
 ;
 
 loopCtrlStmt:
-  BREAK    { ss.call<"loop_manager.process_break">(@BREAK); }
-| CONTINUE { ss.call<"loop_manager.process_continue">(@CONTINUE); }
+  BREAK    { ss.call<"control_flow_manager.manage_break">(@BREAK); }
+| CONTINUE { ss.call<"control_flow_manager.manage_continue">(@CONTINUE); }
 ;
 
 not_op:
@@ -298,7 +298,8 @@ primary
 | table_literal { $primary = $table_literal; }
 | lvalue        { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($lvalue); }
 | call          { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($call); }
-| LEFT_PAREN func_def RIGHT_PAREN { $primary = ss.call<"function_builder.build_program_function">($func_def, @primary); }
+| LEFT_PAREN func_def RIGHT_PAREN
+  { $primary = ss.call<"function_builder.build_program_function">($func_def, @primary); }
 ;
 
 lvalue:
@@ -351,7 +352,7 @@ comma_separated_exprs[out]:
 ;
 
 expr_list:
-/* (empty) */           { ss.call<"aggregate_builder.build_expr_list">(); }
+/* (empty) */           { $expr_list = ss.call<"aggregate_builder.build_expr_list">(); }
 | comma_separated_exprs { $expr_list = $comma_separated_exprs; }
 ;
 
@@ -396,7 +397,8 @@ block_body:
 ;
 
 block_loc:
-  block_begin block_body block_end { ss.call<"block_manager.make_block_location">(@block_begin, @block_end); }
+  block_begin block_body block_end
+  { ss.call<"block_manager.make_block_location">(@block_begin, @block_end); }
 ;
 
 func_prefix:
@@ -415,11 +417,13 @@ funcArgList:
 ;
 
 func_signature:
-  func_prefix funcArgList  { $func_signature = ss.call<"function_builder.build_program_function_entry">(@func_signature);}
+  func_prefix funcArgList
+  { $func_signature = ss.call<"function_builder.build_program_function_entry">(@func_signature);}
 ;
 
 func_def:
-  func_signature block_loc { $func_def = ss.call<"function_builder.build_program_function_exit">($block_loc); }
+  func_signature block_loc
+  { $func_def = ss.call<"function_builder.build_program_function_exit">($block_loc); }
 ;
 
 const
@@ -431,34 +435,30 @@ const
 | NIL       {  $const = ss.call<"const_builder.build_nil_expr">(@NIL); }
 ;
 
-ifPrefix
-: IF LEFT_PAREN expr RIGHT_PAREN 
-;
-elsePrefix
-: ELSE
+if_clause
+: IF LEFT_PAREN expr[condition] RIGHT_PAREN
+  { ss.call<"control_flow_manager.manage_if_entry">($condition, @if_clause); }
 ;
 
-ifStmt
-: ifPrefix stmt %prec THEN
-| ifPrefix stmt elsePrefix stmt
+else_clause
+: ELSE { ss.call<"control_flow_manager.manage_else_entry">(@else_clause); }
 ;
 
-whileStart:
-WHILE
+if_stmt
+: if_clause stmt %prec THEN       { ss.call<"control_flow_manager.manage_if_exit">(); }
+| if_clause stmt else_clause stmt { ss.call<"control_flow_manager.manage_else_exit">(); }
 ;
 
-whileCondition:
-  LEFT_PAREN expr  RIGHT_PAREN
+
+while_clause:
+  WHILE       { ss.call<"control_flow_manager.manage_while_entry">(); }
+  LEFT_PAREN
+  expr[condition]
+  RIGHT_PAREN { ss.call<"control_flow_manager.manage_while_condition">($condition, @while_clause); }
 ;
 
-whileHeader:
-  whileStart
-  whileCondition
-;
-
-whileStmt:
-  whileHeader
-  stmt
+while_stmt:
+  while_clause stmt { ss.call<"control_flow_manager.manage_while_exit">(@while_stmt); }
 ;
 
 N1:
@@ -469,30 +469,31 @@ N3:
 ;
 
 M:
+
 ;
 
-forHeader:
+for_clause:
   FOR
   LEFT_PAREN
-  expr_list
+  expr_list[init_list]
   SEMICOLON
   M
-  expr
+  expr[condition]
   SEMICOLON
   N1
-  expr_list
+  expr_list[update_list]
   RIGHT_PAREN
 ;
 
 forStmt:
-  forHeader
+  for_clause
   N2
   stmt
   N3
 ;
 
 
-returnStmt:
+return_stmt:
   RETURN
 | RETURN  expr  
 ;

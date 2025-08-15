@@ -69,20 +69,20 @@ public:
     [[nodiscard]] bool good() const noexcept { return ss_status_ == SemanticSystemStatus::OK; }
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
-    DISPATCH_MASTER_METHOD_CALL(convert_to_bool_expr);
-    DISPATCH_MASTER_METHOD_CALL(mark_short_circuit_jump_point);
-    DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
-    DISPATCH_MASTER_METHOD_CALL(finalize_bool_expr);
     DISPATCH_MASTER_MODULE_CALL(aggregate_builder);
     DISPATCH_MASTER_MODULE_CALL(assign_builder);
     DISPATCH_MASTER_MODULE_CALL(basic_builder);
     DISPATCH_MASTER_MODULE_CALL(block_manager);
     DISPATCH_MASTER_MODULE_CALL(call_builder);
     DISPATCH_MASTER_MODULE_CALL(const_builder);
-    DISPATCH_MASTER_MODULE_CALL(loop_manager);
+    DISPATCH_MASTER_MODULE_CALL(control_flow_manager);
     DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
     DISPATCH_MASTER_MODULE_CALL(function_builder);
     DISPATCH_MASTER_MODULE_CALL(table_access_builder);
+    DISPATCH_MASTER_METHOD_CALL(convert_to_bool_expr);
+    DISPATCH_MASTER_METHOD_CALL(mark_short_circuit_jump_point);
+    DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
+    DISPATCH_MASTER_METHOD_CALL(finalize_bool_expr);
     DISPATCH_DEFINE_HANDLER_END();
 
 private:
@@ -110,7 +110,7 @@ private:
     BlockManager block_manager;
     CallBuilder call_builder;
     ConstBuilder const_builder;
-    LoopManager loop_manager;
+    ControlFlowManager control_flow_manager;
     LvalueResolver lvalue_resolver;
     FunctionBuilder function_builder;
     TableAccessBuilder table_access_builder;

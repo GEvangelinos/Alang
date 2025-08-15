@@ -567,3 +567,31 @@ although we need it one time for the error and one time for the note:
       Args: [ func_name ]
       Location: initial_def_loc
 
+
+
+81) Write manually the naming convertion.md in docs/ currently its a draft written by chatgpt
+
+82) Test what happens in case else keyword (with block and code and without) appears without and ifstmt first..
+Does grammar parser catch it? or can we make error rule so we can make nice diagnostic ?
+I think currently elsestmt can only exist after ifstmt in described grammar.
+
+83) do all build_ methods return a const Expr* if not change its name.. build_ == return const Expr *
+
+84) Is this safe ? what IR do I emit? Is it okay ? DOes it make sense? (Ath this to the tests)
+
+  while(;)
+  {
+    commnads
+  }
+
+85) if a quad's location is point to more than 1 line
+in IR printing print line  FIRSTNUM-LASTNUM
+
+for exaple the jump in while_stmt rule gets is location,
+based on whole while stmt.. that its probably multiple lines..
+
+so in line it should say (for example) 17-42
+
+meaning this jump was cause by lines 17 to 42
+
+(or is this a bad idea?)

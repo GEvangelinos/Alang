@@ -31,114 +31,12 @@ public:
     void N(Location n_loc, const int N_index);
     void M();
     void forHeader__for_lparen_elist_semicolon_m_expr_semicolon(Expr *expr, Location expr_loc);
-    void ifPrefix__if_lparen_expr_rparen(Expr *expr, Location expr_loc);
-    void ifStmt__ifPrefix_stmt_then();
-    void elsePrefix__else(Location else_loc);
-    void ifStmt__ifPrefix_stmt_elsePrefix_stmt();
-    void whileStart__while();
-    void whileCondition__lparen_expr_rparen(Expr *expr, Location expr_loc,
-                                            Location while_cond_loc);
-    void whileStmt__whileHeader() noexcept;
-    void whileStmt__whileHeader_stmt(Location while_stmt_header);
     void forStmt__forHeader() noexcept;
     void forStmt__forHeader_stmt() noexcept;
     void funcCtrlStmt__return(Location return_loc);
     void returnStmt__return(Location returnStmt_loc, Location return_loc);
     void returnStmt__return_expr(Expr *expr, Location returnStmt_loc, Location return_loc);
 }; // class SemanticManager
-
-inline void SemanticManager::ifPrefix__if_lparen_expr_rparen(Expr *expr, const Location expr_loc)
-{
-    auto &eh = parse_ctx_.expr_handler;
-    auto &qh = parse_ctx_.quad_handler;
-
-    const Expr *true_expr = eh.make_expr_const_bool(true, expr_loc);
-
-    // TODO: when you inverseto IF_NOTEQ +2  cause we want to go over jump.
-    // I've done the flow graph on paper.
-    qh.emit_quad_w_jump_step(IOPCode::IF_EQ, expr, true_expr, 2, expr_loc);
-
-    parse_ctx_.cache.if_prefix.quads_to_patch.push(qh.next_quad_label());
-    qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, expr_loc);
-}
-
-inline void SemanticManager::ifStmt__ifPrefix_stmt_then()
-{
-    auto &qh = parse_ctx_.quad_handler;
-    u32 quad_to_patch = parse_ctx_.cache.if_prefix.quads_to_patch.top();
-    parse_ctx_.cache.if_prefix.quads_to_patch.pop();
-    qh.patch_quad(quad_to_patch, qh.next_quad_label());
-}
-
-inline void SemanticManager::elsePrefix__else(Location else_loc)
-{
-    auto &qh = parse_ctx_.quad_handler;
-    parse_ctx_.cache.else_prefix.quads_to_patch.push(qh.next_quad_label());
-    qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, else_loc);
-
-    // TODO for if_noteq:
-    // u32 if_noteq_quad_to_patch = parse_ctx_.cache.if_prefix.quads_to_patch.top();
-    // parse_ctx_.cache.if_prefix.quads_to_patch.pop();
-    // qh.patch_quad(if_noteq_quad_to_patch, qh.next_quad_label());
-}
-
-inline void SemanticManager::ifStmt__ifPrefix_stmt_elsePrefix_stmt()
-{
-    auto &qh = parse_ctx_.quad_handler;
-
-    // patchlabel($ifprefix, $elseprefix + 1);
-    qh.patch_quad(parse_ctx_.cache.if_prefix.quads_to_patch.top(),
-                  parse_ctx_.cache.else_prefix.quads_to_patch.top());
-
-    u32 quad_to_patch = parse_ctx_.cache.else_prefix.quads_to_patch.top();
-    parse_ctx_.cache.else_prefix.quads_to_patch.pop();
-    qh.patch_quad(quad_to_patch, qh.next_quad_label());
-}
-
-inline void SemanticManager::whileStart__while()
-{
-    parse_ctx_.cache.while_start.next_quad_stack.push(
-        parse_ctx_.quad_handler.next_quad_label());
-}
-
-inline void SemanticManager::whileCondition__lparen_expr_rparen(Expr *expr, Location expr_loc,
-                                                                Location while_cond_loc)
-{
-    auto &qh = parse_ctx_.quad_handler;
-    auto &eh = parse_ctx_.expr_handler;
-    Expr *true_expr = eh.make_expr_const_bool(true, expr_loc);
-    qh.emit_quad_w_jump_step(IOPCode::IF_EQ, expr, true_expr, +2, while_cond_loc);
-    parse_ctx_.cache.while_condition.quads_to_patch.push(
-        parse_ctx_.quad_handler.next_quad_label());
-
-    qh.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr, while_cond_loc);
-}
-
-inline void SemanticManager::whileStmt__whileHeader() noexcept
-{
-    parse_ctx_.function_ctx_handler.enter_loop();
-}
-
-inline void SemanticManager::whileStmt__whileHeader_stmt(const Location while_stmt_loc)
-{
-    auto &qh = parse_ctx_.quad_handler;
-
-    DEBUG_SMART_ASSERT(parse_ctx_.cache.while_start.next_quad_stack.size() > 0);
-    qh.emit_quad_w_label(IOPCode::JUMP, nullptr, nullptr, nullptr,
-                         parse_ctx_.cache.while_start.next_quad_stack.top(), while_stmt_loc);
-
-    DEBUG_SMART_ASSERT(parse_ctx_.cache.while_condition.quads_to_patch.size() > 0);
-    qh.patch_quad(parse_ctx_.cache.while_condition.quads_to_patch.top(), qh.next_quad_label());
-    parse_ctx_.cache.while_condition.quads_to_patch.pop();
-
-    qh.patch_list(parse_ctx_.function_ctx_handler.get_breaklist(), qh.next_quad_label());
-    qh.patch_list(parse_ctx_.function_ctx_handler.get_continuelist(),
-                  parse_ctx_.cache.while_start.next_quad_stack.top());
-
-    parse_ctx_.cache.while_start.next_quad_stack.pop();
-
-    parse_ctx_.function_ctx_handler.exit_loop(); // This kills break and continue lists.
-}
 
 inline void SemanticManager::N(Location n_loc, const int N_index)
 {

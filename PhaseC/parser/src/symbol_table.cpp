@@ -53,7 +53,7 @@ SymbolTable::insert_symbol(
     u32 scope,
     Args &&... args)
 {
-    DEBUG_SMART_ASSERT(name.size() > 0);
+    DEBUG_SMART_ASSERT(!name.empty());
 
     const auto symbol_map_it = symbol_map_.try_emplace(name).first;
     const auto &symbol_name_ref = symbol_map_it->first;

@@ -210,7 +210,6 @@ private:
     DISPATCH_SLAVE_METHOD_CALL(build_uminus);
     DISPATCH_SLAVE_METHOD_CALL(build_arithmetic);
     DISPATCH_SLAVE_METHOD_CALL(build_relational);
-    DISPATCH_SLAVE_METHOD_CALL(build_relational);
     DISPATCH_SLAVE_METHOD_CALL(build_logical_not);
     DISPATCH_SLAVE_METHOD_CALL(build_logical_and);
     DISPATCH_SLAVE_METHOD_CALL(build_logical_or);
@@ -286,8 +285,6 @@ private:
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(build_true_expr);
-    DISPATCH_SLAVE_METHOD_CALL(build_false_expr);
-    DISPATCH_SLAVE_METHOD_CALL(build_false_expr);
     DISPATCH_SLAVE_METHOD_CALL(build_false_expr);
     DISPATCH_SLAVE_METHOD_CALL(build_int_expr);
     DISPATCH_SLAVE_METHOD_CALL(build_float_expr);
@@ -454,7 +451,7 @@ AggregateBuilder::Restricted::build_table_list_consuming(
     const SourceLocation table_list_loc)
 {
     DEBUG_SMART_ASSERT(!!elist);
-    auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
+    auto *const qh = quad_handler_; // Short alias for readability.
 
     const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
     qh->emit_next(ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
@@ -481,7 +478,7 @@ AggregateBuilder::Restricted::build_table_dict_consuming(
     const SourceLocation table_dict_loc)
 {
     DEBUG_SMART_ASSERT(!!dlist);
-    auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
+    auto *const qh = quad_handler_; // Short alias for readability.
 
     const Expr *const new_table_expr = expr_maker_->make_new_table_expr(table_dict_loc);
     qh->emit_next(ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_dict_loc);
@@ -642,7 +639,7 @@ AssignBuilder::Restricted::build_inc_dec(const Expr *const lvalue, const SourceL
     else if constexpr (op_variant == OpVariant::POST)
         return handle_post_inc_dec<Policy>(lvalue, result_loc);
     else
-        static_assert(false, "build_inc_dec(): Unknown OpVariant");
+        static_assert([]() { return false; }(), "build_inc_dec(): Unknown OpVariant");
 }
 
 template<typename Policy>
@@ -651,7 +648,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *lvalue, const SourceLo
 {
     static_assert(std::is_same_v<Policy, IncPolicy> ||
                   std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
-    auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
+    auto *const qh = quad_handler_; // Short alias for readability.
 
     const Expr *result = nullptr;
     if (lvalue->type == Expr::Type::TABLE_ITEM)
@@ -678,15 +675,14 @@ template<typename Policy>
 const Expr *
 AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue, const SourceLocation result_loc)
 {
-    static_assert(std::is_same_v<Policy, IncPolicy> ||
-                  std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
-    auto *const qh = quad_handler_; // Short alias to improve readability and reduce verbosity
+    static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
+    auto *const qh = quad_handler_; // Short alias for readability.
 
     const Expr *result = expr_maker_->make_variable_expr(result_loc, parse_ctx_->new_temp());
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
-        const Expr *ti = ss_bridge_->materialize_lvalue_base(lvalue); // EMITS!
+        const Expr *ti = ss_bridge_->materialize_lvalue_base(lvalue);
         qh->emit_next(ir::Opcode::ASSIGN, result, ti, nullptr, result_loc);
         qh->emit_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
         qh->emit_next(ir::Opcode::TABLESETELEM, ti, ti_lvalue, ti_lvalue->index, result_loc);
@@ -771,6 +767,8 @@ BasicBuilder::Restricted::build_logical_not(const Expr *expr, const SourceLocati
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::NOT>(result_loc, expr))
         return optimized;
 
+    // Sanity check, CONST_BOOL must be consumed by the optimizer.
+    DEBUG_SMART_ASSERT(expr->type == Expr::Type::BOOL_EXPR);
     const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
     bool_result_expr->true_list = static_cast<const BoolExpr *>(expr)->false_list;
     bool_result_expr->false_list = static_cast<const BoolExpr *>(expr)->true_list;
@@ -1160,8 +1158,9 @@ FunctionBuilder::Restricted::build_program_function(
 inline const FuncSymbol *
 FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation entry_loc)
 {
-    const SourceLocation func_loc = function_draft_.loc;
-    const bool validated_funcname = validate_funcdef_name(function_draft_.id, func_loc);
+    const auto &func_name = function_draft_.id; // Local alias for readability
+    const auto func_loc = function_draft_.loc;  // Local alias for readability.
+    const bool validated_funcname = validate_funcdef_name(func_name, func_loc);
 
     // TODO: Why is this needed (observe generated IR)
     quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_loc);
@@ -1169,7 +1168,7 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation e
     if (validated_funcname)
     {
         func_symbol = symbol_table_->insert_function(
-            function_draft_.id,
+            func_name,
             parse_ctx_->scope_handler.scope(),
             next_function_address_,
             function_draft_.parameter_list,
@@ -1186,9 +1185,9 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation e
     }
     DEBUG_SMART_ASSERT(utils::logical_xnor(validated_funcname, !!func_symbol)); // Sanity check
 
-    // TODO: Wtf is this label of jump?
+    // TODO: Wtf is this label of jump? IF YOU FIND OUT... REMEMBER TO RENAME ALL INSTANCES or string/comment/text of `label_of_jumps` (case-insensitive)
     const u32 label_of_jump = quad_handler_->next_quad_label();
-    parse_ctx_->func_ctx_handler.enter_function(func_symbol, label_of_jump); // New func_ctx frame.
+    parse_ctx_->func_ctx_handler.enter_function(func_name, func_loc, func_symbol, label_of_jump);
     register_function_parameters();
     function_draft_.reset(); // Mandatory to support nested functions in the upcoming func-block.
     parse_ctx_->space_handler.enter_space(); // New var space -- must be after param registration.

@@ -29,7 +29,7 @@ SemanticSystem::SemanticSystem(
       block_manager(export_semantic_system_services()),
       call_builder(export_semantic_system_services()),
       const_builder(export_semantic_system_services()),
-      loop_manager(export_semantic_system_services()),
+      control_flow_manager(export_semantic_system_services()),
       lvalue_resolver(export_semantic_system_services()),
       function_builder(export_semantic_system_services()),
       table_access_builder(export_semantic_system_services()) {}
@@ -96,13 +96,19 @@ SemanticSystem::finalize_bool_expr(const Expr *const expr)
         return; // Nothing to backpatch if not bool_expr.
 
     const BoolExpr *const bool_expr = static_cast<const BoolExpr *>(expr);
-    auto *const qh = quad_handler_.get(); // Short alias to improve readability and reduce verbosity
+    auto *const qh = quad_handler_.get(); // Short alias for readability.
 
     DEBUG_SMART_ASSERT(!!bool_expr->var_symbol);
 
+    // true branch: patch to here and assign true
     qh->patch_list(bool_expr->true_list, qh->next_quad_label());
     qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_true_expr, nullptr, expr->loc);
-    qh->emit_next(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc, 2);
+
+    // Offset to land after the false branch
+    constexpr LabelID past_false_branch_offset = 2; // Depends on how many emits occur after jump.
+    qh->emit_next(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc, past_false_branch_offset);
+
+    // false branch: patch to here and assign false
     qh->patch_list(bool_expr->false_list, quad_handler_->next_quad_label());
     qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_false_expr, nullptr, expr->loc);
 }

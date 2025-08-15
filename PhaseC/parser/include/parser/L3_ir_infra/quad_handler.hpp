@@ -14,6 +14,14 @@ public:
     QuadHandler() = default;
     ~QuadHandler() = default;
 
+    void emit(
+        ir::Opcode opc,
+        const Expr *result,
+        const Expr *arg1,
+        const Expr *arg2,
+        SourceLocation loc,
+        LabelID label);
+
     void emit_next(
         ir::Opcode opc,
         const Expr *result,
@@ -38,24 +46,16 @@ public:
 private:
     LabelID next_quad_label_ = k_first_label;
     std::vector<Quad> quads_;
-
-    void emit_impl(
-        ir::Opcode opc,
-        const Expr *result,
-        const Expr *arg1,
-        const Expr *arg2,
-        LabelID label,
-        SourceLocation loc);
 };
 
 inline void
-QuadHandler::emit_impl(
+QuadHandler::emit(
     const ir::Opcode opc,
     const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
-    const LabelID label,
-    const SourceLocation loc)
+    const SourceLocation loc,
+    const LabelID label)
 {
     DEBUG(
         namespace ii = ir::info_traits;
@@ -96,7 +96,7 @@ QuadHandler::emit_next(
     const SourceLocation loc,
     const LabelID label_offset)
 {
-    emit_impl(opc, result, arg1, arg2, next_quad_label_ + label_offset, loc);
+    emit(opc, result, arg1, arg2, loc, next_quad_label_ + label_offset);
 }
 
 inline void
@@ -105,17 +105,18 @@ QuadHandler::emit_labelless(
     const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
-    const SourceLocation loc) { emit_impl(opc, result, arg1, arg2, k_no_label, loc); }
+    const SourceLocation loc) { emit(opc, result, arg1, arg2, loc, k_no_label); }
 
 inline void
 QuadHandler::patch_quad(const LabelID target_quad_label, const LabelID destination_label)
 {
     // First quad at index 0, has quad with label 1.
     const u32 quad_index = target_quad_label - 1;
-    DEBUG_SMART_ASSERT(target_quad_label > 0,
-                       quad_index < quads_.size(),
-                       quads_[quad_index].label == k_no_label,
-                       destination_label != k_no_label
+    DEBUG_SMART_ASSERT(
+        target_quad_label > 0,
+        quad_index < quads_.size(),
+        quads_[quad_index].label == k_no_label,
+        destination_label != k_no_label
     );
     quads_[quad_index].label = destination_label;
 }
