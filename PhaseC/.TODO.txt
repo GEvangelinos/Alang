@@ -618,3 +618,29 @@ for (init-stmt(s); codnition; update_step(s))
   ...
   commands
 }
+
+87) add to your report:
+
+To enforce strict encapsulation while allowing selective external interaction,
+the SemanticSystem exposes a minimal interface through a SemanticSystemGateway.
+This gateway provides only the ability to signal an error state, and is the sole
+class granted friend access to SemanticSystem. External components like DiagnosticEngine
+operate through this gateway, ensuring they cannot directly modify internal compiler state.
+This design follows the principle of least privilege, avoids overexposing internals,
+and remains easily auditable and extensible, all without introducing runtime overhead.
+
+88) TODO for tomorrow (cause i am tired):
+  1) Should I ask light-error? switch still so as a error , but do not stop parser's execution till  a specific recovery hook?
+
+  for example characters ```` are invalid g++ point each one of them as a unique error. Current design you stop at first and wait till a recovery hook like a semicolon `;`
+
+  2) Wtf is happening with gateway..
+
+  3) NOTE: your DIAGNOSTIC_ENGINE KEEPS reporting errors.. even if semanticSystem is in ERROR..
+
+  that should not be happening.. (Only with NonBlocking (soft) error (no warnings.. they should still be errors)
+
+  4) FATAL_ERRORS should stop parsing altogether.. I guess best idea would be a custom exception..
+  as it can fly over all the code.. and reach specific handling.. (actually its one of the very few
+  times (in not the first) that i use custom Exceptions   and exceptions in general.. I usually hate them..
+  cause i find them slot in hot/hot+ code..
