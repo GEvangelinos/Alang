@@ -59,13 +59,21 @@ public:
 
     ~Once() = default;
 
-    void set(T value)
+    void set(const T &value)
     {
-        if (assigned_)
-            throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
+        if (assigned_) throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
         value_ = value;
         assigned_ = true;
     }
+
+    void set(T &&value)
+    {
+        if (assigned_) throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
+        value_ = std::move(value);
+        assigned_ = true;
+    }
+
+    operator const T &() const & { return get(); }
 
     const Once &operator=(const T &value)
     {

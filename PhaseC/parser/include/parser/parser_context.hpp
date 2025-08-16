@@ -44,8 +44,7 @@ public:
 
     [[nodiscard]] VarSymbol::Space space() const noexcept;
 
-    [[nodiscard("Discarding this return value breaks variable offset sequencing")]]
-    u32 next_offset() noexcept;
+    [[nodiscard]] u32 next_offset() noexcept;
 
 private:
     std::stack<u32> variable_offset_stack_;
@@ -175,9 +174,9 @@ private:
         u32 loop_nesting_count = 0;
 
         // This is labels of breaks per loop in function
-        std::stack<std::vector<LabelID> > function_breaklist_stack;
+        std::stack<std::vector<LabelID>> function_breaklist_stack;
         // This is labels of continue of loops per loop in function
-        std::stack<std::vector<LabelID> > function_continuelist_stack;
+        std::stack<std::vector<LabelID>> function_continuelist_stack;
 
         // This is labels returns per function (in this FunctionDataFrame).
         std::vector<LabelID> function_returnlist;
@@ -275,6 +274,7 @@ inline VarSymbol::Space SpaceHandler::space() const noexcept
 inline u32 SpaceHandler::next_offset() noexcept
 {
     DEBUG_SMART_ASSERT(!variable_offset_stack_.empty());
+    // TODO: would pre-increment break this? is post made on purpose?
     return variable_offset_stack_.top()++;
 }
 
@@ -486,7 +486,11 @@ inline void FunctionCtxHandler::clear_function_parameters() noexcept
     function_parameters_.clear();
 }
 
-inline void FunctionCtxHandler::add_local() noexcept { ++frame_stack_.top().local_variable_count; }
+inline void FunctionCtxHandler::add_local() noexcept
+{
+    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    ++frame_stack_.top().local_variable_count;
+}
 
 inline std::string NameGenerator::new_temp_name()
 {

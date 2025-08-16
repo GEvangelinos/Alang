@@ -199,7 +199,7 @@ stmt:
   expr SEMICOLON { ss.call<"finalize_bool_expr">($expr); }
 | if_stmt
 | while_stmt
-| forStmt
+| for_stmt
 | return_stmt SEMICOLON
 | loopCtrlStmt SEMICOLON
 | block_loc
@@ -277,7 +277,7 @@ term
     ss.call<"finalize_bool_expr">($expr);
     $term = $expr;
   }
-| not_op { /* TODO: Can we put this under the `expr` rule? */   $term = $not_op; }
+| not_op { $term = $not_op; }
 | MINUS expr %prec UMINUS { $term = ss.call<"basic_builder.build_uminus">($expr, @term); }
 | INC expr { $term = ss.call<"assign_builder.build_pre_inc">($expr, @term); }
 | expr INC { $term = ss.call<"assign_builder.build_post_inc">($expr, @term); }
@@ -437,39 +437,31 @@ const
 
 if_clause
 : IF LEFT_PAREN expr[condition] RIGHT_PAREN
-  { ss.call<"control_flow_manager.manage_if_entry">($condition, @if_clause); }
+  {
+    ss.call<"finalize_bool_expr">($condition);
+    ss.call<"control_flow_manager.manage_ifbranch_entry">($condition, @if_clause);
+  }
 ;
 
 else_clause
-: ELSE { ss.call<"control_flow_manager.manage_else_entry">(@else_clause); }
+: ELSE { ss.call<"control_flow_manager.manage_elsebranch_entry">(@else_clause); }
 ;
 
 if_stmt
-: if_clause stmt %prec THEN       { ss.call<"control_flow_manager.manage_if_exit">(); }
-| if_clause stmt else_clause stmt { ss.call<"control_flow_manager.manage_else_exit">(); }
+: if_clause stmt %prec THEN       { ss.call<"control_flow_manager.manage_ifbranch_exit">(); }
+| if_clause stmt else_clause stmt { ss.call<"control_flow_manager.manage_elsebranch_exit">(); }
 ;
 
 
 while_clause:
-  WHILE       { ss.call<"control_flow_manager.manage_while_entry">(); }
+  WHILE           { ss.call<"control_flow_manager.manage_whileloop_entry">(); }
   LEFT_PAREN
-  expr[condition]
-  RIGHT_PAREN { ss.call<"control_flow_manager.manage_while_condition">($condition, @while_clause); }
+  expr[condition] { ss.call<"finalize_bool_expr">($condition); }
+  RIGHT_PAREN     { ss.call<"control_flow_manager.manage_whileloop_condition">($condition, @while_clause); }
 ;
 
 while_stmt:
-  while_clause stmt { ss.call<"control_flow_manager.manage_while_exit">(@while_stmt); }
-;
-
-N1:
-;
-N2:
-;
-N3:
-;
-
-M:
-
+  while_clause stmt { ss.call<"control_flow_manager.manage_whileloop_exit">(@while_stmt); }
 ;
 
 for_clause:
@@ -477,25 +469,28 @@ for_clause:
   LEFT_PAREN
   expr_list[init_list]
   SEMICOLON
-  M
+  { ss.call<"control_flow_manager.mark_forloop_condition_entry">(); }
   expr[condition]
+  {
+    ss.call<"finalize_bool_expr">($condition);
+    ss.call<"control_flow_manager.manage_forloop_condition">($condition, @condition);
+  }
   SEMICOLON
-  N1
+  { ss.call<"control_flow_manager.mark_forloop_update_list_entry">(); }
   expr_list[update_list]
+  { ss.call<"control_flow_manager.mark_forloop_update_list_exit">(@update_list); }
   RIGHT_PAREN
 ;
 
-forStmt:
-  for_clause
-  N2
-  stmt
-  N3
+for_stmt:
+  for_clause  { ss.call<"control_flow_manager.manage_forloop_entry">(); }
+  stmt[body]        { ss.call<"control_flow_manager.manage_forloop_exit">(@body); }
 ;
 
 
 return_stmt:
   RETURN
-| RETURN  expr  
+| RETURN  expr[retval] { ss.call<"finalize_bool_expr">($retval); }
 ;
 
 %%

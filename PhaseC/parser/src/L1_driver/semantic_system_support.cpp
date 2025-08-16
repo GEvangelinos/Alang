@@ -21,17 +21,14 @@ SemanticSystemBridge::SemanticSystemBridge(
 /// otherwise returns `lvalue` unchanged.
 /// @note Deprecated name: emit_if_table_item (kept below as a wrapper for migration).
 const Expr *
-SemanticSystemBridge::materialize_lvalue_base(const Expr *const lvalue)
+SemanticSystemBridge::materialize_if_table_item(const Expr *const expr)
 {
-    DEBUG_SMART_ASSERT(
-        !!lvalue,
-        SemUtils::is_lvalue_expr(lvalue)
-    );
-    if (lvalue->type != Expr::Type::TABLE_ITEM)
-        return lvalue;
-    const auto *const ti_expr = static_cast<const TableItemExpr *>(lvalue);
+    DEBUG_SMART_ASSERT(!!expr,);
+    if (expr->type != Expr::Type::TABLE_ITEM)
+        return expr;
+    const auto *const ti_expr = static_cast<const TableItemExpr *>(expr);
     const auto *const temp_var = expr_maker_->make_variable_expr(
-        lvalue->loc, parse_ctx_->new_temp());
+        expr->loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(
         ir::Opcode::TABLEGETELEM, temp_var, ti_expr, ti_expr->index, ti_expr->loc);
     return temp_var;

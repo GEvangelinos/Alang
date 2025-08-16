@@ -598,7 +598,7 @@ AssignBuilder::Restricted::handle_table_item_assignment(
 
     const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
     quad_handler_->emit_next(ir::Opcode::TABLESETELEM, rvalue, ti, ti->index, result_loc);
-    const Expr *temp_var = ss_bridge_->materialize_lvalue_base(lvalue); // !CERTAIN EMIT!
+    const Expr *temp_var = ss_bridge_->materialize_if_table_item(lvalue); // !CERTAIN EMIT!
     DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
     const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
     return expr_maker_->make_assign_expr(result_loc, temp_symbol);
@@ -654,7 +654,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *lvalue, const SourceLo
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
-        result = ss_bridge_->materialize_lvalue_base(ti_lvalue); // EMITS!
+        result = ss_bridge_->materialize_if_table_item(ti_lvalue); // EMITS!
         qh->emit_next(Policy::opc, result, result, &k_static_int_1_expr, result_loc);
         qh->emit_next(ir::Opcode::TABLESETELEM, result, ti_lvalue, ti_lvalue->index, result_loc);
     }
@@ -682,7 +682,7 @@ AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue, const SourceL
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
-        const Expr *ti = ss_bridge_->materialize_lvalue_base(lvalue);
+        const Expr *ti = ss_bridge_->materialize_if_table_item(lvalue);
         qh->emit_next(ir::Opcode::ASSIGN, result, ti, nullptr, result_loc);
         qh->emit_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
         qh->emit_next(ir::Opcode::TABLESETELEM, ti, ti_lvalue, ti_lvalue->index, result_loc);
@@ -962,7 +962,7 @@ CallBuilder::Restricted::build_call_consuming(
 {
     DEBUG_SMART_ASSERT(!!callable_lvalue, !!param_list);
 
-    const Expr *func_expr = ss_bridge_->materialize_lvalue_base(callable_lvalue);
+    const Expr *func_expr = ss_bridge_->materialize_if_table_item(callable_lvalue);
     for (const Expr *e: *param_list)
         quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, e, nullptr, e->loc);
 
@@ -981,7 +981,7 @@ CallBuilder::Restricted::build_method_call_consuming(
 {
     // TODO: Make ExprList (elist) and DictList(dlist) self-manageable (either methods)
     // or using ADL.
-    auto lvalue = ss_bridge_->materialize_lvalue_base(callable_lvalue);
+    auto lvalue = ss_bridge_->materialize_if_table_item(callable_lvalue);
     elist->push_back(lvalue);
 
     const Expr *const method_index = expr_maker_->make_const_string_expr(
@@ -989,7 +989,7 @@ CallBuilder::Restricted::build_method_call_consuming(
     const Expr *const hosting_var = expr_maker_->make_table_item_expr(
         k_no_loc, lvalue, method_index);
 
-    lvalue = ss_bridge_->materialize_lvalue_base(hosting_var);
+    lvalue = ss_bridge_->materialize_if_table_item(hosting_var);
     return build_call_consuming(lvalue, elist, call_loc);
 }
 
@@ -1229,7 +1229,7 @@ TableAccessBuilder::Restricted::build_member_access(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!member_id);
-    const Expr *const normalized_lvalue = ss_bridge_->materialize_lvalue_base(lvalue);
+    const Expr *const normalized_lvalue = ss_bridge_->materialize_if_table_item(lvalue);
     const Expr *const index = expr_maker_->make_const_string_expr(member_id_loc, member_id);
     return expr_maker_->make_table_item_expr(result_loc, normalized_lvalue, index);
 }
@@ -1241,7 +1241,7 @@ TableAccessBuilder::Restricted::build_index_access(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!index);
-    const Expr *const normalized_lvalue = ss_bridge_->materialize_lvalue_base(lvalue);
+    const Expr *const normalized_lvalue = ss_bridge_->materialize_if_table_item(lvalue);
     return expr_maker_->make_table_item_expr(result_loc, normalized_lvalue, index);
 }
 } // namespace alpha

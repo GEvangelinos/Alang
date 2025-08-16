@@ -38,7 +38,7 @@ class SemanticSystemBridge
 public:
     SemanticSystemBridge(ParseCtx *parse_ctx, ExprMaker *expr_maker, QuadHandler *quad_handler);
 
-    [[nodiscard]] const Expr *materialize_lvalue_base(const Expr *lvalue);
+    [[nodiscard]] const Expr *materialize_if_table_item(const Expr *expr);
 
     [[deprecated("Use materialize_lvalue_base()")]]
     const Expr* emit_if_table_item(const Expr *) = delete;

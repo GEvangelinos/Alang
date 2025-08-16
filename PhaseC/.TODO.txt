@@ -595,3 +595,26 @@ so in line it should say (for example) 17-42
 meaning this jump was cause by lines 17 to 42
 
 (or is this a bad idea?)
+
+86) What happens if you have:
+
+for (init-stmt(s); codnition; update_step(s))
+{
+  commands
+  ...
+  FUNC_DEF??
+     function f (arg1,argN)
+    {
+      commands...
+      for-loop(init, cond, upd)
+      {
+        code...
+        what if i break here?
+        what if i continue here?
+        what if i return here?
+
+      }
+    }
+  ...
+  commands
+}
