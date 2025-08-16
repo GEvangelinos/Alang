@@ -227,14 +227,13 @@ public:
     FunctionCtxHandler func_ctx_handler;
     NameGenerator name_generator;
 
-    explicit ParseCtx(SymbolTable &st);
-
+    explicit ParseCtx(SymbolTable *symbol_table);
     ~ParseCtx() = default;
 
     [[nodiscard]] const VarSymbol *new_temp();
 
 private:
-    SymbolTable &st_;
+    SymbolTable *const symbol_table_;
 };
 
 inline SpaceHandler::SpaceHandler()
@@ -502,13 +501,15 @@ inline std::string NameGenerator::new_anonymous()
     return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
 }
 
-inline ParseCtx::ParseCtx(SymbolTable &st)
-    : func_ctx_handler(this), st_(st) {}
+inline ParseCtx::ParseCtx(SymbolTable *const symbol_table)
+    : func_ctx_handler(this),
+      symbol_table_(utils::require_ptr(symbol_table)) {}
 
-inline const VarSymbol *ParseCtx::new_temp()
+inline const VarSymbol *
+ParseCtx::new_temp()
 {
     const std::string temp_name = name_generator.new_temp_name();
-    const Symbol *symbol = st_.lookup_local(temp_name, scope_handler.scope());
+    const Symbol *symbol = symbol_table_->lookup_local(temp_name, scope_handler.scope());
 
     // We register new temp, only if current scope doesn't have that temp.
     if (!symbol)
@@ -518,7 +519,7 @@ inline const VarSymbol *ParseCtx::new_temp()
                 ? VarSymbol::Type::GLOBAL_VARIABLE
                 : VarSymbol::Type::LOCAL_VARIABLE;
 
-        symbol = st_.insert_variable(
+        symbol = symbol_table_->insert_variable(
             temp_name,
             scope_handler.scope(),
             var_type,

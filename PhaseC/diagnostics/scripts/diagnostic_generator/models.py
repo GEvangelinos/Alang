@@ -12,8 +12,9 @@ class DiagnosticEntry:
 class Diagnostic:
     class Type(Enum):
         WARNING = auto()
-        ERROR = auto()
-        FATAL = auto()
+        SOFT_ERROR = auto()
+        HARD_ERROR = auto()
+        FATAL_ERROR = auto()
 
         def __str__(self):
             return f"{self.name}"
@@ -35,9 +36,11 @@ class Diagnostic:
         match type_:
             case "WARNING":
                 return Diagnostic.Type.WARNING
-            case "ERROR":
-                return Diagnostic.Type.ERROR
-            case "FATAL":
-                return Diagnostic.Type.FATAL
+            case "SOFT_ERROR":
+                return Diagnostic.Type.SOFT_ERROR
+            case "HARD_ERROR":
+                return Diagnostic.Type.HARD_ERROR
+            case "FATAL_FATAL":
+                return Diagnostic.Type.FATAL_ERROR
             case _:
                 raise ValueError("Unknown diagnostic type")

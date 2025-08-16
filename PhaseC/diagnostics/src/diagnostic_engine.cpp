@@ -76,8 +76,8 @@ int compute_visual_caret_offset(
 
 namespace alpha
 {
-Issue::Issue(const Type type, const std::string &description, const SourceLocation loc)
-    : type(type), desc(description), loc(loc) {}
+Issue::Issue(const Type type, std::string &&description, const SourceLocation loc)
+    : type(type), desc(std::move(description)), loc(loc) {}
 
 u32 Issue::line(const LocationTracker &lt) const { return lt.find_first_line(loc); }
 
@@ -87,9 +87,11 @@ std::string_view Issue::type_to_string() const noexcept
 {
     switch (type)
     {
-    case Type::ERROR: return "issue";
-    case Type::WARNING: return "warning";
     case Type::NOTE: return "note";
+    case Type::WARNING: return "warning";
+    case Type::SOFT_ERROR:
+    case Type::HARD_ERROR: return "error";
+    case Type::FATAL_ERROR: return "fatal-error";
     default: UNREACHABLE("Unknown Issue Type!");
     }
 }
@@ -98,9 +100,11 @@ std::string_view Issue::pretty_color() const noexcept
 {
     switch (type)
     {
-    case Type::ERROR: return COLOR_ASCII_BOLD_RED;
-    case Type::WARNING: return COLOR_ASCII_BOLD_MAGENTA;
     case Type::NOTE: return COLOR_ASCII_BOLD_CYAN;
+    case Type::WARNING: return COLOR_ASCII_BOLD_MAGENTA;
+    case Type::SOFT_ERROR:
+    case Type::HARD_ERROR:
+    case Type::FATAL_ERROR: return COLOR_ASCII_BOLD_RED;
     default: UNREACHABLE("Unknown Issue Type!");
     }
 }
@@ -119,16 +123,10 @@ std::string Diagnostic::make_pretty_diagnostic(
 
 Diagnostic::Diagnostic(
     const Issue::Type type,
-    const std::string &desc,
-    const SourceLocation loc)
-    : primary(type, desc, loc) {}
-
-Diagnostic::Diagnostic(
-    const Issue::Type type,
-    const std::string &desc,
+    std::string desc,
     const SourceLocation loc,
     std::list<Note> &&note_list_)
-    : primary(type, desc, loc),
+    : primary(type, std::move(desc), loc),
       notes(std::move(note_list_)) {}
 
 // TODO: Fix.. its ugly AF
@@ -179,53 +177,57 @@ std::string Diagnostic::make_pretty_diagnostic_impl(
     return ss.str();
 }
 
-void
-DiagnosticEngine::bind_semantic_system_error_gateway(SemanticSystemGateway &ss_gateway)
-{
-    if (semantic_system_gateway_.assigned())
-        throw std::logic_error(ATTACH_CONTEXT(
-            "DiagnosticEngine has already assigned its gateway to SemanticSystem"));
-    semantic_system_gateway_.set(&ss_gateway);
-}
+DiagnosticEngine::DiagnosticEngine(DiagnosticEngine::Policy &&policy)
+    : dr(this),
+      policy_(std::move(policy)) {}
 
 void DiagnosticEngine::report(
     const Issue::Type type,
-    const std::string &desc,
-    const SourceLocation loc)
-{
-    store(std::unique_ptr<const Diagnostic>(new const Diagnostic(type, desc, loc)));
-}
-
-void DiagnosticEngine::report(
-    const Issue::Type type,
-    const std::string &desc,
+    std::string desc,
     const SourceLocation loc,
     std::list<Note> &&note_list)
 {
-    store(std::unique_ptr<const Diagnostic>(
-        new const Diagnostic(type, desc, loc, std::move(note_list))));
+    emit(
+        Issue(type, std::move(desc), loc),
+        std::move(note_list)
+    );
 }
 
-void DiagnosticEngine::store(std::unique_ptr<const Diagnostic> diagnostic)
+void DiagnosticEngine::emit(
+    Issue &&primary, std::list<Note> &&note_list
+)
 {
-    diagnostics_.push_back(std::move(diagnostic)); // Pass ownership to `diagnostics_` vector.
+    if (!policy_.should_emit_diagnostic())
+        return;
+
+    diagnostics_.emplace_back(std::unique_ptr<Diagnostic>(new Diagnostic(
+        primary.type,
+        std::move(primary.desc),
+        primary.loc,
+        std::move(note_list)
+    )));
 
     switch (const Diagnostic *const d_ptr = diagnostics_.back().get(); d_ptr->primary.type)
     {
     case Issue::Type::WARNING:
         warnings_.push_back(d_ptr);
         break;
-    case Issue::Type::ERROR:
-        errors_.push_back(d_ptr);
-        semantic_system_gateway_->set_error_state();
+    case Issue::Type::SOFT_ERROR:
+        softs_.push_back(d_ptr);
+        break;
+    case Issue::Type::HARD_ERROR:
+        hards_.push_back(d_ptr);
+        policy_.notify_hard_error();
         break;
     case Issue::Type::FATAL_ERROR:
         fatals_.push_back(d_ptr);
+        policy_.notify_fatal_error();
         break;
     case Issue::Type::NOTE:
         throw std::logic_error(ATTACH_CONTEXT(
             "Issue::Type::NOTE is used to add auxiliary info. Should not be used as main Issue"));
-    default: UNREACHABLE("Unknown Issue::Type.");
+    default: UNREACHABLE(FMT::format(
+            "Unknown Issue::Type: int(type) = {}", static_cast<int>(d_ptr->primary.type)));
     }
 }
 } // namespace alpha

@@ -5,14 +5,14 @@
       Location: conversion_loc
 
 - Diagnostic: ASSIGN_LHS_NOT_LVALUE
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "Lvalue required as left operand of assignment (found type: {0})"
       Args: [ lhs_type ]
       Location: lhs_loc
 
 - Diagnostic: ASSIGN_TO_FUNC
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "Assignment of function `{0}`"
       Args: [ func_name ]
@@ -23,34 +23,34 @@
       Location: func_def_loc
 
 - Diagnostic: ASSIGN_TO_LIBFUNC
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "Assignment of library function `{0}`"
       Args: [ func_name ]
       Location: assign_expr_loc
 
 - Diagnostic: ARITH_OP_NONARITH_OPERAND
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "`{0}` operand of arithmetic operator `{1}` is never arithmetic -- operand's expression type: `{2}`"
       Args: [ operand_side, operator_symbol, operand_expr_type ]
       Location: operand_loc
 
 - Diagnostic: DIVISION_BY_ZERO
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "Division by zero"
       Location: division_loc
 
 - Diagnostic: REL_OP_NONARITH_OPERAND
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "`{0}` operand of relational operator `{1}` is never arithmetic -- operand's expression type: `{2}`"
       Args: [ operand_side, operator_symbol, operand_expr_type ]
       Location: operand_loc
 
 - Diagnostic: UMINUS_NONARITH_OPERAND
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "operand of unary `-` is never arithmetic"
       Location: operand_loc
@@ -60,7 +60,7 @@
       Location: operand_loc
 
 - Diagnostic: INACCESSIBLE_VAR_IN_FUNC
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "variable `{0}` is not accessible in function `{1}`"
       Args: [ id_name, curr_func_name ]
@@ -74,35 +74,35 @@
       Location: var_decl_loc
 
 - Diagnostic: LOOP_CTRL_KEYWORD_OUTSIDE_LOOP
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "`{0}` found outside a loop statement"
       Args: [ loop_keyword_name ]
       Location: loop_keyword_loc
 
 - Diagnostic: OPERATOR_REQUIRES_LVALUE
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "`{0}` `operator{1}` requires an lvalue operand"
       Args: [ op_name, op_symbol ]
       Location: full_expr_loc
 
 - Diagnostic: LOCAL_ID_SHADOWS_LIBFUNC
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "local identifier `{0}` shadows library function"
       Args: [ libfunc_name ]
       Location: id_use_loc
 
 - Diagnostic: UNRESOLVED_GLOBAL_SYMBOL
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "symbol `::{0}` not found in global scope"
       Args: [ symbol_name ]
       Location: symbol_use_loc
 
 - Diagnostic: UNCLOSED_COMMENT
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "unclosed comment, expected terminating `*/` character"
       Location: comment_end_loc
@@ -111,7 +111,7 @@
       Location: comment_start_loc
 
 - Diagnostic: UNCLOSED_STRING
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "unclosed string literal, expected terminating `\"` character"
       Location: string_end_loc
@@ -120,28 +120,28 @@
       Location: string_start_loc
 
 - Diagnostic: INVALID_ESCAPE_CODE
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "invalid escape code `{0}` in string"
       Args: [ escape_code_str ]
       Location: escape_code_loc
 
 - Diagnostic: INVALID_CHARACTER
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "character `{0}` is invalid"
       Args: [ char_str ]
       Location: char_loc
 
 - Diagnostic: REDEFINITION_OF_LIBFUNC
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "redefinition of library function `{0}`"
       Args: [ libfunc_name ]
       Location: redef_loc
 
 - Diagnostic: REDEFINITION_OF_FUNC
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "redefinition of function `{0}`"
       Args: [ func_name ]
@@ -152,7 +152,7 @@
       Location: initial_def_loc
 
 - Diagnostic: VAR_REDEFINED_AS_FUNC
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "`{0}` redefined as a function"
       Args: [ func_name ]
@@ -163,14 +163,14 @@
       Location: var_def_loc
 
 - Diagnostic: LIBFUNC_REDEFINED_AS_FORMAL_PARAMETER
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "`{0}` is a library function, can't declare it as formal parameter"
       Args: [ libfunc_name ]
       Location: formal_param_loc
 
 - Diagnostic: REDEFINITION_OF_FORMAL_PARAMETER
-  Type: ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "redefinition of formal parameter `{0}`"
       Args: [param_name]

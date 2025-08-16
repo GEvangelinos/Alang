@@ -643,4 +643,9 @@ and remains easily auditable and extensible, all without introducing runtime ove
   4) FATAL_ERRORS should stop parsing altogether.. I guess best idea would be a custom exception..
   as it can fly over all the code.. and reach specific handling.. (actually its one of the very few
   times (in not the first) that i use custom Exceptions   and exceptions in general.. I usually hate them..
-  cause i find them slot in hot/hot+ code..
+  cause i find them slow in hot/hot+ code..
+
+
+  Use a CALLBACK for fatal errors!!
+
+  89) Scanner is somewhat old.. its from 2024.. You should Update it and modernize it

@@ -410,7 +410,7 @@ ControlFlowManager::Restricted::mark_upcoming_forloop_sites()
     case FLPP::AFTER_UPDATE_LIST:  flf.after_update_list = next_jump_label;  break;
     case FLPP::BEFORE_BODY:        flf.before_body = next_jump_label;        break;
     case FLPP::AFTER_BODY:         flf.after_body = next_jump_label;         break;
-    default: [[unlikely]]UNREACHABLE(FMT::format(
+    default: [[unlikely]] UNREACHABLE(FMT::format(
         "Unknown patch_point: int(patch_point) = {}", static_cast<int>(flf.next_patch_point)));
     }
     // clang-format on

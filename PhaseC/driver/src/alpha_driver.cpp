@@ -5,21 +5,22 @@
 #include <stdexcept> // for runtime_error, invalid_argument
 #include <string>
 #include <vector>                   // for vector
-#include "parser/alpha_parser.gen.hpp"         // for alpha_yyparse
+#include <parser/ir_opcode_info_traits.gen.hpp>
 #include "core/konstants.hpp" // for k_global_scope
 #include "core/numeric_types.hpp"     // for u32
+#include "parser/alpha_parser.gen.hpp"         // for alpha_yyparse
+#include "parser/ir_expr.hpp"
 #include "utils/cli_color.h"        // for COLOR_ASCII_BLUE, SGR_RESET
 #include "utils/format_adapter.hpp" // for format, FMT
 #include "utils/smart_assert.h"     // for SMART_ASSERT
-#include "parser/ir_expr.hpp"
-#include <parser/ir_opcode_info_traits.gen.hpp>
-#include <parser/semantic_utils.hpp>
+
+#include "driver/alpha_driver_exceptions.hpp"
 
 static constexpr unsigned k_flex_eof_padding = 2;
 
 bool g_show_parser_trace = false;
 
-namespace // (Anonymous)
+namespace
 {
 std::ifstream open_alpha_source_file(const std::string &filepath);
 
@@ -33,13 +34,13 @@ void expr_validator(const alpha::Expr *e);
 
 std::string expr_printer(const alpha::Expr *expr);
 
-template<unsigned column, unsigned column_width, typename T>
+template<unsigned column,unsigned column_width,typename T>
 std::string color_column(T &&value);
 
-template<bool colorize, unsigned column, unsigned column_width, typename T>
+template<bool colorize,unsigned column,unsigned column_width,typename T>
 std::string format_column(T &&value);
 
-template<bool colorize, typename Stream>
+template<bool colorize,typename Stream>
 void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
                  const alpha::LocationTracker &lt);
 
@@ -132,7 +133,7 @@ std::string expr_printer(const alpha::Expr *expr)
     }
 }
 
-template<unsigned Column, unsigned ColumnWidth, typename T>
+template<unsigned Column,unsigned ColumnWidth,typename T>
 std::string color_column(T &&value)
 {
     constexpr unsigned column_count = 7;
@@ -156,7 +157,7 @@ std::string color_column(T &&value)
                        SGR_RESET);
 }
 
-template<bool Colorize, unsigned Column, unsigned ColumnWidth, typename T>
+template<bool Colorize,unsigned Column,unsigned ColumnWidth,typename T>
 std::string format_column(T &&value)
 {
     if (Colorize)
@@ -164,7 +165,7 @@ std::string format_column(T &&value)
     return FMT::format("{:<{}}", std::forward<T>(value), ColumnWidth);
 }
 
-template<bool Colorize, typename Stream>
+template<bool Colorize,typename Stream>
 void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
                  const alpha::LocationTracker &lt)
 {
@@ -225,30 +226,42 @@ void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
 
 namespace alpha
 {
-Driver::Driver(const std::string &source_filepath, bool show_parser_trace)
+Driver::Driver(const std::string &source_filepath, const bool show_parser_trace)
     : source_filepath_(source_filepath),
       // Convert std::string to std::filesystem::path implicitly
       flex_buffer_(source_filepath),
       lt_(flex_buffer_.size() - k_flex_eof_padding),
-      diagnostic_engine_(),
+      diagnostic_engine_(create_diagnostic_engine_policy()),
       st_(),
-      lexer_ctx_(source_filepath),
-      parse_ctx_(st_),
-      semantic_system_(SemanticSystem::Options{!true, !true, !true, !true}, &parse_ctx_, &st_,
-                       &diagnostic_engine_)
+      compilation_pipeline(std::make_unique<CompilationPipeline>(
+              source_filepath, lt_, diagnostic_engine_.dr, &st_)
+      )
 {
-    // TODO INITIALIZE SEMANTIC OPTS CORRECTLY.
+    // TODO INITIALIZE SEMANTIC OPTIONSS CORRECTLY.
     g_show_parser_trace = show_parser_trace;
 }
 
 Driver::~Driver() { alpha_yylex_destroy(); }
 
-void Driver::run_alpha_parser()
+void
+Driver::run()
 {
-    parser_retval_ = alpha_yyparse(lt_, diagnostic_engine_.dr, lexer_ctx_, semantic_system_);
+    bool local_ok = false;
+    try
+    {
+        compilation_pipeline->compile();
+        local_ok = true; // If here, no exception occurred.
+    }
+    catch (DiagnosticFatalError) {}
+    catch (SanityLimitExceeded &e)
+    {
+        std::cerr << FMT::format("Exception caught: {}", e.what()) << std::endl;
+    }
+    ok_flag_ = local_ok;
 }
 
-void Driver::show_symbol_table() const
+void
+Driver::show_symbol_table() const
 {
     std::cout << COLOR_ASCII_BLUE;
     const auto &symbol_per_scope_vector = st_.symbols_per_scope();
@@ -256,9 +269,9 @@ void Driver::show_symbol_table() const
     {
         if (symbol_per_scope_vector[scope].empty())
             continue;
-        std::cout << FMT::format("----------------------------     Scope #{:<4}     "
-                                 "----------------------------\n",
-                                 scope);
+        std::cout << FMT::format(
+            "----------------------------     Scope #{:<4}     ----------------------------\n",
+            scope);
         for (auto symbol_ptr: symbol_per_scope_vector[scope])
             std::cout << FMT::format("{:<30} {:<20} (line {:>5}) (scope {:>4})\n",
                                      FMT::format("\"{}\"", symbol_ptr->name),
@@ -270,7 +283,8 @@ void Driver::show_symbol_table() const
     std::cout << SGR_RESET << std::endl;
 }
 
-void Driver::show_compile_issues() const
+void
+Driver::show_compile_issues() const
 {
     const std::string source_filename = source_filepath_.filename().string();
 
@@ -278,30 +292,36 @@ void Driver::show_compile_issues() const
         std::cerr << cti->make_pretty_diagnostic(source_filename, lt_, flex_buffer_.const_buffer());
 }
 
-void Driver::show_quads() const
+void
+Driver::show_quads() const
 {
-    // if (et_.contain_errors()) // We dont show quads if there are errors.
-    // return;
     // TODO!! UNCOMMENT!
-    print_quads<true>(std::cout, semantic_system_.retrieve_quads(), lt_);
+    // if (diagnostic_engine_.has_errors())
+    //     return;
+    print_quads<true>(std::cout, compilation_pipeline->get_quads(), lt_);
 }
 
-void Driver::export_symbol_table() const
+void
+Driver::export_symbol_table() const
 {
     export_within_dir(k_symbol_table_exports_dirname, &Driver::export_symbol_table_impl);
 }
 
-void Driver::export_compile_errors() const
+void
+Driver::export_compile_errors() const
 {
     export_within_dir(k_compile_error_exports_dirname, &Driver::export_compile_errors_impl);
 }
 
-void Driver::export_quads() const
+void
+Driver::export_quads() const
 {
     if (diagnostic_engine_.has_fatal_errors() || diagnostic_engine_.has_errors())
         return;
     export_within_dir(k_quad_exports_dirname, &Driver::export_quads_impl);
 }
+
+void Driver::notify_fatal_error() { throw DiagnosticFatalError(); }
 
 Driver::FlexBuffer::FlexBuffer(const std::string &input_filepath)
 {
@@ -337,7 +357,8 @@ Driver::FlexBuffer::~FlexBuffer()
     // and also deletes its own stack.
 }
 
-void Driver::export_symbol_table_impl() const
+void
+Driver::export_symbol_table_impl() const
 {
     const std::string outfile_name = source_filepath_.filename().string() + ".st.csv";
     std::ofstream outfile(outfile_name);
@@ -360,8 +381,10 @@ void Driver::export_symbol_table_impl() const
             write_symbol(symbol_ptr);
 }
 
-void Driver::export_within_dir(std::string_view dirname,
-                               void (Driver::*export_func)() const) const
+void
+Driver::export_within_dir(
+    std::string_view dirname,
+    void (Driver::*export_func)() const) const
 {
     const auto original_path = std::filesystem::current_path();
     create_export_directory(dirname);
@@ -370,7 +393,8 @@ void Driver::export_within_dir(std::string_view dirname,
     exit_export_directory(original_path);
 }
 
-void Driver::export_compile_errors_impl() const
+void
+Driver::export_compile_errors_impl() const
 {
     const std::string outfile_name = source_filepath_.filename().string() + ".issue.csv";
     std::ofstream outfile(outfile_name);
@@ -393,7 +417,8 @@ void Driver::export_compile_errors_impl() const
     }
 }
 
-void Driver::export_quads_impl() const
+void
+Driver::export_quads_impl() const
 {
     const std::string outfile_name = source_filepath_.filename().string() + ".quads";
     std::ofstream outfile(outfile_name);
@@ -401,6 +426,71 @@ void Driver::export_quads_impl() const
         throw std::runtime_error(
             FMT::format("Failed opening file {} to export quads", outfile_name));
 
-    // print_quads<false>(outfile, parse_ctx_.quad_handler.quads(), lt_);
+    print_quads<false>(outfile, compilation_pipeline->get_quads(), lt_);
+}
+
+Driver::CompilationPipeline::CompilationPipeline(
+    const std::filesystem::path &source_filepath,
+    LocationTracker &lt,
+    DiagnosticReporter &dr,
+    SymbolTable *const symbol_table)
+    : lt_(lt),
+      dr_(dr),
+      lexer_ctx_(source_filepath),
+      parse_ctx_(utils::require_ptr(symbol_table)),
+      semantic_system_(ss_options_, &parse_ctx_, utils::require_ptr(symbol_table), &dr) {}
+
+void
+Driver::CompilationPipeline::compile() { run_frontend(); }
+
+void
+Driver::CompilationPipeline::run_frontend()
+{
+    running_phase_ = Phase::FRONTEND;
+    const auto parser_retval = alpha_yyparse(lt_, dr_, lexer_ctx_, semantic_system_);
+
+    if (parser_retval == 0)
+        return;
+
+    #ifdef DEBUG_MODE
+    auto generic_error = "Internal parser error occurred.";
+    throw std::runtime_error(ATTACH_CONTEXT(FMT::format(
+        "{0} Parser's return value = {1}", generic_error, parser_retval)));
+    #else
+    throw std::runtime_error(generic_error);
+    #endif
+}
+
+bool
+Driver::CompilationPipeline::is_in_hard_error()
+{
+    switch (running_phase_)
+    {
+    case Phase::FRONTEND: return semantic_system_.good();
+    default: UNREACHABLE("Unknown `Phase`");
+    }
+}
+
+void
+Driver::CompilationPipeline::notify_hard_error()
+{
+    switch (running_phase_)
+    {
+    case Phase::FRONTEND: return semantic_system_.status_gateway.notify_hard_error();
+    default: UNREACHABLE("Unknown `running_phase`");
+    }
+}
+
+DiagnosticEngine::Policy
+Driver::create_diagnostic_engine_policy()
+{
+    return {
+        .should_emit_diagnostic = [this]()
+        {
+            return this->compilation_pipeline->is_in_hard_error();
+        },
+        .notify_fatal_error = [this]() { this->notify_fatal_error(); },
+        .notify_hard_error = [this]() { this->compilation_pipeline->notify_hard_error(); }
+    };
 }
 } // namespace alpha

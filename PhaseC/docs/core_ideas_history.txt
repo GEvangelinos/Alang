@@ -1,0 +1,68 @@
+====================================================================================================================================
+====================================================================================================================================
+====================================================================================================================================
+====================================================================================================================================
+====================================================================================================================================
+
+Realization: Not All Errors Are Equal
+
+Originally, the diagnostic system was built around a simple, traditional error model: warnings, errors, and fatal errors.
+This seemed sufficient at first — warnings are non-blocking, errors indicate something went wrong, and fatal errors meant
+"stop everything immediately." A single flag, ss_status, controlled whether the SemanticSystem should continue or not.
+
+But while refining semantic analysis, it became clear that this model was too coarse. Specifically, I realized that not
+all semantic errors should be treated equally in terms of how they affect execution.
+
+Take this example: imagine the input contains multiple backtick characters (`). They're invalid, and g++ reports each one
+of them as a separate error — it doesn’t stop at the first. Instead, it continues scanning and reports all of them.
+Contrast that with my system: it would encounter the first invalid token, flip ss_status to ERROR, and essentially freeze
+semantic analysis until the parser hits a recovery point (like a semicolon).
+
+That got me thinking: why should one malformed token silence the rest of the error reporting? Surely, the user would
+prefer to see all issues in one pass rather than fix them one at a time.
+
+This led to a new mental model: there isn’t just a single "error" level — there are different classes of errors based on
+how they impact the compiler's ability to continue.
+
+So now, instead of just:
+
+- Warning
+- Error
+- Fatal
+
+I’ve expanded the system to consider:
+
+- Soft Error: A reportable, real error, but doesn’t kill semantic processing.
+- Hard Error: Breaks semantic flow; sets ss_status to ERROR and halts analysis until recovery.
+- Fatal Error: Unrecoverable; throws and escapes the current compilation phase entirely.
+
+This allows the system to continue emitting useful diagnostics even when errors are present — as long as they’re not
+disruptive to semantic integrity. Meanwhile, ss_status is now dedicated to controlling whether semantic work should
+proceed, not whether diagnostics should continue to emit.
+
+====================================================================================================================================
+====================================================================================================================================
+====================================================================================================================================
+====================================================================================================================================
+====================================================================================================================================
+
+It’s a subtle shift, but a powerful one. It aligns better with how modern compilers behave and greatly improves developer
+feedback without compromising the correctness of the analysis.
+In the final design, diagnostic handling is centralized in the Driver, which acts as the “top brain”
+of the compiler. Subsystems such as the parser or semantic analyzer merely classify issues (warning,
+soft error, hard error, fatal), but do not decide how the compiler should react.
+This separation avoids “error anarchy,” where different subsystems might enforce conflicting policies.
+The Driver alone determines whether to continue, silence cascades, or abort compilation.
+This centralization guarantees uniform behavior across the entire pipeline and makes it trivial to adjust
+global error policy without modifying individual subsystems.
+
+Analogy: The compiler pipeline is like an orchestra: each subsystem is a musician that produces notes
+(diagnostics), but none of them controls the tempo. Only the conductor (the Driver) decides whether
+the piece continues, pauses, or stops altogether.
+
+====================================================================================================================================
+====================================================================================================================================
+====================================================================================================================================
+====================================================================================================================================
+====================================================================================================================================
+

@@ -4,11 +4,11 @@
 #include <string>                          // for string
 #include <string_view>                     // for string_view
 #include <scanner/alpha_scanner.gen.hpp>               // for YY_BUFFER_STATE
-#include "diagnostics/diagnostic_engine.hpp"
 #include "core/source_location.hpp"         // for LocationTracker
+#include "diagnostics/diagnostic_engine.hpp"
 #include "parser/parser_context.hpp"
-#include "parser/L1_driver/semantic_system.hpp"
 #include "parser/symbol_table.hpp"     // for SymbolTable
+#include "parser/L1_driver/semantic_system.hpp"
 #include "scanner/scanner_context.hpp" // for LexerCtx
 
 namespace alpha
@@ -22,49 +22,83 @@ static constexpr char k_error_csv_export_header[] = "line,column,diagnostic_type
 class Driver : private Immobile
 {
 public:
-        explicit Driver(const std::string &source_filepath, bool show_parser_trace);
-        ~Driver();
+    Driver(const std::string &source_filepath, bool show_parser_trace);
+    ~Driver();
 
-        void run_alpha_parser();
-        void show_symbol_table() const;
-        void show_compile_issues() const;
-        void show_quads() const;
-        void export_symbol_table() const;
-        void export_compile_errors() const;
-        void export_quads() const;
-        [[nodiscard]] bool ok() const noexcept { return ok_flag_; }
+    void run();
+    void show_symbol_table() const;
+    void show_compile_issues() const;
+    void show_quads() const;
+    void export_symbol_table() const;
+    void export_compile_errors() const;
+    void export_quads() const;
+    [[nodiscard]] bool ok() const noexcept { return ok_flag_; }
+
+    static void notify_fatal_error();
 
 private:
-        class FlexBuffer : private Immobile
-        {
-        public:
-                FlexBuffer(const std::string &input_filepath);
-                ~FlexBuffer();
+    class CompilationPipeline; // FWD
 
-                [[nodiscard]] char *buffer() const { return buffer_.get(); }
-                [[nodiscard]] const char *const_buffer() const { return buffer_.get(); }
-                [[nodiscard]] std::size_t size() const { return size_; }
+    class FlexBuffer : private Immobile
+    {
+    public:
+        explicit FlexBuffer(const std::string &input_filepath);
+        ~FlexBuffer();
 
-        private:
-                std::unique_ptr<char[]> buffer_;
-                std::size_t size_;
-                YY_BUFFER_STATE state_ = nullptr;
-        };
+        [[nodiscard]] char *buffer() const { return buffer_.get(); }
+        [[nodiscard]] const char *const_buffer() const { return buffer_.get(); }
+        [[nodiscard]] std::size_t size() const { return size_; }
 
-        const std::filesystem::path source_filepath_;
-        FlexBuffer flex_buffer_;
-        LocationTracker lt_;
-        DiagnosticEngine diagnostic_engine_;
-        SymbolTable st_;
-        LexerCtx lexer_ctx_;
-        ParseCtx parse_ctx_;
-        SemanticSystem semantic_system_;
-        int parser_retval_ = 0;
-        bool ok_flag_ = true;
+    private:
+        std::unique_ptr<char[]> buffer_;
+        std::size_t size_;
+        YY_BUFFER_STATE state_ = nullptr;
+    };
 
-        void export_within_dir(std::string_view dirname, void (Driver::*export_func)() const) const;
-        void export_symbol_table_impl() const;
-        void export_compile_errors_impl() const;
-        void export_quads_impl() const;
+    const std::filesystem::path source_filepath_;
+    FlexBuffer flex_buffer_;
+    LocationTracker lt_;
+    DiagnosticEngine diagnostic_engine_;
+    SymbolTable st_;
+    std::unique_ptr<CompilationPipeline> compilation_pipeline;
+
+    bool ok_flag_ = true;
+
+    void export_within_dir(std::string_view dirname, void (Driver::*export_func)() const) const;
+    void export_symbol_table_impl() const;
+    void export_compile_errors_impl() const;
+    void export_quads_impl() const;
+    [[nodiscard]] DiagnosticEngine::Policy create_diagnostic_engine_policy();
+};
+
+class Driver::CompilationPipeline : private Immobile
+{
+public:
+    CompilationPipeline(
+        const std::filesystem::path &source_filepath,
+        LocationTracker &lt,
+        DiagnosticReporter &dr,
+        SymbolTable *symbol_table);
+
+    void compile();
+    void notify_hard_error();
+
+    [[nodiscard]] bool is_in_hard_error();
+    [[nodiscard]] auto get_quads() { return semantic_system_.status_gateway.get_quads(); }
+
+private:
+    enum class Phase { FRONTEND };
+
+    Phase running_phase_ = Phase::FRONTEND;
+
+    SemanticSystem::Options ss_options_ = {true, true, true, true};
+
+    LocationTracker &lt_;
+    DiagnosticReporter &dr_;
+    LexerCtx lexer_ctx_;
+    ParseCtx parse_ctx_;
+    SemanticSystem semantic_system_;
+
+    void run_frontend();
 };
 } // namespace alpha

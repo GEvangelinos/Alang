@@ -74,7 +74,7 @@ QuadHandler::emit(
             requirement_matches(ii::arg1(opc), arg1),
             requirement_matches(ii::arg2(opc), arg2),
         );
-    );
+    )
 
     quads_.emplace_back(Quad{
         .location = loc,

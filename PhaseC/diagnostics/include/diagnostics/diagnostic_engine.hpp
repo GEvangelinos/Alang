@@ -1,16 +1,16 @@
 #ifndef DIAGNOSTIC_ENGINE_HPP
 #define DIAGNOSTIC_ENGINE_HPP
 
-#include <memory>
-#include <core/basics.hpp>
+#include <functional>
 #include <list>                    // for list
+#include <memory>
 #include <string>                  // for string, basic_string
 #include <string_view>             // for string_view
-#include "core/source_location.hpp" // for SourceLocation, SourceLocationTracker
+#include <core/basics.hpp>
 #include <diagnostics/diagnostic_reporter.gen.hpp>
-#include <L1_driver/semantic_system_gateway.hpp>
+#include "core/source_location.hpp" // for SourceLocation, SourceLocationTracker
 
-
+// TODO: which classes can I encapsulate here?
 namespace alpha
 {
 class Issue
@@ -18,17 +18,18 @@ class Issue
 public:
     enum class Type : u8
     {
-        FATAL_ERROR,
-        ERROR,
+        NOTE, // Never emitted alone (always combined with warning or error)
         WARNING,
-        NOTE,
+        SOFT_ERROR,
+        HARD_ERROR,
+        FATAL_ERROR,
     };
 
     const Type type;
     const std::string desc;
     const SourceLocation loc;
 
-    Issue(Type type, const std::string &description, SourceLocation loc);
+    Issue(Type type, std::string &&description, SourceLocation loc);
 
     [[nodiscard]] u32 line(const LocationTracker &lt) const;
     [[nodiscard]] u32 column(const LocationTracker &lt) const;
@@ -39,12 +40,14 @@ public:
 class Note : public Issue
 {
 public:
-    Note(const std::string &desc, const SourceLocation loc)
-        : Issue(Type::NOTE, desc, loc) {}
+    Note(std::string desc, const SourceLocation loc)
+        : Issue(Type::NOTE, std::move(desc), loc) {}
 };
 
 class Diagnostic
 {
+    friend class DiagnosticEngine;
+
 public:
     const Issue primary;
     const std::list<Note> notes;
@@ -59,51 +62,61 @@ public:
 private:
     Diagnostic(
         Issue::Type type,
-        const std::string &desc,
-        SourceLocation loc);
-    Diagnostic(
-        Issue::Type type,
-        const std::string &desc,
+        std::string desc,
         SourceLocation loc,
-        std::list<Note> &&note_list_);
+        std::list<Note> &&note_list_ = std::list<Note>());
 
     [[nodiscard]] static std::string make_pretty_diagnostic_impl(
         const std::string &source_filename,
         const LocationTracker &lt,
         const char *input_buffer,
         const Issue &issue);
-
-    friend class DiagnosticEngine;
 };
 
 class DiagnosticEngine : private Immobile
 {
+    friend class DiagnosticReporter;
+
 public:
+    struct Policy
+    {
+        std::function<bool()> should_emit_diagnostic; // query: should DE emit this diagnostic?
+        std::function<void()> notify_fatal_error;     // notify: a fatal error occurred
+        std::function<void()> notify_hard_error;      // notify: a hard error occurred
+    };
+
     DiagnosticReporter dr;
 
-    DiagnosticEngine()
-        : dr(this) {}
+    explicit DiagnosticEngine(Policy &&policy);
 
-    void bind_semantic_system_error_gateway(SemanticSystemGateway &ss_gateway);
+    // TODO: add an export function for all diagnostics (export the diagnostics vector) // or DETATCH method
     [[nodiscard]] const auto &get_compile_time_issues() const noexcept { return diagnostics_; }
     [[nodiscard]] bool has_issues() const noexcept { return !diagnostics_.empty(); }
-    [[nodiscard]] bool has_fatal_errors() const noexcept { return !fatals_.empty(); }
-    [[nodiscard]] bool has_errors() const noexcept { return !errors_.empty(); }
     [[nodiscard]] bool has_warnings() const noexcept { return !warnings_.empty(); }
+    [[nodiscard]] bool has_soft_errors() const noexcept { return !softs_.empty(); }
+    [[nodiscard]] bool has_hard_errors() const noexcept { return !hards_.empty(); }
+    [[nodiscard]] bool has_fatal_errors() const noexcept { return !fatals_.empty(); }
+
+    [[nodiscard]] bool has_errors() const noexcept
+    {
+        return has_soft_errors() || has_hard_errors() || has_fatal_errors();
+    }
 
 private:
-    Once<SemanticSystemGateway *> semantic_system_gateway_;
+    const Policy policy_;
     std::vector<std::unique_ptr<const Diagnostic>> diagnostics_;
     std::vector<const Diagnostic *> warnings_;
-    std::vector<const Diagnostic *> errors_;
+    std::vector<const Diagnostic *> softs_;
+    std::vector<const Diagnostic *> hards_;
     std::vector<const Diagnostic *> fatals_;
 
-    void report(Issue::Type type, const std::string &desc, SourceLocation loc);
     void report(
-        Issue::Type type, const std::string &desc, SourceLocation loc, std::list<Note> &&note_list);
-    void store(std::unique_ptr<const Diagnostic> diagnostic);
+        Issue::Type type,
+        std::string desc,
+        SourceLocation loc,
+        std::list<Note> &&note_list = std::list<Note>());
 
-    friend class DiagnosticReporter;
+    void emit(Issue &&primary, std::list<Note> &&note_list);
 };
 } // namespace alpha
 

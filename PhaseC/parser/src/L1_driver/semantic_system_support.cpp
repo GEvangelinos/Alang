@@ -12,7 +12,7 @@ SemanticSystemBridge::SemanticSystemBridge(
     ParseCtx *const parse_ctx,
     ExprMaker *const expr_maker,
     QuadHandler *const quad_handler)
-    : parse_ctx_(REQUIRE_PTR(parse_ctx)),
+    :       parse_ctx_(REQUIRE_PTR(parse_ctx)),
       expr_maker_(REQUIRE_PTR(expr_maker)),
       quad_handler_(REQUIRE_PTR(quad_handler)) {}
 

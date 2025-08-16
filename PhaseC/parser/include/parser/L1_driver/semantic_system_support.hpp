@@ -32,7 +32,6 @@
 
 namespace alpha
 {
-
 class SemanticSystemBridge
 {
 public:
@@ -41,7 +40,7 @@ public:
     [[nodiscard]] const Expr *materialize_if_table_item(const Expr *expr);
 
     [[deprecated("Use materialize_lvalue_base()")]]
-    const Expr* emit_if_table_item(const Expr *) = delete;
+    const Expr *emit_if_table_item(const Expr *) = delete;
 
 private:
     ParseCtx *const parse_ctx_ = nullptr;
@@ -51,8 +50,8 @@ private:
 
 struct SemanticSystemServices
 {
-    ParseCtx *const parse_ctx = nullptr;
     SymbolTable *const symbol_table = nullptr;
+    ParseCtx *const parse_ctx = nullptr;
     DiagnosticReporter *const dr = nullptr;
     ExprMaker *const expr_maker = nullptr;
     ExprOptimizer *const expr_optimizer = nullptr;

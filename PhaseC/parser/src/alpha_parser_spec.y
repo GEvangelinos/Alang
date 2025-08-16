@@ -270,14 +270,15 @@ expr[out]:
 | or_op  { $out = $or_op; }
 ;
 
-term
-: primary { $term = $primary; }
-| LEFT_PAREN expr RIGHT_PAREN
-  {
-    ss.call<"finalize_bool_expr">($expr);
-    $term = $expr;
-  }
-| not_op { $term = $not_op; }
+/**
+ * @note: finalizing at `(` expr `)`, would try to prematurely backpatch bool expr,
+ * causing a shit-storm of errors. actually tried it... thank god my debug_asserts got mad af
+ * leaving this docstring here so you won't try again in the future. ;p
+ */
+term:
+  primary                     { $term = $primary; }
+| LEFT_PAREN expr RIGHT_PAREN { $term = $expr; }
+| not_op                      { $term = $not_op; }
 | MINUS expr %prec UMINUS { $term = ss.call<"basic_builder.build_uminus">($expr, @term); }
 | INC expr { $term = ss.call<"assign_builder.build_pre_inc">($expr, @term); }
 | expr INC { $term = ss.call<"assign_builder.build_post_inc">($expr, @term); }
@@ -360,6 +361,8 @@ expr_list:
 /* TODO: Should we add expr finalization after color and RIGHT brace as anchor points? */
 /* TODO: For some reason.. it seems more right.. But I know i have thought of that before.. and i came */
 /* TODO: To the realization that this was bettter... Only that I didnt document it.. and now I still dont know for certain. */
+/* FUTURE answer: it probably is correct as these exprs are the end result. expr && expr could not get matched*/
+/* here for example... Anyway I am still leaving this todo here, to test it (just to be 100% certain) */
 dict_entry:
   LEFT_BRACE
   expr[key]   { ss.call<"finalize_bool_expr">($key); }

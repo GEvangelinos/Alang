@@ -22,22 +22,21 @@
  *    access involves a pointer, unlike references where `obj.member` hides it.
  */
 
-#ifndef SEMANTIC_DRIVER_HPP
-#define SEMANTIC_DRIVER_HPP
+#ifndef SEMANTIC_SYSTEM_HPP
+#define SEMANTIC_SYSTEM_HPP
 
 #include <core/fixed_string.hpp>
 #include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 #include "core/basics.hpp"
-#include "L1_driver/semantic_system_gateway.hpp"
 #include "L2_semantic_subsystems/block_manager.hpp"
-#include "parser/L2_semantic_subsystems/control_flow_managers.hpp"
-#include "parser/L2_semantic_subsystems/expr_builders.hpp"
-#include "parser/L2_semantic_subsystems/lvalue_resolver.hpp"
-#include "L3_ir_infra/expr_optimizer.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
+#include "L3_ir_infra/expr_optimizer.hpp"
 #include "L3_ir_infra/quad_handler.hpp"
 #include "parser/parser_context.hpp"
 #include "parser/symbol_table.hpp"
+#include "parser/L2_semantic_subsystems/control_flow_managers.hpp"
+#include "parser/L2_semantic_subsystems/expr_builders.hpp"
+#include "parser/L2_semantic_subsystems/lvalue_resolver.hpp"
 
 namespace alpha
 {
@@ -57,16 +56,34 @@ public:
         const bool propagate_const_return;
     };
 
+    // Gateway lets Driver mark hard errors, but not clear them;
+    // recovery hooks via call() dispatch can still reset, so it’s not bulletproof.
+    class DriverLink
+    {
+        friend class Driver;
+        friend class SemanticSystem;
+
+        SemanticSystem *const host_;
+
+        explicit DriverLink(SemanticSystem *const ss) : host_(utils::require_ptr(ss)) {}
+
+        void notify_hard_error() noexcept;
+
+        [[nodiscard]] const auto &get_quads() const noexcept
+        {
+            return host_->quad_handler_->quads();
+        }
+    } status_gateway;
+
     SemanticSystem(
         const Options &options,
         ParseCtx *parse_ctx,
         SymbolTable *symbol_table,
-        DiagnosticEngine *diagnostic_engine);
+        DiagnosticReporter *dr);
 
     // TODO: make a function that user calls before destructor call that basically extracts all this
     // alpha drivers would want (like the generated quads).
-    [[nodiscard]] const auto &retrieve_quads() const noexcept { return quad_handler_->quads(); }
-    [[nodiscard]] bool good() const noexcept { return ss_status_ == SemanticSystemStatus::OK; }
+    [[nodiscard]] bool good() const noexcept { return ss_status_ == Status::OK; }
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_MASTER_MODULE_CALL(aggregate_builder);
@@ -86,16 +103,15 @@ public:
     DISPATCH_DEFINE_HANDLER_END();
 
 private:
-    SemanticSystemStatus ss_status_ = SemanticSystemStatus::OK;
+    enum class Status : u8 { OK, ERROR };
 
-    // Gateway class for DiagnosticEngine to set SemanticSystem's error state.
-    SemanticSystemGateway ss_gateway_;
+    Status ss_status_ = Status::OK;
 
     // Must be initialized first -- used by subsystems during their construction.
     // Defaulted to nullptr to trigger safe asserts if construction order is violated.
     ParseCtx *const parse_ctx_ = nullptr;
     SymbolTable *const symbol_table_ = nullptr;
-    DiagnosticEngine *const diagnostic_engine_ = nullptr;
+    DiagnosticReporter *const dr_ = nullptr;
 
     // -- Layer 3 subsystems -- We use unique_ptr instead of normal vars, in order to detect wrong initialization order
     std::unique_ptr<ExprMaker> expr_maker_;
@@ -115,18 +131,15 @@ private:
     FunctionBuilder function_builder;
     TableAccessBuilder table_access_builder;
 
-    // -- Direct methods-- // TODO: maybe package inside a module? // Dont if to unrelatable!
-    const Expr *convert_to_bool_expr(const Expr *expr);
+    // -- Directly dispatchable  methods-- // TODO: maybe package inside a module?
+    [[nodiscard]] const Expr *convert_to_bool_expr(const Expr *expr);
     void reset_stmt_context() noexcept;
     void finalize_bool_expr(const Expr *expr);
 
-    SemanticSystemServices export_semantic_system_services();
+    [[nodiscard]] SemanticSystemServices create_semantic_system_services();
 
-    static AssignBuilder::Options get_assign_builder_options(const Options &options);
-    static ExprOptimizer::Options get_expr_optimizer_options(const Options &options);
+    [[nodiscard]] static AssignBuilder::Options get_assign_builder_options(const Options &options);
+    [[nodiscard]] static ExprOptimizer::Options get_expr_optimizer_options(const Options &options);
 };
-
-inline void
-SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->name_generator.reset_temp_names(); }
 } // namespace alpha
-#endif // SEMANTIC_DRIVER_HPP
+#endif // SEMANTIC_SYSTEM_HPP

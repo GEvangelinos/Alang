@@ -111,7 +111,7 @@ private:
         [[nodiscard]] const Expr *handle_direct_assignment(
             const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
 
-        template<OpVariant op_variant, typename Policy>
+        template<OpVariant op_variant,typename Policy>
         [[nodiscard]] const Expr *build_inc_dec(const Expr *lvalue, SourceLocation result_loc);
         template<typename Policy>
         [[nodiscard]] const Expr *handle_pre_inc_dec(
@@ -622,7 +622,7 @@ AssignBuilder::Restricted::handle_direct_assignment(
     return temp;
 }
 
-template<AssignBuilder::Restricted::OpVariant op_variant, typename Policy>
+template<AssignBuilder::Restricted::OpVariant op_variant,typename Policy>
 const Expr *
 AssignBuilder::Restricted::build_inc_dec(const Expr *const lvalue, const SourceLocation result_loc)
 {
@@ -816,8 +816,11 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
     const Expr *const rhs,
     const SourceLocation result_loc)
 {
-    static_assert(std::is_same_v<Policy, OrShortCircuitPolicy> ||
-                  std::is_same_v<Policy, AndShortCircuitPolicy>, "Unknown backpatching policy");
+    static_assert(
+        std::is_same_v<Policy, OrShortCircuitPolicy> ||
+        std::is_same_v<Policy, AndShortCircuitPolicy>,
+        "Unknown backpatching policy"
+    );
 
     DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
     const BoolExpr *const lhs_bool = static_cast<const BoolExpr *>(lhs);

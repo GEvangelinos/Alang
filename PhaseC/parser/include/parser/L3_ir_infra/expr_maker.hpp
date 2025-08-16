@@ -12,7 +12,7 @@ namespace alpha
 class ExprMaker : private Immobile
 {
 public:
-    explicit ExprMaker(ParseCtx *parse_ctx);
+    explicit ExprMaker(ParseCtx * parse_ctx);
     ~ExprMaker() noexcept;
 
     template<bool make_dup = false>
