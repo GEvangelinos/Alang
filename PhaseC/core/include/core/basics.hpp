@@ -56,6 +56,8 @@ class Once : private Immobile
 {
 public:
     Once() = default;
+    explicit Once(const T &t) { set(t); }
+    explicit Once(T &&t) { set(std::move(t)); }
 
     ~Once() = default;
 

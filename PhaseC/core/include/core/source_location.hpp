@@ -2,11 +2,8 @@
 #define SOURCE_LOCATION_HPP
 
 #include <vector>               // for vector
-
 #include "core/basics.hpp"
-
 #include "core/numeric_types.hpp" // for u32
-#include "utils/misc.hpp"
 
 namespace alpha
 {

@@ -11,23 +11,36 @@
    // IWYU pragma: no_include <stdio.h>
    // IWYU pragma: no_include <stdlib.h>
    // IWYU pragma: no_include <string.h>
+   #include <parser/alpha_parser.gen.hpp>
     #include <string>                             // for basic_string, string
     #include "parser/trace_logger.hpp"      // for display_trace
     #include "parser/parser_context.hpp"    // for ParseCtx
     #include "scanner/scanner_context.hpp"  // for LexerCtx
     #include "parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
     using Op = alpha::ir::Opcode;
-    #define ALPHA_YYDEBUG 1
+}
+
+%code
+{
+   #include <scanner/alpha_scanner.gen.hpp>
 }
 
 %code requires
 {
-    #include "diagnostics/diagnostic_engine.hpp"         // for ErrorTracker
-    #include "core/source_location.hpp"     // for Location, LocationTracker
-    #include "parser/parser_context.hpp"    // for ParseCtx
-    #include "parser/symbol_table.hpp"      // for Symbol, SymbolTable
-    #include "scanner/scanner_context.hpp"  // for LexerCtx
-    #include "parser/L1_driver/semantic_system.hpp"
+    #include <core/source_location.hpp>
+    #include <parser/internal_typedefs.hpp>
+
+    typedef void* yyscan_t;
+
+    namespace alpha
+    {
+        struct Expr;
+        class FuncSymbol;
+        class DiagnosticReporter;
+        class LexerCtx;
+        class ParseCtx;
+        class SemanticSystem;
+    } // namespace alpha
 }
 
 %define api.pure full
@@ -37,11 +50,13 @@
 %define api.location.type { alpha::SourceLocation }
 %locations
 
+%parse-param { yyscan_t yyscanner }
 %parse-param { alpha::LocationTracker &location_tracker }
 %parse-param { alpha::DiagnosticReporter &dr }
 %parse-param { alpha::LexerCtx &lexer_ctx }
 %parse-param { alpha::SemanticSystem &ss }
 
+%lex-param { yyscan_t yyscanner }
 %lex-param { alpha::LocationTracker &location_tracker }
 %lex-param { alpha::DiagnosticReporter &dr }
 %lex-param { alpha::LexerCtx &lexer_ctx }

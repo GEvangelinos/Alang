@@ -3,13 +3,15 @@
 #include <memory>                          // for unique_ptr
 #include <string>                          // for string
 #include <string_view>                     // for string_view
-#include <scanner/alpha_scanner.gen.hpp>               // for YY_BUFFER_STATE
+#include <fstream>
 #include "core/source_location.hpp"         // for LocationTracker
 #include "diagnostics/diagnostic_engine.hpp"
 #include "parser/parser_context.hpp"
 #include "parser/symbol_table.hpp"     // for SymbolTable
 #include "parser/L1_driver/semantic_system.hpp"
 #include "scanner/scanner_context.hpp" // for LexerCtx
+
+typedef void* yyscan_t; // Forward declaration instead of including the <parser/alpha_parser.gen.hpp> header
 
 namespace alpha
 {
@@ -39,24 +41,7 @@ public:
 private:
     class CompilationPipeline; // FWD
 
-    class FlexBuffer : private Immobile
-    {
-    public:
-        explicit FlexBuffer(const std::string &input_filepath);
-        ~FlexBuffer();
-
-        [[nodiscard]] char *buffer() const { return buffer_.get(); }
-        [[nodiscard]] const char *const_buffer() const { return buffer_.get(); }
-        [[nodiscard]] std::size_t size() const { return size_; }
-
-    private:
-        std::unique_ptr<char[]> buffer_;
-        std::size_t size_;
-        YY_BUFFER_STATE state_ = nullptr;
-    };
-
     const std::filesystem::path source_filepath_;
-    FlexBuffer flex_buffer_;
     LocationTracker lt_;
     DiagnosticEngine diagnostic_engine_;
     SymbolTable st_;
@@ -102,5 +87,48 @@ private:
     Once<int> parser_retval_;
 
     void run_frontend();
+};
+
+class TUBuffer
+{
+public:
+    explicit TUBuffer(const std::filesystem::path &path, std::size_t null_padding);
+    ~TUBuffer() = default;
+
+    [[nodiscard]] char *data() { return data_.get(); }
+    [[nodiscard]] const char *data() const { return data_.get(); }
+    [[nodiscard]] std::size_t size() const { return size_; }
+
+private:
+    std::unique_ptr<char[]> data_;
+    std::size_t size_ = 0;
+
+    [[nodiscard]] static std::ifstream open_source(const std::filesystem::path &path);
+};
+
+class TranslationUnit
+{
+    constexpr auto k_scanner_eof_null_padding = 2; // For 2 consecutive NULL bytes.
+public:
+    explicit TranslationUnit(const std::filesystem::path &source_path);
+    ~TranslationUnit() = default;
+
+private:
+    class ScannerHandle : private Immobile
+    {
+    public:
+        ScannerHandle() = delete;
+        explicit ScannerHandle(TUBuffer &tu_buffer);
+        ~ScannerHandle();
+
+        yyscan_t get() const noexcept { return scanner_; }
+
+    private:
+        yyscan_t scanner_;
+    };
+
+    const std::filesystem::path source_path_;
+    TUBuffer tu_buffer_;
+    ScannerHandle scanner_handle_;
 };
 } // namespace alpha

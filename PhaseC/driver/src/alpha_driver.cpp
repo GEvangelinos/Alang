@@ -23,7 +23,7 @@ bool g_show_parser_trace = false;
 
 namespace
 {
-std::ifstream open_alpha_source_file(const std::string &filepath);
+std::ifstream open_alpha_source_file(const std::filesystem::path &filepath);
 
 void create_export_directory(std::string_view dirname);
 
@@ -45,18 +45,16 @@ template<bool colorize,typename Stream>
 void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
                  const alpha::LocationTracker &lt);
 
-std::ifstream open_alpha_source_file(const std::string &filepath)
+std::ifstream open_alpha_source_file(const std::filesystem::path &filepath)
 {
     if (!std::filesystem::is_regular_file(filepath))
         throw std::invalid_argument(FMT::format("{} is not a regular file.", filepath));
-    std::ifstream inputFile(filepath);
-    if (!inputFile)
-        throw std::invalid_argument(
-            FMT::format("Failed opening {} for reading.", filepath));
-    return inputFile;
+    if (std::ifstream inputFile(filepath); inputFile)
+        return inputFile;
+    throw std::invalid_argument(FMT::format("Failed opening {} for reading.", filepath));
 }
 
-void create_export_directory(std::string_view dirname)
+void create_export_directory(const std::string_view dirname)
 {
     std::filesystem::create_directories(dirname);
 }
@@ -483,5 +481,61 @@ Driver::create_diagnostic_engine_policy()
         .notify_fatal_error = [this]() { this->notify_fatal_error(); },
         .notify_hard_error = [this]() { this->compilation_pipeline->notify_hard_error(); }
     };
+}
+
+TUBuffer::TUBuffer(
+    const std::filesystem::path &path,
+    const std::size_t null_padding)
+{
+    std::ifstream ifs = open_source(path);
+
+    const auto filesize = std::filesystem::file_size(path);
+    const auto tub_size = filesize + null_padding;
+    data_ = std::make_unique<char[]>(tub_size);
+    size_ = tub_size;
+
+    if (!ifs.read(data_.get(), filesize))
+        throw std::invalid_argument(
+            FMT::format("Failed reading source file: {}", path.string()));
+
+    // Flex requires two NULL-bytes at the end of the buffer (End-Of-Buffer marker).
+    for (auto i = filesize; i < tub_size; ++i)
+        data_[i] = '\0';
+}
+
+std::ifstream
+TUBuffer::open_source(const std::filesystem::path &path)
+{
+    if (!std::filesystem::is_regular_file(path))
+        throw std::invalid_argument(FMT::format("{} is not a regular file.", path));
+    if (std::ifstream ifs(path); ifs)
+        return ifs;
+    throw std::invalid_argument(FMT::format("Failed opening {} for reading.", path));
+}
+
+TranslationUnit::TranslationUnit(const std::filesystem::path &source_path)
+    : source_path_(source_path),
+      tu_buffer_(source_path, k_scanner_eof_null_padding),
+      scanner_handle_(tu_buffer_) {}
+
+TranslationUnit::ScannerHandle::ScannerHandle(TUBuffer &tu_buffer)
+{
+    if (alpha_yylex_init(&scanner_) != 0)
+        throw std::runtime_error(ATTACH_CONTEXT("Failed to initializing scanner"));
+
+    if (alpha_yy_scan_buffer(tu_buffer.data(), tu_buffer.size(), scanner_) == nullptr)
+    {
+        std::string error =
+                "Failed to load Flex buffer. A common cause is forgetting "
+                "to append two null bytes for padding.";
+        if (alpha_yylex_destroy(scanner_) != 0)
+            error += " | Additionally, cleanup of the scanner failed.";
+        throw std::runtime_error(ATTACH_CONTEXT(error));
+    }
+}
+
+TranslationUnit::ScannerHandle::~ScannerHandle()
+{
+    DEBUG_SMART_ASSERT_EVAL(alpha_yylex_destroy(scanner_) == 0);
 }
 } // namespace alpha

@@ -2,15 +2,12 @@
 #define _PARSER_COMMON_HPP
 
 #include <string>
+#include <vector>
 #include "core/source_location.hpp"
+
 
 namespace alpha
 {
-struct Expr;
-using ExprList = std::vector<const Expr *>;
-using ExprPair = std::pair<const Expr *, const Expr *>;
-using DictList = std::vector<const ExprPair *>;
-
 class Parameter
 {
 public:

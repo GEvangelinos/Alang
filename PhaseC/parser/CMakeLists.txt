@@ -100,7 +100,7 @@ if (NOT HATE_PYTHON_MODE)
         "${ALPHA_PARSER_OUTPUT_FILEPATH}"
         DEFINES_FILE ${ALPHA_PARSER_HEADER_FILEPATH}
     )
-    add_custom_target(generate_parser ALL DEPENDS
+    add_custom_target(generate_parser DEPENDS
         "${BISON_ALPHA_PARSER_OUTPUTS}"
         "${GENERATED_SRC_DIR}/${LOG_INJECTED_BISON_SPEC_FILENAME}"
     )
@@ -110,7 +110,7 @@ else () # This is the case exists for when python is not allowed
         "${ALPHA_PARSER_OUTPUT_FILEPATH}"
         DEFINES_FILE "${ALPHA_PARSER_HEADER_FILEPATH}"
     )
-    add_custom_target(generate_parser ALL DEPENDS
+    add_custom_target(generate_parser  DEPENDS
         "${BISON_ALPHA_PARSER_OUTPUTS}"
         "src/${BISON_SPEC_FILENAME}"
     )
@@ -150,6 +150,8 @@ target_link_libraries(alpha_parser_impl PRIVATE
     alpha_diagnostics_api
     alpha_scanner_api
 )
+
+add_dependencies(alpha_parser_impl generate_parser_scanner)
 
 if (NOT HATE_PYTHON_MODE)
     target_sources(alpha_parser_impl PRIVATE ${GENERATED_IR_OPCODE_SOURCES})

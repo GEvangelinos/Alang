@@ -662,3 +662,16 @@ each driver is self sastainable.. it has its own DiagnosticEngine, Reporter, Sym
 
 that with some dispatcher in main .. or another layer between main and driver. you can get a directory maybe..
 and parse all the alpha file (.asc) it has in side it in parallel...
+
+
+101) Add --interactive flag.. Like in the old days if the input file was't read or you didn't provide one.
+alpha_driver read input from keyword.
+
+You could maybe draw a window with ncurses and at the press of a signal like ctrl+c
+
+it compiles the code int he interactive window (like a testgroup, for checking if something is compileable)
+
+andit might produce the out output  too (target code)
+
+also when you create the vm.. you could integrate compiler in vm.. so in interactive mode
+you can see results too (REPL: Read Eval Print Loop) (like python's IDLE)

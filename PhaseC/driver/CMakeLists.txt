@@ -43,11 +43,10 @@ target_link_libraries("${ALPHA_DRIVER_EXECUTABLE}" PRIVATE
 
 # === Custom generation step (scanner + parser) ===
 add_custom_target(generate_parser_scanner ALL DEPENDS
-    generate_parser
     generate_scanner
+    generate_parser
 )
 
 add_dependencies(${ALPHA_DRIVER_EXECUTABLE}
-    generate_parser
-    generate_scanner
+    generate_parser_scanner
 )

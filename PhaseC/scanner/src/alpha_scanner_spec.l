@@ -10,7 +10,7 @@
 
         #ifdef YY_DECL
         #undef YY_DECL
-        #endif /* YY_DECL */
+        #endif
 
         #define YY_DECL ALPHA_YYLEX_SIGNATURE
 
@@ -24,6 +24,8 @@
                 } while (0); /* Semi-Colon is not placed by flex, we place it manually. */
 %}
 
+%option reentrant
+%option bison-bridge bison-locations
 %option noyywrap
 %option prefix="alpha_yy"
 

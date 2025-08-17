@@ -61,16 +61,32 @@ endif ()
 set(DEBUG_MODE ON) #TODO REMOVE!
 
 if (DEBUG_MODE)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        message(WARNING "Enabling _GLIBCXX debugging")
+        add_compile_definitions(
+            _GLIBCXX_ASSERTIONS
+            _GLIBCXX_DEBUG
+            _GLIBCXX_DEBUG_PEDANTIC
+        )
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        message(WARNING "Enabling _LIBCPP debugging")
+        add_compile_definitions(
+            _LIBCPP_DEBUG=2
+            _LIBCPP_ENABLE_ASSERTIONS=1
+            _LIBCPP_ENABLE_HARDENED_MODE=1
+        )
+    endif ()
+
     add_compile_options(
         -g
         -Wimplicit-fallthrough
-#        -Wunused-result
-#        -Wnull-dereference
-#        -Wsuggest-override
-#        -Wlogical-op
-#        -Wuseless-cast
-#        -Wduplicated-cond
-#        -Wmissing-declarations
+        #        -Wunused-result
+        #        -Wnull-dereference
+        #        -Wsuggest-override
+        #        -Wlogical-op
+        #        -Wuseless-cast
+        #        -Wduplicated-cond
+        #        -Wmissing-declarations
     )
     add_compile_definitions(DEBUG_MODE)
     message(WARNING "CMAKE: Running with DEBUG_MODE ON")
@@ -115,7 +131,6 @@ option(DEBUG_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable 
 function(dot_gen_applier [filename])
     get_filename_component(basename filename NAME_WLE)
     get_filename_component(extension filename NAME_WLE)
-
 
 
 endfunction()
