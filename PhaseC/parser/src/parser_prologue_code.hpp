@@ -16,7 +16,6 @@ extern ALPHA_YYLEX_SIGNATURE;
 // TODO: say in your report for  the project that ';' is not just a plain syntax requirement.
 // but also the parser's sync point, anything goes wrong, (syntax error) parser can continue parsing gracefully after ';'
 
-
 // TODO: use the static SourceLocation function to do the merge.. (both merges) (make a second static func if necessary).
 #define YYLLOC_DEFAULT(Current, Rhs, N)                                         \
         do                                                                      \
@@ -40,19 +39,12 @@ static void alpha_yyerror(
     [[maybe_unused]] alpha::SemanticSystem &ss,
     std::string error_message)
 {
-    static constexpr char k_prefix[] = "syntax error, ";
-    if (error_message.rfind(k_prefix, 0) == 0) // does it start with that?
-        error_message.erase(0, strlen(k_prefix)); // remove it
+    static constexpr char k_bison_error_prefix[] = "syntax error, ";
+    if (error_message.rfind(k_bison_error_prefix, 0) == 0)    // does it start with that?
+        error_message.erase(0, strlen(k_bison_error_prefix)); // remove it
     extern alpha::SourceLocation alpha_yylloc;
-    // TODO: uncomment and adjust it to new DiagnosticEngine.
-    // diagnostic_engine.report(
-    //     alpha::Issue::Type::ERROR,
-    //     error_message,
-    //     alpha::SourceLocation{
-    //         .first_index = alpha_yylloc.first_index,
-    //         .last_index = alpha_yylloc.last_index
-    //     }
-    // );
+    extern const char *alpha_yytext;
+    dr.report_parse_error(error_message, alpha_yylloc);
 }
 
 #endif // ALPHA_PARSER_PROLOGUE_CODE_HPP

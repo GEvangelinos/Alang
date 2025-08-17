@@ -250,10 +250,10 @@ ExprTrimmer::try_trim_relational_equality(
 const Expr *
 ExprOptimizer::try_propagate_const(const Expr *const expr)
 {
-    #ifndef ALL_OPTIMIZATIONS_ENABLED_BUILD // TODO: Add as build option
-    if (!options_.constant_propagation)
-        return expr;
-    #endif
+    DEBUG_SMART_ASSERT(
+        !options_.constant_propagation &&
+        "Constant propagation is OFF, shouldn't be called"
+    );
     if (expr->type != Expr::Type::VARIABLE)
         return expr;
     const VarSymbol *const var_symbol = static_cast<const VariableExpr *>(expr)->var_symbol;

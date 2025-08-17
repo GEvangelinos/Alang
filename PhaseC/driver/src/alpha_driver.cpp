@@ -18,6 +18,7 @@
 
 static constexpr unsigned k_flex_eof_padding = 2;
 
+extern int alpha_yydebug;
 bool g_show_parser_trace = false;
 
 namespace
@@ -191,7 +192,7 @@ void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
     );
 
     // Write separating dash line.
-    out << std::string(quad_header_width, '-') << std::endl;
+    out << std::string(quad_header_width, '-') << '\n';
 
     // Write quads.
     const auto quads_size = quads.size();
@@ -199,7 +200,7 @@ void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
     {
         const alpha::Quad &q = quads[i];
 
-        auto quad_line_num = lt.find_first_line(q.location);
+        const auto quad_line_num = lt.find_first_line(q.location);
         std::string quad_line_str = quad_line_num == alpha::k_no_line
                                     ? alpha::k_not_available_marker
                                     : std::to_string(quad_line_num);
@@ -272,13 +273,13 @@ Driver::show_symbol_table() const
         std::cout << FMT::format(
             "----------------------------     Scope #{:<4}     ----------------------------\n",
             scope);
-        for (auto symbol_ptr: symbol_per_scope_vector[scope])
+        for (const auto symbol_ptr: symbol_per_scope_vector[scope])
             std::cout << FMT::format("{:<30} {:<20} (line {:>5}) (scope {:>4})\n",
                                      FMT::format("\"{}\"", symbol_ptr->name),
                                      FMT::format("[{}]", symbol_ptr->type_to_string()),
                                      lt_.find_symbol_line(symbol_ptr->loc),
                                      symbol_ptr->scope);
-        std::cout << std::endl;
+        std::cout << '\n';
     }
     std::cout << SGR_RESET << std::endl;
 }
@@ -447,18 +448,8 @@ void
 Driver::CompilationPipeline::run_frontend()
 {
     running_phase_ = Phase::FRONTEND;
-    const auto parser_retval = alpha_yyparse(lt_, dr_, lexer_ctx_, semantic_system_);
-
-    if (parser_retval == 0)
-        return;
-
-    #ifdef DEBUG_MODE
-    auto generic_error = "Internal parser error occurred.";
-    throw std::runtime_error(ATTACH_CONTEXT(FMT::format(
-        "{0} Parser's return value = {1}", generic_error, parser_retval)));
-    #else
-    throw std::runtime_error(generic_error);
-    #endif
+    alpha_yydebug = 1;
+    parser_retval_ = alpha_yyparse(lt_, dr_, lexer_ctx_, semantic_system_);
 }
 
 bool

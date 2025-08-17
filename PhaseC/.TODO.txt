@@ -649,3 +649,16 @@ and remains easily auditable and extensible, all without introducing runtime ove
   Use a CALLBACK for fatal errors!!
 
   89) Scanner is somewhat old.. its from 2024.. You should Update it and modernize it
+
+
+100) Dude.. I just learned what reentrant bison means.. We can launch multiple instances of
+yyparse at the same freaking time :D. Basically the whole state of bison no longer lives in global
+variables... but instead everything it needs, (structs, maps, tables, etc) lives inside yyparse()
+as local function arguments. Also the arguments you provide yyparse..are also local to it..
+
+So in theory.. you can make multiple instances of drivers.. and compile many file in parallel..
+
+each driver is self sastainable.. it has its own DiagnosticEngine, Reporter, SymbolTble, ParseCtx, and so on...
+
+that with some dispatcher in main .. or another layer between main and driver. you can get a directory maybe..
+and parse all the alpha file (.asc) it has in side it in parallel...

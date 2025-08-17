@@ -570,10 +570,10 @@ inline bool
 AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const Expr *const rvalue)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-    #ifndef ALL_OPTIMIZATIONS_ENABLED_BUILD
-    if (!options_.record_constant_variables)
-        return false;
-    #endif
+    DEBUG_SMART_ASSERT(
+        !options_.record_constant_variables &&
+        "Recording values of constant variables is OFF, shouldn't be called"
+    );
     if (lvalue->type != Expr::Type::VARIABLE)
         return false;
 
@@ -612,8 +612,9 @@ AssignBuilder::Restricted::handle_direct_assignment(
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
 
-    if (try_record_const_expr(lvalue, rvalue))
-        return lvalue; // Now lvalue's symbol carries rvalue.
+    if (options_.record_constant_variables)
+        if (try_record_const_expr(lvalue, rvalue))
+            return lvalue; // Now lvalue's symbol carries rvalue.
 
     // TODO: check todo 52 (on how to make this only when needed)
     const Expr *const temp = expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());

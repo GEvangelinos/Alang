@@ -1,3 +1,10 @@
+- Diagnostic: PARSE_ERROR
+  Type: HARD_ERROR
+  Primary:
+    - Message: "{0}"
+      Args: [ error_message ]
+      Location: error_loc
+
 - Diagnostic: IMPLICIT_INT_TO_FLOAT_LOSS
   Type: WARNING
   Primary:
@@ -12,7 +19,7 @@
       Location: lhs_loc
 
 - Diagnostic: ASSIGN_TO_FUNC
-  Type: HARD_ERROR
+  Type: SOFT_ERROR
   Primary:
     - Message: "Assignment of function `{0}`"
       Args: [ func_name ]
@@ -23,7 +30,7 @@
       Location: func_def_loc
 
 - Diagnostic: ASSIGN_TO_LIBFUNC
-  Type: HARD_ERROR
+  Type: SOFT_ERROR
   Primary:
     - Message: "Assignment of library function `{0}`"
       Args: [ func_name ]
@@ -37,7 +44,7 @@
       Location: operand_loc
 
 - Diagnostic: DIVISION_BY_ZERO
-  Type: HARD_ERROR
+  Type: SOFT_ERROR
   Primary:
     - Message: "Division by zero"
       Location: division_loc
@@ -60,7 +67,7 @@
       Location: operand_loc
 
 - Diagnostic: INACCESSIBLE_VAR_IN_FUNC
-  Type: HARD_ERROR
+  Type: SOFT_ERROR
   Primary:
     - Message: "variable `{0}` is not accessible in function `{1}`"
       Args: [ id_name, curr_func_name ]
@@ -74,7 +81,7 @@
       Location: var_decl_loc
 
 - Diagnostic: LOOP_CTRL_KEYWORD_OUTSIDE_LOOP
-  Type: HARD_ERROR
+  Type: SOFT_ERROR
   Primary:
     - Message: "`{0}` found outside a loop statement"
       Args: [ loop_keyword_name ]
@@ -95,7 +102,7 @@
       Location: id_use_loc
 
 - Diagnostic: UNRESOLVED_GLOBAL_SYMBOL
-  Type: HARD_ERROR
+  Type: SOFT_ERROR
   Primary:
     - Message: "symbol `::{0}` not found in global scope"
       Args: [ symbol_name ]
@@ -120,14 +127,14 @@
       Location: string_start_loc
 
 - Diagnostic: INVALID_ESCAPE_CODE
-  Type: HARD_ERROR
+  Type: SOFT_ERROR
   Primary:
     - Message: "invalid escape code `{0}` in string"
       Args: [ escape_code_str ]
       Location: escape_code_loc
 
 - Diagnostic: INVALID_CHARACTER
-  Type: HARD_ERROR
+  Type: SOFT_ERROR
   Primary:
     - Message: "character `{0}` is invalid"
       Args: [ char_str ]
@@ -173,9 +180,9 @@
   Type: HARD_ERROR
   Primary:
     - Message: "redefinition of formal parameter `{0}`"
-      Args: [param_name]
+      Args: [ param_name ]
       Location: param_loc
   Notes:
     - Message: "initial definition of `{0}` here"
-      Args: [param_name]
+      Args: [ param_name ]
       Location: initial_param_loc

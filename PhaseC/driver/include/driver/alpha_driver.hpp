@@ -91,13 +91,15 @@ private:
 
     Phase running_phase_ = Phase::FRONTEND;
 
-    SemanticSystem::Options ss_options_ = {true, true, true, true};
+    SemanticSystem::Options ss_options_ = {false, false, false, false};
 
     LocationTracker &lt_;
     DiagnosticReporter &dr_;
     LexerCtx lexer_ctx_;
     ParseCtx parse_ctx_;
     SemanticSystem semantic_system_;
+
+    Once<int> parser_retval_;
 
     void run_frontend();
 };

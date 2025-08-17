@@ -102,6 +102,65 @@ private:
         bool is_in_loop();
 
         static ForLoopSite next(ForLoopSite fls) noexcept;
+
+    //     - Diagnostic: RETURN_KEYWORD_OUTSIDE_FUNC
+    //       Type: SOFT_ERROR
+    //
+    //                 std::string error = "`return` statement not in a function statement";
+    //
+    //     void manage_return(const SourceLocation return_loc)
+    //     {
+    //         if (parse_ctx_->func_ctx_handler.function_nesting_depth() > 0)
+    //             return;
+    //         std::string error = "`return` statement not in a function statement";
+    //         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
+    //
+    //         parse_ctx_.function_ctx_handler.add_label_to_returnlist(
+    //             parse_ctx_.quad_handler.next_quad_label());
+    //
+    //         parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr,
+    //                                                     return_loc);
+    //     }
+    //
+    //     inline void SemanticManager::returnStmt__return(Location returnStmt_loc,
+    //                                                     Location return_loc)
+    //     {
+    //         // TODO functionize like you will do with continue and return...
+    //         if (parse_ctx_.function_ctx_handler.function_nesting_depth() > 0)
+    //         {
+    //             parse_ctx_.quad_handler.emit_quad(IOPCode::RETURN, nullptr, nullptr, nullptr,
+    //                                               returnStmt_loc);
+    //
+    //             // Label goes to JUMP IOPC not RETURN
+    //             parse_ctx_.function_ctx_handler.add_label_to_returnlist(
+    //                 parse_ctx_.quad_handler.next_quad_label());
+    //             parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr,
+    //                                                         nullptr, return_loc);
+    //             return;
+    //         }
+    //         std::string error = "`return` statement not in a function statement";
+    //         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
+    //     }
+    //
+    //     inline void SemanticManager::returnStmt__return_expr(Expr *expr, Location returnStmt_loc,
+    //                                                          Location return_loc)
+    //     {
+    //         // TODO functionize like you will do with continue and return...
+    //         if (parse_ctx_.function_ctx_handler.function_nesting_depth() > 0)
+    //         {
+    //             parse_ctx_.quad_handler.emit_quad(IOPCode::RETURN, expr, nullptr, nullptr,
+    //                                               returnStmt_loc);
+    //
+    //             // Label goes to JUMP IOPC not RETURN
+    //             parse_ctx_.function_ctx_handler.add_label_to_returnlist(
+    //                 parse_ctx_.quad_handler.next_quad_label());
+    //             parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr,
+    //                                                         nullptr, return_loc);
+    //             return;
+    //         }
+    //         std::string error = "`return` statement not in a function statement";
+    //         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
+    //     }
     };
 
     Restricted DISPATCH_TARGET;

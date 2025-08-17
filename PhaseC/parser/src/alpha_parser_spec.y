@@ -17,6 +17,7 @@
     #include "scanner/scanner_context.hpp"  // for LexerCtx
     #include "parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
     using Op = alpha::ir::Opcode;
+    #define ALPHA_YYDEBUG 1
 }
 
 %code requires
@@ -29,16 +30,17 @@
     #include "parser/L1_driver/semantic_system.hpp"
 }
 
+%define api.pure full
 %define api.prefix {alpha_yy}
 %define parse.lac full
-%define parse.error verbose /* Enables verbose error messages */
+%define parse.error custom /* Enables custom syntax error composer (yyreport_syntax_error)*/
 %define api.location.type { alpha::SourceLocation }
 %locations
 
 %parse-param { alpha::LocationTracker &location_tracker }
 %parse-param { alpha::DiagnosticReporter &dr }
 %parse-param { alpha::LexerCtx &lexer_ctx }
-%parse-param  {alpha::SemanticSystem &ss }
+%parse-param { alpha::SemanticSystem &ss }
 
 %lex-param { alpha::LocationTracker &location_tracker }
 %lex-param { alpha::DiagnosticReporter &dr }
