@@ -97,26 +97,22 @@ public:
 
 private:
     const std::filesystem::path source_filepath_;
+    const std::filesystem::path source_path_;
+    TUBuffer tu_buffer_;
+    LocationTracker loc_tracker_;
+    DiagnosticEngine diagnostic_engine_;
+    SymbolTable symbol_table_;
+    std::unique_ptr<PassManager> pass_manager_;
+    bool compiled_ok_ = false;
 
     void export_within_dir(
         std::string_view dirname, void (TranslationUnit::*export_func)() const) const;
     void export_symbol_table_impl() const;
     void export_compile_errors_impl() const;
     void export_quads_impl() const;
+    [[nodiscard]] DiagnosticEngine::Policy create_diagnostic_engine_policy();
 
     static void notify_fatal_error();
-
-private:
-    const std::filesystem::path source_path_;
-    TUBuffer tu_buffer_;
-    LocationTracker lt_;
-    DiagnosticEngine diagnostic_engine_;
-    SymbolTable st_;
-    std::unique_ptr<PassManager> compilation_pipeline_;
-
-    bool compiled_ok_ = false;
-
-    [[nodiscard]] DiagnosticEngine::Policy create_diagnostic_engine_policy();
 };
 } // namespace alpha
 #endif // TRANSLATION_UNIT_HPP

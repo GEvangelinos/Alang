@@ -16,6 +16,7 @@
             (Current).last_index = YYRHSLOC((Rhs), 0).last_index;   \
         }                                                           \
     } while (0)
+#include "utils/debug_tools.hpp"
 
 static void alpha_yyerror(
     [[maybe_unused]] ALPHA_YYLTYPE *yylloc,
@@ -26,7 +27,7 @@ static void alpha_yyerror(
     [[maybe_unused]] alpha::SemanticSystem &ss,
     [[maybe_unused]] std::string error_message)
 {
-    ((void) 0);
+    DEBUG_SMART_ASSERT(false && "alpha_yyerror function called why? Is it too many expected args?");
     // TODO: implement cause even if youuse yyreport_error or what ever it was called to get the unexpected and expected tokens...
     // some intervals of bison still need yyerror to output internal errors, like memory exhaustion , etc.
     //     static constexpr char k_bison_error_prefix[] = "syntax error, ";

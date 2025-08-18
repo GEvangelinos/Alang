@@ -522,10 +522,3 @@ return_stmt:
 #include "parser_epilogue_code.hpp"
 
 
-static int yyreport_syntax_error(
-    yypcontext_t const *yypcontext,
-    yyscan_t yyscanner,
-    alpha::LexerCtx &lexer_ctx,
-    alpha::LocationTracker &lt,
-    alpha::DiagnosticReporter &dr,
-    alpha::SemanticSystem &ss) {}

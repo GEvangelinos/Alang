@@ -204,9 +204,9 @@ DiagnosticEngine::Policy
 TranslationUnit::create_diagnostic_engine_policy()
 {
     return {
-        .should_emit_diagnostic = [this]() { return compilation_pipeline_->is_in_hard_error(); },
+        .should_emit_diagnostic = [this]() { return pass_manager_->is_in_hard_error(); },
         .notify_fatal_error = [this]() { notify_fatal_error(); },
-        .notify_hard_error = [this]() { compilation_pipeline_->notify_hard_error(); }
+        .notify_hard_error = [this]() { pass_manager_->notify_hard_error(); }
     };
 }
 
@@ -244,15 +244,11 @@ TUBuffer::open_source(const std::filesystem::path &path)
 TranslationUnit::TranslationUnit(const std::filesystem::path &source_path)
     : source_path_(source_path),
       tu_buffer_(source_path, k_scanner_eof_null_padding),
-      lt_(tu_buffer_.size() - tu_buffer_.null_padding),
-      diagnostic_engine_(create_diagnostic_engine_policy())
-// const std::filesystem::path source_path_;
-// TUBuffer tu_buffer_;
-// LocationTracker lt_;
-// DiagnosticEngine diagnostic_engine_;
-// SymbolTable st_;
-// std::unique_ptr<CompilationPipeline> compilation_pipeline;
-{}
+      loc_tracker_(tu_buffer_.size() - tu_buffer_.null_padding),
+      diagnostic_engine_(create_diagnostic_engine_policy()),
+      symbol_table_(),
+      pass_manager_(std::make_unique<PassManager>(
+          tu_buffer_, loc_tracker_, diagnostic_engine_.dr, &symbol_table_)) {}
 
 PassManager::ScannerHandle::ScannerHandle(TUBuffer &tu_buffer)
 {
@@ -280,7 +276,7 @@ TranslationUnit::compile()
 {
     try
     {
-        compilation_pipeline_->execute();
+        pass_manager_->execute();
         compiled_ok_ = true;
     }
     catch (DiagnosticFatalError) {}
@@ -297,7 +293,7 @@ void
 TranslationUnit::show_symbol_table() const
 {
     std::cout << COLOR_ASCII_BLUE;
-    const auto &symbol_per_scope_vector = st_.symbols_per_scope();
+    const auto &symbol_per_scope_vector = symbol_table_.symbols_per_scope();
     for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
     {
         if (symbol_per_scope_vector[scope].empty())
@@ -309,7 +305,7 @@ TranslationUnit::show_symbol_table() const
             std::cout << FMT::format("{:<30} {:<20} (line {:>5}) (scope {:>4})\n",
                                      FMT::format("\"{}\"", symbol_ptr->name),
                                      FMT::format("[{}]", symbol_ptr->type_to_string()),
-                                     lt_.find_symbol_line(symbol_ptr->loc),
+                                     loc_tracker_.find_symbol_line(symbol_ptr->loc),
                                      symbol_ptr->scope);
         std::cout << '\n';
     }
@@ -322,7 +318,7 @@ TranslationUnit::show_compile_issues() const
     const std::string source_filename = source_filepath_.filename().string();
 
     for (const auto &cti: diagnostic_engine_.get_compile_time_issues())
-        std::cerr << cti->make_pretty_diagnostic(source_filename, lt_, tu_buffer_.data());
+        std::cerr << cti->make_pretty_diagnostic(source_filename, loc_tracker_, tu_buffer_.data());
 }
 
 void
@@ -331,7 +327,7 @@ TranslationUnit::show_quads() const
     // TODO!! UNCOMMENT!
     // if (diagnostic_engine_.has_errors())
     //     return;
-    print_quads<true>(std::cout, compilation_pipeline_->get_quads(), lt_);
+    print_quads<true>(std::cout, pass_manager_->get_quads(), loc_tracker_);
 }
 
 void
@@ -370,10 +366,10 @@ TranslationUnit::export_symbol_table_impl() const
     {
         outfile << FMT::format(
             "{},{},{},{}\n", symbol_ptr->name, symbol_ptr->type_to_string(),
-            lt_.find_symbol_line(symbol_ptr->loc), symbol_ptr->scope);
+            loc_tracker_.find_symbol_line(symbol_ptr->loc), symbol_ptr->scope);
     };
 
-    const auto &symbol_per_scope_vector = st_.symbols_per_scope();
+    const auto &symbol_per_scope_vector = symbol_table_.symbols_per_scope();
     for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
         for (const Symbol *symbol_ptr: symbol_per_scope_vector[scope])
             write_symbol(symbol_ptr);
@@ -403,7 +399,7 @@ TranslationUnit::export_compile_errors_impl() const
     outfile << k_error_csv_export_header; // Write CSV header.
     auto write_diagnostic = [&](const Issue &diag)
     {
-        outfile << FMT::format("{},{},{},{}\n", diag.line(lt_), diag.column(lt_),
+        outfile << FMT::format("{},{},{},{}\n", diag.line(loc_tracker_), diag.column(loc_tracker_),
                                diag.type_to_string(), diag.desc);
     };
 
@@ -424,6 +420,6 @@ TranslationUnit::export_quads_impl() const
         throw std::runtime_error(
             FMT::format("Failed opening file {} to export quads", outfile_name));
 
-    print_quads<false>(outfile, compilation_pipeline_->get_quads(), lt_);
+    print_quads<false>(outfile, pass_manager_->get_quads(), loc_tracker_);
 }
 } // namespace alpha

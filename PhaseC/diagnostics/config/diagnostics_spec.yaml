@@ -1,3 +1,10 @@
+- Diagnostic: SYNTAX_ERROR
+  Type: HARD_ERROR
+  Primary:
+    - Message: "{0}"
+      Args: [ error_message ]
+      Location: error_loc
+
 - Diagnostic: PARSE_ERROR
   Type: HARD_ERROR
   Primary:
