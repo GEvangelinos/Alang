@@ -80,8 +80,7 @@ int main(const int argc, char **argv)
     try
     {
         const std::string &source_filename = cli_parser[flag_input_file].get_input();
-        const bool show_parser_trace = cli_parser[flag_show_parser_trace].is_provided();
-        driver = std::make_unique<alpha::Driver>(source_filename, show_parser_trace);
+        driver = std::make_unique<alpha::Driver>(source_filename);
     }
     catch (Arguinator::CLIHelp) { return 0; }
 

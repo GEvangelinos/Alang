@@ -15,18 +15,16 @@
     #include <string>                             // for basic_string, string
     #include "parser/trace_logger.hpp"      // for display_trace
     #include "parser/parser_context.hpp"    // for ParseCtx
-    #include "scanner/scanner_context.hpp"  // for LexerCtx
-    #include "parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
+    #include <L1_driver/semantic_system.hpp>
     using Op = alpha::ir::Opcode;
 }
 
-%code
-{
-   #include <scanner/alpha_scanner.gen.hpp>
-}
 
 %code requires
 {
+    #define YYSTYPE ALPHA_YYSTYPE
+    #define YYLTYPE ALPHA_YYLTYPE
+
     #include <core/source_location.hpp>
     #include <parser/internal_typedefs.hpp>
 
@@ -48,18 +46,25 @@
 %define parse.lac full
 %define parse.error custom /* Enables custom syntax error composer (yyreport_syntax_error)*/
 %define api.location.type { alpha::SourceLocation }
+%code
+{
+   #include "core/shared_interface.hpp"
+   YY_DECL;
+   #include <scanner/alpha_scanner.gen.hpp>
+    #include "parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
+}
 %locations
 
 %parse-param { yyscan_t yyscanner }
+%parse-param { alpha::LexerCtx &lexer_ctx }
 %parse-param { alpha::LocationTracker &location_tracker }
 %parse-param { alpha::DiagnosticReporter &dr }
-%parse-param { alpha::LexerCtx &lexer_ctx }
 %parse-param { alpha::SemanticSystem &ss }
 
 %lex-param { yyscan_t yyscanner }
+%lex-param { alpha::LexerCtx &lexer_ctx }
 %lex-param { alpha::LocationTracker &location_tracker }
 %lex-param { alpha::DiagnosticReporter &dr }
-%lex-param { alpha::LexerCtx &lexer_ctx }
 
 // Here I declare the trivial types that can be used in union.
 // More complex types are stores in ParseCache of ParseCtx.
@@ -514,3 +519,13 @@ return_stmt:
 ;
 
 %%
+#include "parser_epilogue_code.hpp"
+
+
+static int yyreport_syntax_error(
+    yypcontext_t const *yypcontext,
+    yyscan_t yyscanner,
+    alpha::LexerCtx &lexer_ctx,
+    alpha::LocationTracker &lt,
+    alpha::DiagnosticReporter &dr,
+    alpha::SemanticSystem &ss) {}

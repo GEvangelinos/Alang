@@ -17,13 +17,13 @@ protected:
     SemanticSystemBridge *const ss_bridge_ = nullptr;
 
     explicit SemanticSubsystem(const SemanticSystemServices &ss_services)
-        : parse_ctx_(REQUIRE_PTR(ss_services.parse_ctx)),
-          symbol_table_(REQUIRE_PTR(ss_services.symbol_table)),
-          dr_(REQUIRE_PTR(ss_services.dr)),
-          expr_maker_(REQUIRE_PTR(ss_services.expr_maker)),
-          expr_optimizer_(REQUIRE_PTR(ss_services.expr_optimizer)),
-          quad_handler_(REQUIRE_PTR(ss_services.quad_handler)),
-          ss_bridge_(REQUIRE_PTR(ss_services.ss_bridge)) {}
+        : parse_ctx_(utils::require_ptr(ss_services.parse_ctx)),
+          symbol_table_(utils::require_ptr(ss_services.symbol_table)),
+          dr_(utils::require_ptr(ss_services.dr)),
+          expr_maker_(utils::require_ptr(ss_services.expr_maker)),
+          expr_optimizer_(utils::require_ptr(ss_services.expr_optimizer)),
+          quad_handler_(utils::require_ptr(ss_services.quad_handler)),
+          ss_bridge_(utils::require_ptr(ss_services.ss_bridge)) {}
 
     virtual ~SemanticSubsystem() = 0;
 };

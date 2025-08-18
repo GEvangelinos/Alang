@@ -1,13 +1,42 @@
 cmake_minimum_required(VERSION 3.18)
+
+# Simple ANSI color helpers
+string(ASCII 27 Esc)
+
+# Reset & attributes
+set(SGR_RESET "${Esc}[0m")
+set(SGR_BOLD "${Esc}[1m")
+set(SGR_UNDERLINE "${Esc}[4m")
+set(SGR_BLINK "${Esc}[5m")
+
+# Foreground colors
+set(SGR_FG_BLACK "${Esc}[90m")
+set(SGR_FG_RED "${Esc}[91m")
+set(SGR_FG_GREEN "${Esc}[92m")
+set(SGR_FG_YELLOW "${Esc}[93m")
+set(SGR_FG_BLUE "${Esc}[94m")
+set(SGR_FG_MAGENTA "${Esc}[95m")
+set(SGR_FG_CYAN "${Esc}[96m")
+set(SGR_FG_WHITE "${Esc}[97m")
+
+# Set of logging function for displaying nice colorized messages.
+function(log_ok message)
+    message(STATUS ${SGR_BOLD}${SGR_FG_GREEN}${message}${SGR_RESET})
+endfunction()
+
+function(log_info message)
+    message(STATUS ${SGR_BOLD}${SGR_FG_BLUE}${message}${SGR_RESET})
+endfunction()
+
 # Detect and set the preferred C++ compiler
-find_program(CMAKE_CXX_COMPILER_CLANG NAMES g++)
-find_program(CMAKE_CXX_COMPILER_GCC NAMES clang++) # TODO: Remember to convert to clang++ (we use g++ to use some debug compiler options)
+find_program(CMAKE_CXX_COMPILER_CLANG NAMES clang++)
+find_program(CMAKE_CXX_COMPILER_GCC NAMES g++)
 
 # Configure the preferred C++ compiler before invoking project().
 # CMake finalizes the compiler selection during the project() call.
 if (CMAKE_CXX_COMPILER_CLANG)
     set(CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER_CLANG}" CACHE STRING "Path to Clang C++ compiler" FORCE)
-    message(STATUS "Using Clang: ${CMAKE_CXX_COMPILER_CLANG}")
+    log_info("Using Clang: ${CMAKE_CXX_COMPILER_CLANG}")
 elseif (CMAKE_CXX_COMPILER_GCC)
     set(CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER_GCC}" CACHE STRING "Path to GCC C++ compiler" FORCE)
     message(WARNING "Clang not found. Falling back to GCC: ${CMAKE_CXX_COMPILER_GCC}")
@@ -18,22 +47,22 @@ endif ()
 project(Alpha VERSION 1.2 LANGUAGES CXX)
 
 find_package(Python3 QUIET)
-if (Python3_FOUND)
-    message(STATUS "Found Python3: ${Python3_EXECUTABLE} (found version ${Python3_VERSION})")
+if (Python3_FOUND AND NOT HATE_PYTHON_MODE)
+    log_info("Found Python3: ${Python3_EXECUTABLE} (found version ${Python3_VERSION})")
 else ()
     message(SEND_ERROR "PYTHON NOT FOUND!")
 endif ()
 
-
 find_program(VALGRIND_PATH NAMES valgrind)
 if (VALGRIND_PATH)
-    message(STATUS "Found Valgrind: ${VALGRIND_PATH}")
+    log_info("Found Valgrind: ${VALGRIND_PATH}")
 endif ()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 
 # General warnings
 add_compile_options(
@@ -55,12 +84,14 @@ check_cxx_source_compiles("
 " STD_FORMAT_SUPPORTED)
 
 if (STD_FORMAT_SUPPORTED)
+    log_info("Compilation test on std::format() succeeded. Adding compile time definition `" STD_FORMAT_SUPPORTED "`")
     add_compile_definitions(STD_FORMAT_SUPPORTED)
 endif ()
 
 set(DEBUG_MODE ON) #TODO REMOVE!
 
 if (DEBUG_MODE)
+    message(WARNING "CMAKE: Running with `" DEBUG_MODE "` ON")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(WARNING "Enabling _GLIBCXX debugging")
         add_compile_definitions(
@@ -89,7 +120,6 @@ if (DEBUG_MODE)
         #        -Wmissing-declarations
     )
     add_compile_definitions(DEBUG_MODE)
-    message(WARNING "CMAKE: Running with DEBUG_MODE ON")
 endif ()
 
 if (OPTIMIZED_MODE)
@@ -99,7 +129,7 @@ if (OPTIMIZED_MODE)
         -march=native
     )
     add_compile_definitions(OPTIMIZED_MODE)
-    message(WARNING "CMAKE: Running with OPTIMIZED_MODE ON")
+    log_info("CMAKE: Running with `" OPTIMIZED_MODE "` ON")
 endif ()
 
 if (ENABLE_IWYU)
@@ -119,7 +149,10 @@ endif ()
 
 if (HATE_PYTHON_MODE)
     add_compile_definitions(HATE_PYTHON_MODE)
-    message(WARNING "HATE_PYTHON_MODE=ON, Python utilities are disabled")
+    message(WARNING "Mode `HATE_PYTHON_MODE` has been activated...\n"
+        "Pulling generator from cache. Python utilities are disabled"
+    )
+
 endif ()
 
 

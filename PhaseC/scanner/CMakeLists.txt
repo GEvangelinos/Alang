@@ -3,7 +3,7 @@
 # ---------------------------------------------------------------------------
 find_package(FLEX QUIET)
 if (FLEX_FOUND)
-    message(STATUS "Found FLEX: ${FLEX_EXECUTABLE} (found version ${FLEX_VERSION})")
+    log_info("Found FLEX: ${FLEX_EXECUTABLE} (found version ${FLEX_VERSION})")
 else ()
     message(FATAL_ERROR "Could not find FLEX. Please install `flex`.")
 endif ()

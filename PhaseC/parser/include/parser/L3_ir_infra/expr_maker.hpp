@@ -6,13 +6,14 @@
 #include "core/basics.hpp"
 #include "core/source_location.hpp"
 #include "parser/parser_context.hpp"
+#include "utils/misc.hpp"
 
 namespace alpha
 {
 class ExprMaker : private Immobile
 {
 public:
-    explicit ExprMaker(ParseCtx * parse_ctx);
+    explicit ExprMaker(ParseCtx *parse_ctx);
     ~ExprMaker() noexcept;
 
     template<bool make_dup = false>
@@ -91,7 +92,7 @@ inline ExprMaker::~ExprMaker() noexcept
     {                                                                                  \
         const EXPR_TYPE *expr = nullptr;                                               \
         if constexpr (make_dup)                                                        \
-            expr = new const EXPR_TYPE(expr_loc, REQUIRE_PTR(dup_from)->var_symbol);   \
+            expr = new const EXPR_TYPE(expr_loc, DEBUG_REQUIRE_PTR(dup_from)->var_symbol);   \
         else                                                                           \
             expr = new const EXPR_TYPE(expr_loc, parse_ctx_->new_temp());              \
         expr_sink_.push_back(expr);                                                    \
@@ -188,8 +189,9 @@ ExprMaker::make_table_item_expr(
     // TODO POLISH
     DEBUG_SMART_ASSERT(
         lvalue->type == Expr::Type::VARIABLE &&
-        "if it fails then we must check for lib and prog, assign , tableitem ");
-    const auto *const expr_w_var_symbol = static_cast<const ExprWVarSymbol *>(REQUIRE_PTR(lvalue));
+        "if it fails then we must check for lib and prog, assign , tableitem "
+    );
+    const auto *const expr_w_var_symbol = static_cast<const ExprWVarSymbol *>(lvalue);
     const auto *const lvalue_symbol = static_cast<const VarSymbol *>(expr_w_var_symbol->var_symbol);
     const auto *const table_item_expr = new const TableItemExpr(expr_loc, lvalue_symbol, index);
     expr_sink_.push_back(table_item_expr);

@@ -650,6 +650,9 @@ and remains easily auditable and extensible, all without introducing runtime ove
 
   89) Scanner is somewhat old.. its from 2024.. You should Update it and modernize it
 
+90) Use FWD to minimizes compilation times... use unique_ptrs for ownership and instantiate them in .cpp
+
+
 
 100) Dude.. I just learned what reentrant bison means.. We can launch multiple instances of
 yyparse at the same freaking time :D. Basically the whole state of bison no longer lives in global
@@ -675,3 +678,4 @@ andit might produce the out output  too (target code)
 
 also when you create the vm.. you could integrate compiler in vm.. so in interactive mode
 you can see results too (REPL: Read Eval Print Loop) (like python's IDLE)
+

@@ -7,6 +7,7 @@
 #include "parser/symbols.hpp"
 
 #include "core/konstants.hpp"
+#include "utils/misc.hpp"
 #include "parser/ir_opcode.gen.hpp"
 
 namespace alpha
@@ -65,7 +66,7 @@ protected:
         const SourceLocation loc,
         const VarSymbol *const var_symbol)
         : Expr(type, loc),
-          var_symbol(REQUIRE_PTR(var_symbol)) {}
+          var_symbol(DEBUG_REQUIRE_PTR(var_symbol)) {}
 };
 
 struct ExprWFuncSymbol : public Expr
@@ -79,7 +80,7 @@ protected:
         const SourceLocation loc,
         const FuncSymbol *const func_symbol)
         : Expr(type, loc),
-          func_symbol(REQUIRE_PTR(func_symbol)) {}
+          func_symbol(DEBUG_REQUIRE_PTR(func_symbol)) {}
 };
 
 struct ConstExpr : public Expr
@@ -97,7 +98,7 @@ struct ArithmeticExpr final : public ExprWVarSymbol
 struct AssignExpr final : public ExprWVarSymbol
 {
     ALWAYS_INLINE AssignExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
-        : ExprWVarSymbol(Type::ASSIGN_EXPR, loc, REQUIRE_PTR(var_symbol)) {}
+        : ExprWVarSymbol(Type::ASSIGN_EXPR, loc, DEBUG_REQUIRE_PTR(var_symbol)) {}
 };
 
 struct BoolExpr final : public ExprWVarSymbol
@@ -142,7 +143,7 @@ struct ConstStringExpr final : public ConstExpr
 
     ConstStringExpr(const SourceLocation loc, const char *const value)
         : ConstExpr(Type::CONST_STRING, loc),
-          value(utils::cstrdup(REQUIRE_PTR(value))) { DEBUG_SMART_ASSERT(!!this->value); }
+          value(utils::cstrdup(DEBUG_REQUIRE_PTR(value))) { DEBUG_SMART_ASSERT(!!this->value); }
 
     ~ConstStringExpr()
     {
@@ -183,8 +184,8 @@ struct TableItemExpr final : public ExprWVarSymbol
         const SourceLocation loc,
         const VarSymbol *const var_symbol,
         const Expr *const index)
-        : ExprWVarSymbol(Type::TABLE_ITEM, loc, REQUIRE_PTR(var_symbol)),
-          index(REQUIRE_PTR(index)) {}
+        : ExprWVarSymbol(Type::TABLE_ITEM, loc, DEBUG_REQUIRE_PTR(var_symbol)),
+          index(DEBUG_REQUIRE_PTR(index)) {}
 };
 
 struct VariableExpr final : public ExprWVarSymbol

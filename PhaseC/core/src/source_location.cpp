@@ -16,23 +16,23 @@ merge(const SourceLocation left, const SourceLocation right)
         left.last_index < right.first_index,
         left.first_index < right.last_index,
     );
-    return SourceLocation{
+    return {
         .first_index = left.first_index,
         .last_index = right.last_index
     };
 }
 
-LocationTracker::LocationTracker(u32 max_valid_index)
+LocationTracker::LocationTracker(const u32 max_valid_index)
     : max_valid_index_(max_valid_index)
 {
     line_start_indices_.push_back(k_no_line); // Pushes virtual line 0.
 }
 
 void
-LocationTracker::append_line(u32 start_index) { line_start_indices_.push_back(start_index); }
+LocationTracker::append_line(const u32 start_index) { line_start_indices_.push_back(start_index); }
 
 u32
-LocationTracker::find_first_line(SourceLocation location) const
+LocationTracker::find_first_line(const SourceLocation location) const
 {
     if (location == k_no_loc)
         return k_no_line;
@@ -40,7 +40,7 @@ LocationTracker::find_first_line(SourceLocation location) const
 }
 
 u32
-LocationTracker::find_last_line(SourceLocation location) const
+LocationTracker::find_last_line(const SourceLocation location) const
 {
     if (location == k_no_loc)
         return k_no_line;
@@ -48,7 +48,7 @@ LocationTracker::find_last_line(SourceLocation location) const
 }
 
 u32
-LocationTracker::find_symbol_line(SourceLocation location) const
+LocationTracker::find_symbol_line(const SourceLocation location) const
 {
     if (location == k_no_loc)
         return k_no_line;
@@ -72,15 +72,15 @@ LocationTracker::find_index_of_line(u32 line) const
 }
 
 u32
-LocationTracker::find_first_column(SourceLocation location) const
+LocationTracker::find_first_column(const SourceLocation location) const
 {
     if (location == k_no_loc)
         throw std::logic_error(ATTACH_CONTEXT(
             "BUG: LocationTracker was asked to find column of k_no_loc"));
 
-    u32 starting_line = find_first_line(location);
+    const u32 starting_line = find_first_line(location);
     // DEBUG_SMART_ASSERT(starting_line < line_start_indices_.size());
-    u32 index_at_starting_line = line_start_indices_[starting_line - 1];
+    const u32 index_at_starting_line = line_start_indices_[starting_line - 1];
     // -1 as line starts at pos 0.
     DEBUG_SMART_ASSERT(location.first_index >= index_at_starting_line);
 
@@ -90,7 +90,7 @@ LocationTracker::find_first_column(SourceLocation location) const
 }
 
 LineRange
-LocationTracker::find_lines(u32 first_index, u32 last_index) const
+LocationTracker::find_lines(const u32 first_index, const u32 last_index) const
 {
     if (first_index == 0 && last_index == 0)
         // LIBFUNCs -- Only libfuncs are defined at Location{0,0}
@@ -102,13 +102,13 @@ LocationTracker::find_lines(u32 first_index, u32 last_index) const
 }
 
 LineRange
-LocationTracker::find_lines(SourceLocation location) const
+LocationTracker::find_lines(const SourceLocation location) const
 {
     return find_lines(location.first_index, location.last_index);
 }
 
 u32
-LocationTracker::find_line(u32 index) const
+LocationTracker::find_line(const u32 index) const
 {
     DEBUG_SMART_ASSERT(std::is_sorted(line_start_indices_.begin(), line_start_indices_.end()));
 
@@ -116,9 +116,9 @@ LocationTracker::find_line(u32 index) const
         throw std::logic_error(ATTACH_CONTEXT(
             "BUG: LocationTracker received out-of-bounds index."));
 
-    auto it = std::upper_bound(line_start_indices_.begin(), line_start_indices_.end(), index);
+    const auto it = std::upper_bound(line_start_indices_.begin(), line_start_indices_.end(), index);
 
-    std::ptrdiff_t line = std::distance(line_start_indices_.begin(), it);
+    const std::ptrdiff_t line = std::distance(line_start_indices_.begin(), it);
     if (line < 0 || line > static_cast<std::ptrdiff_t>(line_start_indices_.size()))
         throw std::logic_error(ATTACH_CONTEXT("BUG: Invalid computed line index."));
     return static_cast<u32>(line);

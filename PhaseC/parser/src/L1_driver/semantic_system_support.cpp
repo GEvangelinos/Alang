@@ -12,9 +12,9 @@ SemanticSystemBridge::SemanticSystemBridge(
     ParseCtx *const parse_ctx,
     ExprMaker *const expr_maker,
     QuadHandler *const quad_handler)
-    :       parse_ctx_(REQUIRE_PTR(parse_ctx)),
-      expr_maker_(REQUIRE_PTR(expr_maker)),
-      quad_handler_(REQUIRE_PTR(quad_handler)) {}
+    :       parse_ctx_(utils::require_ptr(parse_ctx)),
+      expr_maker_(utils::require_ptr(expr_maker)),
+      quad_handler_(utils::require_ptr(quad_handler)) {}
 
 /// Materialize an lvalue base for further member/index access.
 /// If `lvalue` is a TABLE_ITEM, emits IR (TABLEGETELEM) and returns a temp variable;

@@ -9,6 +9,7 @@
 #include "L3_ir_infra/quad_handler.hpp"
 #include "parser/semantic_utils.hpp"
 #include "semantic_subsystem.hpp"
+#include  <utils/misc.hpp>
 #include <parser/ir_opcode.gen.hpp>
 
 namespace alpha

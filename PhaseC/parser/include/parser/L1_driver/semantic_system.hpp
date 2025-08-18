@@ -60,7 +60,7 @@ public:
     // recovery hooks via call() dispatch can still reset, so it’s not bulletproof.
     class DriverLink
     {
-        friend class Driver;
+        friend class PassManager;
         friend class SemanticSystem;
 
         SemanticSystem *const host_;

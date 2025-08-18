@@ -39,12 +39,12 @@ SemanticSystemServices
 SemanticSystem::create_semantic_system_services()
 {
     return {
-        .symbol_table = REQUIRE_PTR(symbol_table_),
-        .parse_ctx = REQUIRE_PTR(parse_ctx_),
-        .dr = REQUIRE_PTR(dr_),
-        .expr_maker = REQUIRE_PTR(expr_maker_.get()),
-        .expr_optimizer = REQUIRE_PTR(expr_optimizer_.get()),
-        .quad_handler = REQUIRE_PTR(quad_handler_.get()),
+        .symbol_table = utils::require_ptr(symbol_table_),
+        .parse_ctx = utils::require_ptr(parse_ctx_),
+        .dr = utils::require_ptr(dr_),
+        .expr_maker = utils::require_ptr(expr_maker_.get()),
+        .expr_optimizer = utils::require_ptr(expr_optimizer_.get()),
+        .quad_handler = utils::require_ptr(quad_handler_.get()),
         .ss_bridge = &sd_bridge_,
     };
 }

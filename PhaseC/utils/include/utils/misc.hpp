@@ -27,14 +27,14 @@ template<typename N>
     requires std::is_integral_v<N>
 [[nodiscard]] constexpr bool is_even(N n) noexcept { return !is_odd(n); }
 
-template<typename T, typename U>
+template<typename T,typename U>
     requires (std::is_convertible_v<T, bool> && std::is_convertible_v<U, bool>)
 [[nodiscard]] constexpr bool logical_xor(const T t, const U u) noexcept
 {
     return static_cast<bool>(t) != static_cast<bool>(u);
 }
 
-template<typename T, typename U>
+template<typename T,typename U>
     requires (std::is_convertible_v<T, bool> && std::is_convertible_v<U, bool>)
 [[nodiscard]] constexpr bool logical_xnor(const T t, const U u) noexcept
 {
@@ -72,16 +72,13 @@ template<typename T>
     std::abort();
 }
 
-// Just like `require_ptr`, but this one is skinny. Good for inlining, required in hot paths.
-template<typename T>
-[[nodiscard]] ALWAYS_INLINE T *require_ptr_fast(T *const ptr)
-{
-    if (ptr) [[likely]]
-            return ptr;
-    std::abort();
-}
+#ifdef DEBUG_MODE
+#define DEBUG_REQUIRE_PTR(ptr) utils::require_ptr(ptr)
+#else
+#define DEBUG_REQUIRE_PTR(ptr) (ptr)
+#endif
 
-template<typename FloatType, typename IntType>
+template<typename FloatType,typename IntType>
     requires std::is_floating_point_v<FloatType> && std::is_integral_v<IntType>
 bool is_lossless_int_to_float(IntType i)
 {

@@ -9,16 +9,15 @@
 
 namespace alpha
 {
-class LexerCtx : private Immobile
-{
-public:
-    u32 index_;
-    const std::string filename_;
+        class LexerCtx : private Immobile
+        {
+        public:
+                u32 index_;
 
-    explicit LexerCtx(const std::string &filename)
-        : index_(0), filename_(filename) {}
+                explicit LexerCtx()
+                    : index_(0){}
 
-    ~LexerCtx() { TokenID::clearLastId(); }
-};
+                ~LexerCtx() { TokenID::clearLastId(); }
+        };
 }
 #endif // SCANNER_CONTEXT_HPP
