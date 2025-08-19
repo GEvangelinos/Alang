@@ -1,7 +1,7 @@
 #ifndef PARSER_EPILOGUE_CODE_HPP
 #define PARSER_EPILOGUE_CODE_HPP
+#include <string>
 #include <scanner/alpha_scanner.gen.hpp>
-
 #include "utils/debug_tools.hpp"
 
 /**
@@ -105,9 +105,9 @@ static void alpha_yyerror(
     DEBUG_SMART_ASSERT(
         false && "alpha_yyerror function called why? Did memory exhaustion occurred??");
     dr.report_syntax_error(
-        std::to_string("ERROR_MESSAGE: ")
+        std::string("ERROR_MESSAGE: ")
         + error_message
-        std::to_string(" INTERNAL-ERROR, IF YOU SEE THIS CONTACT DEVELOPER")
+        + " INTERNAL-ERROR, IF YOU SEE THIS CONTACT DEVELOPER"
       , *err_loc
     );
 }

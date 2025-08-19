@@ -45,11 +45,7 @@
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/.test.asc.swp" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/.test.asc.swp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/test.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/test.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
