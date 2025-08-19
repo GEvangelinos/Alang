@@ -1,5 +1,6 @@
 #ifndef PARSER_EPILOGUE_CODE_HPP
 #define PARSER_EPILOGUE_CODE_HPP
+
 #include <string>
 #include <scanner/alpha_scanner.gen.hpp>
 #include "utils/debug_tools.hpp"
@@ -58,7 +59,7 @@ static int yyreport_syntax_error(
 
     yysymbol_kind_t expected_tokens[max_tokens];
 
-    const auto expected_count = yypcontext_expected_tokens(bison_ctx, expected_tokens, max_tokens);
+    const int expected_count = yypcontext_expected_tokens(bison_ctx, expected_tokens, max_tokens);
 
     auto join_expected = [&](const char *const sep) -> std::string
     {
@@ -72,18 +73,20 @@ static int yyreport_syntax_error(
         return out;
     };
 
-    // === Case D: “Too many to list” (Bison returns 0) → generic but clean ===
+    if (expected_count < 0)
+        throw std::runtime_error(ATTACH_CONTEXT("Internal-Error, like memory exhaustion occurred"));
+    // === “Too many to list” (Bison returns 0) → generic but clean ===
     if (expected_count == 0)
         syntax_error = FMT::format(
             "unexpected ‘{}’, invalid syntax", unexpected_token_name
         );
-        // === Case B: Exactly one expected ===
+        // === Exactly one expected ===
     else if (expected_count == 1)
         syntax_error = FMT::format(
             "expected1 `{}` before `{}`", yysymbol_name(expected_tokens[0]), unexpected_token_name
         );
         // TODO: The following cases can benefit from heuristics and probabilistic suggestions.
-        // === Case C: A few expected, list them compactly ==
+        // === A few expected, list them compactly ==
     else if (expected_count <= max_tokens) // Few expected // TODO: Add simple heuristics..
         syntax_error = FMT::format(
             "expected2 `{}` before `{}`", join_expected(", "), unexpected_token_name
