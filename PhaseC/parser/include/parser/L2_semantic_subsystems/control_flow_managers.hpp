@@ -103,64 +103,64 @@ private:
 
         static ForLoopSite next(ForLoopSite fls) noexcept;
 
-    //     - Diagnostic: RETURN_KEYWORD_OUTSIDE_FUNC
-    //       Type: SOFT_ERROR
-    //
-    //                 std::string error = "`return` statement not in a function statement";
-    //
-    //     void manage_return(const SourceLocation return_loc)
-    //     {
-    //         if (parse_ctx_->func_ctx_handler.function_nesting_depth() > 0)
-    //             return;
-    //         std::string error = "`return` statement not in a function statement";
-    //         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
-    //
-    //         parse_ctx_.function_ctx_handler.add_label_to_returnlist(
-    //             parse_ctx_.quad_handler.next_quad_label());
-    //
-    //         parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr,
-    //                                                     return_loc);
-    //     }
-    //
-    //     inline void SemanticManager::returnStmt__return(Location returnStmt_loc,
-    //                                                     Location return_loc)
-    //     {
-    //         // TODO functionize like you will do with continue and return...
-    //         if (parse_ctx_.function_ctx_handler.function_nesting_depth() > 0)
-    //         {
-    //             parse_ctx_.quad_handler.emit_quad(IOPCode::RETURN, nullptr, nullptr, nullptr,
-    //                                               returnStmt_loc);
-    //
-    //             // Label goes to JUMP IOPC not RETURN
-    //             parse_ctx_.function_ctx_handler.add_label_to_returnlist(
-    //                 parse_ctx_.quad_handler.next_quad_label());
-    //             parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr,
-    //                                                         nullptr, return_loc);
-    //             return;
-    //         }
-    //         std::string error = "`return` statement not in a function statement";
-    //         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
-    //     }
-    //
-    //     inline void SemanticManager::returnStmt__return_expr(Expr *expr, Location returnStmt_loc,
-    //                                                          Location return_loc)
-    //     {
-    //         // TODO functionize like you will do with continue and return...
-    //         if (parse_ctx_.function_ctx_handler.function_nesting_depth() > 0)
-    //         {
-    //             parse_ctx_.quad_handler.emit_quad(IOPCode::RETURN, expr, nullptr, nullptr,
-    //                                               returnStmt_loc);
-    //
-    //             // Label goes to JUMP IOPC not RETURN
-    //             parse_ctx_.function_ctx_handler.add_label_to_returnlist(
-    //                 parse_ctx_.quad_handler.next_quad_label());
-    //             parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr,
-    //                                                         nullptr, return_loc);
-    //             return;
-    //         }
-    //         std::string error = "`return` statement not in a function statement";
-    //         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
-    //     }
+        //     - Diagnostic: RETURN_KEYWORD_OUTSIDE_FUNC
+        //       Type: SOFT_ERROR
+        //
+        //                 std::string error = "`return` statement not in a function statement";
+        //
+        //     void manage_return(const SourceLocation return_loc)
+        //     {
+        //         if (parse_ctx_->func_ctx_handler.function_nesting_depth() > 0)
+        //             return;
+        //         std::string error = "`return` statement not in a function statement";
+        //         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
+        //
+        //         parse_ctx_.function_ctx_handler.add_label_to_returnlist(
+        //             parse_ctx_.quad_handler.next_quad_label());
+        //
+        //         parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr,
+        //                                                     return_loc);
+        //     }
+        //
+        //     inline void SemanticManager::returnStmt__return(Location returnStmt_loc,
+        //                                                     Location return_loc)
+        //     {
+        //         // TODO functionize like you will do with continue and return...
+        //         if (parse_ctx_.function_ctx_handler.function_nesting_depth() > 0)
+        //         {
+        //             parse_ctx_.quad_handler.emit_quad(IOPCode::RETURN, nullptr, nullptr, nullptr,
+        //                                               returnStmt_loc);
+        //
+        //             // Label goes to JUMP IOPC not RETURN
+        //             parse_ctx_.function_ctx_handler.add_label_to_returnlist(
+        //                 parse_ctx_.quad_handler.next_quad_label());
+        //             parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr,
+        //                                                         nullptr, return_loc);
+        //             return;
+        //         }
+        //         std::string error = "`return` statement not in a function statement";
+        //         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
+        //     }
+        //
+        //     inline void SemanticManager::returnStmt__return_expr(Expr *expr, Location returnStmt_loc,
+        //                                                          Location return_loc)
+        //     {
+        //         // TODO functionize like you will do with continue and return...
+        //         if (parse_ctx_.function_ctx_handler.function_nesting_depth() > 0)
+        //         {
+        //             parse_ctx_.quad_handler.emit_quad(IOPCode::RETURN, expr, nullptr, nullptr,
+        //                                               returnStmt_loc);
+        //
+        //             // Label goes to JUMP IOPC not RETURN
+        //             parse_ctx_.function_ctx_handler.add_label_to_returnlist(
+        //                 parse_ctx_.quad_handler.next_quad_label());
+        //             parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr,
+        //                                                         nullptr, return_loc);
+        //             return;
+        //         }
+        //         std::string error = "`return` statement not in a function statement";
+        //         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
+        //     }
     };
 
     Restricted DISPATCH_TARGET;
@@ -191,7 +191,7 @@ ControlFlowManager::Restricted::manage_ifbranch_entry(
     const Expr *const conditional,
     const SourceLocation if_clause_loc)
 {
-    DEBUG_SMART_ASSERT(!!conditional, SemUtils::is_bool_or_const_bool_expr(conditional));
+    DEBUG_SMART_ASSERT(!!conditional);
 
     auto *const qh = quad_handler_; // Short alias for readability.
 
@@ -276,7 +276,7 @@ ControlFlowManager::Restricted::manage_whileloop_entry()
 {
     build_ctx_.push_new_while_loop_frame();
     DEBUG(
-        auto &wlf_stack = build_ctx_.while_loop_frames;
+        const auto &wlf_stack = build_ctx_.while_loop_frames;
         SMART_ASSERT(!wlf_stack.empty());
     )
     build_ctx_.while_loop_frames.top().before_condition = quad_handler_->next_quad_label();
@@ -287,7 +287,7 @@ ControlFlowManager::Restricted::manage_whileloop_condition(
     const Expr *const conditional,
     const SourceLocation while_clause_loc)
 {
-    DEBUG_SMART_ASSERT(!!conditional, SemUtils::is_bool_or_const_bool_expr(conditional));
+    DEBUG_SMART_ASSERT(!!conditional);
     auto *const qh = quad_handler_; // Short alias for readability.
 
     constexpr LabelID offset_to_while_block = 2;
@@ -314,8 +314,8 @@ ControlFlowManager::Restricted::manage_whileloop_exit(const SourceLocation while
         auto &wlf_stack = build_ctx_.while_loop_frames;
         SMART_ASSERT(!wlf_stack.empty());
         SMART_ASSERT(
-            !wlf_stack.top().before_condition != k_no_label,
-            !wlf_stack.top().unpatched_bypass_jump != k_no_label,
+            wlf_stack.top().before_condition != k_no_label,
+            wlf_stack.top().unpatched_bypass_jump != k_no_label,
         );
     )
     auto *const qh = quad_handler_; // Short alias for readability.

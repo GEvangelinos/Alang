@@ -6,6 +6,8 @@
 #include <diagnostics/diagnostic_engine.hpp>
 #include <utils/debug_tools.hpp>
 #include <utils/format_adapter.hpp>
+
+#include "core/konstants.hpp"
 #include "core/source_location.hpp"  // for SourceLocation, SourceLocationTracker
 #include "utils/cli_color.h"        // for COLOR_ASCII_BOLD_DEFAULT, SGR_RESET
 #include "utils/misc.hpp"
@@ -76,14 +78,30 @@ int compute_visual_caret_offset(
 
 namespace alpha
 {
-Issue::Issue(const Type type, std::string &&description, const SourceLocation loc)
-    : type(type), desc(std::move(description)), loc(loc) {}
+Issue::Issue(const Type type, std::string description, const SourceLocation loc)
+    : type(type),
+      desc(std::move(description)),
+      loc(loc),
+      suggestion(std::nullopt) {}
 
-u32 Issue::line(const LocationTracker &lt) const { return lt.find_first_line(loc); }
+Issue::Issue(
+    const Type type,
+    std::string description,
+    const SourceLocation loc,
+    Suggestion sug)
+    : type(type),
+      desc(std::move(description)),
+      loc(loc),
+      suggestion(std::move(sug)) {}
 
-u32 Issue::column(const LocationTracker &lt) const { return lt.find_first_column(loc); }
+u32
+Issue::line(const LocationTracker &lt) const { return lt.find_first_line(loc); }
 
-std::string_view Issue::type_to_string() const noexcept
+u32
+Issue::column(const LocationTracker &lt) const { return lt.find_first_column(loc); }
+
+std::string_view
+Issue::type_to_string() const noexcept
 {
     switch (type)
     {
@@ -96,7 +114,8 @@ std::string_view Issue::type_to_string() const noexcept
     }
 }
 
-std::string_view Issue::pretty_color() const noexcept
+std::string_view
+Issue::pretty_color() const noexcept
 {
     switch (type)
     {
@@ -109,28 +128,28 @@ std::string_view Issue::pretty_color() const noexcept
     }
 }
 
-std::string Diagnostic::make_pretty_diagnostic(
+std::string
+Diagnostic::make_pretty_diagnostic(
     const std::string &source_filename,
     const LocationTracker &lt,
     const char *input_buffer) const
 {
     std::stringstream ss;
     ss << make_pretty_diagnostic_impl(source_filename, lt, input_buffer, primary);
-    for (auto note: notes)
+    for (auto note: note_list)
         ss << make_pretty_diagnostic_impl(source_filename, lt, input_buffer, note);
     return ss.str();
 }
 
 Diagnostic::Diagnostic(
-    const Issue::Type type,
-    std::string desc,
-    const SourceLocation loc,
-    std::list<Note> &&note_list_)
-    : primary(type, std::move(desc), loc),
-      notes(std::move(note_list_)) {}
+    Issue &&primary,
+    std::list<Note> &&note_list)
+    : primary(std::move(primary)),
+      note_list(std::move(note_list)) {}
 
 // TODO: Fix.. its ugly AF
-std::string Diagnostic::make_pretty_diagnostic_impl(
+std::string
+Diagnostic::make_pretty_diagnostic_impl(
     const std::string &source_filename,
     const LocationTracker &lt,
     const char *input_buffer,
@@ -146,42 +165,58 @@ std::string Diagnostic::make_pretty_diagnostic_impl(
                            issue.desc)
             << SGR_RESET;
 
-    const auto line_views = extract_line_views(input_buffer, lt.find_index_of_line(issue_line),
-                                               issue.loc.last_index);
+    const auto line_views = extract_line_views(
+        input_buffer, lt.find_index_of_line(issue_line), issue.loc.last_index);
     for (std::size_t i = 0; i < line_views.size(); i++)
     {
         constexpr u32 line_box_width = 8;
         std::string visual_line = expand_tabs(line_views[i]);
-        ss << FMT::format("{:>{}} | {}\n", i != 0 ? "" : std::to_string(issue_line),
-                          line_box_width, visual_line);
+        ss << FMT::format("{:>{}} | {}\n",
+                          i != 0 ? "" : std::to_string(issue_line), line_box_width, visual_line);
         if (i != 0) // Caret marking is only for first line.
             continue;
 
         DEBUG_SMART_ASSERT(issue.loc.last_index > issue.loc.first_index);
 
         const auto raw_caret_offset =
-                issue.loc.first_index -
-                lt.find_index_of_line(lt.find_first_line(issue.loc));
+                issue.loc.first_index - lt.find_index_of_line(lt.find_first_line(issue.loc));
         const auto visual_caret_offset =
                 compute_visual_caret_offset(line_views[i], raw_caret_offset);
         const auto highlight_length =
                 issue.loc.last_index - issue.loc.first_index - 1;
 
-        ss << FMT::format(
-            "{} | {}{}^{}\n", std::string(line_box_width, ' '), // Spaces pre  |
-            std::string(visual_caret_offset, ' '),              // spaces post | to move caret
-            issue.pretty_color(), std::string(highlight_length, '~'));
+        ss << FMT::format("{} | {}{}^{}\n",
+                          std::string(line_box_width, ' '),      // Spaces pre  |
+                          std::string(visual_caret_offset, ' '), // spaces post | to move caret
+                          issue.pretty_color(), std::string(highlight_length, '~'));
+        if (issue.suggestion.has_value())
+            ss << FMT::format("{} | {}{}\n",
+                              std::string(line_box_width, ' '),      // Spaces pre  |
+                              std::string(visual_caret_offset, ' '), // spaces post | to move caret
+                              issue.suggestion->text);
+        else
+            ss << "FALSEeEEEeEEEEE";
         ss << SGR_RESET;
     }
 
     return ss.str();
 }
 
-DiagnosticEngine::DiagnosticEngine(DiagnosticEngine::Policy &&policy)
+DiagnosticEngine::DiagnosticEngine(
+    DiagnosticEngine::Policy &&policy,
+    const std::optional<std::size_t> max_errors)
     : dr(this),
-      policy_(std::move(policy)) {}
+      policy_(std::move(policy)),
+      max_errors(max_errors) {}
 
-void DiagnosticEngine::report(
+void
+DiagnosticEngine::report(Issue primary, std::list<Note> &&note_list)
+{
+    emit(std::move(primary), std::move(note_list));
+}
+
+void
+DiagnosticEngine::report(
     const Issue::Type type,
     std::string desc,
     const SourceLocation loc,
@@ -193,7 +228,8 @@ void DiagnosticEngine::report(
     );
 }
 
-void DiagnosticEngine::emit(
+void
+DiagnosticEngine::emit(
     Issue &&primary, std::list<Note> &&note_list
 )
 {
@@ -201,9 +237,7 @@ void DiagnosticEngine::emit(
         return;
 
     diagnostics_.emplace_back(std::unique_ptr<Diagnostic>(new Diagnostic(
-        primary.type,
-        std::move(primary.desc),
-        primary.loc,
+        std::move(primary),
         std::move(note_list)
     )));
 
@@ -229,5 +263,9 @@ void DiagnosticEngine::emit(
     default: UNREACHABLE(FMT::format(
             "Unknown Issue::Type: int(type) = {}", static_cast<int>(d_ptr->primary.type)));
     }
+
+    // We notify our policymaker, we reached maximum error limit
+    if (max_errors.has_value() && error_count() >= max_errors.value())
+        policy_.notify_max_errors_reached();
 }
 } // namespace alpha

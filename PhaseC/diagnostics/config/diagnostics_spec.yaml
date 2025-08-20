@@ -136,14 +136,14 @@
 - Diagnostic: INVALID_ESCAPE_CODE
   Type: SOFT_ERROR
   Primary:
-    - Message: "invalid escape code `{0}` in string"
+    - Message: "invalid escape code {0} in string"
       Args: [ escape_code_str ]
       Location: escape_code_loc
 
 - Diagnostic: INVALID_CHARACTER
   Type: SOFT_ERROR
   Primary:
-    - Message: "character `{0}` is invalid"
+    - Message: "character {0} is invalid"
       Args: [ char_str ]
       Location: char_loc
 

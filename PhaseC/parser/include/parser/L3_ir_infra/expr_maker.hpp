@@ -12,6 +12,7 @@ namespace alpha
 {
 class ExprMaker : private Immobile
 {
+    friend class SemanticSystem; // We friend our master
 public:
     explicit ExprMaker(ParseCtx *parse_ctx);
     ~ExprMaker() noexcept;

@@ -34,6 +34,7 @@
     {
         struct Expr;
         class FuncSymbol;
+        class DiagnosticEngine;
         class DiagnosticReporter;
         class LexerCtx;
         class ParseCtx;
@@ -58,6 +59,7 @@
 %parse-param { yyscan_t yyscanner }
 %parse-param { alpha::LexerCtx &lexer_ctx }
 %parse-param { alpha::LocationTracker &location_tracker }
+%parse-param { alpha::DiagnosticEngine &diagnostic_engine }
 %parse-param { alpha::DiagnosticReporter &dr }
 %parse-param { alpha::SemanticSystem &ss }
 
@@ -241,7 +243,7 @@ loopCtrlStmt:
 not_op:
   NOT expr
   {
-    $expr = ss.call<"convert_to_bool_expr">($expr);
+    $expr = ss.call<"normalize_to_bool_expr">($expr);
     $not_op = ss.call<"basic_builder.build_logical_not">($expr, @not_op);
   }
 ;
@@ -250,12 +252,12 @@ and_op:
   expr[lhs]
   AND
   {
-    $lhs = ss.call<"convert_to_bool_expr">($lhs);
+    $lhs = ss.call<"normalize_to_bool_expr">($lhs);
     ss.call<"basic_builder.mark_short_circuit_jump_point">();
   }
   expr[rhs]
   {
-    $rhs = ss.call<"convert_to_bool_expr">($rhs);
+    $rhs = ss.call<"normalize_to_bool_expr">($rhs);
     $and_op = ss.call<"basic_builder.build_logical_and">($lhs, $rhs, @and_op);
   }
 ;
@@ -264,12 +266,12 @@ or_op:
   expr[lhs]
   OR
   {
-    $lhs = ss.call<"convert_to_bool_expr">($lhs);
+    $lhs = ss.call<"normalize_to_bool_expr">($lhs);
     ss.call<"basic_builder.mark_short_circuit_jump_point">();
   }
   expr[rhs]
   {
-    $rhs = ss.call<"convert_to_bool_expr">($rhs);
+    $rhs = ss.call<"normalize_to_bool_expr">($rhs);
     $or_op = ss.call<"basic_builder.build_logical_or">($lhs, $rhs, @or_op);
   }
 ;
@@ -451,8 +453,8 @@ func_def:
   { $func_def = ss.call<"function_builder.build_program_function_exit">($block_loc); }
 ;
 
-const
-: TRUE      {  $const = ss.call<"const_builder.build_true_expr">(@TRUE); }
+const:
+  TRUE      {  $const = ss.call<"const_builder.build_true_expr">(@TRUE); }
 | FALSE     {  $const = ss.call<"const_builder.build_false_expr">(@FALSE); }
 | INT       {  $const = ss.call<"const_builder.build_int_expr">($INT, @INT); }
 | FLOAT     {  $const = ss.call<"const_builder.build_float_expr">($FLOAT, @FLOAT); }
@@ -460,29 +462,29 @@ const
 | NIL       {  $const = ss.call<"const_builder.build_nil_expr">(@NIL); }
 ;
 
-if_clause
-: IF LEFT_PAREN expr[condition] RIGHT_PAREN
+if_clause:
+  IF LEFT_PAREN expr[condition] RIGHT_PAREN
   {
     ss.call<"finalize_bool_expr">($condition);
     ss.call<"control_flow_manager.manage_ifbranch_entry">($condition, @if_clause);
   }
 ;
 
-else_clause
-: ELSE { ss.call<"control_flow_manager.manage_elsebranch_entry">(@else_clause); }
+else_clause:
+  ELSE { ss.call<"control_flow_manager.manage_elsebranch_entry">(@else_clause); }
 ;
 
-if_stmt
-: if_clause stmt %prec THEN       { ss.call<"control_flow_manager.manage_ifbranch_exit">(); }
+if_stmt:
+  if_clause stmt %prec THEN       { ss.call<"control_flow_manager.manage_ifbranch_exit">(); }
 | if_clause stmt else_clause stmt { ss.call<"control_flow_manager.manage_elsebranch_exit">(); }
 ;
 
 
 while_clause:
-  WHILE           { ss.call<"control_flow_manager.manage_whileloop_entry">(); }
+  WHILE { ss.call<"control_flow_manager.manage_whileloop_entry">(); }
   LEFT_PAREN
   expr[condition] { ss.call<"finalize_bool_expr">($condition); }
-  RIGHT_PAREN     { ss.call<"control_flow_manager.manage_whileloop_condition">($condition, @while_clause); }
+  RIGHT_PAREN { ss.call<"control_flow_manager.manage_whileloop_condition">($condition, @while_clause); }
 ;
 
 while_stmt:

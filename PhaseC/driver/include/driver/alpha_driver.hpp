@@ -1,11 +1,8 @@
 #include <filesystem>                      // for path
 #include <string>                          // for string
-#include <string_view>                     // for string_view
-
+#include "compilation_options.hpp"
 #include "translation_unit.hpp"
-#include "core/source_location.hpp"         // for LocationTracker
 #include "diagnostics/diagnostic_engine.hpp"
-#include "parser/symbol_table.hpp"     // for SymbolTable
 
 namespace alpha
 {
@@ -18,8 +15,8 @@ static constexpr char k_error_csv_export_header[] = "line,column,diagnostic_type
 class Driver : private Immobile
 {
 public:
-    explicit Driver(const std::string &source_filepath)
-        : tu(std::filesystem::path(source_filepath)) {}
+    explicit Driver(const std::string &source_filepath, CompilationOptions::Values comp_options)
+        : tu(std::filesystem::path(source_filepath), std::move(comp_options)) {}
 
     ~Driver() = default;
 
@@ -33,13 +30,10 @@ public:
 
     void run() { tu.compile(); }
 
-    bool ok ()
-    {
-        return tu.compiled_ok();
-    }
+    bool ok() { return tu.compiled_ok(); }
 
 private:
-    TranslationUnit tu; // So far its only 1 TU, I made parsing system reentrant, to let multiple tu
-    //get compiled at once.
+    // So far its only 1 TU, I made parsing system reentrant, to let multiple tu get compiled at once.
+    TranslationUnit tu;
 };
 } // namespace alpha

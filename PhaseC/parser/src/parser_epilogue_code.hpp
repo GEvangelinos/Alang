@@ -1,8 +1,13 @@
 #ifndef PARSER_EPILOGUE_CODE_HPP
 #define PARSER_EPILOGUE_CODE_HPP
 
+#include <alpha_parser.gen.hpp>
 #include <string>
+#include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <scanner/alpha_scanner.gen.hpp>
+
+#include "L1_driver/semantic_system.hpp"
+#include "scanner/scanner_context.hpp"
 #include "utils/debug_tools.hpp"
 
 /**
@@ -20,10 +25,11 @@
 static int yyreport_syntax_error(
     yypcontext_t const *bison_ctx,
     const yyscan_t flex_ctx,
-    [[maybe_unused]] alpha::LexerCtx &,
-    [[maybe_unused]] alpha::LocationTracker &,
+    [[maybe_unused]] alpha::LexerCtx &lexer_ctx,
+    [[maybe_unused]] alpha::LocationTracker &lt,
+    alpha::DiagnosticEngine &diagnostic_engine,
     alpha::DiagnosticReporter &dr,
-    [[maybe_unused]] alpha::SemanticSystem &)
+    [[maybe_unused]] alpha::SemanticSystem &ss)
 {
     constexpr int retval = 0;
     constexpr int max_tokens = 5; // how many to *list* in multi-expected case
@@ -73,14 +79,39 @@ static int yyreport_syntax_error(
         return out;
     };
 
+    auto has_expected = [ & ](const yysymbol_kind_t s) -> bool
+    {
+        yysymbol_kind_t all_expected[100];
+        yypcontext_expected_tokens(bison_ctx, all_expected, 100);
+        for (auto i = 0; i < 100; i++)
+            if (all_expected[i] == s)
+                return true;
+        return false;
+    };
+
     if (expected_count < 0)
         throw std::runtime_error(ATTACH_CONTEXT("Internal-Error, like memory exhaustion occurred"));
     // === “Too many to list” (Bison returns 0) → generic but clean ===
     if (expected_count == 0)
-        syntax_error = FMT::format(
-            "unexpected ‘{}’, invalid syntax", unexpected_token_name
-        );
-        // === Exactly one expected ===
+    {
+        if (has_expected(YYSYMBOL_SEMICOLON))
+        {
+            const alpha::SourceLocation sug_loc = ss.get_loc_of_last_expr();
+            const auto primary = alpha::Issue(
+                alpha::Issue::Type::SOFT_ERROR,
+                FMT::format("unexpected ‘{}’, invalid syntax, did you mean `;`???????",
+                            unexpected_token_name),
+                *err_loc,
+                alpha::Suggestion(";", sug_loc));
+            diagnostic_engine.report(primary, {});
+            return retval;
+        }
+        else
+            syntax_error = FMT::format(
+                "unexpected ‘{}’, invalid syntax", unexpected_token_name
+            );
+    }
+    // === Exactly one expected ===
     else if (expected_count == 1)
         syntax_error = FMT::format(
             "expected1 `{}` before `{}`", yysymbol_name(expected_tokens[0]), unexpected_token_name
@@ -101,6 +132,7 @@ static void alpha_yyerror(
     yyscan_t,
     alpha::LexerCtx &,
     alpha::LocationTracker &,
+    alpha::DiagnosticEngine &diagnostic_engine,
     alpha::DiagnosticReporter &dr,
     alpha::SemanticSystem &,
     std::string error_message)

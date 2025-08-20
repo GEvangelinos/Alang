@@ -22,6 +22,7 @@ static void alpha_yyerror(
     yyscan_t,
     alpha::LexerCtx &,
     alpha::LocationTracker &,
+    alpha::DiagnosticEngine &,
     alpha::DiagnosticReporter &,
     alpha::SemanticSystem &,
     std::string error_message);

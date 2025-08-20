@@ -1,10 +1,9 @@
 #include <alpha_parser.gen.hpp>
 #include <fstream>
 #include <driver/translation_unit.hpp>
-#include "parser/alpha_parser.gen.hpp"
-#include "scanner/alpha_scanner.gen.hpp"
 #include "driver/alpha_driver.hpp"
 #include "driver/alpha_driver_exceptions.hpp"
+#include "scanner/alpha_scanner.gen.hpp"
 #include "utils/cli_color.h"
 
 namespace
@@ -37,9 +36,8 @@ void exit_export_directory(const std::filesystem::path &original_path)
 std::string expr_printer(const alpha::Expr *expr)
 {
     using namespace alpha;
-    DEBUG_SMART_ASSERT(!!expr);
-    if (!expr) [[unlikely]]
-            return "";
+    if (!expr)
+        return "";
     using ET = Expr::Type;
     switch (expr->type)
     {
@@ -161,14 +159,16 @@ inline constexpr auto k_scanner_eof_null_padding = 2; // For 2 consecutive NULL 
 PassManager::PassManager(
     TUBuffer &tu_buffer,
     LocationTracker &lt,
-    DiagnosticReporter &dr,
+    DiagnosticEngine &diagnostic_engine,
     SymbolTable *const symbol_table)
     : lt_(lt),
-      dr_(dr),
+      diagnostic_engine_(diagnostic_engine),
       scanner_handle_(tu_buffer),
       parse_ctx_(utils::require_ptr(symbol_table)),
       lexer_ctx_(),
-      semantic_system_(ss_options_, &parse_ctx_, utils::require_ptr(symbol_table), &dr) {}
+      semantic_system_(
+          ss_options_, &parse_ctx_, utils::require_ptr(symbol_table), &diagnostic_engine_.dr
+      ) {}
 
 void
 PassManager::execute() { run_frontend(); }
@@ -177,7 +177,8 @@ void
 PassManager::run_frontend()
 {
     running_phase_ = Phase::FRONTEND;
-    parser_retval_ = alpha_yyparse(scanner_handle_.get(), lexer_ctx_, lt_, dr_, semantic_system_);
+    parser_retval_ = alpha_yyparse(scanner_handle_.get(), lexer_ctx_, lt_, diagnostic_engine_,
+                                   diagnostic_engine_.dr, semantic_system_);
 }
 
 bool
@@ -203,8 +204,9 @@ PassManager::notify_hard_error()
 DiagnosticEngine::Policy
 TranslationUnit::create_diagnostic_engine_policy()
 {
-    return {
+    return DiagnosticEngine::Policy{
         .should_emit_diagnostic = [this]() { return pass_manager_->is_in_hard_error(); },
+        .notify_max_errors_reached = [this]() { notify_max_errors_reached(); },
         .notify_fatal_error = [this]() { notify_fatal_error(); },
         .notify_hard_error = [this]() { pass_manager_->notify_hard_error(); }
     };
@@ -241,14 +243,17 @@ TUBuffer::open_source(const std::filesystem::path &path)
     throw std::invalid_argument(FMT::format("Failed opening {} for reading.", path.string()));
 }
 
-TranslationUnit::TranslationUnit(const std::filesystem::path &source_path)
+TranslationUnit::TranslationUnit(
+    const std::filesystem::path &source_path,
+    CompilationOptions::Values comp_options)
     : source_path_(source_path),
+      compilation_options_(std::move(comp_options)),
       tu_buffer_(source_path, k_scanner_eof_null_padding),
       loc_tracker_(tu_buffer_.size() - tu_buffer_.null_padding),
       diagnostic_engine_(create_diagnostic_engine_policy()),
       symbol_table_(),
       pass_manager_(std::make_unique<PassManager>(
-          tu_buffer_, loc_tracker_, diagnostic_engine_.dr, &symbol_table_)) {}
+          tu_buffer_, loc_tracker_, diagnostic_engine_, &symbol_table_)) {}
 
 PassManager::ScannerHandle::ScannerHandle(TUBuffer &tu_buffer)
 {
@@ -280,7 +285,8 @@ TranslationUnit::compile()
         compiled_ok_ = true;
     }
     catch (DiagnosticFatalError) {}
-    catch (SanityLimitExceeded &e)
+    catch (DiagnosticErrorLimitExceededError) {}
+    catch (SanityLimitExceededError &e)
     {
         std::cerr << FMT::format("Exception caught: {}", e.what()) << std::endl;
     }
@@ -288,6 +294,9 @@ TranslationUnit::compile()
 
 void
 TranslationUnit::notify_fatal_error() { throw DiagnosticFatalError(); }
+
+void
+TranslationUnit::notify_max_errors_reached() { throw DiagnosticErrorLimitExceededError(); }
 
 void
 TranslationUnit::show_symbol_table() const
@@ -315,7 +324,7 @@ TranslationUnit::show_symbol_table() const
 void
 TranslationUnit::show_compile_issues() const
 {
-    const std::string source_filename = source_filepath_.filename().string();
+    const std::string source_filename = source_path_.filename().string();
 
     for (const auto &cti: diagnostic_engine_.get_compile_time_issues())
         std::cerr << cti->make_pretty_diagnostic(source_filename, loc_tracker_, tu_buffer_.data());
@@ -354,7 +363,7 @@ TranslationUnit::export_quads() const
 void
 TranslationUnit::export_symbol_table_impl() const
 {
-    const std::string outfile_name = source_filepath_.filename().string() + ".st.csv";
+    const std::string outfile_name = source_path_.filename().string() + ".st.csv";
     std::ofstream outfile(outfile_name);
     if (!outfile)
         throw std::runtime_error(
@@ -390,7 +399,7 @@ TranslationUnit::export_within_dir(
 void
 TranslationUnit::export_compile_errors_impl() const
 {
-    const std::string outfile_name = source_filepath_.filename().string() + ".issue.csv";
+    const std::string outfile_name = source_path_.filename().string() + ".issue.csv";
     std::ofstream outfile(outfile_name);
     if (!outfile)
         throw std::runtime_error(FMT::format(
@@ -406,7 +415,7 @@ TranslationUnit::export_compile_errors_impl() const
     for (const auto &cti: diagnostic_engine_.get_compile_time_issues())
     {
         write_diagnostic(cti->primary);
-        for (const Issue &note: cti->notes)
+        for (const Issue &note: cti->note_list)
             write_diagnostic(note);
     }
 }
@@ -414,7 +423,7 @@ TranslationUnit::export_compile_errors_impl() const
 void
 TranslationUnit::export_quads_impl() const
 {
-    const std::string outfile_name = source_filepath_.filename().string() + ".quads";
+    const std::string outfile_name = source_path_.filename().string() + ".quads";
     std::ofstream outfile(outfile_name);
     if (!outfile)
         throw std::runtime_error(

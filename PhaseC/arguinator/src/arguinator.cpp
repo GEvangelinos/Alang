@@ -15,7 +15,7 @@
 
 #define TO_STRING(x) #x
 
-namespace Arguinator
+namespace arguinator
 {
 class FlagError : public CLIError
 {
@@ -68,7 +68,7 @@ private:
 
 namespace
 {
-using namespace Arguinator;
+using namespace arguinator;
 
 [[nodiscard]] std::string str_to_upper(std::string str)
 {
@@ -209,7 +209,7 @@ void ensure_required_flags_present(std::map<std::string, Flag> flag_map)
 }
 } // namespace
 
-namespace Arguinator
+namespace arguinator
 {
 Parser::Parser(int argc, const char *const *argv, const std::string &description)
     : argc_(argc), argv_(argv), description_(description)

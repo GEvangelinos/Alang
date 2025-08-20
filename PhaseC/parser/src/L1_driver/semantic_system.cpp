@@ -69,7 +69,7 @@ SemanticSystem::get_expr_optimizer_options(const Options &options)
 }
 
 const Expr *
-SemanticSystem::convert_to_bool_expr(const Expr *const expr)
+SemanticSystem::normalize_to_bool_expr(const Expr *const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
 
@@ -115,6 +115,15 @@ SemanticSystem::finalize_bool_expr(const Expr *const expr)
     // false branch: patch to here and assign false
     qh->patch_list(bool_expr->false_list, quad_handler_->next_quad_label());
     qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_false_expr, nullptr, expr->loc);
+}
+
+SourceLocation
+SemanticSystem::get_loc_of_last_expr() const
+{
+    DEBUG_SMART_ASSERT(expr_maker_.get() != nullptr);
+    if (expr_maker_->expr_sink_.empty())
+        return k_no_loc;
+    return expr_maker_->expr_sink_.back()->loc;
 }
 
 void

@@ -4,6 +4,7 @@
 #include <functional>
 #include <list>                    // for list
 #include <memory>
+#include <optional>
 #include <string>                  // for string, basic_string
 #include <string_view>             // for string_view
 #include <core/basics.hpp>
@@ -13,6 +14,17 @@
 // TODO: which classes can I encapsulate here?
 namespace alpha
 {
+struct Suggestion
+{
+    Suggestion() = delete;
+
+    Suggestion(const std::string &text, const SourceLocation insert_after)
+        : text(text), insert_after(insert_after) {}
+
+    const std::string text;
+    const SourceLocation insert_after;
+};
+
 class Issue
 {
 public:
@@ -28,8 +40,10 @@ public:
     const Type type;
     const std::string desc;
     const SourceLocation loc;
+    std::optional<Suggestion> suggestion;
 
-    Issue(Type type, std::string &&description, SourceLocation loc);
+    Issue(Type type, std::string description, SourceLocation loc);
+    Issue(Type type, std::string description, SourceLocation loc, Suggestion suggestion);
 
     [[nodiscard]] u32 line(const LocationTracker &lt) const;
     [[nodiscard]] u32 column(const LocationTracker &lt) const;
@@ -42,6 +56,9 @@ class Note : public Issue
 public:
     Note(std::string desc, const SourceLocation loc)
         : Issue(Type::NOTE, std::move(desc), loc) {}
+
+    Note(std::string desc, const SourceLocation loc, Suggestion suggestion)
+        : Issue(Type::NOTE, std::move(desc), loc, std::move(suggestion)) {}
 };
 
 class Diagnostic
@@ -50,7 +67,7 @@ class Diagnostic
 
 public:
     const Issue primary;
-    const std::list<Note> notes;
+    const std::list<Note> note_list;
 
     Diagnostic() = delete;
 
@@ -60,11 +77,7 @@ public:
         const char *input_buffer) const;
 
 private:
-    Diagnostic(
-        Issue::Type type,
-        std::string desc,
-        SourceLocation loc,
-        std::list<Note> &&note_list_ = std::list<Note>());
+    explicit Diagnostic(Issue &&primary, std::list<Note> &&note_list = std::list<Note>());
 
     [[nodiscard]] static std::string make_pretty_diagnostic_impl(
         const std::string &source_filename,
@@ -80,14 +93,18 @@ class DiagnosticEngine : private Immobile
 public:
     struct Policy
     {
-        std::function<bool()> should_emit_diagnostic; // query: should DE emit this diagnostic?
-        std::function<void()> notify_fatal_error;     // notify: a fatal error occurred
-        std::function<void()> notify_hard_error;      // notify: a hard error occurred
+        std::function<bool()> should_emit_diagnostic;     // query: should DE emit this diagnostic?
+        std::function<void()> notify_max_errors_reached; // notify: maximum error limit reached.
+        std::function<void()> notify_fatal_error;         // notify: a fatal error occurred.
+        std::function<void()> notify_hard_error;          // notify: a hard error occurred.
     };
 
     DiagnosticReporter dr;
 
-    explicit DiagnosticEngine(Policy &&policy);
+    explicit DiagnosticEngine(
+        Policy &&policy, std::optional<std::size_t> max_errors = std::nullopt);
+
+    void report(Issue primary, std::list<Note> &&note_list = std::list<Note>());
 
     // TODO: add an export function for all diagnostics (export the diagnostics vector) // or DETATCH method
     [[nodiscard]] const auto &get_compile_time_issues() const noexcept { return diagnostics_; }
@@ -102,8 +119,14 @@ public:
         return has_soft_errors() || has_hard_errors() || has_fatal_errors();
     }
 
+    [[nodiscard]] std::size_t error_count() const noexcept
+    {
+        return softs_.size() + hards_.size() + fatals_.size();
+    }
+
 private:
     const Policy policy_;
+    const std::optional<std::size_t> max_errors;
     std::vector<std::unique_ptr<const Diagnostic>> diagnostics_;
     std::vector<const Diagnostic *> warnings_;
     std::vector<const Diagnostic *> softs_;

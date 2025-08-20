@@ -84,6 +84,8 @@ public:
     // TODO: make a function that user calls before destructor call that basically extracts all this
     // alpha drivers would want (like the generated quads).
     [[nodiscard]] bool good() const noexcept { return ss_status_ == Status::OK; }
+    [[nodiscard]] SourceLocation get_loc_of_last_expr()const ;
+
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_MASTER_MODULE_CALL(aggregate_builder);
@@ -96,7 +98,7 @@ public:
     DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
     DISPATCH_MASTER_MODULE_CALL(function_builder);
     DISPATCH_MASTER_MODULE_CALL(table_access_builder);
-    DISPATCH_MASTER_METHOD_CALL(convert_to_bool_expr);
+    DISPATCH_MASTER_METHOD_CALL(normalize_to_bool_expr);
     DISPATCH_MASTER_METHOD_CALL(mark_short_circuit_jump_point);
     DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
     DISPATCH_MASTER_METHOD_CALL(finalize_bool_expr);
@@ -132,7 +134,7 @@ private:
     TableAccessBuilder table_access_builder;
 
     // -- Directly dispatchable  methods-- // TODO: maybe package inside a module?
-    [[nodiscard]] const Expr *convert_to_bool_expr(const Expr *expr);
+    [[nodiscard]] const Expr *normalize_to_bool_expr(const Expr *expr);
     void reset_stmt_context() noexcept;
     void finalize_bool_expr(const Expr *expr);
 

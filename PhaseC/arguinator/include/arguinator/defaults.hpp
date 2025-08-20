@@ -1,7 +1,7 @@
 #ifndef DEFAULT_CONSTANTS_HPP
 #define DEFAULT_CONSTANTS_HPP
 
-namespace Arguinator
+namespace arguinator
 {
 namespace FlagConsts
 {

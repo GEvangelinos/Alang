@@ -2,6 +2,8 @@
 #define SCANNER_CONTEXT_HPP
 
 #include <string>
+
+#include "core/konstants.hpp"
 #include "core/source_location.hpp"
 #include "core/numeric_types.hpp"
 #include "scanner/scanner_token.hpp"

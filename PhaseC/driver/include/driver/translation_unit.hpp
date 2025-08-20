@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <memory>
 #include <scanner/scanner_context.hpp>
+
+#include "compilation_options.hpp"
 #include "core/basics.hpp"
 #include "L1_driver/semantic_system.hpp"
 
@@ -40,7 +42,7 @@ public:
     PassManager(
         TUBuffer &tu_buffer,
         LocationTracker &lt,
-        DiagnosticReporter &dr,
+        DiagnosticEngine &diagnostic_engine,
         SymbolTable *symbol_table);
 
     void execute();
@@ -69,7 +71,7 @@ private:
     SemanticSystem::Options ss_options_ = {false, false, false, false};
 
     LocationTracker &lt_;
-    DiagnosticReporter &dr_;
+    DiagnosticEngine &diagnostic_engine_;
     ScannerHandle scanner_handle_;
     ParseCtx parse_ctx_;
     LexerCtx lexer_ctx_;
@@ -83,7 +85,9 @@ private:
 class TranslationUnit
 {
 public:
-    explicit TranslationUnit(const std::filesystem::path &source_path);
+    TranslationUnit(
+        const std::filesystem::path &source_path, CompilationOptions::Values comp_options);
+
     ~TranslationUnit() = default;
 
     void compile();
@@ -96,8 +100,8 @@ public:
     bool compiled_ok() { return compiled_ok_; }
 
 private:
-    const std::filesystem::path source_filepath_;
     const std::filesystem::path source_path_;
+    const CompilationOptions::Values compilation_options_;
     TUBuffer tu_buffer_;
     LocationTracker loc_tracker_;
     DiagnosticEngine diagnostic_engine_;
@@ -112,7 +116,9 @@ private:
     void export_quads_impl() const;
     [[nodiscard]] DiagnosticEngine::Policy create_diagnostic_engine_policy();
 
+    // Notifiers (used as callbacks)
     static void notify_fatal_error();
+    static void notify_max_errors_reached();
 };
 } // namespace alpha
 #endif // TRANSLATION_UNIT_HPP

@@ -64,12 +64,19 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 
-# General warnings
+# Warnings applied to all builds
 add_compile_options(
     -Wall
     -Wextra
     -Wpedantic
     -Wreorder
+    -Wimplicit-fallthrough
+)
+
+# Errors applied to all builds
+add_compile_options(
+    -Werror=missing-field-initializers
+    -Werror=missing-designated-field-initializers
 )
 
 # Check if std::format is allowed
@@ -110,7 +117,6 @@ if (DEBUG_MODE)
 
     add_compile_options(
         -g
-        -Wimplicit-fallthrough
         #        -Wunused-result
         #        -Wnull-dereference
         #        -Wsuggest-override
