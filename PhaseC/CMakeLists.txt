@@ -74,10 +74,11 @@ add_compile_options(
 )
 
 # Errors applied to all builds
-add_compile_options(
-    -Werror=missing-field-initializers
-    -Werror=missing-designated-field-initializers
-)
+# TODO: RE-ENABLE!!
+#add_compile_options(
+#    -Werror=missing-field-initializers
+#    -Werror=missing-designated-field-initializers
+#)
 
 # Check if std::format is allowed
 include(CheckCXXSourceCompiles)

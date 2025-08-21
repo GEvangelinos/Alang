@@ -64,6 +64,10 @@ std::string expand_tabs(const std::string_view line, const int tab_width = 8)
     return result;
 }
 
+// Compute the visual caret offset for a given line.
+//
+// Tabs are tricky because their displayed width depends on the current column.
+// For each tab, we advance to the next multiple of `tab_width` columns.
 int compute_visual_caret_offset(
     const std::string_view line,
     const alpha::uf64 raw_offset,
@@ -189,13 +193,19 @@ Diagnostic::make_pretty_diagnostic_impl(
                           std::string(line_box_width, ' '),      // Spaces pre  |
                           std::string(visual_caret_offset, ' '), // spaces post | to move caret
                           issue.pretty_color(), std::string(highlight_length, '~'));
+        ss << SGR_RESET;
         if (issue.suggestion.has_value())
+        {
+            const auto raw_caret_offset_suggestion =
+                    issue.suggestion.value().insert_after.last_index -
+                    lt.find_index_of_line(lt.find_last_line(issue.suggestion.value().insert_after));
+            const auto visual_carret_offset_suggestion =
+                    compute_visual_caret_offset(line_views[i], raw_caret_offset_suggestion);
             ss << FMT::format("{} | {}{}\n",
-                              std::string(line_box_width, ' '),      // Spaces pre  |
-                              std::string(visual_caret_offset, ' '), // spaces post | to move caret
+                              std::string(line_box_width, ' '),     // Spaces pre  |
+                              std::string(visual_carret_offset_suggestion+1, ' '), // spaces post | to move caret
                               issue.suggestion->text);
-        else
-            ss << "FALSEeEEEeEEEEE";
+        }
         ss << SGR_RESET;
     }
 

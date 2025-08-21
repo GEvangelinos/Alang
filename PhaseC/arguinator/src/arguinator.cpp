@@ -355,11 +355,10 @@ const std::vector<std::string> &Flag::get_inputs() const noexcept { return input
 const std::string &Flag::get_input(std::size_t input_field) const
 {
     if (input_field == 0)
-        throw std::logic_error(
-            ATTACH_CONTEXT(
-                FMT::format("BUG: {}() called with input_field = 0, which is "
-                    "invalid. Indexing starts from 1.",
-                    __func__)));
+        throw std::logic_error(ATTACH_CONTEXT(FMT::format(
+            "BUG: {}() called with input_field = 0, which is invalid. Indexing starts from 1.",
+            __func__
+        )));
 
     const std::string flag_string = ParserConsts::default_flag_prefix + name_;
     if (input_field > arity_)
