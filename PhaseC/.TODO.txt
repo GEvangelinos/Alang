@@ -652,6 +652,12 @@ and remains easily auditable and extensible, all without introducing runtime ove
 
 90) Use FWD to minimizes compilation times... use unique_ptrs for ownership and instantiate them in .cpp
 
+91) IMPORTANT: ADD to your report that in statement expecting a boolean condition Like:
+
+if(cond), while(cond), for(x;cond;y). You do constant normalization.
+
+basically in IR: while(5), wont show IF_EQ   5 true, but IF_EQ true true
+
 
 
 100) Dude.. I just learned what reentrant bison means.. We can launch multiple instances of

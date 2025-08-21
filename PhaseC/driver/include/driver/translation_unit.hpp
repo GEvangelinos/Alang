@@ -61,7 +61,7 @@ private:
         explicit ScannerHandle(TUBuffer &tu_buffer);
         ~ScannerHandle();
 
-        yyscan_t get() const noexcept { return scanner_; }
+        [[nodiscard]] yyscan_t get() const noexcept { return scanner_; }
 
     private:
         yyscan_t scanner_;
@@ -97,7 +97,7 @@ public:
     void export_symbol_table() const;
     void export_compile_errors() const;
     void export_quads() const;
-    bool compiled_ok() { return compiled_ok_; }
+    [[nodiscard]] bool compiled_ok() { return compiled_ok_; }
 
 private:
     const std::filesystem::path source_path_;

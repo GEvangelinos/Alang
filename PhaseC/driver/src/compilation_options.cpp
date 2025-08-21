@@ -1,8 +1,39 @@
 #include "driver/compilation_options.hpp"
 
+#include <functional>
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include "arguinator/arguinator.hpp"
+#include "driver/alpha_driver_exceptions.hpp"
+#include "utils/debug_tools.hpp"
+#include "utils/format_adapter.hpp"
+
+namespace
+{
+template<typename T>
+[[nodiscard]] T extract(
+    const char *flag_name,
+    const arguinator::Parser &cli_parser,
+    std::function<T(std::string)> extractor,
+    const char *type_name)
+{
+    const std::string &value = cli_parser[flag_name].get_input();
+    try { return extractor(value); }
+    catch (const std::invalid_argument &)
+    {
+        throw alpha::exceptions::StartupError(FMT::format(
+            "Option '--{}' with value '{}' cannot be parsed as {}.",
+            flag_name, value, type_name));
+    } catch (const std::out_of_range &)
+    {
+        throw alpha::exceptions::StartupError(FMT::format(
+            "Option '--{}' with value '{}' is out of range for {}.",
+            flag_name, value, type_name));
+    }
+    UNREACHABLE("extract(): unexpected fallthrough");
+}
+} // namespace
 
 namespace alpha
 {
@@ -20,17 +51,11 @@ const std::vector<OptionSpec> option_specs
         {flag_max_errors,            1, false, "Set the maximum number of errors before compilation halts."},
 }; // clang-format on
 
-CompilationOptions::Values create(const arguinator::Parser &cli_parser)
+CompilationOptions::Values CompilationOptions::create(const arguinator::Parser &cli_parser)
 {
     CompilationOptions::Values cov;
-
-    try
-    {
-        if (cli_parser[flag_max_errors].is_provided())
-            cov.max_errors = std::stoull(cli_parser[flag_max_errors].get_input());
-    }
-    catch (std::invalid_argument &e) {}
-    catch (std::out_of_range &e) {}
+    auto local_stoull = [](const std::string &s) { return std::stoull(s); };
+    cov.max_errors = extract<std::size_t>(flag_max_errors, cli_parser, local_stoull, "std::size_t");
 
     return std::move(cov);
 }

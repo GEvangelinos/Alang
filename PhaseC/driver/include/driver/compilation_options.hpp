@@ -36,7 +36,7 @@ namespace CompilationOptions
         std::size_t max_errors = std::numeric_limits<std::size_t>::max();
     };
 
-    CompilationOptions::Values create(const arguinator::Parser &cli_parser);
+    Values create(const arguinator::Parser &cli_parser);
 } // namespace CompilationOptions
 } // namespace alpha
 #endif // COMPILATION_OPTIONS_HPP

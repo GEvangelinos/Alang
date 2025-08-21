@@ -40,16 +40,16 @@ static arguinator::Parser launch_cli_parser(const int argc, const char *const *c
 int main(const int argc, char **argv)
 {
     const arguinator::Parser cli_parser = launch_cli_parser(argc, argv);
+    alpha::CompilationOptions::Values comp_options = alpha::CompilationOptions::create(cli_parser);
 
     std::unique_ptr<alpha::Driver> driver;
     try
     {
         const std::string &source_filename = cli_parser[alpha::flag_input_file].get_input();
-        driver = std::make_unique<alpha::Driver>(source_filename, );
+        driver = std::make_unique<alpha::Driver>(source_filename, comp_options);
+        driver->run();
     }
     catch (arguinator::CLIHelp) { return 0; }
-
-    driver->run();
 
     if (cli_parser[alpha::flag_export_symbol_table].is_provided())
         driver->export_symbol_table();

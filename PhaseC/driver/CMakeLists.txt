@@ -16,6 +16,7 @@ target_link_libraries(alpha_driver_api INTERFACE
 # === alpha_driver_impl: Implementation (compiled source) ===
 add_library(alpha_driver_impl STATIC
     src/alpha_driver.cpp
+    src/alpha_driver_exceptions.cpp
     src/translation_unit.cpp
     src/compilation_options.cpp
 )
@@ -25,6 +26,7 @@ target_include_directories(alpha_driver_impl PRIVATE
 target_link_libraries(alpha_driver_impl PRIVATE
     alpha_driver_api
     alpha_core_api
+    arguinator_api
 )
 
 # === Executable ===

@@ -2,6 +2,7 @@
 #define ARGUINATOR_HPP
 
 #include <cstddef>   // for size_t
+#include <functional>
 #include <map>       // for map
 #include <stdexcept> // for runtime_error
 #include <string>    // for basic_string, string
@@ -9,8 +10,6 @@
 
 namespace arguinator
 {
-//  Classes defined here:
-class Parser;   // IWYU pragma: keep
 class Flag;     // IWYU pragma: keep
 class CLIHelp;  // IWYU pragma: keep
 class CLIError; // IWYU pragma: keep
@@ -21,12 +20,13 @@ public:
     Parser(int argc, const char *const *argv, const std::string &description);
     Parser() = delete;
 
-    Flag &set_flag(const std::string &identifier);
+    Flag &set_flag(const std::string &flag_name);
     void parse_flags();
     [[nodiscard]] std::size_t count(const std::string &flag_name) const;
     [[nodiscard]] bool found(const std::string &flag_name) const;
 
-    [[nodiscard]] const Flag &operator[](const std::string &flag_name) const;
+    [[nodiscard]]
+    const Flag &operator[](const std::string &flag_name) const;
 
 private:
     std::size_t argc_;

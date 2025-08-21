@@ -177,8 +177,14 @@ void
 PassManager::run_frontend()
 {
     running_phase_ = Phase::FRONTEND;
-    parser_retval_ = alpha_yyparse(scanner_handle_.get(), lexer_ctx_, lt_, diagnostic_engine_,
-                                   diagnostic_engine_.dr, semantic_system_);
+    parser_retval_ = alpha_yyparse(
+        scanner_handle_.get(),
+        lexer_ctx_,
+        lt_,
+        diagnostic_engine_,
+        diagnostic_engine_.dr,
+        semantic_system_
+    );
 }
 
 bool
@@ -250,7 +256,7 @@ TranslationUnit::TranslationUnit(
       compilation_options_(std::move(comp_options)),
       tu_buffer_(source_path, k_scanner_eof_null_padding),
       loc_tracker_(tu_buffer_.size() - tu_buffer_.null_padding),
-      diagnostic_engine_(create_diagnostic_engine_policy()),
+      diagnostic_engine_(create_diagnostic_engine_policy(), comp_options.max_errors),
       symbol_table_(),
       pass_manager_(std::make_unique<PassManager>(
           tu_buffer_, loc_tracker_, diagnostic_engine_, &symbol_table_)) {}
@@ -264,7 +270,7 @@ PassManager::ScannerHandle::ScannerHandle(TUBuffer &tu_buffer)
     {
         std::string error =
                 "Failed to load Flex buffer. A common cause is forgetting "
-                "to append two null bytes for padding.";
+                "to append two null bytes for padding in at end of the buffer.";
         if (alpha_yylex_destroy(scanner_) != 0)
             error += " | Additionally, cleanup of the scanner failed.";
         throw std::runtime_error(ATTACH_CONTEXT(error));
@@ -282,21 +288,22 @@ TranslationUnit::compile()
     try
     {
         pass_manager_->execute();
+        // If we reach this point, execute() completed without throwing any exceptions.
         compiled_ok_ = true;
     }
-    catch (DiagnosticFatalError) {}
-    catch (DiagnosticErrorLimitExceededError) {}
-    catch (SanityLimitExceededError &e)
+    catch (exceptions::DiagnosticFatalError) {}
+    catch (exceptions::DiagnosticErrorLimitExceeded) {}
+    catch (exceptions::SanityLimitExceededError &e)
     {
         std::cerr << FMT::format("Exception caught: {}", e.what()) << std::endl;
     }
 }
 
 void
-TranslationUnit::notify_fatal_error() { throw DiagnosticFatalError(); }
+TranslationUnit::notify_fatal_error() { throw exceptions::DiagnosticFatalError(); }
 
 void
-TranslationUnit::notify_max_errors_reached() { throw DiagnosticErrorLimitExceededError(); }
+TranslationUnit::notify_max_errors_reached() { throw exceptions::DiagnosticErrorLimitExceeded(); }
 
 void
 TranslationUnit::show_symbol_table() const
