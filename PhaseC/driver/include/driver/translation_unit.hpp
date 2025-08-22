@@ -105,6 +105,7 @@ private:
     TUBuffer tu_buffer_;
     LocationTracker loc_tracker_;
     DiagnosticEngine diagnostic_engine_;
+    DiagnosticFormatter diagnostic_formatter_;
     SymbolTable symbol_table_;
     std::unique_ptr<PassManager> pass_manager_;
     bool compiled_ok_ = false;

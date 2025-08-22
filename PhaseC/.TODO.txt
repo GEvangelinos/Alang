@@ -685,3 +685,127 @@ andit might produce the out output  too (target code)
 also when you create the vm.. you could integrate compiler in vm.. so in interactive mode
 you can see results too (REPL: Read Eval Print Loop) (like python's IDLE)
 
+
+102) ADD TO REPORT:
+
+# Error Recovery and Heuristics for AlphaLanguage Parser (Mental Model)
+
+This file summarizes the ideas we discussed for making error reporting in your Bison-based compiler
+more professional (Clang/GCC style) and less chaotic.
+
+---
+
+## 1. General Philosophy
+- **Parsers know validity, not intent**: Bison can tell you what tokens would be valid, but not what
+  the programmer *meant*.
+- **Heuristics bridge the gap**: Human compilers (Clang, GCC) add pragmatic rules to guess intent.
+- **Incremental approach**: Handle the most common fixes first (missing `;`, missing `)`, missing `}`).
+
+---
+
+## 2. Heuristics Ideas
+- If `;` is in the expected set, and the next token starts on a new line → prefer `;`.
+- If two identifiers are on the same line with no operator → suggest `+` or another operator.
+- If you just parsed a declaration → missing `;` is by far the most likely.
+- If inside a parenthesized context → missing `)` is likely.
+- Always rank tokens: (`;` > `)` > `}` > operators > others).
+
+---
+
+## 3. Lexer Context (Tracking Previous Tokens)
+Extend your lexer context to keep track of current and previous token text and locations:
+
+```cpp
+struct LexerCtx {
+    YYLTYPE curr_loc{};
+    std::string curr_text;
+    YYLTYPE prev_loc{};
+    std::string prev_text;
+};
+```
+
+In `yylex`:
+
+```cpp
+int yylex(YYSTYPE *yylval, YYLTYPE *yylloc, yyscan_t scanner, LexerCtx &ctx) {
+    ctx.prev_loc = ctx.curr_loc;
+    ctx.prev_text = ctx.curr_text;
+
+    int tok = real_yylex(yylval, yylloc, scanner);
+
+    ctx.curr_loc = *yylloc;
+    ctx.curr_text = alpha_yyget_text(scanner);
+    return tok;
+}
+```
+
+This lets you say:
+```cpp
+if (semi_expected && ctx.curr_loc.first_line > ctx.prev_loc.last_line) {
+    syntax_error = FMT::format(
+        "error: expected ';' after `{}` (before `{}`)",
+        ctx.prev_text,
+        ctx.curr_text
+    );
+}
+```
+
+---
+
+## 4. Using Expression / IR Tracking
+- Store `last_expr_kind` and `last_expr_loc` when reducing expressions in Bison.
+- Example: `ExprKind::Arithmetic`, `ExprKind::Boolean`, `ExprKind::Assignment`, etc.
+- In error reporter, combine this with `expected_tokens`:
+  - If last expr is arithmetic and the next token is an identifier on the same line → suggest `+`.
+  - If last expr is boolean/assignment and the next token is on a new line → suggest `;`.
+
+This makes diagnostics semantically aware.
+
+---
+
+## 5. GCC vs Clang Diagnostic Style
+- **GCC**: "expected ';' before 'xyz' token"
+- **Clang**: "expected ';' at end of declaration"
+- To mimic Clang: map grammar rules (stmt, decl, expr) into phrases ("at end of declaration").
+- To mimic GCC: use token names ("before 'xyz'").
+
+---
+
+## 6. Handling Different Cases
+- **If 1 expected token**: phrase it cleanly ("expected ';' before 'xyz'").
+- **If multiple expected tokens**: show the top suggestion, then a short list of others.
+- **If >5 tokens**: truncate or just say "expected one of X, Y, Z".
+
+---
+
+## 7. Advanced Extensions
+- **Token history buffer**: keep last N tokens in lexer context for richer diagnostics ("saw A, then B, then C").
+- **Pretty-printer for tokens**: map YYSYMBOL names to readable ones (`YYSYMBOL_SEMICOLON -> ';'`, `YYSYMBOL_IDENTIFIER -> 'identifier'`).
+- **Future idea**: integrate with quads (IR) → if last emitted quad is arithmetic, prefer operator fix.
+
+---
+
+## 8. Strategy for Implementation
+1. Implement previous-loc tracking in lexer.
+2. Special-case missing `;` using newline heuristic.
+3. Add pretty token printer for clean messages.
+4. Gradually add semantic-aware heuristics using `last_expr_kind`.
+5. Optionally add token history buffer for context in notes.
+
+---
+
+This is how you move from a raw "Lookahead Correction algorithm dump" to **professional GCC/Clang-style diagnostics**.
+
+
+
+102)
+
+Create a reentrant FatalErrorHandler..
+
+basically there are many throws in out system.. We could like for fatal handler to capture.
+
+Fatal handler .. should have a callback to main system.. to ask that to do in case of a fatal error.
+
+(Stop throwing carelessly.. it becomes impossible to manage all throws..)
+
+especially if we want reentrancy

@@ -78,8 +78,10 @@ foreach ( gfile ${generated_src_files})
 endforeach ()
 
 add_library(alpha_diagnostics_impl STATIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/diagnostic_engine.cpp"
-     ${generated_diagnostic_files}
+    src/diagnostic_types.cpp
+    src/diagnostic_printer.cpp
+    src/diagnostic_engine.cpp
+    ${generated_diagnostic_files}
 )
 
 target_link_libraries(alpha_diagnostics_impl PRIVATE

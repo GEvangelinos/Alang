@@ -63,7 +63,7 @@ LocationTracker::find_symbol_line(const SourceLocation location) const
 }
 
 u32
-LocationTracker::find_index_of_line(u32 line) const
+LocationTracker::find_index_of_line(const u32 line) const
 {
     if (line == k_no_line)
         throw std::logic_error(ATTACH_CONTEXT(FMT::format(

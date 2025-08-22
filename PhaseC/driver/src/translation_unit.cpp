@@ -167,7 +167,7 @@ PassManager::PassManager(
       parse_ctx_(utils::require_ptr(symbol_table)),
       lexer_ctx_(),
       semantic_system_(
-          ss_options_, &parse_ctx_, utils::require_ptr(symbol_table), &diagnostic_engine_.dr
+          ss_options_, &parse_ctx_, utils::require_ptr(symbol_table), &diagnostic_engine_.reporter
       ) {}
 
 void
@@ -182,7 +182,7 @@ PassManager::run_frontend()
         lexer_ctx_,
         lt_,
         diagnostic_engine_,
-        diagnostic_engine_.dr,
+        diagnostic_engine_.reporter,
         semantic_system_
     );
 }
@@ -226,6 +226,11 @@ TUBuffer::TUBuffer(
     std::ifstream ifs = open_source(path);
 
     const auto filesize = std::filesystem::file_size(path);
+    // TODO: specify filesize.. If C++ doesnt have a way to convert bytes to KB,MB,GB
+    // You have a conversion function in MicroTCP's project code.
+    if (filesize > k_max_input_file_size)
+        throw std::invalid_argument(FMT::format("file {} is too big.", path.string()));
+
     const auto tub_size = filesize + null_padding;
     data_ = std::make_unique<char[]>(tub_size);
     size_ = tub_size;
@@ -257,6 +262,7 @@ TranslationUnit::TranslationUnit(
       tu_buffer_(source_path, k_scanner_eof_null_padding),
       loc_tracker_(tu_buffer_.size() - tu_buffer_.null_padding),
       diagnostic_engine_(create_diagnostic_engine_policy(), comp_options.max_errors),
+      diagnostic_formatter_(source_path, loc_tracker_, tu_buffer_.data()),
       symbol_table_(),
       pass_manager_(std::make_unique<PassManager>(
           tu_buffer_, loc_tracker_, diagnostic_engine_, &symbol_table_)) {}
@@ -333,8 +339,10 @@ TranslationUnit::show_compile_issues() const
 {
     const std::string source_filename = source_path_.filename().string();
 
-    for (const auto &cti: diagnostic_engine_.get_compile_time_issues())
-        std::cerr << cti->make_pretty_diagnostic(source_filename, loc_tracker_, tu_buffer_.data());
+    for (const auto &diagnostic: diagnostic_engine_.get_diagnostics())
+        std::cerr << "CALL FORMATTER!";
+
+    std::cerr << std::endl;
 }
 
 void
@@ -415,11 +423,15 @@ TranslationUnit::export_compile_errors_impl() const
     outfile << k_error_csv_export_header; // Write CSV header.
     auto write_diagnostic = [&](const Issue &diag)
     {
-        outfile << FMT::format("{},{},{},{}\n", diag.line(loc_tracker_), diag.column(loc_tracker_),
-                               diag.type_to_string(), diag.desc);
+        outfile << FMT::format("{0},{1},{2},{3}\n",
+                               diag.line(loc_tracker_),
+                               diag.column(loc_tracker_),
+                               to_string(diag.type),
+                               diag.desc
+        );
     };
 
-    for (const auto &cti: diagnostic_engine_.get_compile_time_issues())
+    for (const auto &cti: diagnostic_engine_.get_diagnostics())
     {
         write_diagnostic(cti->primary);
         for (const Issue &note: cti->note_list)
