@@ -203,11 +203,16 @@ DiagnosticFormatter::format_issue(const Issue &issue, const bool colorize) const
         DEBUG_SMART_ASSERT(line_no > 0 && "Line number is invalid (lines start at 1).");
         const auto starting_index = loc_tracker_.find_index_of_line(line_no);
         auto line = assemble_next_line(source_buffer_ + starting_index);
+        std::cout << line;
         auto underline = build_underline(issue, line_no);
+        std::cout << underline;
         if (suggestion_line_no == line_no)
         {
-            ;
-            // std::vector<std::string> suggestion_lines = build_suggestion_lines(su)
+            DEBUG_SMART_ASSERT(issue.suggestion.has_value());
+            std::vector<std::string> suggestion_lines =
+                build_suggestion_lines(issue.suggestion.value());
+            for (const auto &sline : suggestion_lines)
+                std::cout << sline;
         }
     }
 }
