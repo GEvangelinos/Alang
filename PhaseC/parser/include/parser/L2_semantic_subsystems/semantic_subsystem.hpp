@@ -16,14 +16,7 @@ protected:
     QuadHandler *const quad_handler_ = nullptr;
     SemanticSystemBridge *const ss_bridge_ = nullptr;
 
-    explicit SemanticSubsystem(const SemanticSystemServices &ss_services)
-        : parse_ctx_(utils::require_ptr(ss_services.parse_ctx)),
-          symbol_table_(utils::require_ptr(ss_services.symbol_table)),
-          dr_(utils::require_ptr(ss_services.dr)),
-          expr_maker_(utils::require_ptr(ss_services.expr_maker)),
-          expr_optimizer_(utils::require_ptr(ss_services.expr_optimizer)),
-          quad_handler_(utils::require_ptr(ss_services.quad_handler)),
-          ss_bridge_(utils::require_ptr(ss_services.ss_bridge)) {}
+    explicit SemanticSubsystem(const SemanticSystemServices &ss_services);
 
     virtual ~SemanticSubsystem() = 0;
 };

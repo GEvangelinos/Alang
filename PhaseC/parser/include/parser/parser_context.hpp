@@ -243,7 +243,7 @@ inline SpaceHandler::SpaceHandler()
 
 inline SpaceHandler::~SpaceHandler()
 {
-    ((void)0);
+    ((void) 0);
     // The following check is only valid if there was no syntax error.
     // DEBUG_SMART_ASSERT(variable_offset_stack_.size() == 1);
 }
@@ -335,9 +335,9 @@ inline FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const parse_ctx)
 
 inline FunctionCtxHandler::~FunctionCtxHandler()
 {
-    DEBUG_SMART_ASSERT(                                   //
-        frame_stack_.size() == k_global_data_frame_count, //
-        function_parameters_.empty()                      // All parameters must be used.
+    DEBUG_SMART_ASSERT(
+        frame_stack_.size() == k_global_data_frame_count,
+        function_parameters_.empty() // All parameters must be used.
     );
 }
 

@@ -200,7 +200,7 @@ struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
     const Expr *result;
     const Expr *arg1;
     const Expr *arg2;
-    u32 label; // First quad_label is always 1, (0 for backpatching)
+    u32 label;
     const ir::Opcode opcode;
 };
 

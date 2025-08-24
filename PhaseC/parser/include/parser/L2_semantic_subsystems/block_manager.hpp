@@ -21,8 +21,8 @@ private:
         void enter_block() noexcept;
         void exit_block() noexcept;
 
-        static BlockSourceLocation make_block_location(
-            SourceLocation begin, SourceLocation end) noexcept;
+        [[nodiscard ]] static BlockSourceLocation
+        make_block_location(SourceLocation begin, SourceLocation end) noexcept;
     };
 
     Restricted DISPATCH_TARGET;

@@ -53,39 +53,6 @@ private:
     std::vector<const Expr *> expr_sink_;
 };
 
-inline
-ExprMaker::ExprMaker(ParseCtx *const parse_ctx)
-    : parse_ctx_(utils::require_ptr(parse_ctx)) {}
-
-inline ExprMaker::~ExprMaker() noexcept
-{
-    for (const Expr *e: expr_sink_)
-    {
-        DEBUG_SMART_ASSERT(!!e);
-        using ET = Expr::Type;
-        switch (e->type)
-        {
-        // clang-format off
-        case ET::ARITHMETIC_EXPR: delete static_cast<const ArithmeticExpr *>(e); break;
-        case ET::ASSIGN_EXPR: delete static_cast<const AssignExpr *>(e);         break;
-        case ET::BOOL_EXPR: delete static_cast<const BoolExpr *>(e);             break;
-        case ET::CONST_BOOL: delete static_cast<const ConstBoolExpr *>(e);       break;
-        case ET::CONST_INT: delete static_cast<const ConstIntExpr *>(e);         break;
-        case ET::CONST_FLOAT: delete static_cast<const ConstFloatExpr *>(e);     break;
-        case ET::CONST_STRING: delete static_cast<const ConstStringExpr *>(e);   break;
-        case ET::CONST_NIL: delete static_cast<const ConstNilExpr *>(e);         break;
-        case ET::LIBRARY_FUNCTION: delete static_cast<const LibFuncExpr *>(e);   break;
-        case ET::PROGRAM_FUNCTION: delete static_cast<const ProgFuncExpr *>(e);  break;
-        case ET::NEW_TABLE: delete static_cast<const NewTableExpr *>(e);         break;
-        case ET::TABLE_ITEM: delete static_cast<const TableItemExpr *>(e);       break;
-        case ET::VARIABLE: delete static_cast<const VariableExpr *>(e);          break;
-        // clang-format on
-        default: UNREACHABLE(FMT::format(
-                "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(e->type)));
-        }
-    }
-}
-
 #define DEFINE_MAKER_WITH_TEMP_SYMBOL(EXPR_TYPE, FN_NAME)                              \
     template<bool make_dup>                                                            \
     const EXPR_TYPE *                                                                  \
@@ -208,52 +175,5 @@ ExprMaker::make_variable_expr(const SourceLocation expr_loc, const VarSymbol *co
     return variable_expr;
 }
 
-inline const Expr *ExprMaker::clone_with_updated_location(
-    const SourceLocation new_loc,
-    const Expr *const donor_Expr)
-{
-    DEBUG_SMART_ASSERT(!!donor_Expr);
-    using ET = Expr::Type;
-    switch (donor_Expr->type)
-    {
-    case ET::ARITHMETIC_EXPR:
-        return make_arithmetic_expr<true>(new_loc, static_cast<const ArithmeticExpr *>(donor_Expr));
-    case ET::ASSIGN_EXPR:
-        return make_assign_expr(new_loc, static_cast<const AssignExpr *>(donor_Expr)->var_symbol);
-    case ET::BOOL_EXPR:
-        return make_bool_expr<true>(new_loc, static_cast<const BoolExpr *>(donor_Expr));
-    case ET::CONST_BOOL:
-        return make_const_bool_expr(new_loc, static_cast<const ConstBoolExpr *>(donor_Expr)->value);
-    case ET::CONST_INT:
-        return make_const_int_expr(new_loc, static_cast<const ConstIntExpr *>(donor_Expr)->value);
-    case ET::CONST_FLOAT:
-        return make_const_float_expr(
-            new_loc, static_cast<const ConstFloatExpr *>(donor_Expr)->value);
-    case ET::CONST_STRING:
-        return make_const_string_expr(
-            new_loc, static_cast<const ConstStringExpr *>(donor_Expr)->value);
-    case ET::CONST_NIL:
-        return make_nil_expr(new_loc);
-    case ET::LIBRARY_FUNCTION:
-        return make_lib_func_expr(
-            new_loc, static_cast<const LibFuncExpr *>(donor_Expr)->func_symbol);
-    case ET::PROGRAM_FUNCTION:
-        return make_prog_func_expr(
-            new_loc, static_cast<const ProgFuncExpr *>(donor_Expr)->func_symbol);
-    case ET::NEW_TABLE:
-        return make_new_table_expr<true>(new_loc, static_cast<const NewTableExpr *>(donor_Expr));
-    case ET::TABLE_ITEM:
-    {
-        const Expr *index = static_cast<const TableItemExpr *>(donor_Expr)->index;
-        return make_table_item_expr(new_loc, donor_Expr, index);
-    }
-    case ET::VARIABLE:
-        return make_variable_expr(
-            new_loc, static_cast<const VariableExpr *>(donor_Expr)->var_symbol);
-    default:
-        UNREACHABLE(FMT::format(
-            "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(donor_Expr->type)));
-    }
-}
 } // namespace alpha
 #endif //ALPHA_EXPR_MAKER_HPP

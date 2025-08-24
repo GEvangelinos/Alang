@@ -404,7 +404,7 @@ std::string FlagMissingError::build_error_message(
     for (auto &flag_name: missing_flags_vector)
         ss << '\t' << ParserConsts::default_flag_prefix << flag_name << '\n';
     ss << '\n';
-    ss << FMT::format("!! Use flag{} to display options menu.",
+    ss << FMT::format("!! Use {}{} flag to display options menu.",
                       ParserConsts::default_flag_prefix, ParserConsts::default_help_flag);
     return ss.str();
 }

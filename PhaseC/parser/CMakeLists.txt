@@ -36,7 +36,6 @@ set(GENERATED_IR_OPCODE_HEADERS
     ${FULLPATH_OF_IR_OPCODE_INFO_TRAITS_HEADER}
     ${FULLPATH_OF_IR_OPCODE_OPT_TRAITS_HEADER}
 )
-
 set(GENERATED_IR_OPCODE_SOURCES
     ${FULLPATH_OF_IR_OPCODE_SOURCE}
 )
@@ -61,8 +60,9 @@ if (NOT HATE_PYTHON_MODE)
 
     add_custom_command(
         OUTPUT
-        ${GENERATED_IR_OPCODE_HEADERS}
         ${GENERATED_IR_OPCODE_SOURCES}
+        BYPRODUCTS
+        ${GENERATED_IR_OPCODE_HEADERS}
         COMMAND
         ${Python3_EXECUTABLE}
         -B "${CMAKE_CURRENT_SOURCE_DIR}/scripts/ir_opcode_generator/main.py" # -B is used to disable .pyc (__pycache__)
@@ -136,8 +136,10 @@ add_library(alpha_parser_impl STATIC
     src/L2_builders/lvalue_resolver.cpp
     src/L2_builders/control_flow_managers.cpp
     src/L2_builders/expr_builders.cpp
+    src/L2_builders/semantic_subsystem.cpp
     src/L2_builders/block_manager.cpp
     src/L3_ir_infra/expr_optimizer.cpp
+    src/L3_ir_infra/expr_maker.cpp
     invariants/ir_opcode_static_invariants.cpp
 )
 target_include_directories(alpha_parser_impl PRIVATE

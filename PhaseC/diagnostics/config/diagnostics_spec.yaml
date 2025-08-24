@@ -176,7 +176,7 @@
       Args: [ param_name ]
       Location: param_loc
   Notes:
-    - Message: "initial definition of `{0}` here"
+    - Message: "initial definition of formal parameter `{0}` is here"
       Args: [ param_name ]
       Location: initial_param_loc
 

@@ -7,18 +7,17 @@
 
 %code top
 {
-   // IWYU pragma: no_include <features.h>
-   // IWYU pragma: no_include <stdio.h>
-   // IWYU pragma: no_include <stdlib.h>
-   // IWYU pragma: no_include <string.h>
-   #include <parser/alpha_parser.gen.hpp>
-    #include <string>                             // for basic_string, string
+    // IWYU pragma: no_include <features.h>
+    // IWYU pragma: no_include <stdio.h>
+    // IWYU pragma: no_include <stdlib.h>
+    // IWYU pragma: no_include <string.h>
+    #include <parser/alpha_parser.gen.hpp>
+    #include <string>                       // for basic_string, string
     #include "parser/trace_logger.hpp"      // for display_trace
     #include "parser/parser_context.hpp"    // for ParseCtx
     #include <L1_driver/semantic_system.hpp>
     using Op = alpha::ir::Opcode;
 }
-
 
 %code requires
 {
@@ -423,7 +422,7 @@ block_body:
 
 block_loc:
   block_begin block_body block_end
-  { ss.call<"block_manager.make_block_location">(@block_begin, @block_end); }
+  { $block_loc = ss.call<"block_manager.make_block_location">(@block_begin, @block_end); }
 ;
 
 func_prefix:
@@ -433,7 +432,8 @@ func_prefix:
 
 funcArgs:
   ID                { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
-| ID COMMA funcArgs { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
+| ID COMMA  { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
+funcArgs
 ;
 
 funcArgList:

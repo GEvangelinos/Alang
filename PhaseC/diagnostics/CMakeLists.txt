@@ -35,14 +35,13 @@ set(DIAGNOSTICS_SPEC_FILEPATH "${DIAGNOSTICS_CONFIG_DIR}/${DIAGNOSTICS_SPEC_FILE
 
 file(GLOB_RECURSE diagnostic_generator_files "${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.py")
 
-set(generated_diagnostic_files
-    "${GENERATED_SRC_DIR}/diagnostic_reporter.gen.cpp"
-    "${GENERATED_INCLUDE_DIR}/diagnostic_reporter.gen.hpp"
-    "${GENERATED_INCLUDE_DIR}/diagnostic_codes.gen.hpp"
-)
+set(DIAG_GEN_CPP  "${GENERATED_SRC_DIR}/diagnostic_reporter.gen.cpp")
+set(DIAG_GEN_HPP1 "${GENERATED_INCLUDE_DIR}/diagnostic_reporter.gen.hpp")
+set(DIAG_GEN_HPP2 "${GENERATED_INCLUDE_DIR}/diagnostic_codes.gen.hpp")
 
 add_custom_command(
-    OUTPUT ${generated_diagnostic_files}
+    OUTPUT ${DIAG_GEN_CPP}
+    BYPRODUCTS ${DIAG_GEN_HPP1} ${DIAG_GEN_HPP2}
     COMMAND           "${Python3_EXECUTABLE}" -B "${DIAGNOSTIC_GENERATOR}"
     --spec-filepath   "${DIAGNOSTICS_CONFIG_DIR}/${DIAGNOSTICS_SPEC_FILENAME}"
     --out-include-dir "${GENERATED_INCLUDE_COMPONENT_DIR}"
@@ -55,13 +54,10 @@ add_custom_command(
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
-add_custom_target(generate_diagnostics DEPENDS ${generated_diagnostic_files})
-
 # ---------------------------------------------------------------------------
 # Diagnostics API (header interface)
 # ---------------------------------------------------------------------------
 add_library(alpha_diagnostics_api INTERFACE)
-add_dependencies(alpha_diagnostics_api generate_diagnostics)
 
 target_include_directories(alpha_diagnostics_api INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
@@ -81,7 +77,9 @@ add_library(alpha_diagnostics_impl STATIC
     src/diagnostic_types.cpp
     src/diagnostic_formatter.cpp
     src/diagnostic_engine.cpp
-    ${generated_diagnostic_files}
+    ${DIAG_GEN_HPP1}
+    ${DIAG_GEN_HPP2}
+    ${DIAG_GEN_CPP}
 )
 
 target_link_libraries(alpha_diagnostics_impl PRIVATE

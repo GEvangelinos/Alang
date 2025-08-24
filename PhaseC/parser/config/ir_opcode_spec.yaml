@@ -210,9 +210,9 @@ IROPCODE_LIST:
     arg2: NONE
 
   RETURN: # ✔
-    result: OPTIONAL
-    arg1: REQUIRED
-    arg2: REQUIRED
+    result: NONE
+    arg1: OPTIONAL
+    arg2: NONE
 
   FUNCSTART: # ✔
     result: NONE
