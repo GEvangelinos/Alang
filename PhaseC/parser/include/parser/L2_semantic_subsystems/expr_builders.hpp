@@ -544,12 +544,6 @@ AssignBuilder::Restricted::validate_lvalue_assignment(
     const SourceLocation assign_loc)
 {
     DEBUG_SMART_ASSERT(!!lvalue);
-    if (!SemUtils::is_lvalue_expr(lvalue))
-    {
-        dr_->report_assign_lhs_not_lvalue(lvalue->type, lvalue->loc);
-        return false;
-    }
-    // If here. Its Lvalue and all lvalues have symbols.
     if (lvalue->type == Expr::Type::LIBRARY_FUNCTION)
     {
         const auto *const func_symbol = static_cast<const LibFuncExpr *>(lvalue)->func_symbol;
@@ -560,6 +554,11 @@ AssignBuilder::Restricted::validate_lvalue_assignment(
     {
         const auto *const func_symbol = static_cast<const ProgFuncExpr *>(lvalue)->func_symbol;
         dr_->report_assign_to_func(func_symbol->name, assign_loc, func_symbol->loc);
+        return false;
+    }
+    if (!SemUtils::is_lvalue_expr(lvalue))
+    {
+        dr_->report_assign_lhs_not_lvalue(lvalue->type, lvalue->loc);
         return false;
     }
     return true;
@@ -1063,6 +1062,7 @@ FunctionBuilder::Restricted::update_function_draft(
 {
     function_draft_.id = id;
     function_draft_.loc = function_loc;
+    // We probably enter next space before function_entry but early on here, for formal arguments.
     parse_ctx_->space_handler.enter_space();
 }
 
@@ -1167,6 +1167,8 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation e
     const auto func_loc = function_draft_.loc;  // Local alias for readability.
     const bool validated_funcname = validate_funcdef_name(func_name, func_loc);
 
+    // TODO: Wtf is this label of jump? IF YOU FIND OUT... REMEMBER TO RENAME ALL INSTANCES or string/comment/text of `label_of_jumps` (case-insensitive)
+    const u32 skip_func_jump_label = quad_handler_->next_quad_label();
     // TODO: Why is this needed (observe generated IR)
     quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_loc);
     const FuncSymbol *func_symbol = nullptr;
@@ -1190,9 +1192,7 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation e
     }
     DEBUG_SMART_ASSERT(utils::logical_xnor(validated_funcname, !!func_symbol)); // Sanity check
 
-    // TODO: Wtf is this label of jump? IF YOU FIND OUT... REMEMBER TO RENAME ALL INSTANCES or string/comment/text of `label_of_jumps` (case-insensitive)
-    const u32 label_of_jump = quad_handler_->next_quad_label();
-    parse_ctx_->func_ctx_handler.enter_function(func_name, func_loc, func_symbol, label_of_jump);
+    parse_ctx_->func_ctx_handler.enter_function(func_name, func_loc, func_symbol, skip_func_jump_label);
     register_function_parameters();
     function_draft_.reset(); // Mandatory to support nested functions in the upcoming func-block.
     parse_ctx_->space_handler.enter_space(); // New var space -- must be after param registration.
@@ -1220,7 +1220,7 @@ FunctionBuilder::Restricted::build_program_function_exit(const BlockSourceLocati
             nullptr,
             block_loc.end);
     }
-    quad_handler_->patch_quad(fbi.label_to_jump, quad_handler_->next_quad_label());
+    quad_handler_->patch_quad(fbi.func_skip_jump, quad_handler_->next_quad_label());
     parse_ctx_->space_handler.exit_space();
 
     return fbi.func_symbol;

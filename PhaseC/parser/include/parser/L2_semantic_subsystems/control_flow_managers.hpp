@@ -96,6 +96,7 @@ private:
         void manage_forloop_exit(SourceLocation exit_loc);
         void manage_break(SourceLocation break_loc);
         void manage_continue(SourceLocation continue_loc);
+        void manage_return(SourceLocation return_loc, const Expr *expr = nullptr);
 
         void mark_upcoming_forloop_sites();
         void manage_loop_keyword(LoopKeyword keyword, SourceLocation keyword_loc);
@@ -103,25 +104,6 @@ private:
 
         static ForLoopSite next(ForLoopSite fls) noexcept;
 
-        //     - Diagnostic: RETURN_KEYWORD_OUTSIDE_FUNC
-        //       Type: SOFT_ERROR
-        //
-        //                 std::string error = "`return` statement not in a function statement";
-        //
-        //     void manage_return(const SourceLocation return_loc)
-        //     {
-        //         if (parse_ctx_->func_ctx_handler.function_nesting_depth() > 0)
-        //             return;
-        //         std::string error = "`return` statement not in a function statement";
-        //         et_.report_error(CTError::Type::SEMANTIC, error, return_loc);
-        //
-        //         parse_ctx_.function_ctx_handler.add_label_to_returnlist(
-        //             parse_ctx_.quad_handler.next_quad_label());
-        //
-        //         parse_ctx_.quad_handler.emit_quad_labelless(IOPCode::JUMP, nullptr, nullptr, nullptr,
-        //                                                     return_loc);
-        //     }
-        //
         //     inline void SemanticManager::returnStmt__return(Location returnStmt_loc,
         //                                                     Location return_loc)
         //     {
@@ -177,6 +159,7 @@ private:
     DISPATCH_SLAVE_METHOD_CALL(manage_whileloop_exit);
     DISPATCH_SLAVE_METHOD_CALL(manage_break);
     DISPATCH_SLAVE_METHOD_CALL(manage_continue);
+    DISPATCH_SLAVE_METHOD_CALL(manage_return);
     DISPATCH_SLAVE_METHOD_CALL(mark_forloop_condition_entry);
     DISPATCH_SLAVE_METHOD_CALL(mark_forloop_update_list_entry);
     DISPATCH_SLAVE_METHOD_CALL(mark_forloop_update_list_exit);
@@ -448,6 +431,21 @@ inline void
 ControlFlowManager::Restricted::manage_continue(const SourceLocation continue_loc)
 {
     manage_loop_keyword(LoopKeyword::CONTINUE, continue_loc);
+}
+
+inline void
+ControlFlowManager::Restricted::manage_return(
+    const SourceLocation return_loc,
+    const Expr *const  expr)
+{
+    if (parse_ctx_->func_ctx_handler.function_nesting_depth() == 0)
+    {
+        dr_->report_return_keyword_outside_func(return_loc);
+        return;
+    }
+    quad_handler_->emit_next(ir::Opcode::RETURN, expr, nullptr, nullptr, return_loc);
+    parse_ctx_->func_ctx_handler.add_label_to_returnlist(quad_handler_->next_quad_label());
+    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, return_loc);
 }
 
 inline void

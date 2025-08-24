@@ -74,11 +74,13 @@ add_compile_options(
 )
 
 # Errors applied to all builds
-# TODO: RE-ENABLE!!
-#add_compile_options(
-#    -Werror=missing-field-initializers
-#    -Werror=missing-designated-field-initializers
-#)
+if (CMAKE_CXX_COMPILER STREQUAL CMAKE_CXX_COMPILER_CLANG)
+    add_compile_options(
+        -Werror=missing-field-initializers
+        -Werror=missing-designated-field-initializers
+        -Werror=reorder-init-list
+    )
+endif ()
 
 # Check if std::format is allowed
 include(CheckCXXSourceCompiles)

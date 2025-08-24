@@ -7,6 +7,7 @@
 #include "compilation_options.hpp"
 #include "core/basics.hpp"
 #include "L1_driver/semantic_system.hpp"
+#include "diagnostics/diagnostic_formatter.hpp"
 
 // Forward declaration instead of including the <parser/alpha_parser.gen.hpp> header
 typedef void *yyscan_t;

@@ -15,7 +15,7 @@ struct Suggestion
     const SourceLocation insert_after;
 
     Suggestion() = delete;
-    Suggestion(const std::string &text, SourceLocation insert_after);
+    Suggestion(std::string_view text, SourceLocation insert_after);
 
     [[nodiscard]] u32 compute_printing_span() const;
 };
@@ -43,8 +43,11 @@ public:
     const SourceLocation loc;
     std::optional<Suggestion> suggestion;
 
-    Issue(Type type, std::string description, SourceLocation loc);
-    Issue(Type type, std::string description, SourceLocation loc, Suggestion suggestion);
+    Issue(
+        Type type,
+        std::string description,
+        SourceLocation loc,
+        std::optional<Suggestion> suggestion = std::nullopt);
 
     [[nodiscard]] u32 line(const LocationTracker &loc_tracker) const;
     [[nodiscard]] u32 column(const LocationTracker &loc_tracker) const;

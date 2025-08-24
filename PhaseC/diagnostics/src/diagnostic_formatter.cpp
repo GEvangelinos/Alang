@@ -1,6 +1,7 @@
-#include "diagnostics/diagnostic_printer.hpp"
-#include <string>
+#include "diagnostics/diagnostic_formatter.hpp"
+
 #include <cctype>
+#include <string>
 
 #include "core/source_location.hpp"
 #include "diagnostics/diagnostic_types.hpp"
@@ -9,41 +10,7 @@
 
 namespace
 {
-[[nodiscard]] std::string assemble_next_line(const char *buffer)
-{
-    std::string line;
-    for (std::size_t i = 0; buffer[i] != '\n' && buffer[i] != '\0'; ++i)
-        line += buffer[i];
-
-    return std::move(line);
-}
-
-std::vector<std::string_view> extract_line_views(
-    const char *const buffer,
-    const std::size_t start_index,
-    const std::size_t end_index)
-{
-    std::vector<std::string_view> lines;
-    const char *start = buffer + start_index;
-    const char *current = start;
-    const char *end_target = buffer + end_index;
-
-    while (*current)
-    {
-        const char *line_end = std::strchr(current, '\n');
-        if (!line_end)
-            line_end = current + std::strlen(current); // to '\0' if no newline
-
-        lines.emplace_back(current, line_end - current); // view [current, line_end)
-
-        if (end_target <= line_end)
-            break; // stop if end_index is in this line
-
-        current = *line_end == '\n' ? line_end + 1 : line_end;
-    }
-    return lines;
-}
-
+[[maybe_unused, deprecated("Used in old diagnostic system")]]
 std::string expand_tabs(const std::string_view line, const int tab_width = 8)
 {
     std::string result;
@@ -67,10 +34,19 @@ std::string expand_tabs(const std::string_view line, const int tab_width = 8)
     return result;
 }
 
+[[maybe_unused, deprecated("Used in old diagnostic system")]]
+std::string capture_next_line(const char *const buffer)
+{
+    std::string line;
+    for (auto idx = 0; buffer[idx] != '\n' && buffer[idx] != '\0'; ++idx)
+        line.push_back(buffer[idx]);
+    return line;
+}
+
 // Compute the visual caret offset for a given line.
-//
 // Tabs are tricky because their displayed width depends on the current column.
 // For each tab, we advance to the next multiple of `tab_width` columns.
+[[maybe_unused, deprecated("Used in old diagnostic system")]]
 int compute_visual_caret_offset(
     const std::string_view line,
     const alpha::uf64 raw_offset,
@@ -108,64 +84,112 @@ DiagnosticFormatter::highlight_color(const Issue::Type type) noexcept
     }
 }
 
-std::string
-DiagnosticFormatter::build_issue_header(const Issue &issue, const bool colorize) const
+std::string DiagnosticFormatter::apply_sgr(
+    const std::string_view prefix,
+    const std::string_view text,
+    const std::string_view suffix)
+{
+    std::string out;
+    out.reserve(prefix.size() + text.size() + suffix.size());
+    out.append(prefix).append(text).append(suffix);
+    return out;
+}
+
+void
+DiagnosticFormatter::build_issue_header(
+    std::stringstream &out,
+    const Issue &issue,
+    const bool colorize) const
 {
     const u32 line = issue.line(loc_tracker_);
     const u32 column = issue.column(loc_tracker_);
 
     const char *const header_sgr = colorize ? COLOR_ASCII_BOLD_DEFAULT : "";
-    const char *const type_color = colorize ? highlight_color(issue.type) : "";
+    const char *const issue_type_color = colorize ? highlight_color(issue.type) : "";
     const char *const reset_sgr = colorize ? SGR_RESET : "";
 
-    std::stringstream ss;
-    ss << header_sgr;
+    out << header_sgr;
 
-    ss << FMT::format(
-        "{0}:{1}:{2}: {3}{4}{5}: {6}",
-        source_filename_,      // {0} file
-        line,                  // {1} line
-        column,                // {2} col
-        type_color,            // {3} color for issue type
-        to_string(issue.type), // {4} issue type text
-        header_sgr,            // {5} restore header style
-        issue.desc             // {6} description
+    out << FMT::format(
+        "{0}:{1}:{2}: {3}: {4}",
+        source_filename_,                                              // {0} file
+        line,                                                          // {1} line
+        column,                                                        // {2} col
+        apply_sgr(issue_type_color, to_string(issue.type), reset_sgr), // {3} issue type text
+        apply_sgr(header_sgr, issue.desc, reset_sgr)                   // {4} description
     );
+    out << reset_sgr;
+}
 
-    ss << reset_sgr;
-    return ss.str();
+std::string DiagnosticFormatter::build_codeline(const u32 line_no) const
+{
+    std::string line;
+
+    // Build codeline and also expand tabs
+    u32 i = loc_tracker_.find_index_of_line(line_no);
+    u32 column = 0;
+    char ch;
+    while ((ch = source_buffer_[i]) != '\n' && ch != '\0')
+    {
+        if (ch == '\t')
+        {
+            const int spaces = k_tab_width_ - column % k_tab_width_;
+            line.append(spaces, ' ');
+            column += spaces;
+        }
+        else
+        {
+            line += ch;
+            ++column;
+        }
+        ++i;
+    }
+    return line;
 }
 
 std::string
-DiagnosticFormatter::build_underline(const Issue &issue, const u32 line_no)
+DiagnosticFormatter::build_underline(const Issue &issue, const u32 line_no) const
 {
+    constexpr char marker = '~';
     std::string underline;
 
     // Get the buffer index at which this line starts
     const u32 line_start = loc_tracker_.find_index_of_line(line_no);
 
-    // Walk characters until newline, building a highlight string
+    u32 column = 0;
+    // Walk characters until newline, building a highlight string (also expand tabs).
     for (auto idx = line_start; source_buffer_[idx] != '\n'; ++idx)
     {
         const bool outside_issue = idx < issue.loc.first_index || idx >= issue.loc.last_index;
         const char ch = source_buffer_[idx];
-        underline += outside_issue || std::isspace(static_cast<unsigned char>(ch))
-                     ? ' '
-                     : '~';
+        if (ch == '\t') // expand tab to spaces (based on its position)
+        {
+            const int spaces = k_tab_width_ - column % k_tab_width_;
+            underline.append(spaces, ' ');
+            column += spaces;
+        }
+        else if (outside_issue || std::isspace(static_cast<unsigned char>(ch)))
+        {
+            underline += ' ';
+            ++column;
+        }
+        else
+            underline += marker;
     }
     return underline;
 }
 
 std::vector<std::string>
-DiagnosticFormatter::build_suggestion_lines(const Suggestion &suggestion)
+DiagnosticFormatter::build_suggestion_lines(const Suggestion &suggestion) const
 {
     const u32 line_no = loc_tracker_.find_last_line(suggestion.insert_after);
     const u32 line_start = loc_tracker_.find_index_of_line(line_no);
 
     DEBUG_SMART_ASSERT(suggestion.insert_after.last_index >= line_start);
 
-    // How far into the line the suggestion should be indented
-    const u32 indent_width = suggestion.insert_after.last_index - line_start + 1;
+    // How far into the line the suggestion should be indented,
+    // so that first character of each line is under suggested source location.
+    const u32 indent_width = compute_visual_suggestion_indent_width(suggestion);
     const std::string indent(indent_width, ' ');
 
     std::vector<std::string> suggestion_lines;
@@ -187,34 +211,113 @@ DiagnosticFormatter::build_suggestion_lines(const Suggestion &suggestion)
     return suggestion_lines;
 }
 
-std::string
-DiagnosticFormatter::format_issue(const Issue &issue, const bool colorize) const
+// Number of columns (spaces) to indent the suggestion so its first char
+// appears immediately after insert_after.last_index on this line.
+u32
+DiagnosticFormatter::compute_visual_suggestion_indent_width(const Suggestion &suggestion) const
 {
-    std::stringstream ss;
-    ss << build_issue_header(issue, colorize) << '\n';
+    const u32 line_no = loc_tracker_.find_last_line(suggestion.insert_after);
+    const u32 line_start_index = loc_tracker_.find_index_of_line(line_no);
 
-    const Issue::RenderingSpan span = issue.compute_printing_span(loc_tracker_);
+    DEBUG_SMART_ASSERT(suggestion.insert_after.last_index >= line_start_index);
+
+    u32 column = 0;
+    // instead of computing suggestion width with plain subtraction
+    // we walk the input buffer in case there is a tab to expand.
+    for (auto i = line_start_index; i < suggestion.insert_after.last_index; ++i)
+    {
+        const char ch = source_buffer_[i];
+        if (ch == '\t')
+            column += k_tab_width_ - column % k_tab_width_;
+        else
+            ++column;
+    }
+
+    return column;
+}
+
+void
+DiagnosticFormatter::build_format_issue_line(
+    std::stringstream &out,
+    const Issue &issue,
+    const u32 line_no,
+    const bool colorize) const
+{
+    DEBUG_SMART_ASSERT(line_no > 0 && "Line number is invalid (lines start at 1).");
+
+    const char *const suggestion_marker = " ";
+    const char *const suggestion_color = colorize ? COLOR_ASCII_GREEN : "";
+    const char *const underline_color = colorize ? highlight_color(issue.type) : "";
+    const char *const reset_sgr = colorize ? SGR_RESET : "";
+
+    const std::string codeline = build_codeline(line_no);
+    const std::string underline = build_underline(issue, line_no);
+
     u32 suggestion_line_no = 0;
     if (issue.suggestion.has_value())
         suggestion_line_no = loc_tracker_.find_last_line(issue.suggestion->insert_after);
+    if (!issue.suggestion.has_value() || suggestion_line_no != line_no)
+    {
+        out << FMT::format("{:>{}} | {}\n", line_no, k_linebox_width_, codeline);
+        if (!underline.empty())
+            out << FMT::format(
+                "{0} | {1}\n",
+                std::string(k_linebox_width_, ' '),              // {0}
+                apply_sgr(underline_color, underline, reset_sgr) // {1}
+            );
+    }
+    else
+    {
+        DEBUG_SMART_ASSERT(issue.suggestion.has_value());
+        const u32 split_point = compute_visual_suggestion_indent_width(issue.suggestion.value());
+
+        out << FMT::format(
+            "{0:>{1}} | {2}{3}{4}\n",
+            line_no,                         // {0}
+            k_linebox_width_,                // {1}
+            codeline.substr(0, split_point), // {2}
+            suggestion_marker,               // {3}
+            codeline.substr(split_point)     // {4}
+        );
+
+        if (!underline.empty())
+            out << FMT::format(
+                "{0} | {1}{2}{3}\n",
+                std::string(k_linebox_width_, ' '),                                      // {0}
+                apply_sgr(underline_color, underline.substr(0, split_point), reset_sgr), // {1}
+                apply_sgr(suggestion_color, "^", reset_sgr),                             // {2}
+                apply_sgr(underline_color, underline.substr(split_point), reset_sgr)     // {1}
+            );
+        out << FMT::format(
+            "{0} | {1}{2}\n",
+            std::string(k_linebox_width_, ' '),         // {0}
+            std::string(split_point, ' '),              // {1}
+            apply_sgr(suggestion_color, "|", reset_sgr) // {2}
+        );
+        const auto suggestion_lines = build_suggestion_lines(issue.suggestion.value());
+        for (const auto &sl: suggestion_lines)
+            out << FMT::format(
+                "{0} | {1}\n",
+                std::string(k_linebox_width_, ' '),        // {0}
+                apply_sgr(suggestion_color, sl, reset_sgr) // {1}
+            );
+    }
+    out << reset_sgr;
+}
+
+std::string
+DiagnosticFormatter::format_issue(const Issue &issue, const bool colorize) const
+{
+    std::stringstream out;
+    build_issue_header(out, issue, colorize);
+    out << '\n';
+
+    const Issue::RenderingSpan span = issue.compute_printing_span(loc_tracker_);
 
     for (u32 line_no = span.start_line; line_no <= span.end_line; ++line_no)
-    {
-        DEBUG_SMART_ASSERT(line_no > 0 && "Line number is invalid (lines start at 1).");
-        const auto starting_index = loc_tracker_.find_index_of_line(line_no);
-        auto line = assemble_next_line(source_buffer_ + starting_index);
-        std::cout << line;
-        auto underline = build_underline(issue, line_no);
-        std::cout << underline;
-        if (suggestion_line_no == line_no)
-        {
-            DEBUG_SMART_ASSERT(issue.suggestion.has_value());
-            std::vector<std::string> suggestion_lines =
-                build_suggestion_lines(issue.suggestion.value());
-            for (const auto &sline : suggestion_lines)
-                std::cout << sline;
-        }
-    }
+        build_format_issue_line(out, issue, line_no, colorize);
+
+    return out.str();
 }
 
 std::string
@@ -227,67 +330,3 @@ DiagnosticFormatter::format_diagnostic(const Diagnostic &diagnostic, const bool 
     return ss.str();
 }
 } // namespace alpha
-
-// // TODO: Fix.. its ugly AF
-// std::string
-// Diagnostic::make_pretty_diagnostic_impl2(
-//     const std::string &source_filename,
-//     const LocationTracker &loc_tracker,
-//     const char *input_buffer,
-//     const Issue &issue)
-// {
-//     const u32 issue_line = issue.line(loc_tracker);
-//     const u32 issue_column = issue.column(loc_tracker);
-//     /* Error header: */
-//     std::stringstream ss;
-//     ss << COLOR_ASCII_BOLD_DEFAULT
-//             << FMT::format("{}:{}:{}: {}{}{}: {}\n", source_filename, issue_line, issue_column,
-//                            issue.pretty_color(), issue.type_to_string(), COLOR_ASCII_BOLD_DEFAULT,
-//                            issue.desc)
-//             << SGR_RESET;
-//
-//     const auto line_views = extract_line_views(
-//         input_buffer, loc_tracker.find_index_of_line(issue_line), issue.loc.last_index);
-//     for (std::size_t i = 0; i < line_views.size(); i++)
-//     {
-//         constexpr u32 line_box_width = 8;
-//         std::string visual_line = expand_tabs(line_views[i]);
-//         ss << FMT::format("{:>{}} | {}\n",
-//                           i != 0 ? "" : std::to_string(issue_line), line_box_width, visual_line);
-//         if (i != 0) // Caret marking is only for first line.
-//             continue;
-//
-//         DEBUG_SMART_ASSERT(issue.loc.last_index > issue.loc.first_index);
-//
-//         const auto raw_caret_offset =
-//                 issue.loc.first_index - loc_tracker.find_index_of_line(
-//                     loc_tracker.find_first_line(issue.loc));
-//         const auto visual_caret_offset =
-//                 compute_visual_caret_offset(line_views[i], raw_caret_offset);
-//         const auto highlight_length =
-//                 issue.loc.last_index - issue.loc.first_index - 1;
-//
-//         ss << FMT::format("{} | {}{}^{}\n",
-//                           std::string(line_box_width, ' '),      // Spaces pre  |
-//                           std::string(visual_caret_offset, ' '), // spaces post | to move caret
-//                           issue.pretty_color(), std::string(highlight_length, '~'));
-//         ss << SGR_RESET;
-//         if (issue.suggestion.has_value())
-//         {
-//             const auto raw_caret_offset_suggestion =
-//                     issue.suggestion.value().insert_after.last_index -
-//                     loc_tracker.find_index_of_line(
-//                         loc_tracker.find_last_line(issue.suggestion.value().insert_after));
-//             const auto visual_carret_offset_suggestion =
-//                     compute_visual_caret_offset(line_views[i], raw_caret_offset_suggestion);
-//             ss << FMT::format("{} | {}{}\n",
-//                               std::string(line_box_width, ' '), // Spaces pre  |
-//                               std::string(visual_carret_offset_suggestion + 1, ' '),
-//                               // spaces post | to move caret
-//                               issue.suggestion->text);
-//         }
-//         ss << SGR_RESET;
-//     }
-//
-//     return ss.str();
-// }

@@ -58,6 +58,6 @@ CompilationOptions::Values CompilationOptions::create(const arguinator::Parser &
     if (cli_parser[flag_max_errors].is_provided())
         cov.max_errors = extract<std::size_t>(flag_max_errors, cli_parser, local_stoull, "size_t");
 
-    return std::move(cov);
+    return cov;
 }
 } // namespace alpha

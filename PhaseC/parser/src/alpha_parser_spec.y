@@ -117,10 +117,11 @@
 *******************************************************/
 %type  <block_location> block_loc
 
-/* By default Bison uses the bare token names (e.g. IF, METHOD_CALL)
+/**
+ * By default Bison uses the bare token names (e.g. IF, METHOD_CALL)
  * in its syntax‐error messages.  If you follow a %token with
  * a quoted string, Bison will use that string instead as the
- * token’s “display name.”  That way you get messages like:
+ * token’s name.  That way you get messages like:
  *
  *     syntax error, unexpected "keyword if"
  *     syntax error, unexpected "global operator ::"
@@ -131,10 +132,10 @@
  *     syntax error, unexpected GLOBAL
  */
 
-%token <cstring>        STRING "`string-literal`"
-%token <cstring>        ID             "`identifier`"
-%token <const_int>      INT      "`integer-constant`"
-%token <const_float>    FLOAT     "`float-constant`"
+%token <cstring>        STRING "string-literal"
+%token <cstring>        ID     "identifier"
+%token <const_int>      INT    "integer-constant"
+%token <const_float>    FLOAT  "float-constant"
 
 /* Keyword tokens */
 %token IF       "keyword if"
@@ -179,9 +180,9 @@
 %token SEMICOLON     ";"
 %token COMMA         ","
 %token DOT           "."
-%token METHOD_CALL    "method-call operator .."
+%token METHOD_CALL   "method-call operator .."
 %token COLON         ":"
-%token GLOBAL  "global operator ::"
+%token GLOBAL        "global operator ::"
 
 /* Priorities */
 %right ASSIGN
@@ -229,10 +230,7 @@ stmt:
 | block_loc
 | func_def
 | SEMICOLON
-| error SEMICOLON     { yyerrok; } // Syntax error recovery hook.
-| error RIGHT_PAREN   { yyerrok; } // Syntax error recovery hook.
-| error RIGHT_BRACKET { yyerrok; } // Syntax error recovery hook.
-| error RIGHT_BRACE   { yyerrok; } // Syntax error recovery hook.
+| error RIGHT_BRACE   {std::cout << "FUCKNO4" << std::endl;ss.recover(); yyerrok;}
 ;
 
 loopCtrlStmt:
@@ -517,7 +515,12 @@ for_stmt:
 
 return_stmt:
   RETURN
-| RETURN  expr[retval] { ss.call<"finalize_bool_expr">($retval); }
+  { ss.call<"control_flow_manager.manage_return">(@RETURN); }
+| RETURN  expr[retval]
+  {
+    ss.call<"finalize_bool_expr">($retval);
+    ss.call<"control_flow_manager.manage_return">(@return_stmt, $retval);
+  }
 ;
 
 %%

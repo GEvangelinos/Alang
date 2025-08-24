@@ -80,7 +80,7 @@ public:
         const SourceLocation location;
         const u32 local_var_count;
         const FuncSymbol *func_symbol;
-        const LabelID label_to_jump; // label to jump over function def in runtime.. TODO:
+        const LabelID func_skip_jump; // label to jump over function def in runtime.. TODO:
         // please rename its ugly
     };
 
@@ -181,7 +181,7 @@ private:
         // This is labels returns per function (in this FunctionDataFrame).
         std::vector<LabelID> function_returnlist;
 
-        const LabelID label_of_jump; // used to go over function definition in runtime.
+        const LabelID func_skip_jump; // used to go over function definition in runtime.
 
         u32 local_variable_count = 0;
 
@@ -195,7 +195,7 @@ private:
               scope(scope),
               loc(loc),
               func_symbol(func_symbol),
-              label_of_jump(label_of_jump) {}
+              func_skip_jump(label_of_jump) {}
     };
 
     std::stack<FunctionDataFrame> frame_stack_;
@@ -241,7 +241,12 @@ inline SpaceHandler::SpaceHandler()
     enter_space(); // We push the first scope space frame (PROGRAM_VAR)
 };
 
-inline SpaceHandler::~SpaceHandler() { DEBUG_SMART_ASSERT(variable_offset_stack_.size() == 1); }
+inline SpaceHandler::~SpaceHandler()
+{
+    ((void)0);
+    // The following check is only valid if there was no syntax error.
+    // DEBUG_SMART_ASSERT(variable_offset_stack_.size() == 1);
+}
 
 inline void SpaceHandler::enter_space() { variable_offset_stack_.push(k_initial_variable_offset); }
 
@@ -405,7 +410,7 @@ inline FunctionCtxHandler::FunctionBackpatchInfo FunctionCtxHandler::exit_functi
         .local_var_count = top_frame.local_variable_count,
         .func_symbol = top_frame.func_symbol,
         // TODO: wtf is this? Rename to something more meaningful
-        .label_to_jump = top_frame.label_of_jump,
+        .func_skip_jump = top_frame.func_skip_jump,
     };
 }
 

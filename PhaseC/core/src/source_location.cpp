@@ -68,6 +68,7 @@ LocationTracker::find_index_of_line(const u32 line) const
     if (line == k_no_line)
         throw std::logic_error(ATTACH_CONTEXT(FMT::format(
             "BUG: LocationTracker was asked to find index of k_no_line = `{}`)", k_no_line)));
+    DEBUG_SMART_ASSERT(line <= line_start_indices_.size());
     return line_start_indices_[line - 1]; // -1 as line starts at pos 0.
 }
 

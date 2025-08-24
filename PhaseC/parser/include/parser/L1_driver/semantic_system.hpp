@@ -83,9 +83,9 @@ public:
 
     // TODO: make a function that user calls before destructor call that basically extracts all this
     // alpha drivers would want (like the generated quads).
+    void recover() noexcept { ss_status_ = Status::OK; }
     [[nodiscard]] bool good() const noexcept { return ss_status_ == Status::OK; }
-    [[nodiscard]] SourceLocation get_loc_of_last_expr()const ;
-
+    [[nodiscard]] SourceLocation get_loc_of_last_expr() const;
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_MASTER_MODULE_CALL(aggregate_builder);

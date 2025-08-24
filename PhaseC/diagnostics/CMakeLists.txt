@@ -79,7 +79,7 @@ endforeach ()
 
 add_library(alpha_diagnostics_impl STATIC
     src/diagnostic_types.cpp
-    src/diagnostic_printer.cpp
+    src/diagnostic_formatter.cpp
     src/diagnostic_engine.cpp
     ${generated_diagnostic_files}
 )

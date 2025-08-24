@@ -3,14 +3,16 @@
 
 namespace alpha
 {
-Suggestion::Suggestion(const std::string &text, const SourceLocation insert_after)
+Suggestion::Suggestion(const std::string_view text, const SourceLocation insert_after)
     : text(text), insert_after(insert_after)
 {
+    // TODO: uncomment (I commented it during developement of diagnostic formatting, to test
+    // multi-line suggestions)
     // Remove this assertion, in case there are useful multiline suggestions.
-    DEBUG_SMART_ASSERT(
-        text.find('\n') == std::string::npos &&
-        "Suggestion should be contained inside a single line"
-    );
+    // DEBUG_SMART_ASSERT(
+    //     text.find('\n') == std::string::npos &&
+    //     "Suggestion should be contained inside a single line"
+    // );
 }
 
 u32
@@ -29,17 +31,11 @@ Suggestion::compute_printing_span() const
     return static_cast<u32>(newline_count) + k_line_offset;
 }
 
-Issue::Issue(const Type type, std::string description, const SourceLocation loc)
-    : type(type),
-      desc(std::move(description)),
-      loc(loc),
-      suggestion(std::nullopt) {}
-
 Issue::Issue(
     const Type type,
     std::string description,
     const SourceLocation loc,
-    Suggestion suggestion)
+    std::optional<Suggestion> suggestion)
     : type(type),
       desc(std::move(description)),
       loc(loc),

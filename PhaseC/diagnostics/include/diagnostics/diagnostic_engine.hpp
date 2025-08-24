@@ -8,7 +8,6 @@
 #include <string>                  // for string, basic_string
 #include <core/basics.hpp>
 #include <diagnostics/diagnostic_reporter.gen.hpp>
-#include <diagnostics/diagnostic_printer.hpp>
 
 #include "diagnostic_types.hpp"
 #include "core/source_location.hpp" // for SourceLocation, SourceLocationTracker

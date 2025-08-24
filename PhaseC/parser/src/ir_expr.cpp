@@ -10,8 +10,8 @@ to_string(const OperandSide pos) noexcept
     case OperandSide::LEFT: return "left";
     case OperandSide::RIGHT: return "right";
     case OperandSide::UNARY: SMART_ASSERT(false && "UNARY has no string representation here");
-    default: UNREACHABLE(FMT::format( "Unknown OperandSide. int(pos) = {}", static_cast<int>(pos)));
     }
+    UNREACHABLE(FMT::format( "Unknown OperandSide. int(pos) = {}", static_cast<int>(pos)));
 }
 
 const char *

@@ -14,11 +14,25 @@ namespace utils
 {
 [[nodiscard]] inline std::string str_to_lower(std::string str)
 {
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](const unsigned char c) { return std::tolower(c); });
+    std::transform(
+        str.begin(),
+        str.end(),
+        str.begin(),
+        [](const unsigned char c) { return std::tolower(c); }
+    );
     return str;
 }
 
+[[nodiscard]] inline std::string str_to_upper(std::string str)
+{
+    std::transform(
+        str.begin(),
+        str.end(),
+        str.begin(),
+        [](const unsigned char c) { return std::toupper(c); }
+    );
+    return str;
+}
 template<typename N>
     requires std::is_integral_v<N>
 [[nodiscard]] constexpr bool is_odd(N n) noexcept { return n % 2; }
@@ -51,6 +65,35 @@ inline char *cstrdup(const char *src)
     char *dest = new char[src_size];
     std::memcpy(dest, src, src_size);
     return dest;
+}
+
+inline std::string& lstrip(std::string &str)
+{
+    const auto it = std::find_if(
+        str.begin(),
+        str.end(),
+        [](const unsigned char c) { return !std::isspace(c); }
+    );
+    str.erase(str.begin(), it);
+    return str;
+}
+
+inline std::string & rstrip(std::string &str)
+{
+    const auto rit = std::find_if(
+        str.rbegin(),
+        str.rend(),
+        [](const unsigned char c) { return !std::isspace(c); }
+    );
+    str.erase(rit.base(), str.end());
+    return str;
+}
+
+inline std::string& strip(std::string &str)
+{
+    lstrip(str);
+    rstrip(str);
+    return str;
 }
 
 // Utility function used to mainly assert pointers

@@ -15,17 +15,17 @@
 #include "utils/debug_tools.hpp"
 
 using namespace alpha;
-constexpr Issue::Type SYNTAX_ERROR_ISSUE_TYPE = Issue::Type::SOFT_ERROR;
-constexpr unsigned FEW_TOKENS = 5;
+constexpr Issue::Type SYNTAX_ERROR_ISSUE_TYPE = Issue::Type::HARD_ERROR;
+constexpr unsigned FEW_TOKENS = 4;
 constexpr int YYREPORT_SYNTAX_ERROR_RETVAL = 0;
 
 struct Info
 {
-    std::vector<yysymbol_kind_t> expected_tokens;
     const yysymbol_kind_t unexpected_token;
     const char *const unexpected_token_name;
     const char *const unexpected_token_source_text;
     const YYLTYPE unexpected_token_loc;
+    std::vector<yysymbol_kind_t> expected_tokens;
 };
 
 [[nodiscard]] static unsigned int
@@ -84,11 +84,16 @@ get_formatted_unexpected_token_name(const Info &info)
     case YYSYMBOL_ID:
     case YYSYMBOL_INT:
     case YYSYMBOL_FLOAT:
-        out += ' ' + '\'' + info.unexpected_token_source_text + '\'';
+        out += ' ';
+        out += info.unexpected_token_source_text;
         break;
     case YYSYMBOL_STRING:
-        out += ' ' + '\"' + info.unexpected_token_source_text + '\"';
+        out += ' ';
+        out += '\"';
+        out += info.unexpected_token_source_text;
+        out += '\"';
         break;
+    default: ((void) 0);
     }
     return out;
 }
@@ -117,7 +122,7 @@ make_few_expected_issue(const LexerCtx &lexer_ctx, const Info &info
     auto join_expected = [&](const char *const sep) -> std::string
     {
         std::string out;
-        for (auto i = 0; i < info.expected_tokens.size(); i++)
+        for (std::size_t i = 0; i < info.expected_tokens.size(); i++)
         {
             if (i != 0)
                 out += sep;
@@ -139,6 +144,38 @@ make_few_expected_issue(const LexerCtx &lexer_ctx, const Info &info
     );
 }
 
+[[nodiscard]] static std::optional<Suggestion>
+make_suggestion_on_too_many_expected(const LexerCtx &lexer_ctx, const Info &info)
+{
+    if (!lexer_ctx.get_last_token().has_value())
+        return std::nullopt;
+
+    const TokenInfo token_info = lexer_ctx.get_second_last_token().value();
+
+    auto has_expected = [&info](const yysymbol_kind_t s)
+    {
+        for (std::size_t i = 0; i < info.expected_tokens.size(); ++i)
+            if (info.expected_tokens[i] == s)
+                return true;
+        return false;
+    };
+
+    // Suggestion priority: ;  then ) ] }
+    yysymbol_kind_t suggestion_pick = YYSYMBOL_YYEMPTY;
+    if (has_expected(YYSYMBOL_SEMICOLON) &&
+        token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
+        token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE
+        )
+        suggestion_pick = YYSYMBOL_SEMICOLON;
+    else if (has_expected(YYSYMBOL_RIGHT_PAREN)) suggestion_pick = YYSYMBOL_RIGHT_PAREN;
+    else if (has_expected(YYSYMBOL_RIGHT_BRACKET)) suggestion_pick = YYSYMBOL_RIGHT_BRACKET;
+    else if (has_expected(YYSYMBOL_RIGHT_BRACE)) suggestion_pick = YYSYMBOL_RIGHT_BRACE;
+
+    if (suggestion_pick != YYSYMBOL_YYEMPTY)
+        return Suggestion{yysymbol_name(suggestion_pick), token_info.loc};
+    return std::nullopt;
+}
+
 [[nodiscard]] static Issue
 make_too_many_expected_issue(const LexerCtx &lexer_ctx, const Info &info)
 {
@@ -146,32 +183,11 @@ make_too_many_expected_issue(const LexerCtx &lexer_ctx, const Info &info)
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
     DEBUG_SMART_ASSERT(info.expected_tokens.size() > FEW_TOKENS);
 
-    auto has_expected = [&](const yysymbol_kind_t s)
-    {
-        for (auto i = 0; i < info.expected_tokens.size(); ++i)
-            if (info.expected_tokens[i] == s)
-                return true;
-        return false;
-    };
-
-    // Priority: ;  then ) ] }
-    yysymbol_kind_t suggestion_pick = YYSYMBOL_YYEMPTY;
-    if (has_expected(YYSYMBOL_SEMICOLON)) suggestion_pick = YYSYMBOL_SEMICOLON;
-    else if (has_expected(YYSYMBOL_RIGHT_PAREN)) suggestion_pick = YYSYMBOL_RIGHT_PAREN;
-    else if (has_expected(YYSYMBOL_RIGHT_BRACKET)) suggestion_pick = YYSYMBOL_RIGHT_BRACKET;
-    else if (has_expected(YYSYMBOL_RIGHT_BRACE)) suggestion_pick = YYSYMBOL_RIGHT_BRACE;
-
-    std::optional<Suggestion> suggestion = std::nullopt;
-
-    if (suggestion_pick != YYSYMBOL_YYEMPTY)
-        if (const auto token_info = lexer_ctx.get_second_last_token(); token_info.has_value())
-            suggestion.emplace(yysymbol_name(suggestion_pick), token_info->loc);
-
     return Issue(
         SYNTAX_ERROR_ISSUE_TYPE,
         FMT::format("unexpected ‘{}’, invalid syntax", get_formatted_unexpected_token_name(info)),
         info.unexpected_token_loc,
-        suggestion
+        make_suggestion_on_too_many_expected(lexer_ctx, info)
     );
 }
 
@@ -228,7 +244,7 @@ static int yyreport_syntax_error(
     [[maybe_unused]] SemanticSystem &ss)
 {
     const yysymbol_kind_t unexpected_token = yypcontext_token(yyctx);
-    const YYLTYPE *const unexpected_token_loc = yypcontext_location(bison_ctx);
+    const YYLTYPE unexpected_token_loc = *utils::require_ptr(yypcontext_location(yyctx));
 
     if (unexpected_token == YYSYMBOL_YYEMPTY) // According to bison manual this mean NO-LOOKAHEAD
         diagnostic_engine.report(make_no_unexpected_issue(unexpected_token_loc));
@@ -236,9 +252,9 @@ static int yyreport_syntax_error(
     {
         const auto info = Info{
             .unexpected_token = unexpected_token,
-            .unexpected_token_loc = unexpected_token_loc,
             .unexpected_token_name = yysymbol_name(unexpected_token),
             .unexpected_token_source_text = alpha_yyget_text(flex_ctx),
+            .unexpected_token_loc = unexpected_token_loc,
             .expected_tokens = collect_expected_tokens(yyctx)
         };
         diagnostic_engine.report(make_unexpected_issue(lexer_ctx, info));
@@ -248,12 +264,12 @@ static int yyreport_syntax_error(
 
 static void alpha_yyerror(
     const ALPHA_YYLTYPE *const err_loc,
-    yyscan_t,
-    alpha::LexerCtx &,
-    alpha::LocationTracker &,
+    [[maybe_unused]] const yyscan_t,
+    [[maybe_unused]] const alpha::LexerCtx &,
+    [[maybe_unused]] const alpha::LocationTracker &,
     alpha::DiagnosticEngine &diagnostic_engine,
-    alpha::DiagnosticReporter &dr,
-    alpha::SemanticSystem &,
+    [[maybe_unused]] const alpha::DiagnosticReporter &,
+    [[maybe_unused]] const alpha::SemanticSystem &,
     const std::string &error_message)
 {
     DEBUG_SMART_ASSERT(false && "alpha_yyerror function called why? Memory exhaustion occurred?");

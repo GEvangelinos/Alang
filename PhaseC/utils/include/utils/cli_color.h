@@ -5,11 +5,12 @@
 
 #define SGR_BOLD "\033[1m"
 #define SGR_BLINK "\033[5m"
+#define SGR_INVERSE "\033[7m"
 
 /* ASCII Foreground Colors */
 #define COLOR_ASCII_BLACK "\033[90m"
 #define COLOR_ASCII_RED "\033[91m"
-#define COLOR_ASCII_GREEN "\033[92m"
+#define COLOR_ASCII_GREEN "\033[32m"
 #define COLOR_ASCII_YELLOW "\033[93m"
 #define COLOR_ASCII_BLUE "\033[94m"
 #define COLOR_ASCII_MAGENTA "\033[95m"
@@ -20,7 +21,7 @@
 /* BOLD + Color */
 #define COLOR_ASCII_BOLD_BLACK "\033[1;90m"
 #define COLOR_ASCII_BOLD_RED "\033[1;91m"
-#define COLOR_ASCII_BOLD_GREEN "\033[1;92m"
+#define COLOR_ASCII_BOLD_GREEN "\033[1;32m"
 #define COLOR_ASCII_BOLD_YELLOW "\033[1;93m"
 #define COLOR_ASCII_BOLD_BLUE "\033[1;94m"
 #define COLOR_ASCII_BOLD_MAGENTA "\033[1;95m"

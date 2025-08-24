@@ -212,8 +212,8 @@ TranslationUnit::create_diagnostic_engine_policy()
 {
     return DiagnosticEngine::Policy{
         .should_emit_diagnostic = [this]() { return pass_manager_->is_in_hard_error(); },
-        .notify_max_errors_reached = [this]() { notify_max_errors_reached(); },
-        .notify_fatal_error = [this]() { notify_fatal_error(); },
+        .notify_max_errors_reached = []() { notify_max_errors_reached(); },
+        .notify_fatal_error = []() { notify_fatal_error(); },
         .notify_hard_error = [this]() { pass_manager_->notify_hard_error(); }
     };
 }
@@ -340,7 +340,7 @@ TranslationUnit::show_compile_issues() const
     const std::string source_filename = source_path_.filename().string();
 
     for (const auto &diagnostic: diagnostic_engine_.get_diagnostics())
-        std::cerr << "CALL FORMATTER!";
+        std::cerr << diagnostic_formatter_.format_diagnostic(*diagnostic.get(), true);
 
     std::cerr << std::endl;
 }
@@ -349,8 +349,8 @@ void
 TranslationUnit::show_quads() const
 {
     // TODO!! UNCOMMENT!
-    // if (diagnostic_engine_.has_errors())
-    //     return;
+    if (diagnostic_engine_.has_errors())
+        return;
     print_quads<true>(std::cout, pass_manager_->get_quads(), loc_tracker_);
 }
 

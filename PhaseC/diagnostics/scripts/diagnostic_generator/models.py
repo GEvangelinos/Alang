@@ -1,7 +1,5 @@
 from enum import Enum, auto
 
-
-
 class DiagnosticEntry:
     def __init__(self, message: str, args: list[str], location: str):
         self.message = message
@@ -43,4 +41,4 @@ class Diagnostic:
             case "FATAL_FATAL":
                 return Diagnostic.Type.FATAL_ERROR
             case _:
-                raise ValueError("Unknown diagnostic type")
+                raise ValueError(f"Unknown diagnostic type: {type_}")

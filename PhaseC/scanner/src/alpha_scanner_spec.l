@@ -8,16 +8,20 @@
         #include "scanner/scanner_context.hpp"
         #include "utils/format_adapter.hpp"           // for format, FMT
 
-        #define YYSTYPE ALPHA_YYSTYPE
-        #define YYLTYPE ALPHA_YYLTYPE
         #define YY_USER_ACTION                                                \
                 do                                                            \
                 {                                                             \
-                        yylloc->first_index = lexer_ctx.index_;         \
-                        yylloc->last_index = lexer_ctx.index_ + yyleng; \
+                        yylloc->first_index = lexer_ctx.index_;               \
+                        yylloc->last_index = lexer_ctx.index_ + yyleng;       \
                                                                               \
                         lexer_ctx.index_ += yyleng;                           \
                 } while (0); /* Semi-Colon is not placed by flex, we place it manually. */
+        #define EMIT(TOK_ID)                                                                 \
+                do                                                                           \
+                {                                                                            \
+                        lexer_ctx.add_token(alpha::TokenInfo{.id = TOK_ID, .loc = *yylloc}); \
+                        return TOK_ID;                                                       \
+                } while(0)
 %}
 
 %option reentrant
@@ -56,54 +60,54 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 
 %%
 
-"if"            { return IF; } 
-"else"          { return ELSE; } 
-"while"         { return WHILE; }
-"for"           { return FOR; } 
-"function"      { return FUNCTION; } 
-"return"        { return RETURN; } 
-"break"         { return BREAK; } 
-"continue"      { return CONTINUE; } 
-"and"           { return AND; } 
-"not"           { return NOT; } 
-"or"            { return OR; } 
-"local"         { return LOCAL; } 
-"true"          { return TRUE; } 
-"false"         { return FALSE; } 
-"nil"           { return NIL; } 
+"if"            { EMIT(IF); } 
+"else"          { EMIT(ELSE); } 
+"while"         { EMIT(WHILE); }
+"for"           { EMIT(FOR); } 
+"function"      { EMIT(FUNCTION); } 
+"return"        { EMIT(RETURN); } 
+"break"         { EMIT(BREAK); } 
+"continue"      { EMIT(CONTINUE); } 
+"and"           { EMIT(AND); } 
+"not"           { EMIT(NOT); } 
+"or"            { EMIT(OR); } 
+"local"         { EMIT(LOCAL); } 
+"true"          { EMIT(TRUE); } 
+"false"         { EMIT(FALSE); } 
+"nil"           { EMIT(NIL); } 
 
 
-"="             { return ASSIGN; } 
-"+"             { return PLUS; } 
-"-"             { return MINUS; } 
-"*"             { return MUL; } 
-"/"             { return DIV; } 
-"%"             { return MOD; } 
-"=="            { return EQ; } 
-"!="            { return NEQ; } 
-"++"            { return INC; } 
-"--"            { return DEC; } 
-">"             { return GT; } 
-"<"             { return LT; } 
-">="            { return GTE; } 
-"<="            { return LTE; } 
+"="             { EMIT(ASSIGN); } 
+"+"             { EMIT(PLUS); } 
+"-"             { EMIT(MINUS); } 
+"*"             { EMIT(MUL); } 
+"/"             { EMIT(DIV); } 
+"%"             { EMIT(MOD); } 
+"=="            { EMIT(EQ); } 
+"!="            { EMIT(NEQ); } 
+"++"            { EMIT(INC); } 
+"--"            { EMIT(DEC); } 
+">"             { EMIT(GT); } 
+"<"             { EMIT(LT); } 
+">="            { EMIT(GTE); } 
+"<="            { EMIT(LTE); } 
 
-"{"             { return LEFT_BRACE; }
-"}"             { return RIGHT_BRACE; }
-"["             { return LEFT_BRACKET; }
-"]"             { return RIGHT_BRACKET; }
-"("             { return LEFT_PAREN; }
-")"             { return RIGHT_PAREN; }
-";"             { return SEMICOLON; }
-","             { return COMMA; }
-":"             { return COLON; }
-"::"            { return GLOBAL; }
-"."             { return DOT; }
-".."            { return METHOD_CALL; }
+"{"             { EMIT(LEFT_BRACE); }
+"}"             { EMIT(RIGHT_BRACE); }
+"["             { EMIT(LEFT_BRACKET); }
+"]"             { EMIT(RIGHT_BRACKET); }
+"("             { EMIT(LEFT_PAREN); }
+")"             { EMIT(RIGHT_PAREN); }
+";"             { EMIT(SEMICOLON); }
+","             { EMIT(COMMA); }
+":"             { EMIT(COLON); }
+"::"            { EMIT(GLOBAL); }
+"."             { EMIT(DOT); }
+".."            { EMIT(METHOD_CALL); }
 
-{id}            { yylval->cstring = alpha::TokenID::refreshLastId(yytext); return ID; } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
-{float}         { yylval->const_float = std::stod(yytext); return FLOAT; }
-{int}           { yylval->const_int = std::stol(yytext); return INT; }
+{id}            { yylval->cstring = alpha::TokenID::refreshLastId(yytext); EMIT(ID); } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
+{float}         { yylval->const_float = std::stod(yytext); EMIT(FLOAT); }
+{int}           { yylval->const_int = std::stol(yytext); EMIT(INT); }
 {lineComment}   { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
 {newline}       { lt.append_line(lexer_ctx.index_); }
 {space}+        { /* Just eat up the spaces. */ }
@@ -121,7 +125,7 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 <INSIDE_COMMENT_BLOCK>{anyCharacterButNewLine} { /* Just eat up any character use see. */ }
 <INSIDE_COMMENT_BLOCK><<EOF>> {
         dr.report_unclosed_comment(*yylloc, alpha::TokenComment::getStartingLocation());
-        return EOF;
+        return ALPHA_YYEOF;
 }
 
 {stringBeginRule} {
@@ -140,17 +144,17 @@ stringInvalidEscapeCode "\\"([^tn"\\])
 }
 <INSIDE_STRING><<EOF>> {
         dr.report_unclosed_string(*yylloc, alpha::TokenString::getStartingLocation());
-        return EOF;
+        return ALPHA_YYEOF;
 }
 <INSIDE_STRING>{stringEndRule} {
         BEGIN(INITIAL);
         alpha::TokenString::exportStringToken(&yylval->cstring);
-        return STRING;
+        EMIT(STRING);
 }
 
-{anyCharacterButNewLine} { /* Any other character past this point is considered invalid.*/
+{anyCharacterButNewLine} { /* Any other character past this point is considered invalid. */
         dr.report_invalid_character(yytext, *yylloc);
 }
 
-<<EOF>>          {return ALPHA_YYEOF;}
+<<EOF>>          { return ALPHA_YYEOF; }
 %%

@@ -1,17 +1,3 @@
-- Diagnostic: SYNTAX_ERROR
-  Type: HARD_ERROR
-  Primary:
-    - Message: "{0}"
-      Args: [ error_message ]
-      Location: error_loc
-
-- Diagnostic: PARSE_ERROR
-  Type: HARD_ERROR
-  Primary:
-    - Message: "{0}"
-      Args: [ error_message ]
-      Location: error_loc
-
 - Diagnostic: IMPLICIT_INT_TO_FLOAT_LOSS
   Type: WARNING
   Primary:
@@ -21,25 +7,25 @@
 - Diagnostic: ASSIGN_LHS_NOT_LVALUE
   Type: HARD_ERROR
   Primary:
-    - Message: "Lvalue required as left operand of assignment (found type: {0})"
+    - Message: "lvalue required as left operand of assignment (found type: {0})"
       Args: [ lhs_type ]
       Location: lhs_loc
 
 - Diagnostic: ASSIGN_TO_FUNC
-  Type: SOFT_ERROR
+  Type: HARD_ERROR
   Primary:
-    - Message: "Assignment of function `{0}`"
+    - Message: "assignment of function `{0}`"
       Args: [ func_name ]
       Location: assign_expr_loc
   Notes:
-    - Message: "Function `{0}` defined here"
+    - Message: "function `{0}` defined here"
       Args: [ func_name ]
       Location: func_def_loc
 
 - Diagnostic: ASSIGN_TO_LIBFUNC
-  Type: SOFT_ERROR
+  Type: HARD_ERROR
   Primary:
-    - Message: "Assignment of library function `{0}`"
+    - Message: "assignment of library function `{0}`"
       Args: [ func_name ]
       Location: assign_expr_loc
 
@@ -74,7 +60,7 @@
       Location: operand_loc
 
 - Diagnostic: INACCESSIBLE_VAR_IN_FUNC
-  Type: SOFT_ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "variable `{0}` is not accessible in function `{1}`"
       Args: [ id_name, curr_func_name ]
@@ -88,7 +74,7 @@
       Location: var_decl_loc
 
 - Diagnostic: LOOP_CTRL_KEYWORD_OUTSIDE_LOOP
-  Type: SOFT_ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "`{0}` found outside a loop statement"
       Args: [ loop_keyword_name ]
@@ -109,7 +95,7 @@
       Location: id_use_loc
 
 - Diagnostic: UNRESOLVED_GLOBAL_SYMBOL
-  Type: SOFT_ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "symbol `::{0}` not found in global scope"
       Args: [ symbol_name ]
@@ -193,3 +179,10 @@
     - Message: "initial definition of `{0}` here"
       Args: [ param_name ]
       Location: initial_param_loc
+
+- Diagnostic: RETURN_KEYWORD_OUTSIDE_FUNC
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "`return` statement not in a function statement"
+      Location: return_keyword_loc
+

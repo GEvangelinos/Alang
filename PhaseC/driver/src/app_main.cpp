@@ -34,7 +34,7 @@ static arguinator::Parser launch_cli_parser(const int argc, const char *const *c
     }
     #endif
 
-    return std::move(parser);
+    return parser;
 }
 
 int main(const int argc, char **argv)
