@@ -43,9 +43,7 @@ DiagnosticEngine::report(
 }
 
 void
-DiagnosticEngine::emit(
-    Issue &&primary, std::list<Note> &&note_list
-)
+DiagnosticEngine::emit(Issue &&primary, std::list<Note> &&note_list)
 {
     if (!policy_.should_emit_diagnostic())
         return;

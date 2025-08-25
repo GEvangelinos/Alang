@@ -6,6 +6,11 @@
 #include "scanner/alpha_scanner.gen.hpp"
 #include "utils/cli_color.h"
 
+inline constexpr auto k_reescaped_warning_banner =
+        SGR_BOLD "Note" SGR_BLINK "❗" SGR_RESET ": "
+        "special characters are escaped; Ex.: \"\\n\" prints literally "
+        "(not a newline) to keep the table aligned.\n" SGR_RESET;
+
 namespace
 {
 void create_export_directory(std::string_view dirname);
@@ -13,11 +18,11 @@ void enter_export_directory(std::string_view dirname);
 void exit_export_directory(const std::filesystem::path &original_path);
 std::string expr_printer(const alpha::Expr *expr);
 
-template<unsigned column,unsigned column_width,typename T>
+template<unsigned column, unsigned column_width, typename T>
 std::string color_column(T &&value);
-template<bool colorize,unsigned column,unsigned column_width,typename T>
+template<bool colorize, unsigned column, unsigned column_width, typename T>
 std::string format_column(T &&value);
-template<bool colorize,typename Stream>
+template<bool colorize, typename Stream>
 void print_quads(
     Stream &out, const std::vector<alpha::Quad> &quads, const alpha::LocationTracker &lt);
 
@@ -33,6 +38,28 @@ void exit_export_directory(const std::filesystem::path &original_path)
     std::filesystem::current_path(original_path);
 }
 
+std::string escape(const char *const str)
+{
+    std::string out;
+    char ch;
+    for (std::size_t i = 0; (ch = str[i]) != '\0'; ++i)
+    {
+        switch (ch)
+        { // clang-format off
+        case '\n': out += "\\n"; break;
+        case '\r': out += "\\r"; break;
+        case '\t': out += "\\t"; break;
+        case '\v': out += "\\v"; break;
+        case '\f': out += "\\f"; break;
+        case '\b': out += "\\b"; break;
+        case '\\': out += "\\\\"; break;
+        case '\"': out += "\\\""; break;
+        default: out += ch; break;
+        } // clang-format on
+    }
+    return out;
+}
+
 std::string expr_printer(const alpha::Expr *expr)
 {
     using namespace alpha;
@@ -45,7 +72,7 @@ std::string expr_printer(const alpha::Expr *expr)
     case ET::CONST_INT: return FMT::to_string(static_cast<const ConstIntExpr *>(expr)->value);
     case ET::CONST_FLOAT: return FMT::to_string(static_cast<const ConstFloatExpr *>(expr)->value);
     case ET::CONST_STRING:
-        return FMT::format("\"{}\"", static_cast<const ConstStringExpr *>(expr)->value);
+        return FMT::format("\"{}\"", escape(static_cast<const ConstStringExpr *>(expr)->value));
     case ET::CONST_NIL: return "nil";
     case ET::ARITHMETIC_EXPR: return static_cast<const ArithmeticExpr *>(expr)->var_symbol->name;
     case ET::ASSIGN_EXPR: return static_cast<const AssignExpr *>(expr)->var_symbol->name;
@@ -62,39 +89,34 @@ std::string expr_printer(const alpha::Expr *expr)
     }
 }
 
-template<unsigned Column,unsigned ColumnWidth,typename T>
+template<unsigned Column, unsigned ColumnWidth, typename T>
 std::string color_column(T &&value)
 {
     constexpr unsigned column_count = 7;
     static_assert(Column < column_count, "So far we support a maximum of 7 columns");
 
     const char *ascii_color;
-        // clang-format off
-                switch (Column)
-                {
-                case 0:  ascii_color = COLOR_ASCII_WHITE;   break;
-                case 1:  ascii_color = COLOR_ASCII_RED;     break;
-                case 2:  ascii_color = COLOR_ASCII_GREEN;   break;
-                case 3:  ascii_color = COLOR_ASCII_BLUE;    break;
-                case 4:  ascii_color = COLOR_ASCII_CYAN;    break;
-                case 5:  ascii_color = COLOR_ASCII_MAGENTA; break;
-                case 6:  ascii_color = COLOR_ASCII_YELLOW;  break;
-                default: ascii_color = COLOR_ASCII_DEFAULT; break;
-                }
-    // clang-format on
-    return FMT::format("{}{:<{}}{}", ascii_color, std::forward<T>(value), ColumnWidth,
-                       SGR_RESET);
+    if constexpr (Column == 0) ascii_color = COLOR_ASCII_WHITE;
+    else if constexpr (Column == 1) ascii_color = COLOR_ASCII_RED;
+    else if constexpr (Column == 2) ascii_color = COLOR_ASCII_GREEN;
+    else if constexpr (Column == 3) ascii_color = COLOR_ASCII_BLUE;
+    else if constexpr (Column == 4) ascii_color = COLOR_ASCII_CYAN;
+    else if constexpr (Column == 5) ascii_color = COLOR_ASCII_YELLOW;
+    else if constexpr (Column == 6) ascii_color = COLOR_ASCII_MAGENTA;
+    else ascii_color = COLOR_ASCII_DEFAULT;
+    return FMT::format("{}{:<{}}{}", ascii_color, std::forward<T>(value), ColumnWidth, SGR_RESET);
 }
 
-template<bool Colorize,unsigned Column,unsigned ColumnWidth,typename T>
+template<bool Colorize, unsigned Column, unsigned ColumnWidth, typename T>
 std::string format_column(T &&value)
 {
-    if (Colorize)
+    if constexpr (Colorize)
         return color_column<Column, ColumnWidth>(std::forward<T>(value));
-    return FMT::format("{:<{}}", std::forward<T>(value), ColumnWidth);
+    else
+        return FMT::format("{:<{}}", std::forward<T>(value), ColumnWidth);
 }
 
-template<bool Colorize,typename Stream>
+template<bool Colorize, typename Stream>
 void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
                  const alpha::LocationTracker &lt)
 {
@@ -108,15 +130,19 @@ void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
         return width;
     }();
 
+    if (Colorize)
+        out << k_reescaped_warning_banner;
+
     // Write export header.
-    out << FMT::format("{} {} {} {} {} {} {}\n",
-                       format_column<Colorize, 0, widths[0]>("quad#"),
-                       format_column<Colorize, 1, widths[1]>("opcode"),
-                       format_column<Colorize, 2, widths[2]>("result"),
-                       format_column<Colorize, 3, widths[3]>("arg1"),
-                       format_column<Colorize, 4, widths[4]>("arg2"),
-                       format_column<Colorize, 5, widths[5]>("label"),
-                       format_column<Colorize, 6, widths[6]>("line")
+    out << FMT::format(
+        "{0} {1} {2} {3} {4} {5} {6}\n",
+        format_column<Colorize, 0, widths[0]>("quad#"),
+        format_column<Colorize, 1, widths[1]>("opcode"),
+        format_column<Colorize, 2, widths[2]>("result"),
+        format_column<Colorize, 3, widths[3]>("arg1"),
+        format_column<Colorize, 4, widths[4]>("arg2"),
+        format_column<Colorize, 5, widths[5]>("label"),
+        format_column<Colorize, 6, widths[6]>("line")
     );
 
     // Write separating dash line.
@@ -167,8 +193,8 @@ PassManager::PassManager(
       parse_ctx_(utils::require_ptr(symbol_table)),
       lexer_ctx_(),
       semantic_system_(
-          ss_options_, &parse_ctx_, utils::require_ptr(symbol_table), &diagnostic_engine_.reporter
-      ) {}
+          ss_options_, &parse_ctx_, utils::require_ptr(symbol_table),
+          &diagnostic_engine_.reporter) {}
 
 void
 PassManager::execute() { run_frontend(); }
@@ -349,15 +375,16 @@ void
 TranslationUnit::show_quads() const
 {
     // TODO!! UNCOMMENT!
-    if (diagnostic_engine_.has_errors())
-        return;
+    // if (diagnostic_engine_.has_errors())
+    //     return;
     print_quads<true>(std::cout, pass_manager_->get_quads(), loc_tracker_);
 }
 
 void
 TranslationUnit::export_symbol_table() const
 {
-    export_within_dir(k_symbol_table_exports_dirname, &TranslationUnit::export_symbol_table_impl);
+    export_within_dir(k_symbol_table_exports_dirname,
+                      &TranslationUnit::export_symbol_table_impl);
 }
 
 void

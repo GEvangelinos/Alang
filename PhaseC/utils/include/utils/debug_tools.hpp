@@ -8,6 +8,13 @@
 #define TO_STRING(x) #x
 #endif
 
+#define ATTACH_CONTEXT_ON_COMMAND(message, command)       \
+        do                                                \
+        {                                                 \
+        std::cout << ATTACH_CONTEXT(message) << std::endl;\
+        command;                                          \
+        }while(0)
+
 #define ATTACH_CONTEXT(message) \
         FMT::format("{}:{} -> {}(): {}", __FILENAME__, __LINE__, __func__, (message))
 #define ATTACH_CONTEXT_CT(message)(__FILENAME__ __LINE__ message)

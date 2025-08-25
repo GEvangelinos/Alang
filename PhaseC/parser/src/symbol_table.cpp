@@ -143,7 +143,7 @@ SymbolTable::lookup_global(const std::string &name) const
 }
 
 const Symbol *
-SymbolTable::lookup_chain(const std::string &name, const u32 scope) const
+SymbolTable::lookup_nearest(const std::string &name, const u32 scope) const
 {
     // Does `symbol_name` exist ?
     const auto it = symbol_map_.find(name);

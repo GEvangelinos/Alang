@@ -10,7 +10,7 @@ LvalueResolver::Restricted::Restricted(const SemanticSystemServices &ss_services
 const Expr *
 LvalueResolver::Restricted::resolve_id(const char *id_name, const SourceLocation id_loc)
 {
-    const Symbol *result = symbol_table_->lookup_chain(id_name, parse_ctx_->scope_handler.scope());
+    const Symbol *result = symbol_table_->lookup_nearest(id_name, parse_ctx_->scope_handler.scope());
     if (!result) // Symbol not found, so insert it!
     {
         result = symbol_table_->insert_variable(
@@ -87,7 +87,7 @@ LvalueResolver::Restricted::ensure_reachable_symbol(
     const bool reachable =
             !symbol->is_variable() ||
             symbol->scope == k_global_scope ||
-            symbol->scope == parse_ctx_->func_ctx_handler.current_function_scope();
+            symbol->scope > parse_ctx_->func_ctx_handler.current_function_scope();
     if (reachable)
         return true;
     dr_->report_inaccessible_var_in_func(

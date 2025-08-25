@@ -71,15 +71,14 @@ ExprMaker::clone_with_updated_location(
         return make_new_table_expr<true>(new_loc, static_cast<const NewTableExpr *>(donor_Expr));
     case ET::TABLE_ITEM:
     {
-        const Expr *index = static_cast<const TableItemExpr *>(donor_Expr)->index;
+        const Expr *const index = static_cast<const TableItemExpr *>(donor_Expr)->index;
         return make_table_item_expr(new_loc, donor_Expr, index);
     }
     case ET::VARIABLE:
         return make_variable_expr(
             new_loc, static_cast<const VariableExpr *>(donor_Expr)->var_symbol);
-    default:
-        UNREACHABLE(FMT::format(
-            "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(donor_Expr->type)));
     }
+    UNREACHABLE(FMT::format(
+        "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(donor_Expr->type)));
 }
 } // namespace alpha

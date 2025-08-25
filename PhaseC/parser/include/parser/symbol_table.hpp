@@ -60,7 +60,7 @@ public:
         SourceLocation location);
 
     [[nodiscard]] const Symbol *lookup_global(const std::string &name) const;
-    [[nodiscard]] const Symbol *lookup_chain(const std::string &name, u32 scope) const;
+    [[nodiscard]] const Symbol *lookup_nearest(const std::string &name, u32 scope) const;
     [[nodiscard]] const Symbol *lookup_local(const std::string &name, u32 scope) const;
 
     void hide_scope_symbols(u32 scope) noexcept;

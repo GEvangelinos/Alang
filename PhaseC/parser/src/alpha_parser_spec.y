@@ -214,25 +214,32 @@ program:
 ;
 
 multiStmt:
-  stmt { ss.call<"reset_stmt_context">(); }
-| stmt { ss.call<"reset_stmt_context">(); }
- multiStmt
+  stmt
+| multiStmt stmt
 ;
 
 stmt:
+  stmt_impl
+  {
+    ss.call<"reset_stmt_context">();
+    ss.recover();
+  }
+;
+
+stmt_impl:
   expr SEMICOLON { ss.call<"finalize_bool_expr">($expr); }
 | if_stmt
 | while_stmt
 | for_stmt
-| return_stmt SEMICOLON
-| loopCtrlStmt SEMICOLON
+| return_stmt SEMICOLON  { ss.recover(); }
+| loop_ctrl_stmt SEMICOLON { ss.recover(); }
 | block_loc
 | func_def
 | SEMICOLON
-| error RIGHT_BRACE   {std::cout << "FUCKNO4" << std::endl;ss.recover(); yyerrok;}
+| error RIGHT_BRACE   { ss.recover(); yyerrok; }
 ;
 
-loopCtrlStmt:
+loop_ctrl_stmt:
   BREAK    { ss.call<"control_flow_manager.manage_break">(@BREAK); }
 | CONTINUE { ss.call<"control_flow_manager.manage_continue">(@CONTINUE); }
 ;
@@ -366,7 +373,7 @@ comma_separated_exprs[out]:
     ss.call<"finalize_bool_expr">($expr);
     $out = ss.call<"aggregate_builder.build_expr_list">($expr);
   }
-| expr COMMA comma_separated_exprs[prev]
+| comma_separated_exprs[prev]  COMMA  expr
   {
     ss.call<"finalize_bool_expr">($expr);
     $out = ss.call<"aggregate_builder.extend_expr_list">($prev, $expr);
@@ -395,7 +402,7 @@ dict_entry:
 dict_list[out]:
   dict_entry
   { $out = ss.call<"aggregate_builder.build_dict_list">($dict_entry); }
-| dict_entry COMMA dict_list[prev]
+| dict_list[prev] COMMA dict_entry
   { $out = ss.call<"aggregate_builder.extend_dict_list">($prev, $dict_entry); }
 ;
 
@@ -431,9 +438,9 @@ func_prefix:
 ;
 
 funcArgs:
-  ID                { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
-| ID COMMA  { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
-funcArgs
+  ID                   { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
+| funcArgs COMMA ID { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
+
 ;
 
 funcArgList:

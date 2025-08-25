@@ -80,9 +80,10 @@ LocationTracker::find_first_column(const SourceLocation location) const
             "BUG: LocationTracker was asked to find column of k_no_loc"));
 
     const u32 starting_line = find_first_line(location);
-    // DEBUG_SMART_ASSERT(starting_line < line_start_indices_.size());
-    const u32 index_at_starting_line = line_start_indices_[starting_line - 1];
+    // TODO: is this problematic? (the assertion, what do we even try to assert).
+    DEBUG_SMART_ASSERT(starting_line < line_start_indices_.size());
     // -1 as line starts at pos 0.
+    const u32 index_at_starting_line = line_start_indices_[starting_line - 1];
     DEBUG_SMART_ASSERT(location.first_index >= index_at_starting_line);
 
     // +1 to convert index offset to columns.

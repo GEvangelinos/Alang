@@ -1,4 +1,5 @@
 #include <L2_semantic_subsystems/expr_builders.hpp>
+#include "parser/internal_typedefs.hpp"
 
 namespace alpha
 {
@@ -64,7 +65,7 @@ AggregateBuilder::Restricted::build_table_list_consuming(
 
     // Emit exprlist's items.
     u32 list_index = 0;
-    for (auto expr_it = elist->crbegin(); expr_it != elist->crend(); ++expr_it)
+    for (auto expr_it = elist->cbegin(); expr_it != elist->cend(); ++expr_it)
     {
         const Expr *const list_item = *expr_it;
         const SourceLocation list_item_loc = list_item->loc;
@@ -90,7 +91,7 @@ AggregateBuilder::Restricted::build_table_dict_consuming(
     qh->emit_next(ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_dict_loc);
 
     // Emit dict's items.
-    for (auto it = dlist->crbegin(); it != dlist->crend(); ++it)
+    for (auto it = dlist->cbegin(); it != dlist->cend(); ++it)
     {
         const Expr *const key = (*it)->first;
         const Expr *const value = (*it)->second;
@@ -572,8 +573,8 @@ CallBuilder::Restricted::build_call_consuming(
     DEBUG_SMART_ASSERT(!!callable_lvalue, !!param_list);
 
     const Expr *func_expr = ss_bridge_->materialize_if_table_item(callable_lvalue);
-    for (const Expr *e: *param_list)
-        quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, e, nullptr, e->loc);
+    for (auto it = param_list->crbegin(); it != param_list->crend(); ++it)
+        quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, *it, nullptr, (*it)->loc);
 
     quad_handler_->emit_next(ir::Opcode::CALL, nullptr, func_expr, nullptr, call_loc);
 
@@ -826,7 +827,7 @@ FunctionBuilder::Restricted::build_program_function_exit(const BlockSourceLocati
             nullptr,
             block_loc.end);
     }
-    quad_handler_->patch_quad(fbi.func_skip_jump, quad_handler_->next_quad_label());
+    quad_handler_->patch_quad(fbi.funcdef_skip_jump, quad_handler_->next_quad_label());
     parse_ctx_->space_handler.exit_space();
 
     return fbi.func_symbol;

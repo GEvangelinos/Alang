@@ -160,13 +160,15 @@ make_suggestion_on_too_many_expected(const LexerCtx &lexer_ctx, const Info &info
         return false;
     };
 
-    // Suggestion priority: ;  then ) ] }
+    // Suggestion priority: ; , ) ] }
     yysymbol_kind_t suggestion_pick = YYSYMBOL_YYEMPTY;
     if (has_expected(YYSYMBOL_SEMICOLON) &&
         token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
         token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE
         )
         suggestion_pick = YYSYMBOL_SEMICOLON;
+    else if (has_expected(YYSYMBOL_COMMA)) suggestion_pick = YYSYMBOL_COMMA;
+    else if (has_expected(YYSYMBOL_COLON)) suggestion_pick = YYSYMBOL_COLON;
     else if (has_expected(YYSYMBOL_RIGHT_PAREN)) suggestion_pick = YYSYMBOL_RIGHT_PAREN;
     else if (has_expected(YYSYMBOL_RIGHT_BRACKET)) suggestion_pick = YYSYMBOL_RIGHT_BRACKET;
     else if (has_expected(YYSYMBOL_RIGHT_BRACE)) suggestion_pick = YYSYMBOL_RIGHT_BRACE;

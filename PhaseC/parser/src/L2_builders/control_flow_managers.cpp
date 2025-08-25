@@ -51,12 +51,6 @@ ControlFlowManager::Restricted::manage_elsebranch_entry(const SourceLocation els
     DEBUG_SMART_ASSERT(
         !build_ctx_.unpatched_if_bypass_jumps.empty() &&
         "For an 'else' statement to exist, there must be a preceding 'if'"
-        // This holds true with the current grammar, since an 'else' can only be
-        // captured if it is preceded by an 'if' statement. If, in the future, we
-        // split the grammar for more refined diagnostics, this assertion should be
-        // removed, as the parser would then handle such cases gracefully. At that
-        // point, encountering an 'else' without a preceding 'if' would no longer
-        // represent a logic error in the semantic-system of the parser.
     );
 
     auto *const qh = quad_handler_; // Short alias for readability.
@@ -72,12 +66,6 @@ ControlFlowManager::Restricted::manage_elsebranch_exit()
        ,
         !build_ctx_.unpatched_if_bypass_jumps.empty() &&
         "For an 'else' statement to exist, there must be a preceding 'if'"
-        // This holds true with the current grammar, since an 'else' can only be
-        // captured if it is preceded by an 'if' statement. If, in the future, we
-        // split the grammar for more refined diagnostics, this assertion should be
-        // removed, as the parser would then handle such cases gracefully. At that
-        // point, encountering an 'else' without a preceding 'if' would no longer
-        // represent a logic error in the semantic-system of the parser.
     );
 
     auto *const qh = quad_handler_; // Short alias for readability.
@@ -85,12 +73,12 @@ ControlFlowManager::Restricted::manage_elsebranch_exit()
     // We basically patch untaken if branches inside else branch.
     qh->patch_quad(
         build_ctx_.unpatched_if_bypass_jumps.top(),
-        build_ctx_.unpatched_else_bypass_jumps.top()
+        build_ctx_.unpatched_else_bypass_jumps.top() + 1
     );
+    build_ctx_.unpatched_if_bypass_jumps.pop();
+    qh->patch_quad(build_ctx_.unpatched_else_bypass_jumps.top(), qh->next_quad_label());
 
-    const LabelID bypass_jump_quad_label = build_ctx_.unpatched_else_bypass_jumps.top();
     build_ctx_.unpatched_else_bypass_jumps.pop();
-    qh->patch_quad(bypass_jump_quad_label, qh->next_quad_label());
 }
 
 void

@@ -130,6 +130,7 @@ target_link_libraries(alpha_parser_api INTERFACE
 add_library(alpha_parser_impl STATIC
     ${ALPHA_PARSER_OUTPUT_FILEPATH} # <- Generated
     src/symbol_table.cpp
+    src/parser_context.cpp
     src/ir_expr.cpp
     src/L1_driver/semantic_system.cpp
     src/L1_driver/semantic_system_support.cpp

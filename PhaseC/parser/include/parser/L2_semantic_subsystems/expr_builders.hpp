@@ -24,6 +24,12 @@ private:
         friend class AggregateBuilder;
 
     private:
+        struct
+        {
+            ExprList elist;
+            DictList dlist;
+        }draft_;
+
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
 

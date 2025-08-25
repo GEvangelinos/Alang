@@ -1,22 +1,13 @@
-// Note: Alpha Parser Context is implemented as a header-only class.
-//       Since it consists mostly of small, frequently used functions,
-//       we define all methods in the header and mark them as `inline`.
-//
-//       This serves two purposes:
-//       1) To comply with the One Definition Rule (ODR) when the header
-//          is included in multiple translation units.
-//       2) To hint to the compiler to inline calls for better performance.
-
 #ifndef PARSER_CONTEXT_HPP
 #define PARSER_CONTEXT_HPP
 
 #include <list>
 #include <stack>
 #include <vector>
-#include "diagnostics/diagnostic_engine.hpp"
 #include "core/konstants.hpp"
-#include "parser/konstants.hpp"
 #include "core/numeric_types.hpp"
+#include "diagnostics/diagnostic_engine.hpp"
+#include "parser/konstants.hpp"
 #include "parser/symbol_table.hpp"
 #include "parser/_parser_common.hpp"
 #include "utils/misc.hpp"
@@ -80,8 +71,7 @@ public:
         const SourceLocation location;
         const u32 local_var_count;
         const FuncSymbol *func_symbol;
-        const LabelID func_skip_jump; // label to jump over function def in runtime.. TODO:
-        // please rename its ugly
+        const LabelID funcdef_skip_jump;
     };
 
     explicit FunctionCtxHandler(ParseCtx *parse_ctx);
@@ -106,62 +96,12 @@ public:
     [[nodiscard]] u32 loop_depth() const noexcept;
     [[nodiscard]] const std::vector<Parameter> &function_parameters() const noexcept;
     [[nodiscard]] u32 next_function_address() noexcept { return next_function_address_++; }
-
-    [[nodiscard]] const std::vector<LabelID> &break_list() // TODO CLEANUP
-    {
-        DEBUG_SMART_ASSERT(!frame_stack_.empty());
-        // We must be in a LOOP
-        DEBUG_SMART_ASSERT(!frame_stack_.top().function_breaklist_stack.empty());
-
-        return frame_stack_.top().function_breaklist_stack.top();
-    }
-
-    [[nodiscard]] const std::vector<LabelID> &continue_list() // TODO CLEANUP
-    {
-        DEBUG_SMART_ASSERT(!frame_stack_.empty());
-        // We must be in a LOOP
-        DEBUG_SMART_ASSERT(!frame_stack_.top().function_continuelist_stack.empty());
-
-        return frame_stack_.top().function_continuelist_stack.top();
-    }
-
-    void add_label_to_breaklist(LabelID jump_label) // Quad label of jump used to break.
-    {
-        DEBUG_SMART_ASSERT(!frame_stack_.empty()); // TODO replace 1 (due to global frame)
-        // We must be in a LOOP
-        DEBUG_SMART_ASSERT(!frame_stack_.top().function_breaklist_stack.empty());
-
-        // we used Stack so each loop has its own break list
-        frame_stack_.top().function_breaklist_stack.top().push_back(jump_label);
-    }
-
-    void add_label_to_continuelist(LabelID jump_label) // Quad label of jump used to break.
-    {
-        // TODO repetitive code (same as continue.. DRY it out).
-        DEBUG_SMART_ASSERT(!frame_stack_.empty()); // TODO replace 1 (due to global frame)
-
-        // We must be in a LOOP
-        DEBUG_SMART_ASSERT(!frame_stack_.top().function_continuelist_stack.empty());
-
-        // we used Stack so each loop has its own continue list.
-        frame_stack_.top().function_continuelist_stack.top().push_back(jump_label);
-    }
-
-    [[nodiscard]] const std::vector<LabelID> &return_list() // TODO CLEANUP
-    {
-        // We must be in a function. // Note at size 1. it global dataframe
-        // So calling this function while there is only 1 framestack is a logic issue.
-        DEBUG_SMART_ASSERT(frame_stack_.size() > 1); // TODO replace 1 (due to global frame)
-        return frame_stack_.top().function_returnlist;
-    }
-
-    void add_label_to_returnlist(const LabelID jump_label) // Quad label of jump used to break.
-    {
-        // We must be in function
-        DEBUG_SMART_ASSERT(frame_stack_.size() > 1); // TODO replace 1 (due to global frame)
-
-        frame_stack_.top().function_returnlist.push_back(jump_label);
-    }
+    [[nodiscard]] const std::vector<LabelID> &break_list();
+    void add_label_to_breaklist(LabelID jump_label); // Quad label of jump used to break.
+    void add_label_to_continuelist(LabelID jump_label);
+    void add_label_to_returnlist(LabelID jump_label);
+    [[nodiscard]] const std::vector<LabelID> &continue_list();
+    [[nodiscard]] const std::vector<LabelID> &return_list();
 
 private:
     struct FunctionDataFrame
@@ -181,7 +121,7 @@ private:
         // This is labels returns per function (in this FunctionDataFrame).
         std::vector<LabelID> function_returnlist;
 
-        const LabelID func_skip_jump; // used to go over function definition in runtime.
+        const LabelID funcdef_skip_jump; // used to go over function definition in runtime.
 
         u32 local_variable_count = 0;
 
@@ -195,12 +135,12 @@ private:
               scope(scope),
               loc(loc),
               func_symbol(func_symbol),
-              func_skip_jump(label_of_jump) {}
+              funcdef_skip_jump(label_of_jump) {}
     };
 
     std::stack<FunctionDataFrame> frame_stack_;
     std::vector<Parameter> function_parameters_;
-    u32 next_function_address_ = 0;
+    u32 next_function_address_ = 1; // Function addresses are positive integers, so we start from 1.
 
     ParseCtx *const parse_ctx_;
 };
@@ -236,21 +176,11 @@ private:
     SymbolTable *const symbol_table_;
 };
 
-inline SpaceHandler::SpaceHandler()
-{
-    enter_space(); // We push the first scope space frame (PROGRAM_VAR)
-};
+inline void
+SpaceHandler::enter_space() { variable_offset_stack_.push(k_initial_variable_offset); }
 
-inline SpaceHandler::~SpaceHandler()
-{
-    ((void) 0);
-    // The following check is only valid if there was no syntax error.
-    // DEBUG_SMART_ASSERT(variable_offset_stack_.size() == 1);
-}
-
-inline void SpaceHandler::enter_space() { variable_offset_stack_.push(k_initial_variable_offset); }
-
-inline void SpaceHandler::exit_space()
+inline void
+SpaceHandler::exit_space()
 {
     constexpr auto spaces_for_closure = 2; // 1 formalArg + 1 functionLocal
 
@@ -263,7 +193,8 @@ inline void SpaceHandler::exit_space()
         variable_offset_stack_.pop();
 }
 
-inline VarSymbol::Space SpaceHandler::space() const noexcept
+inline VarSymbol::Space
+SpaceHandler::space() const noexcept
 {
     DEBUG_SMART_ASSERT(!variable_offset_stack_.empty() && " A stack frame must always exist");
     const auto frame_index = variable_offset_stack_.size() - 1; // -1 for size to index
@@ -275,27 +206,18 @@ inline VarSymbol::Space SpaceHandler::space() const noexcept
     return VarSymbol::Space::FUNCTION_LOCAL;
 }
 
-inline u32 SpaceHandler::next_offset() noexcept
+inline u32
+SpaceHandler::next_offset() noexcept
 {
     DEBUG_SMART_ASSERT(!variable_offset_stack_.empty());
-    // TODO: would pre-increment break this? is post made on purpose?
     return variable_offset_stack_.top()++;
 }
 
-inline ScopeHandler::ScopeHandler() : scope_(k_global_scope)
-{
-    DEBUG_SMART_ASSERT(
-        skip_next_scope_increment_.is_disabled() &&
-        "A ToggleSwitch must always be initialized as disabled."
-    );
-}
+inline void
+ScopeHandler::skip_next_scope_increment() noexcept { skip_next_scope_increment_.enable(); }
 
-inline void ScopeHandler::skip_next_scope_increment() noexcept
-{
-    skip_next_scope_increment_.enable();
-}
-
-inline void ScopeHandler::enter_scope() noexcept
+inline void
+ScopeHandler::enter_scope() noexcept
 {
     if (skip_next_scope_increment_.is_enabled())
     {
@@ -306,7 +228,8 @@ inline void ScopeHandler::enter_scope() noexcept
     ++scope_;
 }
 
-inline void ScopeHandler::exit_scope() noexcept
+inline void
+ScopeHandler::exit_scope() noexcept
 {
     // We expect `skip_next_scope_increment` ToggleSwitch to be
     // disabled. That is because if you exit a block, it means you first
@@ -320,124 +243,35 @@ inline void ScopeHandler::exit_scope() noexcept
     --scope_;
 }
 
-inline FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const parse_ctx)
-    : parse_ctx_(utils::require_ptr(parse_ctx))
-{
-    // We push a stack-frame, for loops that might occur outside functions.
-    // So every frame corresponds to a function except the first.
-    frame_stack_.emplace(
-        k_global_data_frame_name,
-        k_global_scope,
-        k_no_loc,
-        nullptr,
-        k_no_label);
-}
-
-inline FunctionCtxHandler::~FunctionCtxHandler()
-{
-    DEBUG_SMART_ASSERT(
-        frame_stack_.size() == k_global_data_frame_count,
-        function_parameters_.empty() // All parameters must be used.
-    );
-}
-
-/**
- * @brief Push a new function context frame and adjust scope handling for its body.
- *
- * @param func_name     Name of the function being entered (parsed identifier).
- * @param func_loc      Source location of the function definition.
- * @param func_symbol   Associated FuncSymbol, or nullptr if invalid/redeclared.
- * @param label_of_jump Label for the runtime jump over the function body.
- *
- * @details
- * This is called before parameter registration. Parameter scope is +1 relative to
- * the function symbol's scope, but the opening brace of the function body would also
- * increment the scope, which would double-increment it. To prevent this, we mark the
- * next scope increment as skipped. skip_next_scope_increment() is a one-shot toggle.
- *
- * @rationale
- * Avoiding the double increment ensures that local variables and parameters share the
- * same correct scope nesting level, preventing subtle name resolution bugs.
- */
-inline void FunctionCtxHandler::enter_function(
-    const std::string &func_name,
-    const SourceLocation func_loc,
-    const FuncSymbol *const func_symbol,
-    const LabelID label_of_jump)
-{
-    DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting && "A safe small sanity limit");
-    DEBUG(
-        if (!!func_symbol) DEBUG_SMART_ASSERT(
-            func_symbol->name == func_name,
-            func_symbol->scope == parse_ctx_->scope_handler.scope() &&
-            "FuncSymbol's scope must match the parser scope at the point of entering the function" ,
-            func_symbol->loc == func_loc,
-            func_symbol->is_function(),
-            func_symbol->type == Symbol::Type::PROGRAM_FUNCTION &&
-            "Source-defined functions are always PROGRAM_FUNCTION by definition."
-        );
-    )
-
-    frame_stack_.emplace(FunctionDataFrame(
-        func_name,
-        parse_ctx_->scope_handler.scope(),
-        func_loc,
-        func_symbol,
-        label_of_jump
-    ));
-    parse_ctx_->scope_handler.enter_scope();
-    parse_ctx_->scope_handler.skip_next_scope_increment();
-}
-
-inline FunctionCtxHandler::FunctionBackpatchInfo FunctionCtxHandler::exit_function() noexcept
-{
-    DEBUG_SMART_ASSERT(
-        frame_stack_.size() > k_global_data_frame_count &&
-        "A function frame must always exist for loops outside functions."
-    );
-    DEBUG_SMART_ASSERT(
-        frame_stack_.top().loop_nesting_count == 0 &&
-        "All loops must be closed before exiting a function."
-    );
-
-    const FunctionDataFrame top_frame = std::move(frame_stack_.top());
-    frame_stack_.pop();
-
-    return {
-        .name = top_frame.name,
-        .scope = top_frame.scope,
-        .location = top_frame.loc,
-        .local_var_count = top_frame.local_variable_count,
-        .func_symbol = top_frame.func_symbol,
-        // TODO: wtf is this? Rename to something more meaningful
-        .func_skip_jump = top_frame.func_skip_jump,
-    };
-}
-
-inline u32 FunctionCtxHandler::function_nesting_depth() const noexcept
+inline u32
+FunctionCtxHandler::function_nesting_depth() const noexcept
 {
     return frame_stack_.size() - k_global_data_frame_count;
 }
 
-inline u32 FunctionCtxHandler::current_function_scope() const noexcept
+inline u32
+FunctionCtxHandler::current_function_scope() const noexcept
 {
     DEBUG_SMART_ASSERT(!frame_stack_.empty());
     return frame_stack_.top().scope;
 }
 
-inline const std::string &FunctionCtxHandler::current_function_name() const noexcept
+inline const std::string &
+FunctionCtxHandler::current_function_name() const noexcept
 {
     DEBUG_SMART_ASSERT(!frame_stack_.empty());
     return frame_stack_.top().name;
 }
 
-inline SourceLocation FunctionCtxHandler::current_function_location() const noexcept
+inline SourceLocation
+FunctionCtxHandler::current_function_location() const noexcept
 {
     DEBUG_SMART_ASSERT(!frame_stack_.empty());
     return frame_stack_.top().loc;
 }
 
-inline void FunctionCtxHandler::enter_loop() noexcept
+inline void
+FunctionCtxHandler::enter_loop() noexcept
 {
     DEBUG_SMART_ASSERT(!frame_stack_.empty());
     DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count < k_max_loop_nesting);
@@ -449,12 +283,10 @@ inline void FunctionCtxHandler::enter_loop() noexcept
 
     // Emplace empty continuelist (vector)
     frame_stack_.top().function_continuelist_stack.emplace();
-
-    std::cout << "At enter_loop function_continuelist_stack_size == "
-            << frame_stack_.top().function_continuelist_stack.size() << std::endl;
 }
 
-inline void FunctionCtxHandler::exit_loop() noexcept
+inline void
+FunctionCtxHandler::exit_loop() noexcept
 {
     DEBUG_SMART_ASSERT(!frame_stack_.empty());
     DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count > 0);
@@ -469,73 +301,104 @@ inline void FunctionCtxHandler::exit_loop() noexcept
     frame_stack_.top().function_continuelist_stack.pop();
 }
 
-inline u32 FunctionCtxHandler::loop_depth() const noexcept
+inline u32
+FunctionCtxHandler::loop_depth() const noexcept
 {
     DEBUG_SMART_ASSERT(!frame_stack_.empty());
     return frame_stack_.top().loop_nesting_count;
 }
 
-inline void FunctionCtxHandler::add_function_parameter(const std::string &name, SourceLocation loc)
+inline void
+FunctionCtxHandler::add_function_parameter(const std::string &name, SourceLocation loc)
 {
     function_parameters_.emplace_back(name, loc);
 }
 
-inline const std::vector<Parameter> &FunctionCtxHandler::function_parameters() const noexcept
+inline const std::vector<Parameter> &
+FunctionCtxHandler::function_parameters() const noexcept { return function_parameters_; }
+
+inline const std::vector<LabelID> &
+FunctionCtxHandler::break_list()
 {
-    return function_parameters_;
+    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    // We must be in a LOOP
+    DEBUG_SMART_ASSERT(!frame_stack_.top().function_breaklist_stack.empty());
+
+    return frame_stack_.top().function_breaklist_stack.top();
 }
 
-inline void FunctionCtxHandler::clear_function_parameters() noexcept
+inline const std::vector<LabelID> &
+FunctionCtxHandler::continue_list()
 {
-    function_parameters_.clear();
+    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    // We must be in a LOOP
+    DEBUG_SMART_ASSERT(!frame_stack_.top().function_continuelist_stack.empty());
+
+    return frame_stack_.top().function_continuelist_stack.top();
 }
 
-inline void FunctionCtxHandler::add_local() noexcept
+inline void
+FunctionCtxHandler::add_label_to_breaklist(const LabelID jump_label)
+// Quad label of jump used to break.
+{
+    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    // We must be in a LOOP
+    DEBUG_SMART_ASSERT(!frame_stack_.top().function_breaklist_stack.empty());
+
+    // we used Stack so each loop has its own break list
+    frame_stack_.top().function_breaklist_stack.top().push_back(jump_label);
+}
+
+inline void
+FunctionCtxHandler::add_label_to_continuelist(const LabelID jump_label)
+// Quad label of jump used to break.
+{
+    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+
+    // We must be in a LOOP
+    DEBUG_SMART_ASSERT(!frame_stack_.top().function_continuelist_stack.empty());
+
+    // we used Stack so each loop has its own continue list.
+    frame_stack_.top().function_continuelist_stack.top().push_back(jump_label);
+}
+
+inline const std::vector<LabelID> &
+FunctionCtxHandler::return_list()
+{
+    // We must be in a function. // Note at size 1. it global dataframe
+    // So calling this function while there is only 1 framestack is a logic issue.
+    DEBUG_SMART_ASSERT(frame_stack_.size() > 1);
+    return frame_stack_.top().function_returnlist;
+}
+
+inline void
+FunctionCtxHandler::add_label_to_returnlist(const LabelID jump_label)
+{
+    // We must be in function
+    DEBUG_SMART_ASSERT(frame_stack_.size() > 1);
+    frame_stack_.top().function_returnlist.push_back(jump_label);
+}
+
+inline void
+FunctionCtxHandler::clear_function_parameters() noexcept { function_parameters_.clear(); }
+
+inline void
+FunctionCtxHandler::add_local() noexcept
 {
     DEBUG_SMART_ASSERT(!frame_stack_.empty());
     ++frame_stack_.top().local_variable_count;
 }
 
-inline std::string NameGenerator::new_temp_name()
+inline std::string
+NameGenerator::new_temp_name()
 {
     return k_temp_variable_prefix + std::to_string(temp_name_counter_++);
 }
 
-inline std::string NameGenerator::new_anonymous()
+inline std::string
+NameGenerator::new_anonymous()
 {
     return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
-}
-
-inline ParseCtx::ParseCtx(SymbolTable *const symbol_table)
-    : func_ctx_handler(this),
-      symbol_table_(utils::require_ptr(symbol_table)) {}
-
-inline const VarSymbol *
-ParseCtx::new_temp()
-{
-    const std::string temp_name = name_generator.new_temp_name();
-    const Symbol *symbol = symbol_table_->lookup_local(temp_name, scope_handler.scope());
-
-    // We register new temp, only if current scope doesn't have that temp.
-    if (!symbol)
-    {
-        const VarSymbol::Type var_type =
-                scope_handler.scope() == k_global_scope
-                ? VarSymbol::Type::GLOBAL_VARIABLE
-                : VarSymbol::Type::LOCAL_VARIABLE;
-
-        symbol = symbol_table_->insert_variable(
-            temp_name,
-            scope_handler.scope(),
-            var_type,
-            space_handler.space(),
-            space_handler.next_offset(),
-            k_no_loc
-        );
-    }
-    // variables and values. known the line a temp was generated is useless...
-    DEBUG_SMART_ASSERT(symbol->is_variable());
-    return static_cast<const VarSymbol *>(symbol);
 }
 } // namespace alpha
 #endif // PARSER_CONTEXT_HPP

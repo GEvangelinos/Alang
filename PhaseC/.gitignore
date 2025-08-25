@@ -2,3 +2,4 @@ build/
 cmake-debug-build/
 debug-build/
 .idea/
+./tests/Tree.asc

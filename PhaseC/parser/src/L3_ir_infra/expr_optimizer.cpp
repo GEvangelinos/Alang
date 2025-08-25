@@ -232,9 +232,9 @@ ExprTrimmer::try_trim_relational_equality(
     if (opc == ir::Opcode::IF_EQ)
     {
         // 1 == var(true) -> var(true), 1 == var(false) -> var(false) => 1 == var -> var
-        if (SemUtils::is_const_expr_true_or_1(lhs) && SemUtils::is_const_bool_expr(rhs))
+        if (SemUtils::is_static_expr(lhs))
             return expr_maker_->clone_with_updated_location(result_loc, rhs);
-        if (SemUtils::is_const_expr_true_or_1(rhs) && SemUtils::is_const_bool_expr(lhs))
+        if (SemUtils::is_static_expr(rhs))
             return expr_maker_->clone_with_updated_location(result_loc, lhs);
     }
     if (opc == ir::Opcode::IF_NEQ) // var != 0 -> var  ,  0 != var -> var
