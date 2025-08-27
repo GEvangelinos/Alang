@@ -99,6 +99,7 @@
 
 %type  <expr_list_ptr> expr_list
 %type  <expr_list_ptr> comma_separated_exprs
+%type  <expr_list_ptr> arg_list
 
 %type  <const_expr_pair_ptr> dict_entry
 %type  <dict_list_ptr> dict_list
@@ -231,12 +232,13 @@ stmt_impl:
 | if_stmt
 | while_stmt
 | for_stmt
-| return_stmt SEMICOLON  { ss.recover(); }
-| loop_ctrl_stmt SEMICOLON { ss.recover(); }
+| return_stmt SEMICOLON
+| loop_ctrl_stmt SEMICOLON
 | block_loc
 | func_def
 | SEMICOLON
-| error RIGHT_BRACE   { ss.recover(); yyerrok; }
+| error SEMICOLON   { ss.recover(); yyerrok; }
+| error RIGHT_BRACE { ss.recover(); yyerrok; }
 ;
 
 loop_ctrl_stmt:
@@ -341,6 +343,7 @@ lvalue:
 table_host:
   lvalue { $table_host = $lvalue; }
 | call   { $table_host = $call; }
+;
 
 table_item:
   table_host DOT ID[member]
@@ -352,19 +355,31 @@ table_item:
   }
 ;
 
-methodCallId:
+method_call_id:
   METHOD_CALL ID { ss.call<"call_builder.update_method_call_draft">($ID, @ID);  }
 ;
 
+arg_list_begin:
+  LEFT_PAREN  { ss.call<"call_builder.begin_call">(); }
+;
+arg_list_end:
+  RIGHT_PAREN { ss.call<"call_builder.end_call">(); }
+;
+
+arg_list:
+arg_list_begin expr_list arg_list_end { $arg_list = $expr_list; }
+;
+
+
 call[invocation]:
-  call[callable] LEFT_PAREN expr_list RIGHT_PAREN
-  { $invocation = ss.call<"call_builder.build_call_consuming">($callable, $expr_list, @invocation); }
-| lvalue LEFT_PAREN expr_list RIGHT_PAREN
-  { $invocation = ss.call<"call_builder.build_call_consuming">($lvalue, $expr_list, @invocation); }
-| lvalue methodCallId LEFT_PAREN expr_list RIGHT_PAREN
-  { $invocation = ss.call<"call_builder.build_method_call_consuming">($lvalue, $expr_list, @invocation); }
-| LEFT_PAREN func_def RIGHT_PAREN LEFT_PAREN expr_list RIGHT_PAREN
-  { $invocation = ss.call<"call_builder.build_iife_call_consuming">($func_def, $expr_list, @invocation); }
+  call[callable] arg_list
+  { $invocation = ss.call<"call_builder.build_call_consuming">($callable, $arg_list, @invocation); }
+| lvalue arg_list
+  { $invocation = ss.call<"call_builder.build_call_consuming">($lvalue, $arg_list, @invocation); }
+| lvalue method_call_id arg_list
+  { $invocation = ss.call<"call_builder.build_method_call_consuming">($lvalue, $arg_list, @invocation); }
+| LEFT_PAREN func_def RIGHT_PAREN arg_list
+  { $invocation = ss.call<"call_builder.build_iife_call_consuming">($func_def, $arg_list, @arg_list); }
 ;
 
 comma_separated_exprs[out]:
@@ -437,15 +452,15 @@ func_prefix:
 | FUNCTION ID { ss.call<"function_builder.update_function_draft">($ID, @func_prefix); }
 ;
 
-funcArgs:
+func_params:
   ID                   { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
-| funcArgs COMMA ID { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
+| func_params COMMA ID { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
 
 ;
 
 funcArgList:
   LEFT_PAREN /*Empty*/ RIGHT_PAREN
-| LEFT_PAREN funcArgs  RIGHT_PAREN
+| LEFT_PAREN func_params  RIGHT_PAREN
 ;
 
 func_signature:

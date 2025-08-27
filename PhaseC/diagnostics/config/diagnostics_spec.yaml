@@ -1,8 +1,46 @@
+- Diagnostic: CALL_ARGUMENT_MISMATCH
+  Type: WARNING
+  Primary:
+    - Message: "function `{0}` declared with `{1}` parameters but called with `{2}` arguments"
+      Args: [ func_name, expected_arg_count, actual_arg_count ]
+      Location: call_loc
+  Notes:
+    - Message: "function `{0}` declared here"
+      Args: [ func_name ]
+      Location: func_decl_loc
+
 - Diagnostic: IMPLICIT_INT_TO_FLOAT_LOSS
   Type: WARNING
   Primary:
     - Message: "integer to floating-point implicit conversion results in integral precision loss"
       Location: conversion_loc
+
+- Diagnostic: DIVISION_BY_ZERO
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "Division by zero"
+      Location: division_loc
+
+- Diagnostic: INVALID_CHARACTER
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "character {0} is invalid"
+      Args: [ char_str ]
+      Location: char_loc
+
+- Diagnostic: INVALID_ESCAPE_CODE
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "invalid escape code {0} in string"
+      Args: [ escape_code_str ]
+      Location: escape_code_loc
+
+- Diagnostic: ARITH_OP_NONARITH_OPERAND
+  Type: HARD_ERROR
+  Primary:
+    - Message: "`{0}` operand of arithmetic operator `{1}` is never arithmetic -- operand's expression type: `{2}`"
+      Args: [ operand_side, operator_symbol, operand_expr_type ]
+      Location: operand_loc
 
 - Diagnostic: ASSIGN_LHS_NOT_LVALUE
   Type: HARD_ERROR
@@ -29,36 +67,6 @@
       Args: [ func_name ]
       Location: assign_expr_loc
 
-- Diagnostic: ARITH_OP_NONARITH_OPERAND
-  Type: HARD_ERROR
-  Primary:
-    - Message: "`{0}` operand of arithmetic operator `{1}` is never arithmetic -- operand's expression type: `{2}`"
-      Args: [ operand_side, operator_symbol, operand_expr_type ]
-      Location: operand_loc
-
-- Diagnostic: DIVISION_BY_ZERO
-  Type: SOFT_ERROR
-  Primary:
-    - Message: "Division by zero"
-      Location: division_loc
-
-- Diagnostic: REL_OP_NONARITH_OPERAND
-  Type: HARD_ERROR
-  Primary:
-    - Message: "`{0}` operand of relational operator `{1}` is never arithmetic -- operand's expression type: `{2}`"
-      Args: [ operand_side, operator_symbol, operand_expr_type ]
-      Location: operand_loc
-
-- Diagnostic: UMINUS_NONARITH_OPERAND
-  Type: HARD_ERROR
-  Primary:
-    - Message: "operand of unary `-` is never arithmetic"
-      Location: operand_loc
-  Notes:
-    - Message: "operand's expression type: `{0}`"
-      Args: [ operand_expr_type ]
-      Location: operand_loc
-
 - Diagnostic: INACCESSIBLE_VAR_IN_FUNC
   Type: HARD_ERROR
   Primary:
@@ -72,6 +80,20 @@
     - Message: "variable `{0}` declared here"
       Args: [ id_name ]
       Location: var_decl_loc
+
+- Diagnostic: LIBFUNC_REDEFINED_AS_FORMAL_PARAMETER
+  Type: HARD_ERROR
+  Primary:
+    - Message: "`{0}` is a library function, can't declare it as formal parameter"
+      Args: [ libfunc_name ]
+      Location: formal_param_loc
+
+- Diagnostic: LOCAL_ID_SHADOWS_LIBFUNC
+  Type: HARD_ERROR
+  Primary:
+    - Message: "local identifier `{0}` shadows library function"
+      Args: [ libfunc_name ]
+      Location: id_use_loc
 
 - Diagnostic: LOOP_CTRL_KEYWORD_OUTSIDE_LOOP
   Type: HARD_ERROR
@@ -87,19 +109,47 @@
       Args: [ op_name, op_symbol ]
       Location: full_expr_loc
 
-- Diagnostic: LOCAL_ID_SHADOWS_LIBFUNC
+- Diagnostic: REDEFINITION_OF_FUNC
   Type: HARD_ERROR
   Primary:
-    - Message: "local identifier `{0}` shadows library function"
-      Args: [ libfunc_name ]
-      Location: id_use_loc
+    - Message: "redefinition of function `{0}`"
+      Args: [ func_name ]
+      Location: redef_loc
+  Notes:
+    - Message: "initial definition of function `{0}` here"
+      Args: [ func_name ]
+      Location: initial_def_loc
 
-- Diagnostic: UNRESOLVED_GLOBAL_SYMBOL
+- Diagnostic: REDEFINITION_OF_FORMAL_PARAMETER
   Type: HARD_ERROR
   Primary:
-    - Message: "symbol `::{0}` not found in global scope"
-      Args: [ symbol_name ]
-      Location: symbol_use_loc
+    - Message: "redefinition of formal parameter `{0}`"
+      Args: [ param_name ]
+      Location: param_loc
+  Notes:
+    - Message: "initial definition of formal parameter `{0}` is here"
+      Args: [ param_name ]
+      Location: initial_param_loc
+
+- Diagnostic: REDEFINITION_OF_LIBFUNC
+  Type: HARD_ERROR
+  Primary:
+    - Message: "redefinition of library function `{0}`"
+      Args: [ libfunc_name ]
+      Location: redef_loc
+
+- Diagnostic: REL_OP_NONARITH_OPERAND
+  Type: HARD_ERROR
+  Primary:
+    - Message: "`{0}` operand of relational operator `{1}` is never arithmetic -- operand's expression type: `{2}`"
+      Args: [ operand_side, operator_symbol, operand_expr_type ]
+      Location: operand_loc
+
+- Diagnostic: RETURN_KEYWORD_OUTSIDE_FUNC
+  Type: HARD_ERROR
+  Primary:
+    - Message: "`return` statement not in a function statement"
+      Location: return_keyword_loc
 
 - Diagnostic: UNCLOSED_COMMENT
   Type: HARD_ERROR
@@ -119,37 +169,22 @@
     - Message: "string literal starts here"
       Location: string_start_loc
 
-- Diagnostic: INVALID_ESCAPE_CODE
-  Type: SOFT_ERROR
-  Primary:
-    - Message: "invalid escape code {0} in string"
-      Args: [ escape_code_str ]
-      Location: escape_code_loc
-
-- Diagnostic: INVALID_CHARACTER
-  Type: SOFT_ERROR
-  Primary:
-    - Message: "character {0} is invalid"
-      Args: [ char_str ]
-      Location: char_loc
-
-- Diagnostic: REDEFINITION_OF_LIBFUNC
+- Diagnostic: UNRESOLVED_GLOBAL_SYMBOL
   Type: HARD_ERROR
   Primary:
-    - Message: "redefinition of library function `{0}`"
-      Args: [ libfunc_name ]
-      Location: redef_loc
+    - Message: "symbol `::{0}` not found in global scope"
+      Args: [ symbol_name ]
+      Location: symbol_use_loc
 
-- Diagnostic: REDEFINITION_OF_FUNC
+- Diagnostic: UMINUS_NONARITH_OPERAND
   Type: HARD_ERROR
   Primary:
-    - Message: "redefinition of function `{0}`"
-      Args: [ func_name ]
-      Location: redef_loc
+    - Message: "operand of unary `-` is never arithmetic"
+      Location: operand_loc
   Notes:
-    - Message: "initial definition of function `{0}` here"
-      Args: [ func_name ]
-      Location: initial_def_loc
+    - Message: "operand's expression type: `{0}`"
+      Args: [ operand_expr_type ]
+      Location: operand_loc
 
 - Diagnostic: VAR_REDEFINED_AS_FUNC
   Type: HARD_ERROR
@@ -161,28 +196,3 @@
     - Message: "`{0}` initially defined as a variable here"
       Args: [ func_name ]
       Location: var_def_loc
-
-- Diagnostic: LIBFUNC_REDEFINED_AS_FORMAL_PARAMETER
-  Type: HARD_ERROR
-  Primary:
-    - Message: "`{0}` is a library function, can't declare it as formal parameter"
-      Args: [ libfunc_name ]
-      Location: formal_param_loc
-
-- Diagnostic: REDEFINITION_OF_FORMAL_PARAMETER
-  Type: HARD_ERROR
-  Primary:
-    - Message: "redefinition of formal parameter `{0}`"
-      Args: [ param_name ]
-      Location: param_loc
-  Notes:
-    - Message: "initial definition of formal parameter `{0}` is here"
-      Args: [ param_name ]
-      Location: initial_param_loc
-
-- Diagnostic: RETURN_KEYWORD_OUTSIDE_FUNC
-  Type: SOFT_ERROR
-  Primary:
-    - Message: "`return` statement not in a function statement"
-      Location: return_keyword_loc
-

@@ -150,7 +150,6 @@ std::string DiagnosticFormatter::build_codeline(const u32 line_no) const
 std::string
 DiagnosticFormatter::build_underline(const Issue &issue, const u32 line_no) const
 {
-    constexpr char marker = '~';
     std::string underline;
 
     // Get the buffer index at which this line starts
@@ -174,7 +173,16 @@ DiagnosticFormatter::build_underline(const Issue &issue, const u32 line_no) cons
             ++column;
         }
         else
-            underline += marker;
+        {
+            ++column;
+            if (highlight_pointer_flag.is_enabled())
+            {
+                underline += pointer_marker;
+                highlight_pointer_flag.disable();
+            }
+            else
+                underline += underline_marker;
+        }
     }
     return underline;
 }
@@ -237,7 +245,7 @@ DiagnosticFormatter::compute_visual_suggestion_indent_width(const Suggestion &su
 }
 
 void
-DiagnosticFormatter::build_format_issue_line(
+DiagnosticFormatter::format_issue_line(
     std::stringstream &out,
     const Issue &issue,
     const u32 line_no,
@@ -312,10 +320,10 @@ DiagnosticFormatter::format_issue(const Issue &issue, const bool colorize) const
     build_issue_header(out, issue, colorize);
     out << '\n';
 
+    highlight_pointer_flag.enable();
     const Issue::RenderingSpan span = issue.compute_printing_span(loc_tracker_);
-
     for (u32 line_no = span.start_line; line_no <= span.end_line; ++line_no)
-        build_format_issue_line(out, issue, line_no, colorize);
+        format_issue_line(out, issue, line_no, colorize);
 
     return out.str();
 }

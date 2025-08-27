@@ -1,9 +1,9 @@
 You can find the context of each note, by searching the random 16-digit numerical code.
 Notes with `0000000000000000` do not corespond to any comment in code.
 
-NOTE(624363648843862): Well if lvalue is in runtime we should check if that member is a variable or a member function. 
+DONE! NOTE(624363648843862): Well if lvalue is in runtime we should check if that member is a variable or a member function.
 
-NOTE(2387091987120976) Do you really need both? Also Does the use need to know if it
+!DONE NOTE(2387091987120976) Do you really need both? Also Does the use need to know if it
 lexer of syntax error, in GCC you just know its an error, not which component
 triggered it, maybe add extra flag to show who triggered it, (custom argparse)!
 

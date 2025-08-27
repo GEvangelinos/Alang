@@ -161,7 +161,7 @@ which means you get a bigger stack frame.!
 
 BUT CAN we put more stuff in union?
 
-52) Optimize the temporaries. Lecture 10, slide 23, video 16 (09:06) savidis expalin why
+52 DONE) Optimize the temporaries. Lecture 10, slide 23, video 16 (09:06) savidis expalin why
 
 x =3;
 
@@ -809,3 +809,8 @@ Fatal handler .. should have a callback to main system.. to ask that to do in ca
 (Stop throwing carelessly.. it becomes impossible to manage all throws..)
 
 especially if we want reentrancy
+
+
+103)
+do constant branch folding.. like if(true)
+you know its true.. just eliminate the branch and go straight to code

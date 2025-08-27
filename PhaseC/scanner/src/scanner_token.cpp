@@ -24,28 +24,28 @@ namespace alpha
 
         void Token::exportToken(void *yylval, unsigned int __lineNumber, std::string __content, std::string __codeName)
         {
-                struct alpha_token_t *casted_yylval = (struct alpha_token_t *)yylval;
+                alpha_token_t *casted_yylval = (struct alpha_token_t *)yylval;
                 casted_yylval->lineNumber = __lineNumber;
                 casted_yylval->tokenNumber = Token::getValidTokenCounter();
                 casted_yylval->content = __content;
                 casted_yylval->codeName = __codeName;
         }
 
-        void Token::incrementValidTokenCounter(void)
+        void Token::incrementValidTokenCounter()
         {
                 if (validTokenCounter == std::numeric_limits<unsigned int>::max())
                         throw std::overflow_error("validTokenCounter has reached its maximum value and will wrap-around.");
                 validTokenCounter++;
         }
 
-        void Token::decrementValidTokenCounter(void)
+        void Token::decrementValidTokenCounter()
         {
                 if (validTokenCounter == std::numeric_limits<unsigned int>::min()) /* This should never happen. */
                         throw std::underflow_error("validTokenCounter has reached its minimum value and will wrap-around.");
                 validTokenCounter--;
         }
 
-        unsigned int Token::getValidTokenCounter(void)
+        unsigned int Token::getValidTokenCounter()
         {
                 return validTokenCounter;
         }
@@ -56,17 +56,17 @@ namespace alpha
                 incrementValidTokenCounter();
         }
 
-        unsigned int Token::getTokenNumber(void) const
+        unsigned int Token::getTokenNumber() const
         {
                 return this->tokenNumber;
         }
 
-        unsigned int Token::getLineNumber(void) const
+        unsigned int Token::getLineNumber() const
         {
                 return this->lineNumber;
         }
 
-        const std::string &Token::getTokenContent(void) const
+        const std::string &Token::getTokenContent() const
         {
                 return this->tokenContent;
         }

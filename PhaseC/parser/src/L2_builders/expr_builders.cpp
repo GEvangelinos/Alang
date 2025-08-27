@@ -222,14 +222,17 @@ AssignBuilder::Restricted::handle_direct_assignment(
         if (try_record_const_expr(lvalue, rvalue))
             return lvalue; // Now lvalue's symbol carries rvalue.
 
-    // TODO: check todo 52 (on how to make this only when needed)
     const Expr *const temp = expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(ir::Opcode::ASSIGN, lvalue, rvalue, nullptr, result_loc);
-    quad_handler_->emit_next(ir::Opcode::ASSIGN, temp, lvalue, nullptr, result_loc);
+
+    // In calls, force each (x=val) to yield its arg value; avoid C’s unspecified arg order
+    if (parse_ctx_->call_ctx_handler.is_in_call())
+        quad_handler_->emit_next(ir::Opcode::ASSIGN, temp, lvalue, nullptr, result_loc);
+
     return temp;
 }
 
-template<AssignBuilder::Restricted::OpVariant op_variant,typename Policy>
+template<AssignBuilder::Restricted::OpVariant op_variant, typename Policy>
 const Expr *
 AssignBuilder::Restricted::build_inc_dec(const Expr *const lvalue, const SourceLocation result_loc)
 {
@@ -564,35 +567,62 @@ CallBuilder::Restricted::update_method_call_draft(
     method_call_draft_.id_loc = id_loc;
 }
 
+void
+CallBuilder::Restricted::check_for_argument_mismatch(
+    const Expr *const callable_lvalue,
+    const ExprList *param_list,
+    const SourceLocation call_loc
+)
+{
+    if (callable_lvalue->type != Expr::Type::PROGRAM_FUNCTION)
+        return;
+    const auto func_symbol = static_cast<const ProgFuncExpr *>(callable_lvalue)->func_symbol;
+    if (func_symbol->parameter_list.size() == param_list->size())
+        return;
+    dr_->report_call_argument_mismatch(
+        func_symbol->name,
+        func_symbol->parameter_list.size(),
+        param_list->size(),
+        call_loc,
+        func_symbol->loc
+    );
+}
+
 const Expr *
 CallBuilder::Restricted::build_call_consuming(
     const Expr *const callable_lvalue,
-    ExprList *&param_list,
-    const SourceLocation call_loc)
+    ExprList *&arg_list,
+    const SourceLocation call_loc,
+    const Expr *const method)
 {
-    DEBUG_SMART_ASSERT(!!callable_lvalue, !!param_list);
+    DEBUG_SMART_ASSERT(!!callable_lvalue, !!arg_list);
 
+    check_for_argument_mismatch(callable_lvalue, arg_list, call_loc);
     const Expr *func_expr = ss_bridge_->materialize_if_table_item(callable_lvalue);
-    for (auto it = param_list->crbegin(); it != param_list->crend(); ++it)
+
+
+    for (auto it = arg_list->crbegin(); it != arg_list->crend(); ++it)
         quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, *it, nullptr, (*it)->loc);
+    if (method)
+        quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, method, nullptr, method->loc);
 
     quad_handler_->emit_next(ir::Opcode::CALL, nullptr, func_expr, nullptr, call_loc);
 
     const Expr *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
 
-    CallBuilder::Restricted::delete_expr_list(param_list);
+    CallBuilder::Restricted::delete_expr_list(arg_list);
     return getretval_expr;
 }
 
 const Expr *
 CallBuilder::Restricted::build_method_call_consuming(
-    const Expr *const callable_lvalue, ExprList *&elist, const SourceLocation call_loc)
+    const Expr *const callable_lvalue, ExprList *&arg_list, const SourceLocation call_loc)
 {
     // TODO: Make ExprList (elist) and DictList(dlist) self-manageable (either methods)
     // or using ADL.
-    auto lvalue = ss_bridge_->materialize_if_table_item(callable_lvalue);
-    elist->push_back(lvalue);
+    const Expr *lvalue = ss_bridge_->materialize_if_table_item(callable_lvalue);
+    const Expr *const lvalue_copy = lvalue;
 
     const Expr *const method_index = expr_maker_->make_const_string_expr(
         method_call_draft_.id_loc, method_call_draft_.id.c_str());
@@ -600,16 +630,16 @@ CallBuilder::Restricted::build_method_call_consuming(
         k_no_loc, lvalue, method_index);
 
     lvalue = ss_bridge_->materialize_if_table_item(hosting_var);
-    return build_call_consuming(lvalue, elist, call_loc);
+    return build_call_consuming(lvalue, arg_list, call_loc, DEBUG_REQUIRE_PTR(lvalue_copy));
 }
 
 const Expr *
 CallBuilder::Restricted::build_iife_call_consuming(
-    const FuncSymbol *const func_symbol, ExprList *&elist, const SourceLocation call_loc)
+    const FuncSymbol *const func_symbol, ExprList *&arg_list, const SourceLocation call_loc)
 {
     DEBUG_SMART_ASSERT(!!func_symbol);
     const auto *const prog_func_expr = expr_maker_->make_prog_func_expr(call_loc, func_symbol);
-    return build_call_consuming(prog_func_expr, elist, call_loc);
+    return build_call_consuming(prog_func_expr, arg_list, call_loc);
 }
 
 void CallBuilder::Restricted::delete_expr_list(ExprList *&param_list)
@@ -773,9 +803,7 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation e
     const auto func_loc = function_draft_.loc;  // Local alias for readability.
     const bool validated_funcname = validate_funcdef_name(func_name, func_loc);
 
-    // TODO: Wtf is this label of jump? IF YOU FIND OUT... REMEMBER TO RENAME ALL INSTANCES or string/comment/text of `label_of_jumps` (case-insensitive)
     const u32 skip_func_jump_label = quad_handler_->next_quad_label();
-    // TODO: Why is this needed (observe generated IR)
     quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_loc);
     const FuncSymbol *func_symbol = nullptr;
     if (validated_funcname)

@@ -19,21 +19,21 @@ namespace alpha
         {
         private:
                 static unsigned int validTokenCounter;
-                static void incrementValidTokenCounter(void);
-                static void decrementValidTokenCounter(void);
+                static void incrementValidTokenCounter();
+                static void decrementValidTokenCounter();
                 const unsigned int lineNumber;
                 const unsigned int tokenNumber;
                 const std::string tokenContent;
 
         protected:
-                Token(const unsigned int __lineNumber, const unsigned int __tokenNumber, const std::string &__tokenContent);
-                unsigned int getTokenNumber(void) const;
-                unsigned int getLineNumber(void) const;
-                const std::string &getTokenContent(void) const;
+                Token(unsigned int __lineNumber, unsigned int __tokenNumber, const std::string &__tokenContent);
+                unsigned int getTokenNumber() const;
+                unsigned int getLineNumber() const;
+                const std::string &getTokenContent() const;
 
         public:
-                ~Token() = default;
-                static unsigned int getValidTokenCounter(void);
+                virtual ~Token() = default;
+                static unsigned int getValidTokenCounter();
                 virtual std::string toString() const = 0;
                 static void exportToken(void *yylval, unsigned int __lineNumber, std::string __content, std::string __codeName);
         };
@@ -44,7 +44,7 @@ namespace alpha
                 const std::string tokenCodeName;
 
         public:
-                TokenKeyword(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &keywordContent, const std::string &keywordCodeName);
+                TokenKeyword(unsigned int lineNumber, unsigned int tokenNumber, const std::string &keywordContent, const std::string &keywordCodeName);
                 std::string toString() const override;
         };
 
@@ -54,7 +54,7 @@ namespace alpha
                 const std::string tokenCodeName;
 
         public:
-                TokenOperator(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &operatorContent, const std::string &operatorCodeName);
+                TokenOperator(unsigned int lineNumber, unsigned int tokenNumber, const std::string &operatorContent, const std::string &operatorCodeName);
                 std::string toString() const override;
         };
 
@@ -64,7 +64,7 @@ namespace alpha
                 const std::string tokenCodeName;
 
         public:
-                TokenPunctuation(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &punctuationContent, const std::string &punctuationCodeName);
+                TokenPunctuation(unsigned int lineNumber, unsigned int tokenNumber, const std::string &punctuationContent, const std::string &punctuationCodeName);
                 std::string toString() const override;
         };
 
@@ -74,7 +74,7 @@ namespace alpha
                 const std::string numberOfToken;
 
         public:
-                TokenIntegerNumber(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &integerContent, std::string __numberOfToken);
+                TokenIntegerNumber(unsigned int lineNumber, unsigned int tokenNumber, const std::string &integerContent, std::string __numberOfToken);
                 std::string toString() const override;
         };
 
@@ -84,7 +84,7 @@ namespace alpha
                 const std::string numberOfToken;
 
         public:
-                TokenRealNumber(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &realContent, const std::string __numberOfToken);
+                TokenRealNumber(unsigned int lineNumber, unsigned int tokenNumber, const std::string &realContent, const std::string __numberOfToken);
                 std::string toString() const override;
         };
 
@@ -95,7 +95,7 @@ namespace alpha
                 static char *lastId;
 
         public:
-                TokenID(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &idContent, const std::string __idName);
+                TokenID(unsigned int lineNumber, unsigned int tokenNumber, const std::string &idContent, const std::string __idName);
                 static char *refreshLastId(const char *alpha_yytext);
                 static void clearLastId();
                 std::string toString() const override;
@@ -114,7 +114,7 @@ namespace alpha
                 static SourceLocation getStartingLocation();
                 static void appendToAssemblingBuffer(std::string stringChunk);
                 static void exportStringToken(char **cstring_addr);
-                TokenString(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string stringContent);
+                TokenString(unsigned int lineNumber, unsigned int tokenNumber, std::string stringContent);
                 std::string toString() const;
         };
 
@@ -127,14 +127,14 @@ namespace alpha
         public:
                 static void setStartingLocation(SourceLocation location);
                 static SourceLocation getStartingLocation();
-                TokenComment(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &commentLines, const std::string commentType);
+                TokenComment(unsigned int lineNumber, unsigned int tokenNumber, const std::string &commentLines, const std::string commentType);
                 std::string toString() const override;
         };
 
         class TokenInvalid final : public Token
         {
         public:
-                TokenInvalid(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string theInvalidToken);
+                TokenInvalid(unsigned int lineNumber, unsigned int tokenNumber, std::string theInvalidToken);
                 std::string toString() const override;
         };
 } /* namespace Alpha */

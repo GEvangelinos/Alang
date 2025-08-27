@@ -17,11 +17,8 @@ class LocationTracker;
 class DiagnosticFormatter
 {
 public:
-    struct Underline
-    {
-        std::string marker;
-        u32 line_no;
-    };
+    static constexpr char pointer_marker = '^';
+    static constexpr char underline_marker = '~';
 
     DiagnosticFormatter(
         const std::filesystem::path &source_path,
@@ -37,15 +34,17 @@ private:
     const char *const source_buffer_;
     const LocationTracker &loc_tracker_;
 
+    mutable ToggleSwitch highlight_pointer_flag;
+
     void build_issue_header(std::stringstream &out, const Issue &issue, bool colorize) const;
     [[nodiscard]] std::string build_codeline(u32 line_no) const;
-    [[nodiscard]] std::string build_underline(const Issue &issue, u32 line_no) const;
+    [[nodiscard]] std::string build_underline(const Issue &issue, u32 line_no) const ;
     [[nodiscard]] std::vector<std::string> build_suggestion_lines(
         const Suggestion &suggestion) const;
     [[nodiscard]] u32 compute_visual_suggestion_indent_width(const Suggestion &suggestion) const;
-    void build_format_issue_line(
-        std::stringstream &out, const Issue &issue, u32 line_no, bool colorize) const;
-    [[nodiscard]] std::string format_issue(const Issue &issue, bool colorize) const;
+    void format_issue_line(
+        std::stringstream &out, const Issue &issue, u32 line_no, bool colorize) const ;
+    [[nodiscard]] std::string format_issue(const Issue &issue, bool colorize) const ;
 
     [[nodiscard]] static const char *highlight_color(Issue::Type type) noexcept;
     [[nodiscard]] static std::string apply_sgr(

@@ -52,6 +52,7 @@ target_include_directories(alpha_scanner_api INTERFACE
 
 add_library(alpha_scanner_impl STATIC
     ${ALPHA_SCANNER_OUTPUT_FILEPATH}
+    src/scanner_context.cpp
     src/scanner_token.cpp
 )
 target_compile_options(alpha_scanner_impl PRIVATE

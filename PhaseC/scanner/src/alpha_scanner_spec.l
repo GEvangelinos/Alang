@@ -16,11 +16,11 @@
                                                                               \
                         lexer_ctx.index_ += yyleng;                           \
                 } while (0); /* Semi-Colon is not placed by flex, we place it manually. */
-        #define EMIT(TOK_ID)                                                                 \
-                do                                                                           \
-                {                                                                            \
-                        lexer_ctx.add_token(alpha::TokenInfo{.id = TOK_ID, .loc = *yylloc}); \
-                        return TOK_ID;                                                       \
+        #define EMIT(TOK_ID)                                                                      \
+                do                                                                                \
+                {                                                                                 \
+                        lexer_ctx.register_token(alpha::TokenInfo{.id = TOK_ID, .loc = *yylloc}); \
+                        return TOK_ID;                                                            \
                 } while(0)
 %}
 
@@ -51,7 +51,7 @@ stringEndRule           \"
 /* to update the line tracker explicitly when a line break occurs. */
 stringValidInnerPart    ([^\n\"\\]|\\[tn"\\])+
 
-stringInvalidEscapeCode "\\"([^tn"\\])
+stringInvalidEscapeCode "\\"([^tnr"\\])
 
 /* Flex conditions */
 %x INSIDE_COMMENT_BLOCK

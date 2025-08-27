@@ -61,6 +61,27 @@ private:
     u32 scope_;
 };
 
+class CallContextHandler : private Immobile
+{
+public:
+    void enter_call() noexcept
+    {
+        DEBUG_SMART_ASSERT(call_nesting_count_< k_max_call_nesting && "A safe small sanity limit");
+        ++call_nesting_count_;
+    }
+
+    void exit_call() noexcept
+    {
+        DEBUG_SMART_ASSERT(call_nesting_count_ > 0);
+        --call_nesting_count_;
+    }
+
+    bool is_in_call() const noexcept { return call_nesting_count_ > 0; }
+
+private:
+    u32 call_nesting_count_ = 0;
+};
+
 class FunctionCtxHandler : private Immobile
 {
 public:
@@ -164,6 +185,7 @@ class ParseCtx : private Immobile
 public:
     SpaceHandler space_handler;
     ScopeHandler scope_handler;
+    CallContextHandler call_ctx_handler;
     FunctionCtxHandler func_ctx_handler;
     NameGenerator name_generator;
 

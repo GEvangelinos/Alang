@@ -28,7 +28,7 @@ private:
         {
             ExprList elist;
             DictList dlist;
-        }draft_;
+        } draft_;
 
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
@@ -118,7 +118,7 @@ private:
         [[nodiscard]] const Expr *handle_direct_assignment(
             const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
 
-        template<OpVariant op_variant,typename Policy>
+        template<OpVariant op_variant, typename Policy>
         [[nodiscard]] const Expr *build_inc_dec(const Expr *lvalue, SourceLocation result_loc);
         template<typename Policy>
         [[nodiscard]] const Expr *handle_pre_inc_dec(
@@ -243,12 +243,20 @@ private:
         ~Restricted() override = default;
 
         void update_method_call_draft(const char *id, SourceLocation id_loc);
+
+        void begin_call();
+        void end_call();
+
         [[nodiscard]] const Expr *build_call_consuming(
-            const Expr *callable_lvalue, ExprList *&param_list, SourceLocation call_loc);
+            const Expr *callable_lvalue, ExprList *&arg_list, SourceLocation call_loc,
+            const Expr *method = nullptr);
         [[nodiscard]] const Expr *build_method_call_consuming(
-            const Expr *callable_lvalue, ExprList *&elist, SourceLocation call_loc);
+            const Expr *callable_lvalue, ExprList *&arg_list, SourceLocation call_loc);
         [[nodiscard]] const Expr *build_iife_call_consuming(
-            const FuncSymbol *func_symbol, ExprList *&elist, SourceLocation call_loc);
+            const FuncSymbol *func_symbol, ExprList *&arg_list, SourceLocation call_loc);
+
+        void check_for_argument_mismatch(
+            const Expr *callable_lvalue, const ExprList *param_list, SourceLocation call_loc);
 
         static void delete_expr_list(ExprList *&param_list);
     };
@@ -259,6 +267,8 @@ private:
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(update_method_call_draft);
+    DISPATCH_SLAVE_METHOD_CALL(begin_call);
+    DISPATCH_SLAVE_METHOD_CALL(end_call);
     DISPATCH_SLAVE_METHOD_CALL(build_call_consuming);
     DISPATCH_SLAVE_METHOD_CALL(build_iife_call_consuming);
     DISPATCH_SLAVE_METHOD_CALL(build_method_call_consuming);
@@ -451,5 +461,11 @@ AggregateBuilder::Restricted::delete_dict_list(DictList *&dlist)
     delete dlist;
     DEBUG_NULLIFY(dlist);
 }
+
+inline void
+CallBuilder::Restricted::begin_call() { parse_ctx_->call_ctx_handler.enter_call(); }
+
+inline void
+CallBuilder::Restricted::end_call() { parse_ctx_->call_ctx_handler.exit_call(); }
 } // namespace alpha
 #endif // EXPR_BUILDERS_HPP

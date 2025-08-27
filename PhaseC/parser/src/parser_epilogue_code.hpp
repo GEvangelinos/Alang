@@ -28,6 +28,31 @@ struct Info
     std::vector<yysymbol_kind_t> expected_tokens;
 };
 
+[[nodiscard]] static yysymbol_kind_t
+determine_suggested_token(const LexerCtx &lexer_ctx, const Info &info)
+{
+    const TokenInfo token_info = lexer_ctx.second_last_token_info().value();
+
+    auto has_expected = [&info](const yysymbol_kind_t s) -> bool
+    {
+        for (std::size_t i = 0; i < info.expected_tokens.size(); ++i)
+            if (info.expected_tokens[i] == s)
+                return true;
+        return false;
+    };
+
+    // Suggestion priority:   `;`  `:`  `)`  `]`  `}`  `,`
+    if (has_expected(YYSYMBOL_SEMICOLON) &&
+        token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
+        token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE) { return YYSYMBOL_SEMICOLON; }
+    if (has_expected(YYSYMBOL_COLON)) return YYSYMBOL_COLON;
+    if (has_expected(YYSYMBOL_RIGHT_PAREN)) return YYSYMBOL_RIGHT_PAREN;
+    if (has_expected(YYSYMBOL_RIGHT_BRACKET)) return YYSYMBOL_RIGHT_BRACKET;
+    if (has_expected(YYSYMBOL_RIGHT_BRACE)) return YYSYMBOL_RIGHT_BRACE;
+    if (has_expected(YYSYMBOL_COMMA)) return YYSYMBOL_COMMA;
+    return YYSYMBOL_YYEMPTY;
+}
+
 [[nodiscard]] static unsigned int
 yypcontext_expected_tokens_or_throw(
     const yypcontext_t *const yyctx,
@@ -98,103 +123,119 @@ get_formatted_unexpected_token_name(const Info &info)
     return out;
 }
 
-[[nodiscard]] static Issue
-make_no_expected_issue(const Info &info)
+[[nodiscard]] static Suggestion
+make_symbol_suggestion(const LexerCtx &lexer_ctx, yysymbol_kind_t suggested_symbol)
+{
+    DEBUG_SMART_ASSERT(suggested_symbol != YYSYMBOL_YYEMPTY);
+    const TokenInfo token_info = lexer_ctx.second_last_token_info().value();
+    return Suggestion{yysymbol_name(suggested_symbol), token_info.loc};
+}
+
+static void
+report_no_expected_diagnostic(const Info &info, DiagnosticEngine &diagnostic_engine)
 {
     DEBUG_SMART_ASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
     DEBUG_SMART_ASSERT(info.expected_tokens.empty());
 
-    return Issue(
+    return diagnostic_engine.report(Issue(
         SYNTAX_ERROR_ISSUE_TYPE,
         FMT::format("unexpected `{}`", get_formatted_unexpected_token_name(info)),
         info.unexpected_token_loc
-    );
+    ));
 }
 
-[[nodiscard]] static Issue
-make_few_expected_issue(const LexerCtx &lexer_ctx, const Info &info
+static void
+report_few_expected_diagnostic(
+    const LexerCtx &lexer_ctx,
+    const Info &info,
+    DiagnosticEngine &diagnostic_engine
 )
 {
     DEBUG_SMART_ASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
     DEBUG_SMART_ASSERT(info.expected_tokens.size() <= FEW_TOKENS);
-    auto join_expected = [&](const char *const sep) -> std::string
+    auto join_expected = [&](const char *const sep, bool wrap_with_backsticks) -> std::string
     {
         std::string out;
         for (std::size_t i = 0; i < info.expected_tokens.size(); i++)
         {
-            if (i != 0)
-                out += sep;
+            out += i != 0 ? sep : "";
+            out += wrap_with_backsticks ? "`" : "";
             out += yysymbol_name(info.expected_tokens[i]);
+            out += wrap_with_backsticks ? "`" : "";
         }
         return out;
     };
 
     std::optional<Suggestion> suggestion;
-    if (const auto token_info = lexer_ctx.get_second_last_token(); token_info.has_value())
-        suggestion.emplace(join_expected("\n"), token_info->loc);
+    if (const auto token_info = lexer_ctx.second_last_token_info(); token_info.has_value())
+        suggestion.emplace(join_expected("\n", false), token_info->loc);
 
-    return Issue(
+    diagnostic_engine.report(Issue(
         SYNTAX_ERROR_ISSUE_TYPE,
-        FMT::format("expected `{}` before `{}`", join_expected(", "),
+        FMT::format("expected {} before `{}`", join_expected(" or ", true),
                     get_formatted_unexpected_token_name(info)),
         info.unexpected_token_loc,
         suggestion
-    );
+    ));
 }
 
-[[nodiscard]] static std::optional<Suggestion>
-make_suggestion_on_too_many_expected(const LexerCtx &lexer_ctx, const Info &info)
-{
-    if (!lexer_ctx.get_last_token().has_value())
-        return std::nullopt;
-
-    const TokenInfo token_info = lexer_ctx.get_second_last_token().value();
-
-    auto has_expected = [&info](const yysymbol_kind_t s)
-    {
-        for (std::size_t i = 0; i < info.expected_tokens.size(); ++i)
-            if (info.expected_tokens[i] == s)
-                return true;
-        return false;
-    };
-
-    // Suggestion priority: ; , ) ] }
-    yysymbol_kind_t suggestion_pick = YYSYMBOL_YYEMPTY;
-    if (has_expected(YYSYMBOL_SEMICOLON) &&
-        token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
-        token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE
-        )
-        suggestion_pick = YYSYMBOL_SEMICOLON;
-    else if (has_expected(YYSYMBOL_COMMA)) suggestion_pick = YYSYMBOL_COMMA;
-    else if (has_expected(YYSYMBOL_COLON)) suggestion_pick = YYSYMBOL_COLON;
-    else if (has_expected(YYSYMBOL_RIGHT_PAREN)) suggestion_pick = YYSYMBOL_RIGHT_PAREN;
-    else if (has_expected(YYSYMBOL_RIGHT_BRACKET)) suggestion_pick = YYSYMBOL_RIGHT_BRACKET;
-    else if (has_expected(YYSYMBOL_RIGHT_BRACE)) suggestion_pick = YYSYMBOL_RIGHT_BRACE;
-
-    if (suggestion_pick != YYSYMBOL_YYEMPTY)
-        return Suggestion{yysymbol_name(suggestion_pick), token_info.loc};
-    return std::nullopt;
-}
-
-[[nodiscard]] static Issue
-make_too_many_expected_issue(const LexerCtx &lexer_ctx, const Info &info)
+static void
+report_too_many_expected_diagnostic(
+    const LexerCtx &lexer_ctx,
+    const Info &info,
+    DiagnosticEngine &diagnostic_engine)
 {
     DEBUG_SMART_ASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
     DEBUG_SMART_ASSERT(info.expected_tokens.size() > FEW_TOKENS);
+    const yysymbol_kind_t suggested_symbol = determine_suggested_token(lexer_ctx, info);
 
-    return Issue(
+    std::optional<Suggestion> suggestion;
+    std::list<Note> notes;
+
+    if (suggested_symbol != YYSYMBOL_YYEMPTY)
+    {
+        suggestion.emplace(make_symbol_suggestion(lexer_ctx, suggested_symbol));
+
+        const char *opposite_symbol_name = nullptr;
+        std::optional<SourceLocation> match_note_loc = k_no_loc;
+        if (suggested_symbol == YYSYMBOL_RIGHT_PAREN)
+        {
+            match_note_loc = lexer_ctx.lastest_open_parenthesis_loc();
+            opposite_symbol_name = yysymbol_name(YYSYMBOL_LEFT_PAREN);
+        }
+        else if (suggested_symbol == YYSYMBOL_RIGHT_BRACKET)
+        {
+            match_note_loc = lexer_ctx.lastest_open_bracket_loc();
+            opposite_symbol_name = yysymbol_name(YYSYMBOL_LEFT_BRACKET);
+        }
+        else if (suggested_symbol == YYSYMBOL_RIGHT_BRACE)
+        {
+            match_note_loc = lexer_ctx.latest_open_brace_loc();
+            opposite_symbol_name = yysymbol_name(YYSYMBOL_LEFT_BRACE);
+        }
+
+        if (match_note_loc.has_value())
+            notes.emplace_back(
+                FMT::format("to match this `{}`", DEBUG_REQUIRE_PTR(opposite_symbol_name)),
+                match_note_loc.value()
+            );
+    }
+
+    Issue primary = Issue(
         SYNTAX_ERROR_ISSUE_TYPE,
         FMT::format("unexpected ‘{}’, invalid syntax", get_formatted_unexpected_token_name(info)),
         info.unexpected_token_loc,
-        make_suggestion_on_too_many_expected(lexer_ctx, info)
+        suggestion
     );
+
+    diagnostic_engine.report(std::move(primary), std::move(notes));
 }
 
-[[nodiscard]] static Issue
-make_no_unexpected_issue(const YYLTYPE unexpected_loc)
+static void
+report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc, DiagnosticEngine &diagnostic_engine)
 {
     DEBUG_SMART_ASSERT(false &&
         "HOLD YOUR HORSES... You just caused an error,\n"
@@ -203,7 +244,7 @@ make_no_unexpected_issue(const YYLTYPE unexpected_loc)
         "Basically if there is no unexpected, it must mean\n"
         "that there is NOTHING to cause an error... Right?\n"
     );
-    return Issue(
+    diagnostic_engine.report(Issue(
         Issue::Type::FATAL_ERROR,
         "Hey a syntax error occurred, PLEASE if you see this message, "
         "contact the developer and tell him you got this message."
@@ -211,17 +252,21 @@ make_no_unexpected_issue(const YYLTYPE unexpected_loc)
         "that cause this error. Parser is deterministic,"
         "so he should be able to replicate. THANK YOU",
         unexpected_loc
-    );
+    ));
 }
 
-[[nodiscard]] static Issue
-make_unexpected_issue(const LexerCtx &lexer_ctx, const Info &info)
+static void
+report_unexpected_diagnostic(
+    const LexerCtx &lexer_ctx,
+    const Info &info,
+    DiagnosticEngine &diagnostic_engine)
 {
     if (info.expected_tokens.empty())
-        return make_no_expected_issue(info);
-    if (info.expected_tokens.size() <= FEW_TOKENS)
-        return make_few_expected_issue(lexer_ctx, info);
-    return make_too_many_expected_issue(lexer_ctx, info);
+        report_no_expected_diagnostic(info, diagnostic_engine);
+    else if (info.expected_tokens.size() <= FEW_TOKENS)
+        report_few_expected_diagnostic(lexer_ctx, info, diagnostic_engine);
+    else
+        report_too_many_expected_diagnostic(lexer_ctx, info, diagnostic_engine);
 }
 
 /**
@@ -249,7 +294,7 @@ static int yyreport_syntax_error(
     const YYLTYPE unexpected_token_loc = *utils::require_ptr(yypcontext_location(yyctx));
 
     if (unexpected_token == YYSYMBOL_YYEMPTY) // According to bison manual this mean NO-LOOKAHEAD
-        diagnostic_engine.report(make_no_unexpected_issue(unexpected_token_loc));
+        report_no_unexpected_diagnostic(unexpected_token_loc, diagnostic_engine);
     else
     {
         const auto info = Info{
@@ -259,7 +304,7 @@ static int yyreport_syntax_error(
             .unexpected_token_loc = unexpected_token_loc,
             .expected_tokens = collect_expected_tokens(yyctx)
         };
-        diagnostic_engine.report(make_unexpected_issue(lexer_ctx, info));
+        report_unexpected_diagnostic(lexer_ctx, info, diagnostic_engine);
     }
     return YYREPORT_SYNTAX_ERROR_RETVAL;
 }

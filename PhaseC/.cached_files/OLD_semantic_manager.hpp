@@ -38,6 +38,9 @@ public:
 // GOTO SLEEP AND TAKE SOME TIME TO FIX THIS.. ITS A NICE PROJECT... SO DO YOURSELF A FAVOR TO FIX
 // THIS DEAR TA. IF  YOU ARE SEEING THIS.. I AM SORRY.. THIS IS JUST HOW I WRITE THINGS.. AND HOW I
 // TALK TO MYSELF
+//FUTURE COMMENT BEFORE I DELETE:
+// (Well it took me 2-3 months :D (well i added lots of stuff.. and had lots of personal problems.. but STILL,)
+// WE FREAKING MADE IT!
 
 } // namespace alpha
 

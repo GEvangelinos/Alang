@@ -148,3 +148,71 @@ namespace FMT = fmt;
 ```
 
 Initially, the developer's machine supported `std::format`, but the university’s Debian machines (gcc 10.2–12.4, clang 11) did not. A minimal, cherry-picked subset of the `fmt` library (version 11) is therefore included in `third_party/`. No external installation is required.
+
+
+
+\newpage
+=====================================================================
+Deviation: Plain Assignment
+=====================================================================
+
+Input:
+```
+x = 5;
+```
+
+Output:
+```
+assign   x    5
+```
+
+Explanation:
+In lecture notes, every assignment also emits a temporary
+(e.g. `_t0 := x`) because assignments are expressions.  
+In my project, when the assignment appears only as a statement,
+I omit the extra temp. The expression’s value is unused in this
+context, so leaving out `_t0` avoids dead quads and keeps the IR clean.
+
+\newpage
+=====================================================================
+Deviation: Assignment Inside Call
+=====================================================================
+
+Input:
+```
+a(x=1, x=2, x=3);
+```
+
+Output (params loaded right-to-left, per project spec):
+```
+quad#   opcode   result   arg1   arg2   label   line
+----------------------------------------------------
+1       assign   x        3                         2
+2       assign   _t2      x                         2
+3       assign   x        2                         2
+4       assign   _t1      x                         2
+5       assign   x        1                         2
+6       assign   _t0      x                         2
+7       param             _t0                       2
+8       param             _t1                       2
+9       param             _t2                       2
+10      call              a                         2
+11      getretval _t3                               2
+```
+
+Explanation:
+Inside calls, assignments must yield values in addition to updating `x`.
+Otherwise, all arguments would collapse to the final value of `x`
+(`f(3,3,3)`). Temporaries (`_t0.._t2`) preserve each argument value
+(`f(1,2,3)`). Arguments are pushed in reverse order to respect the
+course requirements.
+
+\newpage
+=====================================================================
+Other Notes & Micro-Optimizations
+=====================================================================
+
+* Parameter evaluation order is enforced as right-to-left.
+* Invariant checking added via asserts and fail-fast.
+* Parser contexts track calls/braces for better error recovery.
+* Diagnostics formatter improved: `^` marks primary, `~` marks spans.

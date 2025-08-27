@@ -55,7 +55,7 @@ public:
     [[nodiscard]] RenderingSpan compute_printing_span(const LocationTracker &loc_tracker) const;
 };
 
-[[nodiscard]] const char * to_string(Issue::Type type)  noexcept;
+[[nodiscard]] const char *to_string(Issue::Type type) noexcept;
 
 class Note final : public Issue
 {

@@ -2,12 +2,13 @@
 #define SCANNER_CONTEXT_HPP
 
 #include <optional>
+#include <stack>
 
+#include "core/konstants.hpp"
 #include "core/numeric_types.hpp"
 #include "core/source_location.hpp"
 #include "parser/alpha_parser.gen.hpp"
 #include "scanner/scanner_token.hpp"
-
 
 namespace alpha
 {
@@ -26,27 +27,32 @@ public:
 
     ~LexerCtx() { TokenID::clearLastId(); }
 
-    void add_token(TokenInfo token_info);
+    void register_token(TokenInfo token_info);
 
-    [[nodiscard]] std::optional<TokenInfo> get_last_token() const;
-    [[nodiscard]] std::optional<TokenInfo> get_second_last_token() const;
+    [[nodiscard]] std::optional<TokenInfo> last_token_info() const noexcept;
+    [[nodiscard]] std::optional<TokenInfo> second_last_token_info() const noexcept;
+    [[nodiscard]] std::optional<SourceLocation> lastest_open_parenthesis_loc() const;
+    [[nodiscard]] std::optional<SourceLocation> lastest_open_bracket_loc() const;
+    [[nodiscard]] std::optional<SourceLocation> latest_open_brace_loc() const;
 
 private:
-    std::optional<TokenInfo> last;
-    std::optional<TokenInfo> second_last;
+    std::optional<TokenInfo> last_token_info_;
+    std::optional<TokenInfo> second_last_token_info_;
+
+    // These fields are used to improve diagnostic messages. For example, if a brace remains
+    // unclosed, we can point to the exact source location of the most recent opening token.
+
+    using TokenLocStack = std::stack<SourceLocation, std::vector<SourceLocation>>;
+    TokenLocStack open_left_parentheses_locs;
+    TokenLocStack open_left_brackets_locs;
+    TokenLocStack open_left_braces_locs;
 };
 
-inline void
-LexerCtx::add_token(TokenInfo token_info)
-{
-    second_last = std::move(last);
-    last = std::move(token_info);
-}
+inline std::optional<TokenInfo>
+LexerCtx::last_token_info() const noexcept { return last_token_info_; }
 
 inline std::optional<TokenInfo>
-LexerCtx::get_last_token() const { return last; }
+LexerCtx::second_last_token_info() const noexcept { return second_last_token_info_; }
 
-inline std::optional<TokenInfo>
-LexerCtx::get_second_last_token() const { return second_last; }
 } // namespace alpha
 #endif // SCANNER_CONTEXT_HPP
