@@ -148,7 +148,7 @@ stringInvalidEscapeCode "\\"([^tnr"\\])
 }
 <INSIDE_STRING>{stringEndRule} {
         BEGIN(INITIAL);
-        alpha::TokenString::exportStringToken(&yylval->cstring);
+       yylval->cstring =  alpha::TokenString::exportStringToken();
         EMIT(STRING);
 }
 

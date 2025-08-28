@@ -40,17 +40,19 @@ has_expected(const Info &info, const yysymbol_kind_t s)
 [[nodiscard]] static yysymbol_kind_t
 determine_suggested_token(const LexerCtx &lexer_ctx, const Info &info)
 {
-    const TokenInfo token_info = lexer_ctx.second_last_token_info().value();
-
-    // Suggestion priority:   `;`  `:`  `)`  `]`  `}`  `,`
-    if (has_expected(info, YYSYMBOL_SEMICOLON) &&
-        token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
-        token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE) { return YYSYMBOL_SEMICOLON; }
-    if (has_expected(info, YYSYMBOL_COLON)) return YYSYMBOL_COLON;
-    if (has_expected(info, YYSYMBOL_RIGHT_PAREN)) return YYSYMBOL_RIGHT_PAREN;
-    if (has_expected(info, YYSYMBOL_RIGHT_BRACKET)) return YYSYMBOL_RIGHT_BRACKET;
-    if (has_expected(info, YYSYMBOL_RIGHT_BRACE)) return YYSYMBOL_RIGHT_BRACE;
-    if (has_expected(info, YYSYMBOL_COMMA)) return YYSYMBOL_COMMA;
+    if (lexer_ctx.second_last_token_info().has_value())
+    {
+        const TokenInfo token_info = lexer_ctx.second_last_token_info().value();
+        // Suggestion priority:   `;`  `:`  `)`  `]`  `}`  `,`
+        if (has_expected(info, YYSYMBOL_SEMICOLON) &&
+            token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
+            token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE) { return YYSYMBOL_SEMICOLON; }
+        if (has_expected(info, YYSYMBOL_COLON)) return YYSYMBOL_COLON;
+        if (has_expected(info, YYSYMBOL_RIGHT_PAREN)) return YYSYMBOL_RIGHT_PAREN;
+        if (has_expected(info, YYSYMBOL_RIGHT_BRACKET)) return YYSYMBOL_RIGHT_BRACKET;
+        if (has_expected(info, YYSYMBOL_RIGHT_BRACE)) return YYSYMBOL_RIGHT_BRACE;
+        if (has_expected(info, YYSYMBOL_COMMA)) return YYSYMBOL_COMMA;
+    }
     return YYSYMBOL_YYEMPTY;
 }
 
@@ -203,6 +205,60 @@ report_few_expected_diagnostic(
     ));
 }
 
+static void report_unexpected_eof(
+    const LexerCtx &lexer_ctx,
+    DiagnosticEngine &diagnostic_engine,
+    const Info &info)
+{
+    DEBUG_SMART_ASSERT(info.unexpected_token == YYSYMBOL_YYEOF);
+
+    const std::optional<TokenInfo> last_token_info_opt = lexer_ctx.last_token_info();
+    const Issue generic_issue = Issue(
+        SYNTAX_ERROR_ISSUE_TYPE,
+        "unexpected EOF reached",
+        info.unexpected_token_loc
+    );
+
+    if (!last_token_info_opt.has_value())
+    {
+        diagnostic_engine.report(generic_issue);
+        return;
+    }
+
+    yysymbol_kind_t expected = YYSYMBOL_YYEMPTY;
+    // Suggestion priority:   `;`  `:`  `)`  `]`  `}`  `,`
+    if (has_expected(info, YYSYMBOL_SEMICOLON) &&
+        last_token_info_opt.has_value() &&
+        last_token_info_opt->id != alpha_yytoken_kind_t::SEMICOLON &&
+        last_token_info_opt->id != alpha_yytoken_kind_t::RIGHT_BRACE)
+    {
+        expected = YYSYMBOL_SEMICOLON;
+    }
+    if (has_expected(info, YYSYMBOL_COLON)) expected = YYSYMBOL_COLON;
+    if (has_expected(info, YYSYMBOL_RIGHT_PAREN)) expected = YYSYMBOL_RIGHT_PAREN;
+    if (has_expected(info, YYSYMBOL_RIGHT_BRACKET)) expected = YYSYMBOL_RIGHT_BRACKET;
+    if (has_expected(info, YYSYMBOL_RIGHT_BRACE)) expected = YYSYMBOL_RIGHT_BRACE;
+    if (has_expected(info, YYSYMBOL_COMMA)) expected = YYSYMBOL_COMMA;
+
+    if (expected != YYSYMBOL_YYEMPTY)
+    {
+        const char *const expected_name = yysymbol_name(expected);
+        std::optional<Suggestion> suggestion;
+        if (last_token_info_opt.has_value())
+            suggestion.emplace(expected_name, last_token_info_opt->loc);
+
+        diagnostic_engine.report(Issue(
+            SYNTAX_ERROR_ISSUE_TYPE,
+            FMT::format("expected {} before reaching EOF", expected_name,
+                        get_formatted_unexpected_token_name(info)),
+            info.unexpected_token_loc,
+            suggestion
+        ));
+    }
+    else
+        diagnostic_engine.report(generic_issue);
+}
+
 static void
 report_too_many_expected_diagnostic(
     const LexerCtx &lexer_ctx,
@@ -215,6 +271,13 @@ report_too_many_expected_diagnostic(
     const auto unexpected_str = get_formatted_unexpected_token_name(info);
     std::optional<Suggestion> suggestion;
     std::list<Note> notes;
+
+    if (info.unexpected_token == YYSYMBOL_YYEOF)
+    {
+        report_unexpected_eof(lexer_ctx, diagnostic_engine, info);
+        return;
+    }
+
     if (expected_primary_expression(info) && lexer_ctx.second_last_token_info().has_value())
     {
         suggestion.emplace("expression", lexer_ctx.second_last_token_info().value().loc);

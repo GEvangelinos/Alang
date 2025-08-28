@@ -54,3 +54,6 @@ add_custom_target(generate_parser_scanner ALL DEPENDS
 add_dependencies(${ALPHA_DRIVER_EXECUTABLE}
     generate_parser_scanner
 )
+
+target_compile_options(${ALPHA_DRIVER_EXECUTABLE} PRIVATE -flto)
+target_link_options(${ALPHA_DRIVER_EXECUTABLE} PRIVATE -flto)

@@ -103,19 +103,22 @@ namespace alpha
 
         class TokenString final : public Token
         {
+        public:
+                static void setStartingLocation(SourceLocation location);
+                static SourceLocation getStartingLocation();
+                static void appendToAssemblingBuffer(std::string stringChunk);
+                static const char * exportStringToken();
+                TokenString(unsigned int lineNumber, unsigned int tokenNumber, std::string stringContent);
+                std::string toString() const;
+
         private:
+
+                static std::string latest_assembled_string_;
                 static std::stringstream stringAssemblingBuffer;
                 static SourceLocation stringStartingLocation;
                 static void flushAssemblingBuffer();
                 static std::string convertContentEscapesToASCII();
 
-        public:
-                static void setStartingLocation(SourceLocation location);
-                static SourceLocation getStartingLocation();
-                static void appendToAssemblingBuffer(std::string stringChunk);
-                static void exportStringToken(char **cstring_addr);
-                TokenString(unsigned int lineNumber, unsigned int tokenNumber, std::string stringContent);
-                std::string toString() const;
         };
 
         class TokenComment final : public Token

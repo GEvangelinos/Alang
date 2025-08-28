@@ -130,7 +130,6 @@ if (DEBUG_MODE)
 endif ()
 
 if (OPTIMIZED_MODE)
-    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) #// TODO: determine why it causes error (it enables, LTO and WPO)
     add_compile_options(
         -O3
         -march=native

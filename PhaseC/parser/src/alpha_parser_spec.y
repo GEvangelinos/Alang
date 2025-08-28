@@ -508,7 +508,38 @@ while_stmt:
 for_clause:
   FOR
   LEFT_PAREN
-  expr_list[init_list]
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
   SEMICOLON
   { ss.call<"control_flow_manager.mark_forloop_condition_entry">(); }
   expr[condition]

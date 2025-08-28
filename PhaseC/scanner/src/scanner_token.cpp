@@ -8,353 +8,363 @@
 
 namespace alpha
 {
-        /*** STARTOF: Local to the file (static) definitions: ***/
-        [[maybe_unused]] static std::string toUpperCase(const std::string &input)
-        {
-                std::string result = input;
-                std::transform(result.begin(), result.end(), result.begin(),
-                               [](unsigned char c) -> unsigned char
-                               { return std::toupper(c); });
-                return result;
-        }
-        /*** ENDOF: Local to the file (static) definitions: ***/
+/*** STARTOF: Local to the file (static) definitions: ***/
+[[maybe_unused]] static std::string toUpperCase(const std::string &input)
+{
+    std::string result = input;
+    std::transform(result.begin(), result.end(), result.begin(),
+                   [](unsigned char c) -> unsigned char { return std::toupper(c); });
+    return result;
+}
 
-        /*** STARTOF: class Token definitions: ***/
-        unsigned int Token::validTokenCounter = 0;
+/*** ENDOF: Local to the file (static) definitions: ***/
 
-        void Token::exportToken(void *yylval, unsigned int __lineNumber, std::string __content, std::string __codeName)
-        {
-                alpha_token_t *casted_yylval = (struct alpha_token_t *)yylval;
-                casted_yylval->lineNumber = __lineNumber;
-                casted_yylval->tokenNumber = Token::getValidTokenCounter();
-                casted_yylval->content = __content;
-                casted_yylval->codeName = __codeName;
-        }
+/*** STARTOF: class Token definitions: ***/
+unsigned int Token::validTokenCounter = 0;
 
-        void Token::incrementValidTokenCounter()
-        {
-                if (validTokenCounter == std::numeric_limits<unsigned int>::max())
-                        throw std::overflow_error("validTokenCounter has reached its maximum value and will wrap-around.");
-                validTokenCounter++;
-        }
+void Token::exportToken(void *yylval, unsigned int __lineNumber, std::string __content,
+                        std::string __codeName)
+{
+    alpha_token_t *casted_yylval = (struct alpha_token_t *) yylval;
+    casted_yylval->lineNumber = __lineNumber;
+    casted_yylval->tokenNumber = Token::getValidTokenCounter();
+    casted_yylval->content = __content;
+    casted_yylval->codeName = __codeName;
+}
 
-        void Token::decrementValidTokenCounter()
-        {
-                if (validTokenCounter == std::numeric_limits<unsigned int>::min()) /* This should never happen. */
-                        throw std::underflow_error("validTokenCounter has reached its minimum value and will wrap-around.");
-                validTokenCounter--;
-        }
+void Token::incrementValidTokenCounter()
+{
+    if (validTokenCounter == std::numeric_limits<unsigned int>::max())
+        throw std::overflow_error(
+            "validTokenCounter has reached its maximum value and will wrap-around.");
+    validTokenCounter++;
+}
 
-        unsigned int Token::getValidTokenCounter()
-        {
-                return validTokenCounter;
-        }
+void Token::decrementValidTokenCounter()
+{
+    if (validTokenCounter == std::numeric_limits<unsigned int>::min())
+        /* This should never happen. */
+        throw std::underflow_error(
+            "validTokenCounter has reached its minimum value and will wrap-around.");
+    validTokenCounter--;
+}
 
-        Token::Token(const unsigned int __lineNumber, const unsigned int __tokenNumber, const std::string &__tokenContent)
-            : lineNumber(__lineNumber), tokenNumber(__tokenNumber), tokenContent(__tokenContent)
-        {
-                incrementValidTokenCounter();
-        }
+unsigned int Token::getValidTokenCounter() { return validTokenCounter; }
 
-        unsigned int Token::getTokenNumber() const
-        {
-                return this->tokenNumber;
-        }
+Token::Token(const unsigned int __lineNumber, const unsigned int __tokenNumber,
+             const std::string &__tokenContent)
+    : lineNumber(__lineNumber), tokenNumber(__tokenNumber), tokenContent(__tokenContent)
+{
+    incrementValidTokenCounter();
+}
 
-        unsigned int Token::getLineNumber() const
-        {
-                return this->lineNumber;
-        }
+unsigned int Token::getTokenNumber() const { return this->tokenNumber; }
 
-        const std::string &Token::getTokenContent() const
-        {
-                return this->tokenContent;
-        }
+unsigned int Token::getLineNumber() const { return this->lineNumber; }
 
-        std::string Token::toString() const
-        {
-                std::stringstream stringBuffer;
-                stringBuffer << this->lineNumber
-                             << ":\t"
-                             << "#"
-                             << this->tokenNumber
-                             << "\t"
-                             << "\""
-                             << this->tokenContent
-                             << "\"";
-                return stringBuffer.str();
-        }
-        /*** ENDOF: class Token definitions. ***/
+const std::string &Token::getTokenContent() const { return this->tokenContent; }
 
-        /*** STARTOF: class TokenKeyword definitions: ***/
-        TokenKeyword::TokenKeyword(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &keywordContent, const std::string &keywordCodeName)
-            : Token(lineNumber, tokenNumber, keywordContent), tokenCodeName(keywordCodeName)
-        {
-                /* Empty Constructor Body */
-        }
+std::string Token::toString() const
+{
+    std::stringstream stringBuffer;
+    stringBuffer << this->lineNumber
+            << ":\t"
+            << "#"
+            << this->tokenNumber
+            << "\t"
+            << "\""
+            << this->tokenContent
+            << "\"";
+    return stringBuffer.str();
+}
 
-        std::string TokenKeyword::toString() const
-        {
-                std::stringstream stringBuffer;
-                stringBuffer << Token::toString()
-                             << "\t"
-                             << "KEYWORD"
-                             << "\t"
-                             << this->tokenCodeName;
-                return stringBuffer.str();
-        }
-        /*** ENDOF: class TokenKeyword definitions. ***/
+/*** ENDOF: class Token definitions. ***/
 
-        /*** STARTOF: class TokenOperator definitions: ***/
-        TokenOperator::TokenOperator(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &operatorContent, const std::string &operatorCodeName)
-            : Token(lineNumber, tokenNumber, operatorContent), tokenCodeName(operatorCodeName)
-        {
-                /* Empty Constructor Body */
-        }
+/*** STARTOF: class TokenKeyword definitions: ***/
+TokenKeyword::TokenKeyword(const unsigned int lineNumber, const unsigned int tokenNumber,
+                           const std::string &keywordContent, const std::string &keywordCodeName)
+    : Token(lineNumber, tokenNumber, keywordContent), tokenCodeName(keywordCodeName)
+{
+    /* Empty Constructor Body */
+}
 
-        std::string TokenOperator::toString() const
-        {
-                std::stringstream stringBuffer;
-                stringBuffer << Token::toString()
-                             << "\t"
-                             << "OPERATOR"
-                             << "\t"
-                             << this->tokenCodeName;
-                return stringBuffer.str();
-        }
-        /*** ENDOF: class TokenOperator definitions. ***/
+std::string TokenKeyword::toString() const
+{
+    std::stringstream stringBuffer;
+    stringBuffer << Token::toString()
+            << "\t"
+            << "KEYWORD"
+            << "\t"
+            << this->tokenCodeName;
+    return stringBuffer.str();
+}
 
-        /*** STARTOF: class TokenPunctuation definitions: ***/
-        TokenPunctuation::TokenPunctuation(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &punctuationContent, const std::string &punctuationCodeName)
-            : Token(lineNumber, tokenNumber, punctuationContent), tokenCodeName(punctuationCodeName)
-        {
-                /* Empty Constructor Body */
-        }
+/*** ENDOF: class TokenKeyword definitions. ***/
 
-        std::string TokenPunctuation::toString() const
-        {
-                std::stringstream stringBuffer;
-                stringBuffer << Token::toString()
-                             << "\t"
-                             << "PUNCTUATION"
-                             << "\t"
-                             << this->tokenCodeName;
-                return stringBuffer.str();
-        }
-        /*** ENDOF: class TokenKeyword definitions. ***/
+/*** STARTOF: class TokenOperator definitions: ***/
+TokenOperator::TokenOperator(const unsigned int lineNumber, const unsigned int tokenNumber,
+                             const std::string &operatorContent,
+                             const std::string &operatorCodeName)
+    : Token(lineNumber, tokenNumber, operatorContent), tokenCodeName(operatorCodeName)
+{
+    /* Empty Constructor Body */
+}
 
-        /*** STARTOF: class TokenIntegerNumber definitions. ***/
-        TokenIntegerNumber::TokenIntegerNumber(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &integerContent, const std::string __numberOfToken)
-            : Token(lineNumber, tokenNumber, integerContent), numberOfToken(__numberOfToken)
-        {
-                /* Empty Constructor Body */
-        }
-        std::string TokenIntegerNumber::toString() const
-        {
-                std::stringstream stringBuffer;
-                stringBuffer << Token::toString()
-                             << "\t"
-                             << "INTCONST"
-                             << "\t"
-                             << this->numberOfToken;
-                return stringBuffer.str();
-        }
-        /*** ENDOF: class TokenIntegerNumber definitions. ***/
+std::string TokenOperator::toString() const
+{
+    std::stringstream stringBuffer;
+    stringBuffer << Token::toString()
+            << "\t"
+            << "OPERATOR"
+            << "\t"
+            << this->tokenCodeName;
+    return stringBuffer.str();
+}
 
-        /*** STARTOF: class TokenRealNumber definitions. ***/
-        TokenRealNumber::TokenRealNumber(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &integerContent, const std::string __numberOfToken)
-            : Token(lineNumber, tokenNumber, integerContent), numberOfToken(__numberOfToken)
-        {
-                /* Empty Constructor Body */
-        }
-        std::string TokenRealNumber::toString() const
-        {
-                std::stringstream stringBuffer;
-                stringBuffer << Token::toString()
-                             << "\t"
-                             << "REALCONST"
-                             << "\t"
-                             << this->numberOfToken;
-                return stringBuffer.str();
-        }
-        /*** ENDOF: class TokenIntegerNumber definitions. ***/
+/*** ENDOF: class TokenOperator definitions. ***/
 
-        /*** STARTOF: class TokenID definitions. ***/
-        char *TokenID::lastId = nullptr;
+/*** STARTOF: class TokenPunctuation definitions: ***/
+TokenPunctuation::TokenPunctuation(const unsigned int lineNumber, const unsigned int tokenNumber,
+                                   const std::string &punctuationContent,
+                                   const std::string &punctuationCodeName)
+    : Token(lineNumber, tokenNumber, punctuationContent), tokenCodeName(punctuationCodeName)
+{
+    /* Empty Constructor Body */
+}
 
-        TokenID::TokenID(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &idContent, const std::string __idName)
-            : Token(lineNumber, tokenNumber, idContent), idName(__idName) {}
+std::string TokenPunctuation::toString() const
+{
+    std::stringstream stringBuffer;
+    stringBuffer << Token::toString()
+            << "\t"
+            << "PUNCTUATION"
+            << "\t"
+            << this->tokenCodeName;
+    return stringBuffer.str();
+}
 
-        char *TokenID::refreshLastId(const char *id)
-        {
-                // TODO in future driver.. just malloc a buffer, and write the same (grow only if needed..);
-                if (!id)
-                        throw std::runtime_error("Error in lexer (probably): `id` is null.");
+/*** ENDOF: class TokenKeyword definitions. ***/
 
-                delete[] TokenID::lastId;                        /* delete[] is safe with nullptr too (in first initialization). */
-                TokenID::lastId = new char[std::strlen(id) + 1]; /* +1 for '\0'. */
-                std::strcpy(TokenID::lastId, id);
-                return TokenID::lastId;
-        }
+/*** STARTOF: class TokenIntegerNumber definitions. ***/
+TokenIntegerNumber::TokenIntegerNumber(const unsigned int lineNumber,
+                                       const unsigned int tokenNumber,
+                                       const std::string &integerContent,
+                                       const std::string __numberOfToken)
+    : Token(lineNumber, tokenNumber, integerContent), numberOfToken(__numberOfToken)
+{
+    /* Empty Constructor Body */
+}
 
-        void TokenID::clearLastId() { delete[] TokenID::lastId; }
+std::string TokenIntegerNumber::toString() const
+{
+    std::stringstream stringBuffer;
+    stringBuffer << Token::toString()
+            << "\t"
+            << "INTCONST"
+            << "\t"
+            << this->numberOfToken;
+    return stringBuffer.str();
+}
 
-        std::string TokenID::toString() const
-        {
-                std::stringstream stringBuffer;
-                stringBuffer << Token::toString()
-                             << "\t"
-                             << "ID"
-                             << "\t"
-                             << "\""
-                             << this->idName
-                             << "\"";
-                return stringBuffer.str();
-        }
-        /*** ENDOF: class TokenID definitions. ***/
+/*** ENDOF: class TokenIntegerNumber definitions. ***/
 
-        /*** STARTOF: class TokenComment definitions. ***/
-        SourceLocation TokenComment::commentStartingLocation;
+/*** STARTOF: class TokenRealNumber definitions. ***/
+TokenRealNumber::TokenRealNumber(const unsigned int lineNumber, const unsigned int tokenNumber,
+                                 const std::string &integerContent,
+                                 const std::string __numberOfToken)
+    : Token(lineNumber, tokenNumber, integerContent), numberOfToken(__numberOfToken)
+{
+    /* Empty Constructor Body */
+}
 
-        void TokenComment::setStartingLocation(SourceLocation location)
-        {
-                TokenComment::commentStartingLocation = location;
-        }
+std::string TokenRealNumber::toString() const
+{
+    std::stringstream stringBuffer;
+    stringBuffer << Token::toString()
+            << "\t"
+            << "REALCONST"
+            << "\t"
+            << this->numberOfToken;
+    return stringBuffer.str();
+}
 
-        SourceLocation TokenComment::getStartingLocation()
-        {
-                return TokenComment::commentStartingLocation;
-        }
+/*** ENDOF: class TokenIntegerNumber definitions. ***/
 
-        TokenComment::TokenComment(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string &commentDescription, const std::string __commentType)
-            : Token(lineNumber, tokenNumber, commentDescription), commentType(__commentType)
-        {
-        }
+/*** STARTOF: class TokenID definitions. ***/
+char *TokenID::lastId = nullptr;
 
-        std::string TokenComment::toString() const
-        {
-                std::stringstream stringBuffer;
-                stringBuffer << Token::toString()
-                             << "\t"
-                             << "COMMENT"
-                             << "\t"
-                             << this->commentType;
-                return stringBuffer.str();
-        }
+TokenID::TokenID(const unsigned int lineNumber, const unsigned int tokenNumber,
+                 const std::string &idContent, const std::string __idName)
+    : Token(lineNumber, tokenNumber, idContent), idName(__idName) {}
 
-        /*** ENDOF: class TokenComment definitions. ***/
+char *TokenID::refreshLastId(const char *id)
+{
+    // TODO in future driver.. just malloc a buffer, and write the same (grow only if needed..);
+    if (!id)
+        throw std::runtime_error("Error in lexer (probably): `id` is null.");
 
-        /*** STARTOF: class TokenString definitions. ***/
-        std::stringstream TokenString::stringAssemblingBuffer;
-        SourceLocation TokenString::stringStartingLocation;
+    delete[] TokenID::lastId; /* delete[] is safe with nullptr too (in first initialization). */
+    TokenID::lastId = new char[std::strlen(id) + 1]; /* +1 for '\0'. */
+    std::strcpy(TokenID::lastId, id);
+    return TokenID::lastId;
+}
 
-        void TokenString::setStartingLocation(SourceLocation location)
-        {
-                TokenString::stringStartingLocation = location;
-        }
+void TokenID::clearLastId() { delete[] TokenID::lastId; }
 
-        SourceLocation TokenString::getStartingLocation()
-        {
-                return TokenString::stringStartingLocation;
-        }
+std::string TokenID::toString() const
+{
+    std::stringstream stringBuffer;
+    stringBuffer << Token::toString()
+            << "\t"
+            << "ID"
+            << "\t"
+            << "\""
+            << this->idName
+            << "\"";
+    return stringBuffer.str();
+}
 
-        /* TODO: FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */
-        std::string TokenString::convertContentEscapesToASCII()
-        {
-                std::string str = stringAssemblingBuffer.str();
-                std::string toReplace = "\\n";
-                char replacement = '\n';
-                size_t pos = 0;
-                while ((pos = str.find(toReplace, pos)) != std::string::npos)
-                {
-                        str.replace(pos, toReplace.length(), 1, replacement);
-                        pos += 1; // Move past the replacement
-                }
+/*** ENDOF: class TokenID definitions. ***/
 
-                toReplace = "\\t";
-                replacement = '\t';
-                pos = 0;
-                while ((pos = str.find(toReplace, pos)) != std::string::npos)
-                {
-                        str.replace(pos, toReplace.length(), 1, replacement);
-                        pos += 1; // Move past the replacement
-                }
+/*** STARTOF: class TokenComment definitions. ***/
+SourceLocation TokenComment::commentStartingLocation;
 
-                toReplace = "\\\\";
-                replacement = '\\';
-                pos = 0;
-                while ((pos = str.find(toReplace, pos)) != std::string::npos)
-                {
-                        str.replace(pos, toReplace.length(), 1, replacement);
-                        pos += 1; // Move past the replacement
-                }
+void TokenComment::setStartingLocation(SourceLocation location)
+{
+    TokenComment::commentStartingLocation = location;
+}
 
-                toReplace = "\\\"";
-                replacement = '\"';
-                pos = 0;
-                while ((pos = str.find(toReplace, pos)) != std::string::npos)
-                {
-                        str.replace(pos, toReplace.length(), 1, replacement);
-                        pos += 1; // Move past the replacement
-                }
-                return str;
-        }
+SourceLocation TokenComment::getStartingLocation() { return TokenComment::commentStartingLocation; }
 
-        void TokenString::appendToAssemblingBuffer(std::string stringChunk)
-        {
-                stringAssemblingBuffer << stringChunk;
-        }
+TokenComment::TokenComment(const unsigned int lineNumber, const unsigned int tokenNumber,
+                           const std::string &commentDescription, const std::string __commentType)
+    : Token(lineNumber, tokenNumber, commentDescription), commentType(__commentType) {}
 
-        void TokenString::flushAssemblingBuffer()
-        {
-                stringAssemblingBuffer.str("");
-                stringAssemblingBuffer.clear();
-        }
+std::string TokenComment::toString() const
+{
+    std::stringstream stringBuffer;
+    stringBuffer << Token::toString()
+            << "\t"
+            << "COMMENT"
+            << "\t"
+            << this->commentType;
+    return stringBuffer.str();
+}
 
-        void TokenString::exportStringToken(char **cstring_addr)
-        {
-                std::string cpp_string = convertContentEscapesToASCII();
-                *cstring_addr = new char[cpp_string.size() + 1]; // +1 for null terminator
-                std::strcpy(*cstring_addr, cpp_string.c_str());
-                TokenString::flushAssemblingBuffer();
-        }
+/*** ENDOF: class TokenComment definitions. ***/
 
-        TokenString::TokenString(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string stringContent)
-            : Token(lineNumber, tokenNumber, stringContent)
-        {
-                /* Empty Constructor Body */
-        }
-        std::string TokenString::toString() const
-        {
-                std::stringstream stringBuffer;
-                stringBuffer << Token::toString()
-                             << "\t"
-                             << "STRING"
-                             << "\t"
-                             << "\""
-                             << Token::getTokenContent()
-                             << "\"";
-                return stringBuffer.str();
-        }
-        /*** ENDOF: class TokenString definitions. ***/
+/*** STARTOF: class TokenString definitions. ***/
+std::stringstream TokenString::stringAssemblingBuffer;
+SourceLocation TokenString::stringStartingLocation;
+std::string TokenString::latest_assembled_string_;
 
-        /*** STARTOF: class TokenInvalid definitions. ***/
-        TokenInvalid::TokenInvalid(const unsigned int lineNumber, const unsigned int tokenNumber, const std::string theInvalidToken)
-            : Token(lineNumber, tokenNumber, theInvalidToken)
-        {
-                /* Empty Constructor Body */
-        }
+void TokenString::setStartingLocation(SourceLocation location)
+{
+    TokenString::stringStartingLocation = location;
+}
 
-        std::string TokenInvalid::toString() const
-        {
-                std::stringstream stringBuffer;
-                stringBuffer << Token::toString()
-                             << "\t"
-                             << "TOKEN_INVALID"
-                             << "\t"
-                             << Token::getTokenContent();
-                return stringBuffer.str();
-        }
-        /*** ENDOF: class TokenInvalid definitions. ***/
+SourceLocation TokenString::getStartingLocation() { return TokenString::stringStartingLocation; }
 
+/* TODO: FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */
+std::string TokenString::convertContentEscapesToASCII()
+{
+    std::string str = stringAssemblingBuffer.str();
+    std::string toReplace = "\\n";
+    char replacement = '\n';
+    size_t pos = 0;
+    while ((pos = str.find(toReplace, pos)) != std::string::npos)
+    {
+        str.replace(pos, toReplace.length(), 1, replacement);
+        pos += 1; // Move past the replacement
+    }
+
+    toReplace = "\\t";
+    replacement = '\t';
+    pos = 0;
+    while ((pos = str.find(toReplace, pos)) != std::string::npos)
+    {
+        str.replace(pos, toReplace.length(), 1, replacement);
+        pos += 1; // Move past the replacement
+    }
+
+    toReplace = "\\\\";
+    replacement = '\\';
+    pos = 0;
+    while ((pos = str.find(toReplace, pos)) != std::string::npos)
+    {
+        str.replace(pos, toReplace.length(), 1, replacement);
+        pos += 1; // Move past the replacement
+    }
+
+    toReplace = "\\\"";
+    replacement = '\"';
+    pos = 0;
+    while ((pos = str.find(toReplace, pos)) != std::string::npos)
+    {
+        str.replace(pos, toReplace.length(), 1, replacement);
+        pos += 1; // Move past the replacement
+    }
+    return str;
+}
+
+void TokenString::appendToAssemblingBuffer(std::string stringChunk)
+{
+    stringAssemblingBuffer << stringChunk;
+}
+
+void TokenString::flushAssemblingBuffer()
+{
+    stringAssemblingBuffer.str("");
+    stringAssemblingBuffer.clear();
+}
+
+const char *TokenString::exportStringToken()
+{
+    latest_assembled_string_ = convertContentEscapesToASCII();
+    TokenString::flushAssemblingBuffer();
+    return latest_assembled_string_.c_str();
+}
+
+TokenString::TokenString(const unsigned int lineNumber, const unsigned int tokenNumber,
+                         const std::string stringContent)
+    : Token(lineNumber, tokenNumber, stringContent)
+{
+    /* Empty Constructor Body */
+}
+
+std::string TokenString::toString() const
+{
+    std::stringstream stringBuffer;
+    stringBuffer << Token::toString()
+            << "\t"
+            << "STRING"
+            << "\t"
+            << "\""
+            << Token::getTokenContent()
+            << "\"";
+    return stringBuffer.str();
+}
+
+/*** ENDOF: class TokenString definitions. ***/
+
+/*** STARTOF: class TokenInvalid definitions. ***/
+TokenInvalid::TokenInvalid(const unsigned int lineNumber, const unsigned int tokenNumber,
+                           const std::string theInvalidToken)
+    : Token(lineNumber, tokenNumber, theInvalidToken)
+{
+    /* Empty Constructor Body */
+}
+
+std::string TokenInvalid::toString() const
+{
+    std::stringstream stringBuffer;
+    stringBuffer << Token::toString()
+            << "\t"
+            << "TOKEN_INVALID"
+            << "\t"
+            << Token::getTokenContent();
+    return stringBuffer.str();
+}
+
+/*** ENDOF: class TokenInvalid definitions. ***/
 } /* namespace Alpha */

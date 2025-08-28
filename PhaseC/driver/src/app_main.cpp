@@ -23,13 +23,13 @@ static arguinator::Parser launch_cli_parser(const int argc, const char *const *c
     parser.parse_flags();
 
     #if defined(OPTIMIZED_MODE) || defined(HATE_PYTHON_MODE)
-    if (parser[flag_show_parser_trace].is_provided())
+    if (parser[alpha::flag_show_parser_trace].is_provided())
     {
         std::cout << COLOR_ASCII_BOLD_YELLOW
                 << FMT::format(
                     "Flag --{} is disabled, due to OPTIMIZED or HATE_PYTHON build parameters.\n"
                     "Either disable OPTIMIZED_MODE and HATE_PYTHON_MODE or remove flag\n",
-                    flag_show_parser_trace)
+                    alpha::flag_show_parser_trace)
                 << SGR_RESET << std::endl;
     }
     #endif

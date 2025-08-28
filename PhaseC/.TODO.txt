@@ -4,11 +4,11 @@
 
 13) Convert scanner stuff to snake_case
 
-19) Throw warning or error if a function is called with the wrong number of arguments
+19 DONE) Throw warning or error if a function is called with the wrong number of arguments
 
-20) Functionize the code block in scanner (.l file).
+20 IGNORED) Functionize the code block in scanner (.l file).
 
-22)    Make sure that only private fields in classes end with _ 
+22 IGNORED)    Make sure that only private fields in classes end with _
 
 23) Use clang-tidy (Static analysis, finds bad patterns and so on....)
 
