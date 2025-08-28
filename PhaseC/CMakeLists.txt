@@ -98,8 +98,6 @@ if (STD_FORMAT_SUPPORTED)
     add_compile_definitions(STD_FORMAT_SUPPORTED)
 endif ()
 
-set(DEBUG_MODE ON) #TODO REMOVE!
-
 if (DEBUG_MODE)
     message(WARNING "CMAKE: Running with `" DEBUG_MODE "` ON")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -132,7 +130,7 @@ if (DEBUG_MODE)
 endif ()
 
 if (OPTIMIZED_MODE)
-    # set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) // TODO: determine why it causes error (it enables, LTO and WPO)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON) #// TODO: determine why it causes error (it enables, LTO and WPO)
     add_compile_options(
         -O3
         -march=native

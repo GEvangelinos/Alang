@@ -316,14 +316,32 @@ DiagnosticFormatter::format_issue_line(
 std::string
 DiagnosticFormatter::format_issue(const Issue &issue, const bool colorize) const
 {
+    constexpr u32 max_shown_lines = 10;
+    constexpr auto shown_part_size = max_shown_lines / 2;
+    constexpr char ellipsis_block[] = "...\n...\n...\n";
+
     std::stringstream out;
     build_issue_header(out, issue, colorize);
     out << '\n';
 
     highlight_pointer_flag.enable();
     const Issue::RenderingSpan span = issue.compute_printing_span(loc_tracker_);
-    for (u32 line_no = span.start_line; line_no <= span.end_line; ++line_no)
-        format_issue_line(out, issue, line_no, colorize);
+
+    const auto issue_line_count = span.end_line - span.start_line;
+    if (issue_line_count < max_shown_lines)
+        for (u32 line_no = span.start_line; line_no <= span.end_line; ++line_no)
+            format_issue_line(out, issue, line_no, colorize);
+    else
+    {
+        // Print leading context
+        for (u32 line_no = span.start_line; line_no <= span.start_line + shown_part_size; ++line_no)
+            format_issue_line(out, issue, line_no, colorize);
+        // Ellipsis block to indicate omitted middle context.
+        out << ellipsis_block;
+        // Print trailing context
+        for (u32 line_no = span.end_line - shown_part_size; line_no <= span.end_line; ++line_no)
+            format_issue_line(out, issue, line_no, colorize);
+    }
 
     return out.str();
 }

@@ -28,29 +28,51 @@ struct Info
     std::vector<yysymbol_kind_t> expected_tokens;
 };
 
+[[nodiscard]] static bool
+has_expected(const Info &info, const yysymbol_kind_t s)
+{
+    for (std::size_t i = 0; i < info.expected_tokens.size(); ++i)
+        if (info.expected_tokens[i] == s)
+            return true;
+    return false;
+};
+
 [[nodiscard]] static yysymbol_kind_t
 determine_suggested_token(const LexerCtx &lexer_ctx, const Info &info)
 {
     const TokenInfo token_info = lexer_ctx.second_last_token_info().value();
 
-    auto has_expected = [&info](const yysymbol_kind_t s) -> bool
-    {
-        for (std::size_t i = 0; i < info.expected_tokens.size(); ++i)
-            if (info.expected_tokens[i] == s)
-                return true;
-        return false;
-    };
-
     // Suggestion priority:   `;`  `:`  `)`  `]`  `}`  `,`
-    if (has_expected(YYSYMBOL_SEMICOLON) &&
+    if (has_expected(info, YYSYMBOL_SEMICOLON) &&
         token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
         token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE) { return YYSYMBOL_SEMICOLON; }
-    if (has_expected(YYSYMBOL_COLON)) return YYSYMBOL_COLON;
-    if (has_expected(YYSYMBOL_RIGHT_PAREN)) return YYSYMBOL_RIGHT_PAREN;
-    if (has_expected(YYSYMBOL_RIGHT_BRACKET)) return YYSYMBOL_RIGHT_BRACKET;
-    if (has_expected(YYSYMBOL_RIGHT_BRACE)) return YYSYMBOL_RIGHT_BRACE;
-    if (has_expected(YYSYMBOL_COMMA)) return YYSYMBOL_COMMA;
+    if (has_expected(info, YYSYMBOL_COLON)) return YYSYMBOL_COLON;
+    if (has_expected(info, YYSYMBOL_RIGHT_PAREN)) return YYSYMBOL_RIGHT_PAREN;
+    if (has_expected(info, YYSYMBOL_RIGHT_BRACKET)) return YYSYMBOL_RIGHT_BRACKET;
+    if (has_expected(info, YYSYMBOL_RIGHT_BRACE)) return YYSYMBOL_RIGHT_BRACE;
+    if (has_expected(info, YYSYMBOL_COMMA)) return YYSYMBOL_COMMA;
     return YYSYMBOL_YYEMPTY;
+}
+
+// Expression Heuristic, basically an educated guess, that we expected upcoming expression.
+bool expected_primary_expression(const Info &info)
+{
+    // All the symbols below can be a starter of expr... the more symbol we check are valid
+    // the stronger we make our heuristic.
+    return has_expected(info, YYSYMBOL_ID) &&
+           has_expected(info, YYSYMBOL_NIL) &&
+           has_expected(info, YYSYMBOL_TRUE) &&
+           has_expected(info, YYSYMBOL_FALSE) &&
+           has_expected(info, YYSYMBOL_INT) &&
+           has_expected(info, YYSYMBOL_FLOAT) &&
+           has_expected(info, YYSYMBOL_STRING) &&
+           has_expected(info, YYSYMBOL_LEFT_PAREN) &&
+           has_expected(info, YYSYMBOL_NOT) &&
+           has_expected(info, YYSYMBOL_MINUS) &&
+           has_expected(info, YYSYMBOL_DEC) &&
+           has_expected(info, YYSYMBOL_INC) &&
+           has_expected(info, YYSYMBOL_LOCAL) &&
+           has_expected(info, YYSYMBOL_GLOBAL);
 }
 
 [[nodiscard]] static unsigned int
@@ -190,43 +212,60 @@ report_too_many_expected_diagnostic(
     DEBUG_SMART_ASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
     DEBUG_SMART_ASSERT(info.expected_tokens.size() > FEW_TOKENS);
-    const yysymbol_kind_t suggested_symbol = determine_suggested_token(lexer_ctx, info);
-
+    const auto unexpected_str = get_formatted_unexpected_token_name(info);
     std::optional<Suggestion> suggestion;
     std::list<Note> notes;
+    if (expected_primary_expression(info) && lexer_ctx.second_last_token_info().has_value())
+    {
+        suggestion.emplace("expression", lexer_ctx.second_last_token_info().value().loc);
+        Issue primary = Issue(
+            SYNTAX_ERROR_ISSUE_TYPE,
+            FMT::format("expected expression, found ‘{}’", unexpected_str),
+            info.unexpected_token_loc,
+            suggestion
+        );
+        diagnostic_engine.report(std::move(primary), std::move(notes));
+        return;
+    }
+
+    const yysymbol_kind_t suggested_symbol = determine_suggested_token(lexer_ctx, info);
 
     if (suggested_symbol != YYSYMBOL_YYEMPTY)
     {
         suggestion.emplace(make_symbol_suggestion(lexer_ctx, suggested_symbol));
 
-        const char *opposite_symbol_name = nullptr;
-        std::optional<SourceLocation> match_note_loc = k_no_loc;
-        if (suggested_symbol == YYSYMBOL_RIGHT_PAREN)
+        const char *opener_name = nullptr;
+        std::optional<SourceLocation> opener_loc;
+        switch (suggested_symbol)
         {
-            match_note_loc = lexer_ctx.lastest_open_parenthesis_loc();
-            opposite_symbol_name = yysymbol_name(YYSYMBOL_LEFT_PAREN);
-        }
-        else if (suggested_symbol == YYSYMBOL_RIGHT_BRACKET)
-        {
-            match_note_loc = lexer_ctx.lastest_open_bracket_loc();
-            opposite_symbol_name = yysymbol_name(YYSYMBOL_LEFT_BRACKET);
-        }
-        else if (suggested_symbol == YYSYMBOL_RIGHT_BRACE)
-        {
-            match_note_loc = lexer_ctx.latest_open_brace_loc();
-            opposite_symbol_name = yysymbol_name(YYSYMBOL_LEFT_BRACE);
+        case YYSYMBOL_RIGHT_PAREN:
+            opener_loc = lexer_ctx.lastest_open_parenthesis_loc();
+            opener_name = yysymbol_name(YYSYMBOL_LEFT_PAREN);
+            break;
+        case YYSYMBOL_RIGHT_BRACKET:
+            opener_loc = lexer_ctx.lastest_open_bracket_loc();
+            opener_name = yysymbol_name(YYSYMBOL_LEFT_BRACKET);
+            break;
+        case YYSYMBOL_RIGHT_BRACE:
+            opener_loc = lexer_ctx.latest_open_brace_loc();
+            opener_name = yysymbol_name(YYSYMBOL_LEFT_BRACE);
+            break;
+        default: break;
         }
 
-        if (match_note_loc.has_value())
+        if (opener_loc.has_value())
+        {
+            DEBUG_SMART_ASSERT(opener_loc.value() != k_no_loc);
             notes.emplace_back(
-                FMT::format("to match this `{}`", DEBUG_REQUIRE_PTR(opposite_symbol_name)),
-                match_note_loc.value()
+                FMT::format("to match this `{}`", DEBUG_REQUIRE_PTR(opener_name)),
+                opener_loc.value()
             );
+        }
     }
 
     Issue primary = Issue(
         SYNTAX_ERROR_ISSUE_TYPE,
-        FMT::format("unexpected ‘{}’, invalid syntax", get_formatted_unexpected_token_name(info)),
+        FMT::format("invalid syntax, unexpected ‘{}’", unexpected_str),
         info.unexpected_token_loc,
         suggestion
     );
@@ -235,7 +274,8 @@ report_too_many_expected_diagnostic(
 }
 
 static void
-report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc, DiagnosticEngine &diagnostic_engine)
+report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc,
+                                DiagnosticEngine &diagnostic_engine)
 {
     DEBUG_SMART_ASSERT(false &&
         "HOLD YOUR HORSES... You just caused an error,\n"
@@ -293,7 +333,8 @@ static int yyreport_syntax_error(
     const yysymbol_kind_t unexpected_token = yypcontext_token(yyctx);
     const YYLTYPE unexpected_token_loc = *utils::require_ptr(yypcontext_location(yyctx));
 
-    if (unexpected_token == YYSYMBOL_YYEMPTY) // According to bison manual this mean NO-LOOKAHEAD
+    if (unexpected_token == YYSYMBOL_YYEMPTY)
+    // According to bison manual this mean NO-LOOKAHEAD
         report_no_unexpected_diagnostic(unexpected_token_loc, diagnostic_engine);
     else
     {
@@ -319,7 +360,8 @@ static void alpha_yyerror(
     [[maybe_unused]] const alpha::SemanticSystem &,
     const std::string &error_message)
 {
-    DEBUG_SMART_ASSERT(false && "alpha_yyerror function called why? Memory exhaustion occurred?");
+    DEBUG_SMART_ASSERT(
+        false && "alpha_yyerror function called why? Memory exhaustion occurred?");
     diagnostic_engine.report(Issue(
         Issue::Type::FATAL_ERROR,
         std::string("ERROR_MESSAGE: ")

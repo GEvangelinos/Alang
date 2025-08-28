@@ -71,6 +71,7 @@ Issue::compute_printing_span(const LocationTracker &loc_tracker) const
             result.end_line = suggestion_end_line;
     }
 
+    DEBUG_SMART_ASSERT(result.start_line <= result.end_line);
     return result;
 }
 

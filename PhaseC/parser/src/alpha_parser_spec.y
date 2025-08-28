@@ -109,13 +109,7 @@
 
 %type  <const_func_symbol_ptr> func_signature
 %type  <const_func_symbol_ptr> func_def
-/********************************************************
-%type  <expr_ptr> member
-%type  <expr_ptr> call
-%type  <expr_ptr> objectDef
-
-*******************************************************/
-%type  <block_location> block_loc
+%type  <block_location> block
 
 /**
  * By default Bison uses the bare token names (e.g. IF, METHOD_CALL)
@@ -234,7 +228,7 @@ stmt_impl:
 | for_stmt
 | return_stmt SEMICOLON
 | loop_ctrl_stmt SEMICOLON
-| block_loc
+| block
 | func_def
 | SEMICOLON
 | error SEMICOLON   { ss.recover(); yyerrok; }
@@ -442,9 +436,9 @@ block_body:
 | multiStmt
 ;
 
-block_loc:
+block:
   block_begin block_body block_end
-  { $block_loc = ss.call<"block_manager.make_block_location">(@block_begin, @block_end); }
+  { $block = ss.call<"block_manager.make_block_location">(@block_begin, @block_end); }
 ;
 
 func_prefix:
@@ -469,8 +463,8 @@ func_signature:
 ;
 
 func_def:
-  func_signature block_loc
-  { $func_def = ss.call<"function_builder.build_program_function_exit">($block_loc); }
+  func_signature block
+  { $func_def = ss.call<"function_builder.build_program_function_exit">($block); }
 ;
 
 const:
