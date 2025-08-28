@@ -202,10 +202,10 @@ set(IR_OPCODE_SPEC_FILENAME "ir_opcode_spec.yaml")      # <-- Modifying filename
 set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/${AUTOGEN_DIRNAME}" CACHE PATH "Path to the root directory for auto-generated components")
 
 ##########################################--==>> TESTS <<==--###########################################
-set(WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/working")
-set(ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/tests/error")
-set(GOLDEN_SYMBOL_TABLES_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_SYMBOL_TABLES")
-set(GOLDEN_COMPILE_ERRORS_DIR "${CMAKE_SOURCE_DIR}/tests/GOLDEN_COMPILE_ERRORS")
+set(WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/working")
+set(ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/error")
+set(GOLDEN_SYMBOL_TABLES_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_SYMBOL_TABLES")
+set(GOLDEN_COMPILE_ERRORS_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_COMPILE_ERRORS")
 
 function(make_dir_verbose dirname)
     file(MAKE_DIRECTORY ${dirname})

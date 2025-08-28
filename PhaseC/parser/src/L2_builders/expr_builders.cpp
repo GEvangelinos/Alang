@@ -54,7 +54,7 @@ TableAccessBuilder::Restricted::Restricted(const SemanticSystemServices &ss_serv
 
 const Expr *
 AggregateBuilder::Restricted::build_table_list_consuming(
-    ExprList *&elist,
+    ExprList *elist,
     const SourceLocation table_list_loc)
 {
     DEBUG_SMART_ASSERT(!!elist);
@@ -81,7 +81,7 @@ AggregateBuilder::Restricted::build_table_list_consuming(
 
 const Expr *
 AggregateBuilder::Restricted::build_table_dict_consuming(
-    DictList *&dlist,
+    DictList *dlist,
     const SourceLocation table_dict_loc)
 {
     DEBUG_SMART_ASSERT(!!dlist);
@@ -591,7 +591,7 @@ CallBuilder::Restricted::check_for_argument_mismatch(
 const Expr *
 CallBuilder::Restricted::build_call_consuming(
     const Expr *const callable_lvalue,
-    ExprList *&arg_list,
+    ExprList *arg_list,
     const SourceLocation call_loc,
     const Expr *const method)
 {
@@ -617,7 +617,7 @@ CallBuilder::Restricted::build_call_consuming(
 
 const Expr *
 CallBuilder::Restricted::build_method_call_consuming(
-    const Expr *const callable_lvalue, ExprList *&arg_list, const SourceLocation call_loc)
+    const Expr *const callable_lvalue, ExprList *arg_list, const SourceLocation call_loc)
 {
     // TODO: Make ExprList (elist) and DictList(dlist) self-manageable (either methods)
     // or using ADL.
@@ -635,17 +635,16 @@ CallBuilder::Restricted::build_method_call_consuming(
 
 const Expr *
 CallBuilder::Restricted::build_iife_call_consuming(
-    const FuncSymbol *const func_symbol, ExprList *&arg_list, const SourceLocation call_loc)
+    const FuncSymbol *const func_symbol, ExprList *arg_list, const SourceLocation call_loc)
 {
     DEBUG_SMART_ASSERT(!!func_symbol);
     const auto *const prog_func_expr = expr_maker_->make_prog_func_expr(call_loc, func_symbol);
     return build_call_consuming(prog_func_expr, arg_list, call_loc);
 }
 
-void CallBuilder::Restricted::delete_expr_list(ExprList *&param_list)
+void CallBuilder::Restricted::delete_expr_list(ExprList *param_list)
 {
     delete param_list;
-    param_list = nullptr;
 }
 
 const Expr *

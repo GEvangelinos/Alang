@@ -37,19 +37,21 @@ private:
         [[nodiscard]] static ExprList *build_expr_list();
         [[nodiscard]] static ExprList *build_expr_list(const Expr *head_expr);
         [[nodiscard]] static ExprList *extend_expr_list(ExprList *elist, const Expr *next_expr);
-        static void delete_expr_list(ExprList *&elist);
+        static void delete_expr_list(ExprList *elist);
+        static void consume_expr_list(ExprList *elist) {  delete_expr_list(elist); }
 
         // Dict related (candidate for submodule)
         [[nodiscard]] static const ExprPair *build_expr_pair(const Expr *first, const Expr *second);
         [[nodiscard]] static DictList *build_dict_list();
         [[nodiscard]] static DictList *build_dict_list(const ExprPair *head_pair);
         [[nodiscard]] static DictList *extend_dict_list(DictList *dlist, const ExprPair *next_pair);
-        void static delete_dict_list(DictList *&dlist);
+        static void delete_dict_list(DictList *dlist);
+        static void consume_dict_list(DictList *dlist) { delete_dict_list(dlist); }
 
         [[nodiscard]] const Expr *build_table_list_consuming(
-            ExprList *&elist, SourceLocation table_list_loc);
+            ExprList *elist, SourceLocation table_list_loc);
         [[nodiscard]] const Expr *build_table_dict_consuming(
-            DictList *&dlist, SourceLocation table_dict_loc);
+            DictList *dlist, SourceLocation table_dict_loc);
     };
 
     Restricted DISPATCH_TARGET;
@@ -62,6 +64,8 @@ private:
     DISPATCH_SLAVE_METHOD_CALL(build_dict_list);
     DISPATCH_SLAVE_METHOD_CALL(extend_expr_list);
     DISPATCH_SLAVE_METHOD_CALL(extend_dict_list);
+    DISPATCH_SLAVE_METHOD_CALL(consume_expr_list);
+    DISPATCH_SLAVE_METHOD_CALL(consume_dict_list);
     DISPATCH_SLAVE_METHOD_CALL(build_table_list_consuming);
     DISPATCH_SLAVE_METHOD_CALL(build_table_dict_consuming);
     DISPATCH_DEFINE_HANDLER_END();
@@ -248,17 +252,17 @@ private:
         void end_call();
 
         [[nodiscard]] const Expr *build_call_consuming(
-            const Expr *callable_lvalue, ExprList *&arg_list, SourceLocation call_loc,
+            const Expr *callable_lvalue, ExprList *arg_list, SourceLocation call_loc,
             const Expr *method = nullptr);
         [[nodiscard]] const Expr *build_method_call_consuming(
-            const Expr *callable_lvalue, ExprList *&arg_list, SourceLocation call_loc);
+            const Expr *callable_lvalue, ExprList *arg_list, SourceLocation call_loc);
         [[nodiscard]] const Expr *build_iife_call_consuming(
-            const FuncSymbol *func_symbol, ExprList *&arg_list, SourceLocation call_loc);
+            const FuncSymbol *func_symbol, ExprList *arg_list, SourceLocation call_loc);
 
         void check_for_argument_mismatch(
             const Expr *callable_lvalue, const ExprList *param_list, SourceLocation call_loc);
 
-        static void delete_expr_list(ExprList *&param_list);
+        static void delete_expr_list(ExprList *param_list);
     };
 
     Restricted DISPATCH_TARGET;
@@ -413,13 +417,11 @@ AggregateBuilder::Restricted::extend_expr_list(
     return elist;
 }
 
-// Passed by reference to nullify after deletion -- avoids leaving a dangling pointer.
 inline void
-AggregateBuilder::Restricted::delete_expr_list(ExprList *&elist)
+AggregateBuilder::Restricted::delete_expr_list(ExprList *elist)
 {
     // Note: Do NOT delete the expressions in ExprList -- those are handler by ExprMaker.
     delete elist;
-    elist = nullptr;
 }
 
 inline const ExprPair *
@@ -453,13 +455,12 @@ AggregateBuilder::Restricted::extend_dict_list(
 
 // Passed by reference to nullify after deletion -- avoids leaving a dangling pointer.
 inline void
-AggregateBuilder::Restricted::delete_dict_list(DictList *&dlist)
+AggregateBuilder::Restricted::delete_dict_list(DictList *dlist)
 {
     // Note: Do NOT delete the expressions in ExprPair -- those are handler by ExprMaker.
     for (const ExprPair *pair: *dlist)
         delete pair; // Shallow delete, it does NOT delete the expressions it's holding.
     delete dlist;
-    DEBUG_NULLIFY(dlist);
 }
 
 inline void

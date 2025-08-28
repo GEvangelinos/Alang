@@ -73,7 +73,7 @@
 // semantic driver is written in C++. Bison's C++ driver is more
 // complex and appears to be problematic (erroneous).
 %union{
-    char *cstring;
+    const char *cstring;
     bool const_bool;
     alpha::AlphaInt const_int;
     alpha::AlphaFloat const_float;
@@ -508,38 +508,8 @@ while_stmt:
 for_clause:
   FOR
   LEFT_PAREN
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
-  expr_list[init_list] // TODO CONSUME THE EXPR_LIST (in update too!);
+  expr_list[init_list]
+  { ss.call<"aggregate_builder.consume_expr_list">($init_list); }
   SEMICOLON
   { ss.call<"control_flow_manager.mark_forloop_condition_entry">(); }
   expr[condition]
@@ -550,13 +520,16 @@ for_clause:
   SEMICOLON
   { ss.call<"control_flow_manager.mark_forloop_update_list_entry">(); }
   expr_list[update_list]
-  { ss.call<"control_flow_manager.mark_forloop_update_list_exit">(@update_list); }
+  {
+    ss.call<"control_flow_manager.mark_forloop_update_list_exit">(@update_list);
+    ss.call<"aggregate_builder.consume_expr_list">($update_list);
+  }
   RIGHT_PAREN
 ;
 
 for_stmt:
-  for_clause  { ss.call<"control_flow_manager.manage_forloop_entry">(); }
-  stmt[body]        { ss.call<"control_flow_manager.manage_forloop_exit">(@body); }
+  for_clause { ss.call<"control_flow_manager.manage_forloop_entry">(); }
+  stmt[body] { ss.call<"control_flow_manager.manage_forloop_exit">(@body); }
 ;
 
 
