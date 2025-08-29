@@ -48,8 +48,6 @@ public:
 
     [[nodiscard]] const Expr *clone_with_updated_location(
         SourceLocation new_loc, const Expr *donor_expr);
-    [[nodiscard]] const Expr *rvalue_cast_with_updated_location(
-        SourceLocation cast_loc, const Expr *expr);
 
 private:
     ParseCtx *const parse_ctx_;

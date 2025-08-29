@@ -156,26 +156,30 @@ AssignBuilder::Restricted::build_post_dec(const Expr *const lvalue, const Source
 
 bool
 AssignBuilder::Restricted::validate_lvalue_assignment(
-    const Expr *const lvalue,
+    const Expr *const lhs,
     const SourceLocation assign_loc)
 {
-    DEBUG_SMART_ASSERT(!!lvalue);
-    if (lvalue->type == Expr::Type::LIBRARY_FUNCTION)
+    DEBUG_SMART_ASSERT(!!lhs);
+    if (lhs->type == Expr::Type::LIBRARY_FUNCTION)
     {
-        const auto *const func_symbol = static_cast<const LibFuncExpr *>(lvalue)->func_symbol;
+        const auto *const func_symbol = static_cast<const LibFuncExpr *>(lhs)->func_symbol;
         dr_->report_assign_to_libfunc(func_symbol->name, assign_loc);
         return false;
     }
-    if (lvalue->type == Expr::Type::PROGRAM_FUNCTION)
+    if (lhs->type == Expr::Type::PROGRAM_FUNCTION)
     {
-        const auto *const func_symbol = static_cast<const ProgFuncExpr *>(lvalue)->func_symbol;
+        const auto *const func_symbol = static_cast<const ProgFuncExpr *>(lhs)->func_symbol;
         dr_->report_assign_to_func(func_symbol->name, assign_loc, func_symbol->loc);
         return false;
     }
-
-    if (lvalue->is_rvalue())
+    if (lhs->is_lvalue_type() && lhs->is_rvalue_casted())
     {
-        dr_->report_assign_lhs_not_lvalue(lvalue->type, lvalue->loc);
+        dr_->report_assign_to_lvalue_casted_to_rvalue(lhs->type, lhs->loc);
+        return false;
+    }
+    if (lhs->is_rvalue())
+    {
+        dr_->report_assign_lhs_not_lvalue(lhs->type, lhs->loc);
         return false;
     }
     return true;
@@ -449,7 +453,7 @@ BasicBuilder::Restricted::build_logical_or(
     lhs = ss_bridge_->normalize_to_bool_expr(lhs);
     rhs = ss_bridge_->normalize_to_bool_expr(rhs);
 
-    DEBUG_SMART_ASSERT(        lhs->is_bool_or_const_bool(),        rhs->is_bool_or_const_bool()    );
+    DEBUG_SMART_ASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(result_loc, lhs, rhs))
         return optimized;

@@ -279,15 +279,12 @@ expr[out]:
  * @note: finalizing at `(` expr `)`, would try to prematurely backpatch bool expr,
  * causing a shit-storm of errors. actually tried it... thank god my debug_asserts got mad af
  * leaving this docstring here so you won't try again in the future. ;p
- 	// TODO: THIS IS ERROR!!!! and you dont recognize it..
- 	// you must make it rvalue somehow (maybe add flag in expr)
- 	// cause in alpha the following is illegal: (x) = 5; !!! SHOULD BE ERROR
  */
 term:
   primary                     { $term = $primary; }
-| LEFT_PAREN expr RIGHT_PAREN { $term = $expr; }
 | not_op                      { $term = $not_op; }
-| MINUS expr %prec UMINUS { $term = ss.call<"basic_builder.build_uminus">($expr, @term); }
+| LEFT_PAREN expr RIGHT_PAREN { $term = ss.call<"force_rvalue_cast">($expr, @term); }
+| MINUS expr %prec UMINUS     { $term = ss.call<"basic_builder.build_uminus">($expr, @term); }
 | INC expr { $term = ss.call<"assign_builder.build_pre_inc">($expr, @term); }
 | expr INC { $term = ss.call<"assign_builder.build_post_inc">($expr, @term); }
 | DEC expr { $term = ss.call<"assign_builder.build_pre_dec">($expr, @term); }

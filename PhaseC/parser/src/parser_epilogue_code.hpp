@@ -1,6 +1,7 @@
 #ifndef PARSER_EPILOGUE_CODE_HPP
 #define PARSER_EPILOGUE_CODE_HPP
-
+// TODO: When you have the time.. please fix-up / rewrite this file.. its a mess
+// although i feel like it has potential.
 #include <alpha_parser.gen.hpp>
 #include <limits>
 #include <sstream>
@@ -38,20 +39,36 @@ has_expected(const Info &info, const yysymbol_kind_t s)
 };
 
 [[nodiscard]] static yysymbol_kind_t
-determine_suggested_token(const LexerCtx &lexer_ctx, const Info &info)
+determine_suggested_token(
+    const LocationTracker &loc_tracker,
+    const LexerCtx &lexer_ctx,
+    const Info &info)
 {
     if (lexer_ctx.second_last_token_info().has_value())
     {
-        const TokenInfo token_info = lexer_ctx.second_last_token_info().value();
+        const TokenInfo slast_token_info = lexer_ctx.second_last_token_info().value();
+        auto slast_last_line = loc_tracker.find_last_line(slast_token_info.loc);
+        auto unexpected_first_line = loc_tracker.find_first_line(info.unexpected_token_loc);
         // Suggestion priority:   `;`  `:`  `)`  `]`  `}`  `,`
+        // NOTE: because there are likely too many option (this function is used in too_many_expected)
+        // we only suggest semicolon if a newline is in between the second last token and last token..
+        // (the unexpected one), that is a heuristic that usually wins.. Suggesting semicolon without
+        // this rule, make suggestion awful as semicolon can be placed in many places that most of time
+        // make no sense.
         if (has_expected(info, YYSYMBOL_SEMICOLON) &&
-            token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
-            token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE) { return YYSYMBOL_SEMICOLON; }
+            slast_token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
+            slast_token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE &&
+            slast_last_line < unexpected_first_line) { return YYSYMBOL_SEMICOLON; }
         if (has_expected(info, YYSYMBOL_COLON)) return YYSYMBOL_COLON;
         if (has_expected(info, YYSYMBOL_RIGHT_PAREN)) return YYSYMBOL_RIGHT_PAREN;
         if (has_expected(info, YYSYMBOL_RIGHT_BRACKET)) return YYSYMBOL_RIGHT_BRACKET;
         if (has_expected(info, YYSYMBOL_RIGHT_BRACE)) return YYSYMBOL_RIGHT_BRACE;
         if (has_expected(info, YYSYMBOL_COMMA)) return YYSYMBOL_COMMA;
+
+        // if nothing else matches .. we revisit semicolon
+        if (has_expected(info, YYSYMBOL_SEMICOLON) &&
+            slast_token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
+            slast_token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE ) { return YYSYMBOL_SEMICOLON; }
     }
     return YYSYMBOL_YYEMPTY;
 }
@@ -261,6 +278,7 @@ static void report_unexpected_eof(
 
 static void
 report_too_many_expected_diagnostic(
+    const LocationTracker &loc_tracker,
     const LexerCtx &lexer_ctx,
     const Info &info,
     DiagnosticEngine &diagnostic_engine)
@@ -291,7 +309,8 @@ report_too_many_expected_diagnostic(
         return;
     }
 
-    const yysymbol_kind_t suggested_symbol = determine_suggested_token(lexer_ctx, info);
+    const yysymbol_kind_t suggested_symbol =
+            determine_suggested_token(loc_tracker, lexer_ctx, info);
 
     if (suggested_symbol != YYSYMBOL_YYEMPTY)
     {
@@ -318,11 +337,21 @@ report_too_many_expected_diagnostic(
 
         if (opener_loc.has_value())
         {
+            Issue primary = Issue(
+                SYNTAX_ERROR_ISSUE_TYPE,
+                FMT::format("expected `{}` but found `{}`",
+                    yysymbol_name(suggested_symbol), unexpected_str),
+                info.unexpected_token_loc,
+                suggestion
+            );
+
             DEBUG_SMART_ASSERT(opener_loc.value() != k_no_loc);
             notes.emplace_back(
                 FMT::format("to match this `{}`", DEBUG_REQUIRE_PTR(opener_name)),
                 opener_loc.value()
             );
+            diagnostic_engine.report(std::move(primary), std::move(notes));
+            return;
         }
     }
 
@@ -360,6 +389,7 @@ report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc,
 
 static void
 report_unexpected_diagnostic(
+    const LocationTracker &loc_tracker,
     const LexerCtx &lexer_ctx,
     const Info &info,
     DiagnosticEngine &diagnostic_engine)
@@ -369,7 +399,7 @@ report_unexpected_diagnostic(
     else if (info.expected_tokens.size() <= FEW_TOKENS)
         report_few_expected_diagnostic(lexer_ctx, info, diagnostic_engine);
     else
-        report_too_many_expected_diagnostic(lexer_ctx, info, diagnostic_engine);
+        report_too_many_expected_diagnostic(loc_tracker, lexer_ctx, info, diagnostic_engine);
 }
 
 /**
@@ -388,7 +418,7 @@ static int yyreport_syntax_error(
     yypcontext_t const *yyctx,
     const yyscan_t flex_ctx,
     LexerCtx &lexer_ctx,
-    [[maybe_unused]] LocationTracker &lt,
+    LocationTracker &loc_tracker,
     DiagnosticEngine &diagnostic_engine,
     [[maybe_unused]] DiagnosticReporter &dr,
     [[maybe_unused]] SemanticSystem &ss)
@@ -408,7 +438,7 @@ static int yyreport_syntax_error(
             .unexpected_token_loc = unexpected_token_loc,
             .expected_tokens = collect_expected_tokens(yyctx)
         };
-        report_unexpected_diagnostic(lexer_ctx, info, diagnostic_engine);
+        report_unexpected_diagnostic(loc_tracker, lexer_ctx, info, diagnostic_engine);
     }
     return YYREPORT_SYNTAX_ERROR_RETVAL;
 }

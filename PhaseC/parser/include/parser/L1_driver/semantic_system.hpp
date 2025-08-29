@@ -100,6 +100,7 @@ public:
     DISPATCH_MASTER_MODULE_CALL(table_access_builder);
     DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
     DISPATCH_MASTER_METHOD_CALL(consume_stmt_expr);
+    DISPATCH_MASTER_METHOD_CALL(force_rvalue_cast);
     DISPATCH_DEFINE_HANDLER_END();
 
 private:
@@ -134,10 +135,7 @@ private:
     // -- Directly dispatchable  methods-- // TODO: maybe package inside a module?
     void reset_stmt_context() noexcept;
     void consume_stmt_expr(const Expr *expr);
-    void explicit_rvalue_cast(const Expr *expr, const SourceLocation cast_loc )
-    {
-        expr_maker_->rvalue_cast_with_updated_location(cast_loc, expr);
-    }
+    [[nodiscard]] const Expr *force_rvalue_cast(const Expr *expr, SourceLocation cast_loc);
 
     [[nodiscard]] SemanticSystemServices create_semantic_system_services();
 

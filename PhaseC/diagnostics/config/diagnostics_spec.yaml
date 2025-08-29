@@ -67,6 +67,16 @@
       Args: [ func_name ]
       Location: assign_expr_loc
 
+- Diagnostic: ASSIGN_TO_LVALUE_CASTED_TO_RVALUE
+  Type: HARD_ERROR
+  Primary:
+    - Message: "assignment requires lvalue (expression of type {0} was an lvalue, but cast to rvalue)"
+      Args: [ lhs_type ]
+      Location: lhs_loc
+  Notes:
+    - Message: "remove the parentheses around `expression` to allow assignment"
+      Location: lhs_loc
+
 - Diagnostic: INACCESSIBLE_VAR_IN_FUNC
   Type: HARD_ERROR
   Primary:

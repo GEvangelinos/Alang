@@ -60,6 +60,7 @@ struct Expr : private Immobile
     [[nodiscard]] bool is_const_false() const noexcept;
     [[nodiscard]] bool is_const_arithmetic() const noexcept;
     [[nodiscard]] bool is_const() const noexcept;
+    [[nodiscard]] bool is_lvalue_type() const noexcept;
     [[nodiscard]] bool is_lvalue() const noexcept;
     [[nodiscard]] bool is_rvalue() const noexcept;
     [[nodiscard]] bool is_static() const noexcept;
@@ -262,7 +263,7 @@ inline bool
 Expr::is_const_bool() const noexcept { return type == Expr::Type::CONST_BOOL; }
 
 bool inline
-Expr::is_const_0()const noexcept
+Expr::is_const_0() const noexcept
 {
     switch (type)
     {
@@ -273,7 +274,7 @@ Expr::is_const_0()const noexcept
 }
 
 bool inline
-Expr::is_const_1()const noexcept
+Expr::is_const_1() const noexcept
 {
     switch (type)
     {
@@ -284,24 +285,24 @@ Expr::is_const_1()const noexcept
 }
 
 inline bool
-Expr::is_const_true()const noexcept
+Expr::is_const_true() const noexcept
 {
     return is_const_bool() && static_cast<const ConstBoolExpr *>(this)->value == true;
 }
 
- inline bool
-Expr::is_const_false()const noexcept
+inline bool
+Expr::is_const_false() const noexcept
 {
     return is_const_bool() && static_cast<const ConstBoolExpr *>(this)->value == false;
 }
 
- inline bool
-Expr::is_const_arithmetic()const noexcept
+inline bool
+Expr::is_const_arithmetic() const noexcept
 {
     return type == Type::CONST_INT || type == Type::CONST_FLOAT;
 }
 
- inline bool Expr::is_const()const noexcept
+inline bool Expr::is_const() const noexcept
 {
     switch (type)
     {
@@ -314,36 +315,29 @@ Expr::is_const_arithmetic()const noexcept
     }
 }
 
- inline bool
-Expr::is_lvalue()const noexcept
+inline bool
+Expr::is_lvalue_type() const noexcept
 {
     switch (type)
     {
     case Type::ASSIGN_EXPR:
     case Type::TABLE_ITEM:
-    case Type::VARIABLE: return !is_rvalue_casted();
+    case Type::VARIABLE: return true;
     default: return false;
     }
 }
 
- inline bool
-Expr::is_rvalue()const noexcept
-{
-    return !is_lvalue();
-}
+inline bool
+Expr::is_lvalue() const noexcept { return is_lvalue_type() && !is_rvalue_casted(); }
 
- inline bool
-Expr::is_static()const noexcept
-{
-    return is_const() || is_func();
-}
+inline bool
+Expr::is_rvalue() const noexcept { return !is_lvalue(); }
 
- inline bool
-Expr::has_symbol()const noexcept
-{
-    return !is_const();
-}
+inline bool
+Expr::is_static() const noexcept { return is_const() || is_func(); }
 
+inline bool
+Expr::has_symbol() const noexcept { return !is_const(); }
 
 inline Expr::Type
 to_expr_type(const Symbol::Type symbol_type)

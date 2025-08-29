@@ -115,7 +115,7 @@ private:
         [[nodiscard]] const Expr *build_post_dec(const Expr *lvalue, SourceLocation result_loc);
 
         [[nodiscard]] bool validate_lvalue_assignment(
-            const Expr *lvalue, SourceLocation assign_loc);
+            const Expr *lhs, SourceLocation assign_loc);
         [[nodiscard]] bool try_record_const_expr(const Expr *lvalue, const Expr *rvalue);
         [[nodiscard]] const Expr *handle_table_item_assignment(
             const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
