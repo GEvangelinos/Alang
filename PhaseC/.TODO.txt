@@ -2,17 +2,17 @@
 2) You do this the right way in phase 2.. So instead of visiting old PhaseA, maybe at the ability to print
 3) tokens as is in phaseB and re use that... Or even in phase C and add a mode that only runs the lexer.
 
-13) Convert scanner stuff to snake_case
+13 DONE ) Convert scanner stuff to snake_case
 
 19 DONE) Throw warning or error if a function is called with the wrong number of arguments
 
 20 IGNORED) Functionize the code block in scanner (.l file).
 
-22 IGNORED)    Make sure that only private fields in classes end with _
+22 DONE)    Make sure that only private fields in classes end with _
 
-23) Use clang-tidy (Static analysis, finds bad patterns and so on....)
+23 DONE) Use clang-tidy (Static analysis, finds bad patterns and so on....)
 
-25) Check you use _ in all private attributes of classes/structs/types.
+25 DONE) Check you use _ in all private attributes of classes/structs/types.
 
 31) Read you whole code and add sanity assert in critical parts or edge cases. 
  Syntax Error:
@@ -62,7 +62,7 @@ SEPERATION OF CONCERNS
 
 
 
-34)  Learn lambdas.. very good for help functions and shit
+34 DONE)  Learn lambdas.. very good for help functions and shit
 
 
 35)
@@ -86,7 +86,7 @@ no-file at all
  function must be declared in symbol table before you enter the function block, so recursion can happnen
 
 
-41) Check how many times its constructor is called. You should strive for minium calls.
+41 IGNORE) Check how many times its constructor is called. You should strive for minium calls.
 
 42) Keep a magic number for the binary in phase 4
 
@@ -142,88 +142,99 @@ public:
     }
 };
 
-47)Apply more fine-grain Expr* allocatio/deallocation management. Currently you gather all
+47 DISCARD (TO UNSAFE, ESPECIALLY USING COMPILATION PASS))
+    Apply more fine-grain Expr* allocatio/deallocation management. Currently you gather all
     expressions in the expression handler, and you free in the end..
 
-48) TODOOO!!: COUPLE SYMBOL_TABLE to PARSE_CTX. (basically put st in parse_ctx. (NOT THE OTHER WAY AROUND!!))   
+48 DONE (routed through SemanticSystem/BUILDERS) TODOOO!!: COUPLE SYMBOL_TABLE to PARSE_CTX. (basically put st in parse_ctx. (NOT THE OTHER WAY AROUND!!))
 MODIFY CODE, so .y doesnt now about st only about ParseCtx
 
 49) Make all news std::make_unique<>()
 
-50) IGNORE Polymorphic expression IDEA.. too much headache and little to gain..
+50 DONE (expression are polymorphic using enum tags , no virtualization) (so i didn't ignore it..  :D)
+        IGNORE Polymorphic expression IDEA.. too much headache and little to gain..
 
-51) TODO!! : Functions and procedures (ASF, ASP) can become classes.. 
-and all these functions can become methods... but now they have both symbol table and parse_ctx 
-as private member... (maybe parsectx only and symbol table in parsectx..) (DO IT!) (It will remove code bloat)
-(both in .y file and also in parameter lists of functions) + its way cheaper in runtime,
-as you only do a single dereference for parsectx and symtable instead of passing parameters..
-which means you get a bigger stack frame.!
+51 DONE (SemanticMangager/Builder -> and then from that SemanticSystem with 3 layer  hierarchy was born))
+    TODO!! : Functions and procedures (ASF, ASP) can become classes..
+    and all these functions can become methods... but now they have both symbol table and parse_ctx
+    as private member... (maybe parsectx only and symbol table in parsectx..) (DO IT!) (It will remove code bloat)
+    (both in .y file and also in parameter lists of functions) + its way cheaper in runtime,
+    as you only do a single dereference for parsectx and symtable instead of passing parameters..
+    which means you get a bigger stack frame.!
 
-BUT CAN we put more stuff in union?
+    BUT CAN we put more stuff in union?
 
-52 DONE) Optimize the temporaries. Lecture 10, slide 23, video 16 (09:06) savidis expalin why
+52 DONE. I ALSO added Cover-Your-Ass MODE, in case examiner are unhappy)
+   Optimize the temporaries. Lecture 10, slide 23, video 16 (09:06) savidis expalin why
 
-x =3;
+    x =3;
 
-produces assign x  3
-and then assign _t1 x
+    produces assign x  3
+    and then assign _t1 x
 
-you only need this for patterns like func_call(x=1, x=2, x=3);  your optimizer can identify only this patterns,
-else it cant remove the extra assignment to temporaries.
+    you only need this for patterns like func_call(x=1, x=2, x=3);  your optimizer can identify only this patterns,
+    else it cant remove the extra assignment to temporaries.
 
-hmm ADDED NOTE (2 days after I initially wrote this).
+    hmm ADDED NOTE (2 days after I initially wrote this).
 
-At random I thought... you could check if you are inside any function call.. if you are ..
-it means the assignments are passed as parameters. then and only you should reassign to temps.
-So maybe you can even do it while you build the expression by passing a boolean. Or at optimization
-pass. Which ever seems easier to implement.
+    At random I thought... you could check if you are inside any function call.. if you are ..
+    it means the assignments are passed as parameters. then and only you should reassign to temps.
+    So maybe you can even do it while you build the expression by passing a boolean. Or at optimization
+    pass. Which ever seems easier to implement.
 
-VERY IMPORTANT!! : IF you implement this.. REMEMBER TO put this into your report/ readme  or whatever you make
-else they will "cut your ass"...
+    VERY IMPORTANT!! : IF you implement this.. REMEMBER TO put this into your report/ readme  or whatever you make
+    else they will "cut your ass"...
 
 53) Cleanup cmake include_directories and target_link_libraries() find a way to make it minimal
 
-55) do highlight on multiple lines like this:
-
-[stygian@sepermeru Playground]$ cat lli.c
-void foo()
-{
-}
+55 DONE, I even break to long dignostics code boxes, so i dont litter diagnostic output
+   If I say so my self, that specific part I do it smarter  than GCC.. As i dont print)
 
 
-int main()
-{
-        foo
+   Empty line for highlighting and suggestion when its not needed
 
 
-                =
+    do highlight on multiple lines like this:
+
+    [stygian@sepermeru Playground]$ cat lli.c
+    void foo()
+    {
+    }
+
+
+    int main()
+    {
+            foo
+
+
+                    =
 
 
 
-                5;
-return 0;
-}
+                    5;
+    return 0;
+    }
 
-[stygian@sepermeru Playground]$ g++ lli.c
-lli.c: In function ‘int main()’:
-lli.c:11:17: error: assignment of function ‘void foo()’
-    8 |         foo
-      |         ~~~
-    9 |
-      |
-   10 |
-      |
-   11 |                 =
-      |                 ^
-   12 |
-      |
-   13 |
-      |
-   14 |
-      |
-   15 |                 5;
-      |                 ~
-[stygian@sepermeru Playground]$
+    [stygian@sepermeru Playground]$ g++ lli.c
+    lli.c: In function ‘int main()’:
+    lli.c:11:17: error: assignment of function ‘void foo()’
+        8 |         foo
+          |         ~~~
+        9 |
+          |
+       10 |
+          |
+       11 |                 =
+          |                 ^
+       12 |
+          |
+       13 |
+          |
+       14 |
+          |
+       15 |                 5;
+          |                 ~
+    [stygian@sepermeru Playground]$
 
 
 
@@ -234,8 +245,10 @@ for example we do
 
 but we never use it.
 
-57) Added extra code generation step to generate the diagnostics from YAML file.
-TODO: !! Dont forget to mention this in your report! (its very clever... Extra credit points)
+57 DONE-Doing it partially, all semantic check diagnostics are described in YAML file.
+   Syntax issues so far are hardcoded.)
+    Added extra code generation step to generate the diagnostics from YAML file.
+    TODO: !! Dont forget to mention this in your report!
 
 
 58) TODO read all emails on compiler on (hy342-list) (there maybe be bugs and stuff other have found.. also read the responses from the TAs)
@@ -276,7 +289,7 @@ Here.. we assign to _t4 false and then that to var..  we could do it immediately
 
 Also if var is never used after.. can never assign it.. which means we should never calc (x and y and z)
 
-basically an optimization would be to track command and see if they lead to any output.. if not.. why keep them..
+basically an optimization would be to track commands and see if they lead to any output.. if not.. why keep them..
 
 basically a file with:
 
@@ -344,58 +357,58 @@ TODO: Compiler Feature Planning
 
 3. Propagation Safety Rules
 ----------------------------
-- [ ] Only substitute values if primitive and non-aliased
-- [ ] Never propagate structured/mutable objects
-- [ ] Leave function calls in IR but track their result if safe
-- [ ] Allow marking/tagging functions as constant-returning
+- Only substitute values if primitive and non-aliased
+- Never propagate structured/mutable objects
+- Leave function calls in IR but track their result if safe
+- Allow marking/tagging functions as constant-returning
 
 4. Optimization Flags
 ----------------------
-- [ ] Define flags for:
+-  Define flags for:
       - fold_arithmetic
       - fold_logical
       - fold_relational
       - propagate_const_assignment
       - propagate_const_returns
       - substitute_known_consts
-- [ ] Group flags into a ConstantOptimizationFlags struct
-- [ ] Wrap in a SemanticOptions config object
+- Group flags into a ConstantOptimizationFlags struct
+- Wrap in a SemanticOptions config object
 
 5. Config System
 ----------------
-- [ ] Support optimization levels:
+-  Support optimization levels:
       - none
       - debug
       - safe
       - aggressive
-- [ ] Allow CLI override of individual options
-- [ ] Add `--ui-select` to open a visual selector
-- [ ] (Later) Add config file support (`--config config.json`)
-- [ ] (Optional) Support "save as default" or remember last used config
+-  Allow CLI override of individual options
+-  Add `--ui-select` to open a visual selector
+-  (Later) Add config file support (`--config config.json`)
+-  (Optional) Support "save as default" or remember last used config
 
 6. UI Tool (for later)
 -----------------------
-- [ ] Simple GUI with checkboxes for all optimization flags
-- [ ] Preset selector dropdown (None, Debug, Safe, Aggressive)
-- [ ] "Export CLI flags" and "Save config" options
-- [ ] Launchable via `--ui-select`
-- [ ] May use C++ (ImGui, Qt) or external tool (Python tkinter)
+-  Simple GUI with checkboxes for all optimization flags
+-  Preset selector dropdown (None, Debug, Safe, Aggressive)
+-  "Export CLI flags" and "Save config" options
+-  Launchable via `--ui-select`
+-  May use C++ (ImGui, Qt) or external tool (Python tkinter)
 
 7. Internal Constant Tracking
 ------------------------------
-- [ ] Optionally store `known_constant` in symbol table
-- [ ] Use a ConstValue struct for primitive types
-- [ ] Add API helpers:
+-  Optionally store `known_constant` in symbol table
+-  Use a ConstValue struct for primitive types
+-  Add API helpers:
       - is_known_const(var)
       - get_const_value(var)
 
 8. Future Ideas (low priority)
 -------------------------------
-- [ ] Analyze function purity for return value propagation
-- [ ] Support frozen/immutable structures
-- [ ] Add escape analysis to detect safe constant flow
-- [ ] Clean up unused constants in IR (after DCE)
-- [ ] Link propagated/folded constants to debug info
+-  Analyze function purity for return value propagation
+-  Support frozen/immutable structures
+-  Add escape analysis to detect safe constant flow
+-  Clean up unused constants in IR (after DCE)
+-  Link propagated/folded constants to debug info
 
 64) Add --show-lore in Arguinator :D And print this very message
 
@@ -404,7 +417,7 @@ TODO: Compiler Feature Planning
    - Only where it adds clarity (e.g., non-obvious assumptions or deep call chains)
    - Prefer concise, useful messages over repeating the obvious
 
-66) Put all friend declaration of any class at the top.. .before any access specifier (private ,public)
+66 DONE ) Put all friend declaration of any class at the top.. .before any access specifier (private ,public)
   at it quickly signal I am this function... I inherit these.. and my freinds are..
 
   BEcareful this rule can be broken.. if friendship order matters for ex:
@@ -428,47 +441,51 @@ TODO: Compiler Feature Planning
 
 
 
-67) make bison rules written in snake case not in camel case
- (they were camel in first architecture build with semanticManager and SemanticBuilder)
+67 DONE) make bison rules written in snake case not in camel case
+ (they were camel in second architecture build with semanticManager and SemanticBuilder)
 
-68) Add a translation layer for these IOPCODES:
+68 DONE (Created a way more sofisticated system than X-macros where ir::Opcodes are described in YAML
+    then a python program generates C++, info,opt_traits in form of constexpr functions (in beginning where
+    templated vars (like original type-traits) but i wanted to minimize bloat and code generation, and also
+    have the "traits" usable and efficient in both runtime and compile time
+    )
 
-#define IOPCODES_WITH_LABEL \
-    X(IF_EQ)                \
-    X(IF_NOTEQ)             \
-    X(IF_LESS)              \
-    X(IF_GREATER)           \
-    X(IF_LESSEQ)            \
-    X(IF_GREATEREQ)         \
-    X(JUMP)
+        Add a translation layer for these IOPCODES:
 
-because I am about to prune them to:
+        #define IOPCODES_WITH_LABEL \
+            X(IF_EQ)                \
+            X(IF_NOTEQ)             \
+            X(IF_LESS)              \
+            X(IF_GREATER)           \
+            X(IF_LESSEQ)            \
+            X(IF_GREATEREQ)         \
+            X(JUMP)
 
-#define IOPCODES_WITH_LABEL \
-    X(IF_EQ)                \
-    X(IF_NEQ)               \
-    X(IF_LT)                \
-    X(IF_GT)                \
-    X(IF_LTE)               \
-    X(IF_G)                 \
-    X(JUMP)
+        because I am about to prune them to:
 
-And maybe.. saviddis team.. will cry about it..
-Well there are kinda right..
-As the "Standard or Alpha" outputs the original IOPCodes for IR :D
+        #define IOPCODES_WITH_LABEL \
+            X(IF_EQ)                \
+            X(IF_NEQ)               \
+            X(IF_LT)                \
+            X(IF_GT)                \
+            X(IF_LTE)               \
+            X(IF_G)                 \
+            X(JUMP)
 
-69) OPTS to do:
-do x+0 = x
-x - 0 = x
+        And maybe.. saviddis team.. will cry about it..
+        Well there are kinda right..
+        As the "Standard or Alpha" outputs the original IOPCodes for IR :D
 
-and x*1 = x optimizations
+69 Done (part of ExprTrimmer class) OPTS to do:
+    do x+0 = x
+    x - 0 = x
 
-0 / x = 0
-x / 1 = x
-x % 1 = 0
-0 % x = 0
+    and x*1 = x optimizations
 
-
+    0 / x = 0
+    x / 1 = x
+    x % 1 = 0
+    0 % x = 0 (problematic.. could be 0%0.. so discarded)
 
 70) Assert DEBUG_SMART_ASSERT/ SMART_ASSERT calls dont use function with multiple arguments
 
@@ -489,11 +506,10 @@ and because function calls (which cause the problem... with their multiple argum
 we can count the parentheses and if not match we can report something like a syntax errors..
 although I suspect compiler would flag it as error (can't think of any exotic case it wouldn't)
 
-71) Check if you have static declare dfunction with [[nodiscard]] attribute
+71 (WRONG! DO NOT DO THIS!!) Check if you have static declare dfunction with [[nodiscard]] attribute
+    if so asser they have static before [[nodiscard]] (C++ standard)
 
-if so asser they have static before [[nodiscard]] (C++ standard)
-
-this is not standard: [[nodiscard]] static method(args);
+    this is not standard: [[nodiscard]] static method(args);
 
 
 72) REMEMBER To put HATE_PYTHON mode.. anything gneerated with python inside a cached source files..

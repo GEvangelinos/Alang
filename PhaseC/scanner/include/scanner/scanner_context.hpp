@@ -25,7 +25,7 @@ public:
 
     LexerCtx() = default;
 
-    ~LexerCtx() { TokenID::clearLastId(); }
+    ~LexerCtx() { TokenID::clear_last_id(); }
 
     void register_token(TokenInfo token_info);
 

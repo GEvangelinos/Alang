@@ -18,6 +18,8 @@ class FuncSymbol; // IWYU pragma: keep
 
 class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
 {
+    friend class SymbolTable;
+
 public:
     enum class Type : u8
     {
@@ -49,14 +51,14 @@ protected:
 private:
     bool is_active_ = true;
 
-    DEBUG_ALWAYS_INLINE void activate() noexcept { is_active_ = true; }
-    DEBUG_ALWAYS_INLINE void deactivate() noexcept { is_active_ = false; }
-
-    friend class SymbolTable;
+    void activate() noexcept { is_active_ = true; }
+    void deactivate() noexcept { is_active_ = false; }
 };
 
 class VarSymbol final : public Symbol
 {
+    friend class SymbolTable;
+
 public:
     enum class Space
     {
@@ -86,12 +88,12 @@ private:
     // Used to reference the const_expr in order to extract its const_value for constant_propagation
     // Only modified through friend class SymbolTable!
     mutable const ConstExpr *const_expr_ = nullptr;
-
-    friend class SymbolTable;
 };
 
 class FuncSymbol final : public Symbol
 {
+    friend class SymbolTable;
+    
 public:
     const u32 address;
     const std::vector<Parameter> parameter_list; // TODO: change to vector (cache friendly...)
@@ -107,9 +109,6 @@ public:
         const std::vector<Parameter> &parameter_list,
         SourceLocation location);
     ~FuncSymbol() override = default;
-
-private:
-    friend class SymbolTable;
 };
 
 inline

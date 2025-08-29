@@ -34,24 +34,24 @@
 id              [a-zA-Z][a-zA-Z_0-9]*
 int             (0[xX][0-9a-fA-F]+)|([0-9]+)
 float           ([0-9]*\.[0-9]+([eE][\+-]?[0-9]+)?)
-lineComment     "//".*
+line_comment     "//".*
 newline         "\n"
 space           [ \r\t\v]
 
-anyCharacterButNewLine  .
+any_character_but_newline  .
 
-commentBeginRule        "/\*"
-commentEndRule          "\*/"
+comment_begin_rule        "/\*"
+comment_end_rule          "\*/"
 
 stringBeginRule         \"
-stringEndRule           \"
+string_end_rule           \"
 
 /* Newlines are valid inside strings, but we exclude '\n' here */
 /* so that it matches a separate {newline} rule, allowing us */
 /* to update the line tracker explicitly when a line break occurs. */
-stringValidInnerPart    ([^\n\"\\]|\\[tn"\\])+
+string_valid_inner_part    ([^\n\"\\]|\\[tn"\\])+
 
-stringInvalidEscapeCode "\\"([^tnr"\\])
+string_invalid_escape_code "\\"([^tnr"\\])
 
 /* Flex conditions */
 %x INSIDE_COMMENT_BLOCK
@@ -105,54 +105,54 @@ stringInvalidEscapeCode "\\"([^tnr"\\])
 "."             { EMIT(DOT); }
 ".."            { EMIT(METHOD_CALL); }
 
-{id}            { yylval->cstring = alpha::TokenID::refreshLastId(yytext); EMIT(ID); } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
+{id}            { yylval->cstring = alpha::TokenID::refresh_last_id(yytext); EMIT(ID); } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
 {float}         { yylval->const_float = std::stod(yytext); EMIT(FLOAT); }
 {int}           { yylval->const_int = std::stol(yytext); EMIT(INT); }
-{lineComment}   { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
+{line_comment}   { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
 {newline}       { lt.append_line(lexer_ctx.index_); }
 {space}+        { /* Just eat up the spaces. */ }
 
-{commentBeginRule} {
+{comment_begin_rule} {
         BEGIN(INSIDE_COMMENT_BLOCK);
-        alpha::TokenComment::setStartingLocation(*yylloc);
+        alpha::TokenComment::set_starting_location(*yylloc);
 } /* No return until complete token or EOF. */
-<INSIDE_COMMENT_BLOCK>{commentEndRule} {
+<INSIDE_COMMENT_BLOCK>{comment_end_rule} {
                 BEGIN(INITIAL);
 }
 <INSIDE_COMMENT_BLOCK>{newline} {
         lt.append_line(lexer_ctx.index_);
 }
-<INSIDE_COMMENT_BLOCK>{anyCharacterButNewLine} { /* Just eat up any character use see. */ }
+<INSIDE_COMMENT_BLOCK>{any_character_but_newline} { /* Just eat up any character use see. */ }
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        dr.report_unclosed_comment(*yylloc, alpha::TokenComment::getStartingLocation());
+        dr.report_unclosed_comment(*yylloc, alpha::TokenComment::get_starting_location());
         return ALPHA_YYEOF;
 }
 
 {stringBeginRule} {
         BEGIN(INSIDE_STRING);
-        alpha::TokenString::setStartingLocation(*yylloc);
+        alpha::TokenString::set_starting_location(*yylloc);
 }
 <INSIDE_STRING>{newline} {
         lt.append_line(lexer_ctx.index_);
 }
-<INSIDE_STRING>{stringValidInnerPart} {
-        alpha::TokenString::appendToAssemblingBuffer(yytext);
+<INSIDE_STRING>{string_valid_inner_part} {
+        alpha::TokenString::append_to_assembling_buffer(yytext);
 }
-<INSIDE_STRING>{stringInvalidEscapeCode} {
-        alpha::TokenString::appendToAssemblingBuffer(yytext);
+<INSIDE_STRING>{string_invalid_escape_code} {
+        alpha::TokenString::append_to_assembling_buffer(yytext);
         dr.report_invalid_escape_code(yytext, *yylloc);
 }
 <INSIDE_STRING><<EOF>> {
-        dr.report_unclosed_string(*yylloc, alpha::TokenString::getStartingLocation());
+        dr.report_unclosed_string(*yylloc, alpha::TokenString::get_starting_location());
         return ALPHA_YYEOF;
 }
-<INSIDE_STRING>{stringEndRule} {
+<INSIDE_STRING>{string_end_rule} {
         BEGIN(INITIAL);
-       yylval->cstring =  alpha::TokenString::exportStringToken();
+        yylval->cstring =  alpha::TokenString::export_string_token();
         EMIT(STRING);
 }
 
-{anyCharacterButNewLine} { /* Any other character past this point is considered invalid. */
+{any_character_but_newline} { /* Any other character past this point is considered invalid. */
         dr.report_invalid_character(yytext, *yylloc);
 }
 

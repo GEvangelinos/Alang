@@ -43,19 +43,15 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/working/.Circle.asc.swp" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/working/.Circle.asc.swp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/working/Circle.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/working/Circle.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_maker.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_maker.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L3_ir_infra/expr_maker.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L3_ir_infra/expr_maker.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/include/scanner/scanner_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/include/scanner/scanner_context.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/include/scanner/scanner_token.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/include/scanner/scanner_token.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_token.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_token.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -1291,7 +1287,7 @@
       <workItem from="1756009747175" duration="3470000" />
       <workItem from="1756034472209" duration="21178000" />
       <workItem from="1756067007332" duration="38834000" />
-      <workItem from="1756263822969" duration="104929000" />
+      <workItem from="1756263822969" duration="110673000" />
     </task>
     <servers />
   </component>
