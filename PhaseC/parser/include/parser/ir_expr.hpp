@@ -68,7 +68,7 @@ struct Expr : private Immobile
 protected:
     // DO NOT explicitly initialize @param rvalue_casted!
     ALWAYS_INLINE Expr(const Type type, const SourceLocation loc)
-        : type(type), loc(loc) {}
+        : type(type), loc(loc), rvalue_casted() {}
 
 private:
     mutable Once<bool> rvalue_casted;

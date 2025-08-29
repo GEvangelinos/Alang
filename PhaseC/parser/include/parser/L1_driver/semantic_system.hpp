@@ -134,9 +134,9 @@ private:
     // -- Directly dispatchable  methods-- // TODO: maybe package inside a module?
     void reset_stmt_context() noexcept;
     void consume_stmt_expr(const Expr *expr);
-    void explicit_rvalue_cast(const Expr *expr)
+    void explicit_rvalue_cast(const Expr *expr, const SourceLocation cast_loc )
     {
-
+        expr_maker_->rvalue_cast_with_updated_location(cast_loc, expr);
     }
 
     [[nodiscard]] SemanticSystemServices create_semantic_system_services();

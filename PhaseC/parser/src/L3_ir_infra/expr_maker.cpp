@@ -46,7 +46,14 @@ ExprMaker::clone_with_updated_location(const SourceLocation new_loc, const Expr 
     case ET::ASSIGN_EXPR:
         return make_assign_expr(new_loc, static_cast<const AssignExpr *>(donor_expr)->var_symbol);
     case ET::BOOL_EXPR:
-        return make_bool_expr<true>(new_loc, static_cast<const BoolExpr *>(donor_expr));
+        // TODO: test this case... the trim_logical functions.. is it safe to move() the vectors?
+        const auto *const bool_donor_expr = static_cast<const BoolExpr *>(donor_expr);
+        const BoolExpr *result = make_bool_expr<true>(new_loc, bool_donor_expr);
+        result->true_list = std::move(bool_donor_expr->true_list);
+        result->false_list = std::move(bool_donor_expr->false_list);
+        bool_donor_expr->true_list.clear();
+        bool_donor_expr->false_list.clear();
+        return result;
     case ET::CONST_BOOL:
         return make_const_bool_expr(new_loc, static_cast<const ConstBoolExpr *>(donor_expr)->value);
     case ET::CONST_INT:
