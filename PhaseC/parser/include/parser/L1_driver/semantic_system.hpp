@@ -56,16 +56,17 @@ public:
         const bool propagate_const_return;
     };
 
-    // Gateway lets Driver mark hard errors, but not clear them;
+    // Gateway lets PassManager mark hard errors, but not clear them;
     // recovery hooks via call() dispatch can still reset, so it’s not bulletproof.
-    class DriverLink
+    // Gateway also provides access to the generated quads.
+    class Gateway
     {
         friend class PassManager;
         friend class SemanticSystem;
 
         SemanticSystem *const host_;
 
-        explicit DriverLink(SemanticSystem *const ss) : host_(utils::require_ptr(ss)) {}
+        explicit Gateway(SemanticSystem *const ss) : host_(utils::require_ptr(ss)) {}
 
         void notify_hard_error() noexcept;
 
@@ -73,7 +74,7 @@ public:
         {
             return host_->quad_handler_->quads();
         }
-    } status_gateway;
+    } gateway;
 
     SemanticSystem(
         const Options &options,
@@ -85,7 +86,6 @@ public:
     // alpha drivers would want (like the generated quads).
     void recover() noexcept { ss_status_ = Status::OK; }
     [[nodiscard]] bool good() const noexcept { return ss_status_ == Status::OK; }
-    [[nodiscard]] SourceLocation get_loc_of_last_expr() const;
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_MASTER_MODULE_CALL(aggregate_builder);

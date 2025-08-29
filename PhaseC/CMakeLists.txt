@@ -129,6 +129,11 @@ if (DEBUG_MODE)
     add_compile_definitions(DEBUG_MODE)
 endif ()
 
+if (CYA_MODE)
+    message(WARNING "CMAKE: Running with `CYA_MODE` (Cover-Your-Ass Mode) ON")
+    add_compile_definitions(CYA_MODE)
+endif ()
+
 if (OPTIMIZED_MODE)
     add_compile_options(
         -O3
@@ -205,6 +210,7 @@ set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/${AUTOGEN_DIRNAME}" CACHE PATH "P
 set(WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/working")
 set(ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/error")
 set(GOLDEN_SYMBOL_TABLES_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_SYMBOL_TABLES")
+set(GOLDEN_IR_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_IR")
 set(GOLDEN_COMPILE_ERRORS_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_COMPILE_ERRORS")
 
 function(make_dir_verbose dirname)
@@ -222,6 +228,7 @@ function(add_regression_check_target target_name do_memcheck)
     set(regression_args
         "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ALPHA_DRIVER_EXECUTABLE}"
         "--golden-symbol-tables-dir" "${GOLDEN_SYMBOL_TABLES_DIR}"
+        "--golden-ir-dir" "${GOLDEN_IR_DIR}"
         "--golden-compile-errors-dir" "${GOLDEN_COMPILE_ERRORS_DIR}"
         "--working-dir" "${WORKING_TESTS_DIR}"
         "--error-dir" "${ERROR_TESTS_DIR}"

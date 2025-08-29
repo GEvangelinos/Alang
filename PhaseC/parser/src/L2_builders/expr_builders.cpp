@@ -1,6 +1,12 @@
 #include <L2_semantic_subsystems/expr_builders.hpp>
 #include "parser/internal_typedefs.hpp"
 
+#ifdef CYA_MODE
+#define FORCE_ASSIGNMENT_TEMPS 1
+#else
+#define FORCE_ASSIGNMENT_TEMPS 0
+#endif
+
 namespace alpha
 {
 AggregateBuilder::AggregateBuilder(const SemanticSystemServices &ss_services)
@@ -217,19 +223,20 @@ AssignBuilder::Restricted::handle_direct_assignment(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-
     if (options_.record_constant_variables)
         if (try_record_const_expr(lvalue, rvalue))
             return lvalue; // Now lvalue's symbol carries rvalue.
 
-    const Expr *const temp = expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(ir::Opcode::ASSIGN, lvalue, rvalue, nullptr, result_loc);
 
     // In calls, force each (x=val) to yield its arg value; avoid C’s unspecified arg order
-    if (parse_ctx_->call_ctx_handler.is_in_call())
+    if (FORCE_ASSIGNMENT_TEMPS || parse_ctx_->call_ctx_handler.is_in_call())
+    {
+        const Expr *const temp = expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());
         quad_handler_->emit_next(ir::Opcode::ASSIGN, temp, lvalue, nullptr, result_loc);
-
-    return temp;
+        return temp;
+    }
+    return lvalue;
 }
 
 template<AssignBuilder::Restricted::OpVariant op_variant, typename Policy>
@@ -600,7 +607,6 @@ CallBuilder::Restricted::build_call_consuming(
     check_for_argument_mismatch(callable_lvalue, arg_list, call_loc);
     const Expr *func_expr = ss_bridge_->materialize_if_table_item(callable_lvalue);
 
-
     for (auto it = arg_list->crbegin(); it != arg_list->crend(); ++it)
         quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, *it, nullptr, (*it)->loc);
     if (method)
@@ -619,15 +625,13 @@ const Expr *
 CallBuilder::Restricted::build_method_call_consuming(
     const Expr *const callable_lvalue, ExprList *arg_list, const SourceLocation call_loc)
 {
-    // TODO: Make ExprList (elist) and DictList(dlist) self-manageable (either methods)
-    // or using ADL.
     const Expr *lvalue = ss_bridge_->materialize_if_table_item(callable_lvalue);
     const Expr *const lvalue_copy = lvalue;
 
     const Expr *const method_index = expr_maker_->make_const_string_expr(
         method_call_draft_.id_loc, method_call_draft_.id.c_str());
     const Expr *const hosting_var = expr_maker_->make_table_item_expr(
-        k_no_loc, lvalue, method_index);
+        call_loc, lvalue, method_index);
 
     lvalue = ss_bridge_->materialize_if_table_item(hosting_var);
     return build_call_consuming(lvalue, arg_list, call_loc, DEBUG_REQUIRE_PTR(lvalue_copy));
@@ -642,10 +646,7 @@ CallBuilder::Restricted::build_iife_call_consuming(
     return build_call_consuming(prog_func_expr, arg_list, call_loc);
 }
 
-void CallBuilder::Restricted::delete_expr_list(ExprList *param_list)
-{
-    delete param_list;
-}
+void CallBuilder::Restricted::delete_expr_list(ExprList *param_list) { delete param_list; }
 
 const Expr *
 ConstBuilder::Restricted::build_true_expr(const SourceLocation loc)

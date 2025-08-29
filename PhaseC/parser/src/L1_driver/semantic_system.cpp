@@ -1,5 +1,8 @@
 #include "L1_driver/semantic_system.hpp"
 
+#include "internal_typedefs.hpp"
+#include "core/konstants.hpp"
+
 namespace alpha
 {
 SemanticSystem::SemanticSystem(
@@ -7,7 +10,7 @@ SemanticSystem::SemanticSystem(
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
     DiagnosticReporter *const dr)
-    : status_gateway(this),
+    : gateway(this),
 
       // External resources, required to initialize class.
       parse_ctx_(utils::require_ptr(parse_ctx)),
@@ -117,17 +120,8 @@ SemanticSystem::finalize_bool_expr(const Expr *const expr)
     qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_false_expr, nullptr, expr->loc);
 }
 
-SourceLocation
-SemanticSystem::get_loc_of_last_expr() const
-{
-    DEBUG_SMART_ASSERT(expr_maker_.get() != nullptr);
-    if (expr_maker_->expr_sink_.empty())
-        return k_no_loc;
-    return expr_maker_->expr_sink_.back()->loc;
-}
-
 void
-SemanticSystem::DriverLink::notify_hard_error() noexcept
+SemanticSystem::Gateway::notify_hard_error() noexcept
 {
     host_->ss_status_ = SemanticSystem::Status::ERROR;
 }

@@ -50,7 +50,7 @@ public:
     void notify_hard_error();
 
     [[nodiscard]] bool is_in_hard_error();
-    [[nodiscard]] auto get_quads() { return semantic_system_.status_gateway.get_quads(); }
+    [[nodiscard]] const auto &get_quads() { return semantic_system_.gateway.get_quads(); }
 
 private:
     enum class Phase { FRONTEND };
@@ -94,11 +94,12 @@ public:
     void compile();
     void show_symbol_table() const;
     void show_compile_issues() const;
-    void show_quads() const;
+    void show_ir() const;
     void export_symbol_table() const;
     void export_compile_errors() const;
-    void export_quads() const;
-    [[nodiscard]] bool compiled_ok() { return compiled_ok_; }
+    void export_ir() const;
+
+    [[nodiscard]] bool compiled_ok() const noexcept;
 
 private:
     const std::filesystem::path source_path_;
@@ -109,13 +110,13 @@ private:
     DiagnosticFormatter diagnostic_formatter_;
     SymbolTable symbol_table_;
     std::unique_ptr<PassManager> pass_manager_;
-    bool compiled_ok_ = false;
+    bool execution_completed_ = false;
 
     void export_within_dir(
         std::string_view dirname, void (TranslationUnit::*export_func)() const) const;
     void export_symbol_table_impl() const;
     void export_compile_errors_impl() const;
-    void export_quads_impl() const;
+    void export_ir_impl() const;
     [[nodiscard]] DiagnosticEngine::Policy create_diagnostic_engine_policy();
 
     // Notifiers (used as callbacks)

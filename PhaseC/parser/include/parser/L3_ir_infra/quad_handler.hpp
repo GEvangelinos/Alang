@@ -2,6 +2,9 @@
 #define QUAD_HANDLER_HPP
 
 #include <vector>
+
+#include "internal_typedefs.hpp"
+#include "core/konstants.hpp"
 #include "parser/ir_opcode.gen.hpp"
 #include "parser/ir_opcode_info_traits.gen.hpp"
 #include "parser/konstants.hpp"
@@ -73,6 +76,7 @@ QuadHandler::emit(
             requirement_matches(ii::result(opc), result),
             requirement_matches(ii::arg1(opc), arg1),
             requirement_matches(ii::arg2(opc), arg2),
+            loc != k_no_loc
         );
     )
 

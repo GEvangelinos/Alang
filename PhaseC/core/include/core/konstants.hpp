@@ -1,5 +1,5 @@
-#ifndef ALPHA_KONSTANTS_HPP
-#define ALPHA_KONSTANTS_HPP
+#ifndef CORE_KONSTANTS_HPP
+#define CORE_KONSTANTS_HPP
 
 #include "core/numeric_types.hpp"
 #include "core/source_location.hpp"
@@ -10,7 +10,7 @@ static constexpr u32 k_max_input_file_size = static_cast<u32>(-1) / 2;
 
 // ParseCtx's constants
 static constexpr u32 k_max_function_nesting = 256; // Function nesting sanity limit.
-static constexpr u32 k_max_call_nesting = 256;    // Function call nesting sanity limit.
+static constexpr u32 k_max_call_nesting = 256;     // Function call nesting sanity limit.
 static constexpr u32 k_max_loop_nesting = 256;     // Loop nesting sanity limit.
 static constexpr u32 k_max_scope = 1024;           // Block nesting sanity limit.
 
@@ -29,7 +29,8 @@ static constexpr u32 k_libfunc_local_variable_count = 0;
 static constexpr u32 k_no_line = 0;
 static constexpr SourceLocation k_no_loc = {0, 0};
 
-constexpr char k_not_available_marker[] = "-";
+constexpr char k_not_available_marker[] = "NA";
+constexpr char k_not_available_pretty_marker[] = "-";
 }
 
-#endif // ALPHA_KONSTANTS_HPP
+#endif // CORE_KONSTANTS_HPP

@@ -6,11 +6,6 @@
 
 namespace alpha
 {
-static constexpr char k_symbol_table_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
-static constexpr char k_compile_error_exports_dirname[] = "COMPILE_ERROR_EXPORTS";
-static constexpr char k_quad_exports_dirname[] = "QUAD_EXPORTS";
-static constexpr char k_symbol_table_csv_export_header[] = "symbol,type,line,scope\n";
-static constexpr char k_error_csv_export_header[] = "line,column,diagnostic_type,message\n";
 
 class Driver : private Immobile
 {
@@ -21,16 +16,16 @@ public:
     ~Driver() = default;
 
     // Simple wrappers for now
-    void show_symbol_table() const { tu.show_symbol_table(); }
-    void show_compile_issues() const { tu.show_compile_issues(); }
-    void show_quads() const { tu.show_quads(); }
-    void export_symbol_table() const { tu.export_symbol_table(); }
-    void export_compile_errors() const { tu.export_compile_errors(); }
-    void export_quads() const { tu.export_quads(); }
+    void show_symbol_table() const;
+    void show_compile_issues() const;
+    void show_ir() const;
+    void export_symbol_table() const;
+    void export_compile_errors() const;
+    void export_ir() const;
 
-    void run() { tu.compile(); }
+    void run();
 
-    bool ok() { return tu.compiled_ok(); }
+    bool ok() const;
 
 private:
     // So far its only 1 TU, I made parsing system reentrant, to let multiple tu get compiled at once.

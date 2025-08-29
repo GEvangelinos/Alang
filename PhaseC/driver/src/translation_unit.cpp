@@ -1,8 +1,11 @@
 #include <alpha_parser.gen.hpp>
 #include <fstream>
 #include <driver/translation_unit.hpp>
+
+#include "core/konstants.hpp"
 #include "driver/alpha_driver.hpp"
 #include "driver/alpha_driver_exceptions.hpp"
+#include "driver/konstants.hpp"
 #include "scanner/alpha_scanner.gen.hpp"
 #include "utils/cli_color.h"
 
@@ -16,14 +19,14 @@ namespace
 void create_export_directory(std::string_view dirname);
 void enter_export_directory(std::string_view dirname);
 void exit_export_directory(const std::filesystem::path &original_path);
-std::string expr_printer(const alpha::Expr *expr);
+std::string expr_printer(const alpha::Expr *expr, const char *missing_marker = "");
 
 template<unsigned column, unsigned column_width, typename T>
 std::string color_column(T &&value);
 template<bool colorize, unsigned column, unsigned column_width, typename T>
 std::string format_column(T &&value);
 template<bool colorize, typename Stream>
-void print_quads(
+void print_ir(
     Stream &out, const std::vector<alpha::Quad> &quads, const alpha::LocationTracker &lt);
 
 void create_export_directory(const std::string_view dirname)
@@ -60,17 +63,17 @@ std::string escape(const char *const str)
     return out;
 }
 
-std::string expr_printer(const alpha::Expr *expr)
+std::string expr_printer(const alpha::Expr *expr, const char *const missing_marker)
 {
     using namespace alpha;
     if (!expr)
-        return "";
+        return missing_marker;
     using ET = Expr::Type;
     switch (expr->type)
     {
     case ET::CONST_BOOL: return static_cast<const ConstBoolExpr *>(expr)->value ? "true" : "false";
-    case ET::CONST_INT: return FMT::to_string(static_cast<const ConstIntExpr *>(expr)->value);
-    case ET::CONST_FLOAT: return FMT::to_string(static_cast<const ConstFloatExpr *>(expr)->value);
+    case ET::CONST_INT: return std::to_string(static_cast<const ConstIntExpr *>(expr)->value);
+    case ET::CONST_FLOAT: return std::to_string(static_cast<const ConstFloatExpr *>(expr)->value);
     case ET::CONST_STRING:
         return FMT::format("\"{}\"", escape(static_cast<const ConstStringExpr *>(expr)->value));
     case ET::CONST_NIL: return "nil";
@@ -117,8 +120,7 @@ std::string format_column(T &&value)
 }
 
 template<bool Colorize, typename Stream>
-void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
-                 const alpha::LocationTracker &lt)
+void print_ir(Stream &out, const std::vector<alpha::Quad> &quads, const alpha::LocationTracker &lt)
 {
     constexpr alpha::u32 widths[] = {10, 15, 20, 20, 20, 10, 10};
     constexpr alpha::u32 quad_header_width = [&widths]() constexpr
@@ -154,17 +156,18 @@ void print_quads(Stream &out, const std::vector<alpha::Quad> &quads,
     {
         const alpha::Quad &q = quads[i];
 
-        const auto quad_line_num = lt.find_first_line(q.location);
-        std::string quad_line_str = quad_line_num == alpha::k_no_line
-                                    ? alpha::k_not_available_marker
-                                    : std::to_string(quad_line_num);
         std::string quad_label_str = alpha::ir::info_traits::is_branching(quads[i].opcode)
                                      ? std::to_string(q.label)
-                                     : alpha::k_not_available_marker;
+                                     : alpha::k_not_available_pretty_marker;
+
+        const auto [first_line, last_line] = lt.find_lines(q.location);
+        std::string quad_line_str = first_line == last_line
+                                    ? std::to_string(first_line)
+                                    : FMT::format("{}-{}", first_line, last_line);
 
         out << FMT::format(
             "{} {} {} {} {} {} {}\n",
-            format_column<Colorize, 0, widths[0]>(i + 1),
+            format_column<Colorize, 0, widths[0]>(i + 1), // +1 as, 0 is indicating no-address
             format_column<Colorize, 1, widths[1]>(to_string(q.opcode)),
             format_column<Colorize, 2, widths[2]>(expr_printer(q.result)),
             format_column<Colorize, 3, widths[3]>(expr_printer(q.arg1)),
@@ -228,7 +231,7 @@ PassManager::notify_hard_error()
 {
     switch (running_phase_)
     {
-    case Phase::FRONTEND: return semantic_system_.status_gateway.notify_hard_error();
+    case Phase::FRONTEND: return semantic_system_.gateway.notify_hard_error();
     default: UNREACHABLE("Unknown `running_phase`");
     }
 }
@@ -321,7 +324,7 @@ TranslationUnit::compile()
     {
         pass_manager_->execute();
         // If we reach this point, execute() completed without throwing any exceptions.
-        compiled_ok_ = true;
+        execution_completed_ = true;
     }
     catch (exceptions::DiagnosticFatalError) {}
     catch (exceptions::DiagnosticErrorLimitExceeded) {}
@@ -372,12 +375,9 @@ TranslationUnit::show_compile_issues() const
 }
 
 void
-TranslationUnit::show_quads() const
+TranslationUnit::show_ir() const
 {
-    // TODO!! UNCOMMENT!
-    // if (diagnostic_engine_.has_errors())
-    //     return;
-    print_quads<true>(std::cout, pass_manager_->get_quads(), loc_tracker_);
+    print_ir<true>(std::cout, pass_manager_->get_quads(), loc_tracker_);
 }
 
 void
@@ -395,17 +395,20 @@ TranslationUnit::export_compile_errors() const
 }
 
 void
-TranslationUnit::export_quads() const
+TranslationUnit::export_ir() const
 {
-    if (diagnostic_engine_.has_fatal_errors() || diagnostic_engine_.has_errors())
-        return;
-    export_within_dir(k_quad_exports_dirname, &TranslationUnit::export_quads_impl);
+    export_within_dir(k_ir_exports_dirname, &TranslationUnit::export_ir_impl);
+}
+
+bool TranslationUnit::compiled_ok() const noexcept
+{
+    return execution_completed_ && !diagnostic_engine_.has_errors();
 }
 
 void
 TranslationUnit::export_symbol_table_impl() const
 {
-    const std::string outfile_name = source_path_.filename().string() + ".st.csv";
+    const std::string outfile_name = source_path_.filename().string() + k_symbol_table_export_ext;
     std::ofstream outfile(outfile_name);
     if (!outfile)
         throw std::runtime_error(
@@ -413,17 +416,21 @@ TranslationUnit::export_symbol_table_impl() const
 
     outfile << k_symbol_table_csv_export_header; // Write CSV header.
 
-    auto write_symbol = [&](const Symbol *symbol_ptr)
+    auto write_symbol_line = [&](const Symbol *symbol_ptr)
     {
         outfile << FMT::format(
-            "{},{},{},{}\n", symbol_ptr->name, symbol_ptr->type_to_string(),
-            loc_tracker_.find_symbol_line(symbol_ptr->loc), symbol_ptr->scope);
+            "{0},{1},{2},{3}\n",
+            symbol_ptr->name,
+            symbol_ptr->type_to_string(),
+            loc_tracker_.find_symbol_line(symbol_ptr->loc),
+            symbol_ptr->scope
+        );
     };
 
     const auto &symbol_per_scope_vector = symbol_table_.symbols_per_scope();
     for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
         for (const Symbol *symbol_ptr: symbol_per_scope_vector[scope])
-            write_symbol(symbol_ptr);
+            write_symbol_line(symbol_ptr);
 }
 
 void
@@ -441,40 +448,65 @@ TranslationUnit::export_within_dir(
 void
 TranslationUnit::export_compile_errors_impl() const
 {
-    const std::string outfile_name = source_path_.filename().string() + ".issue.csv";
+    const std::string outfile_name = source_path_.filename().string() + k_diagnostic_export_ext;
     std::ofstream outfile(outfile_name);
     if (!outfile)
         throw std::runtime_error(FMT::format(
             "Failed opening file {} to export compile errors", outfile_name));
 
     outfile << k_error_csv_export_header; // Write CSV header.
-    auto write_diagnostic = [&](const Issue &diag)
+    auto write_diagnostic_line = [&](const Issue &diag)
     {
-        outfile << FMT::format("{0},{1},{2},{3}\n",
-                               diag.line(loc_tracker_),
-                               diag.column(loc_tracker_),
-                               to_string(diag.type),
-                               diag.desc
+        outfile << FMT::format(
+            "{0},{1},{2},{3}\n",
+            diag.line(loc_tracker_),
+            diag.column(loc_tracker_),
+            to_string(diag.type),
+            diag.desc
         );
     };
 
     for (const auto &cti: diagnostic_engine_.get_diagnostics())
     {
-        write_diagnostic(cti->primary);
+        write_diagnostic_line(cti->primary);
         for (const Issue &note: cti->note_list)
-            write_diagnostic(note);
+            write_diagnostic_line(note);
     }
 }
 
 void
-TranslationUnit::export_quads_impl() const
+TranslationUnit::export_ir_impl() const
 {
-    const std::string outfile_name = source_path_.filename().string() + ".quads";
+    const std::string outfile_name = source_path_.filename().string() + k_ir_export_ext;
     std::ofstream outfile(outfile_name);
     if (!outfile)
         throw std::runtime_error(
-            FMT::format("Failed opening file {} to export quads", outfile_name));
+            FMT::format("Failed opening file {} to export ir", outfile_name));
 
-    print_quads<false>(outfile, pass_manager_->get_quads(), loc_tracker_);
+    outfile << k_ir_csv_export_header; // Write CSV header.
+
+    auto write_ir_line = [&](const std::size_t quad_no, const Quad &q)
+    {
+        const auto [first_line, last_line] = loc_tracker_.find_lines(q.location);
+        std::string quad_label_str = alpha::ir::info_traits::is_branching(q.opcode)
+                                     ? std::to_string(q.label)
+                                     : alpha::k_not_available_marker;
+
+        outfile << FMT::format(
+            "{0},{1},{2},{3},{4},{5},{6},{7}\n",
+            quad_no,
+            to_string(q.opcode),
+            expr_printer(q.result, k_not_available_marker),
+            expr_printer(q.arg1, k_not_available_marker),
+            expr_printer(q.arg2, k_not_available_marker),
+            quad_label_str,
+            first_line,
+            last_line
+        );
+    };
+
+    const auto &quads = pass_manager_->get_quads();
+    for (std::size_t i = 0; i < quads.size(); ++i)
+        write_ir_line(i + 1, quads[i]); // +1 cause quad address 0 is indicating no-address
 }
 } // namespace alpha

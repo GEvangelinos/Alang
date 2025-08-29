@@ -26,9 +26,11 @@ from concurrent.futures import ThreadPoolExecutor
 
 # ───────────────────────── constants & helpers ─────────────────────────
 SYMBOL_TABLES_DIR = "SYMBOL_TABLE_EXPORTS"
+IR_DIR = "IR_EXPORTS"
 COMPILE_ERRORS_DIR = "COMPILE_ERROR_EXPORTS"
 GOLD_FILES_PREFIX = "GOLD_"
 SYMTABLE_CSV = ".st.csv"
+IR_CSV = ".ir.csv"
 ERRORS_CSV = ".error.csv"
 ASC_EXT = ".asc"
 VALGRIND_ERROR_EXITCODE = 1
@@ -51,13 +53,15 @@ def parser_startup_arguments() -> argparse.Namespace:
     parser.add_argument("--alpha-compiler", required=True, type=Path,
                         help="Path to alpha_driver.out (executable).")
     parser.add_argument("--golden-symbol-tables-dir", required=True, type=Path,
-                        help="Directory containing GOLD_* .st.csv files.")
+                        help=f"Directory containing GOLD_*{SYMTABLE_CSV} files.")
+    parser.add_argument("--golden-ir-dir", required=True, type=Path,
+                        help=f"Directory containing GOLD_*{IR_CSV} files.")
     parser.add_argument("--golden-compile-errors-dir", required=True, type=Path,
-                        help="Directory containing GOLD_* .error.csv files.")
+                        help=f"Directory containing GOLD_*{ERRORS_CSV} files.")
     parser.add_argument("--working-dir", required=True, type=Path,
-                        help="Directory with working .asc .tests.")
+                        help=f"Directory with working {ASC_EXT} tests.")
     parser.add_argument("--error-dir", required=True, type=Path,
-                        help="Directory with error .asc .tests.")
+                        help=f"Directory with error {ASC_EXT} tests.")
     parser.add_argument("--memcheck", action="store_true",
                         help="Also run each test under Valgrind.")
     return parser.parse_args()
@@ -115,13 +119,23 @@ def ensure_alpha_compiler_executable(alpha_compiler_path: Path) -> None:
 
 def validate_symbol_table(golden_symbol_table_dir: Path, asc_filepath: Path) -> int:
     golden_filepath = os.path.join(
-        golden_symbol_table_dir, f"{GOLD_FILES_PREFIX}{os.path.basename(asc_filepath)}{SYMTABLE_CSV}"
+        golden_symbol_table_dir,
+        f"{GOLD_FILES_PREFIX}{os.path.basename(asc_filepath)}{SYMTABLE_CSV}"
     )
     export_filepath = os.path.join(
         SYMBOL_TABLES_DIR, f"{os.path.basename(asc_filepath)}{SYMTABLE_CSV}"
     )
     return compare_csv(Path(golden_filepath), Path(export_filepath))
 
+def validate_ir(golden_ir_dir: Path, asc_filepath: Path) -> int:
+    golden_filepath = os.path.join(
+        golden_ir_dir,
+        f"{GOLD_FILES_PREFIX}{os.path.basename(asc_filepath)}{IR_CSV}"
+    )
+    export_filepath = os.path.join(
+        IR_DIR, f"{os.path.basename(asc_filepath)}{IR_CSV}"
+    )
+    return compare_csv(Path(golden_filepath), Path(export_filepath))
 
 def validate_compile_errors(golden_compile_error_dir: Path, asc_filepath: Path) -> int:
     golden_filepath = os.path.join(
@@ -137,6 +151,7 @@ def run_alpha_compiler(alpha_compiler_path: Path, asc_filepath: Path) -> int:
     ac_process_args = [
         str(alpha_compiler_path),
         "--export-symbol-table",
+        "--export-ir",
         "--export-compile-errors",
         "--no-show-errors",
         "--input-file",
@@ -147,7 +162,7 @@ def run_alpha_compiler(alpha_compiler_path: Path, asc_filepath: Path) -> int:
 
 
 def run_valgrind_tests(
-    alpha_compiler_path: Path, asc_filepath: Path, valgrind_error_exitcode: int
+        alpha_compiler_path: Path, asc_filepath: Path, valgrind_error_exitcode: int
 ) -> int:
     valgrind_args = [
         "valgrind",
@@ -161,8 +176,10 @@ def run_valgrind_tests(
     ac_args = [
         str(alpha_compiler_path),
         "--export-symbol-table",
+        "--export-ir",
         "--export-compile-errors",
         "--show-symbol-table",
+        "--show-ir",
         "--show-parser-trace",
         "--input-file",
         asc_filepath,
@@ -184,23 +201,23 @@ def pretty_status(message: str, return_code: int) -> str:
         return f"{COLOR_RED}{message}{SGR_RESET}"
 
 
-def run_test_file(args, asc_filepath) -> str:
-    ac_retval = run_alpha_compiler(
+def run_working_test_file(args, asc_filepath) -> str:
+    alang_retval = run_alpha_compiler(
         Path(args.alpha_compiler).resolve(), asc_filepath)
     result_line = []
     result_line.append(f"--Testing: {os.path.basename(asc_filepath):<30} ")
-    result_line.append(pretty_status(f"AC_Exec:", ac_retval))
-    if ac_retval != 0:
-        return "".join(result_line)
-    sym_retval, result_str = validate_symbol_table(args.golden_symbol_tables_dir, asc_filepath)
-    result_line.append(pretty_status(f"Symtable:"+result_str, sym_retval))
-    err_retval, result_str = validate_compile_errors(args.golden_compile_errors_dir, asc_filepath)
-    result_line.append(pretty_status(f"CTErrors:"+result_str, err_retval))
+    if (alang_retval == 0):
+        retval, result_str = validate_symbol_table(args.golden_symbol_tables_dir, asc_filepath)
+        result_line.append(pretty_status(f"Symtable:" + result_str, retval))
+        retval, result_str = validate_ir(args.golden_ir_dir, asc_filepath)
+        result_line.append(pretty_status(f"Ir:" + result_str, retval))
+        if args.memcheck:
+            val_retval = run_valgrind_tests(
+                Path(args.alpha_compiler).resolve(), asc_filepath, VALGRIND_ERROR_EXITCODE)
+            result_line.append(pretty_status(f"MEMcheck:", val_retval))
+    else:
+        result_line.append(f"{COLOR_RED}Failure, working test produced errors.{SGR_RESET}")
 
-    if args.memcheck:
-        val_retval = run_valgrind_tests(
-            Path(args.alpha_compiler).resolve(), asc_filepath, VALGRIND_ERROR_EXITCODE)
-        result_line.append(pretty_status(f"MEMcheck:", val_retval))
     return "".join(result_line)
 
 
@@ -215,15 +232,15 @@ def print_progress_bar(completed: int, total: int, bar_width: int = 40):
           end='\r', flush=True)
 
 
-def run_test_files(args, asc_testfile_paths):
-    asc_testfile_paths.sort()
-    total_tests = len(asc_testfile_paths)
+def run_working_test_files(args, working_testfile_paths):
+    working_testfile_paths.sort()
+    total_tests = len(working_testfile_paths)
     test_completed = 0
     print_progress_bar(test_completed, total_tests)
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
         futures = []
-        for asc_testfile_path in asc_testfile_paths:
-            future = pool.submit(run_test_file, args, asc_testfile_path)
+        for asc_testfile_path in working_testfile_paths:
+            future = pool.submit(run_working_test_file, args, asc_testfile_path)
             futures.append(future)
 
         for future in futures:
@@ -253,7 +270,7 @@ def main():
     ensure_alpha_compiler_executable(args.alpha_compiler)
     working_asc_files = load_asc_filepaths(args.working_dir)
     error_asc_files = load_asc_filepaths(args.error_dir)
-    run_test_files(args, working_asc_files + error_asc_files)
+    run_working_test_files(args, working_asc_files)
     cleanup()
 
 

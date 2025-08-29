@@ -55,12 +55,12 @@ int main(const int argc, char **argv)
         driver->export_symbol_table();
     if (cli_parser[alpha::flag_export_compile_errors].is_provided())
         driver->export_compile_errors();
-    if (cli_parser[alpha::flag_export_quads].is_provided())
-        driver->export_quads();
+    if (cli_parser[alpha::flag_export_ir].is_provided())
+        driver->export_ir();
     if (cli_parser[alpha::flag_show_symbol_table].is_provided())
         driver->show_symbol_table();
-    if (cli_parser[alpha::flag_show_quads].is_provided())
-        driver->show_quads();
+    if (cli_parser[alpha::flag_show_ir].is_provided())
+        driver->show_ir();
     if (!cli_parser[alpha::flag_no_show_errors].is_provided()) // Used by regression-test tool.
         driver->show_compile_issues();
 
