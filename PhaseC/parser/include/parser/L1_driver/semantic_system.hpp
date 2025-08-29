@@ -98,10 +98,8 @@ public:
     DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
     DISPATCH_MASTER_MODULE_CALL(function_builder);
     DISPATCH_MASTER_MODULE_CALL(table_access_builder);
-    DISPATCH_MASTER_METHOD_CALL(normalize_to_bool_expr);
-    DISPATCH_MASTER_METHOD_CALL(mark_short_circuit_jump_point);
     DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
-    DISPATCH_MASTER_METHOD_CALL(finalize_bool_expr);
+    DISPATCH_MASTER_METHOD_CALL(consume_stmt_expr);
     DISPATCH_DEFINE_HANDLER_END();
 
 private:
@@ -119,7 +117,7 @@ private:
     std::unique_ptr<ExprMaker> expr_maker_;
     std::unique_ptr<QuadHandler> quad_handler_;
     std::unique_ptr<ExprOptimizer> expr_optimizer_;
-    SemanticSystemBridge sd_bridge_;
+    SemanticSystemBridge ss_bridge_;
 
     // -- Layer 2 subsystems -- No trailing underscores here, as these are directly used in dispatch mechanisms.
     AggregateBuilder aggregate_builder;
@@ -134,9 +132,12 @@ private:
     TableAccessBuilder table_access_builder;
 
     // -- Directly dispatchable  methods-- // TODO: maybe package inside a module?
-    [[nodiscard]] const Expr *normalize_to_bool_expr(const Expr *expr);
     void reset_stmt_context() noexcept;
-    void finalize_bool_expr(const Expr *expr);
+    void consume_stmt_expr(const Expr *expr);
+    void explicit_rvalue_cast(const Expr *expr)
+    {
+
+    }
 
     [[nodiscard]] SemanticSystemServices create_semantic_system_services();
 

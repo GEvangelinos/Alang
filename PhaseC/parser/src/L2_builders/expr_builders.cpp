@@ -113,17 +113,21 @@ AggregateBuilder::Restricted::build_table_dict_consuming(
 
 const Expr *
 AssignBuilder::Restricted::build_assignment(
-    const Expr *const lvalue,
-    const Expr *const rvalue,
+    const Expr *const lhs,
+    const Expr *const rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-    if (!validate_lvalue_assignment(lvalue, result_loc))
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+
+    const Expr *const materialized_rhs = ss_bridge_->materialize_if_table_item(rhs);
+    ss_bridge_->finalize_bool_expr(materialized_rhs);
+
+    if (!validate_lvalue_assignment(lhs, result_loc))
         return nullptr;
 
-    return lvalue->type == Expr::Type::TABLE_ITEM
-           ? handle_table_item_assignment(lvalue, rvalue, result_loc)
-           : handle_direct_assignment(lvalue, rvalue, result_loc);
+    return lhs->type == Expr::Type::TABLE_ITEM
+           ? handle_table_item_assignment(lhs, materialized_rhs, result_loc)
+           : handle_direct_assignment(lhs, materialized_rhs, result_loc);
 }
 
 const Expr *
@@ -168,7 +172,8 @@ AssignBuilder::Restricted::validate_lvalue_assignment(
         dr_->report_assign_to_func(func_symbol->name, assign_loc, func_symbol->loc);
         return false;
     }
-    if (!SemUtils::is_lvalue_expr(lvalue))
+
+    if (lvalue->is_rvalue())
     {
         dr_->report_assign_lhs_not_lvalue(lvalue->type, lvalue->loc);
         return false;
@@ -190,7 +195,7 @@ AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const
         return false;
 
     const auto *const var_symbol = static_cast<const VariableExpr *>(lvalue)->var_symbol;
-    if (!SemUtils::is_const_expr(rvalue))
+    if (!rvalue->is_const())
     {
         SymbolTable::clear_const_expr(var_symbol);
         return false;
@@ -210,7 +215,10 @@ AssignBuilder::Restricted::handle_table_item_assignment(
 
     const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
     quad_handler_->emit_next(ir::Opcode::TABLESETELEM, rvalue, ti, ti->index, result_loc);
+
+    // We resurface the assigned element of table to allow chained assignment. Ex.: a = b.c = d;
     const Expr *temp_var = ss_bridge_->materialize_if_table_item(lvalue); // !CERTAIN EMIT!
+
     DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
     const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
     return expr_maker_->make_assign_expr(result_loc, temp_symbol);
@@ -245,7 +253,7 @@ AssignBuilder::Restricted::build_inc_dec(const Expr *const lvalue, const SourceL
 {
     static_assert(std::is_same_v<Policy, IncPolicy> ||
                   std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
-    if (!SemUtils::is_lvalue_expr(lvalue))
+    if (lvalue->is_rvalue())
     {
         dr_->report_operator_requires_lvalue(Policy::op_name, Policy::op_symbol, result_loc);
         return nullptr;
@@ -324,6 +332,9 @@ BasicBuilder::Restricted::build_uminus(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
+
+    expr = ss_bridge_->materialize_if_table_item(expr);
+
     if (!validate_arithmetic_expr(ir::Opcode::UMINUS, expr, OperandSide::UNARY))
         return nullptr;
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::UMINUS>(result_loc, expr))
@@ -342,6 +353,10 @@ BasicBuilder::Restricted::build_arithmetic(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+
+    lhs = ss_bridge_->materialize_if_table_item(lhs);
+    rhs = ss_bridge_->materialize_if_table_item(rhs);
+
     if (!validate_arithmetic_expr(opc, lhs, OperandSide::LEFT)) return nullptr;
     if (!validate_arithmetic_expr(opc, rhs, OperandSide::RIGHT)) return nullptr;
     if (!validate_possible_division(opc, rhs, result_loc)) return nullptr;
@@ -362,6 +377,10 @@ BasicBuilder::Restricted::build_relational(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+
+    lhs = ss_bridge_->materialize_if_table_item(lhs);
+    rhs = ss_bridge_->materialize_if_table_item(rhs);
+
     if (!validate_relational_expr(opc, lhs, OperandSide::LEFT)) return nullptr;
     if (!validate_relational_expr(opc, rhs, OperandSide::RIGHT)) return nullptr;
 
@@ -379,7 +398,12 @@ BasicBuilder::Restricted::build_relational(
 const Expr *
 BasicBuilder::Restricted::build_logical_not(const Expr *expr, const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr, SemUtils::is_bool_or_const_bool_expr(expr));
+    DEBUG_SMART_ASSERT(!!expr);
+
+    expr = ss_bridge_->materialize_if_table_item(expr);
+    expr = ss_bridge_->normalize_to_bool_expr(expr);
+
+    DEBUG_SMART_ASSERT(expr->is_bool_or_const_bool());
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::NOT>(result_loc, expr))
         return optimized;
@@ -398,11 +422,14 @@ BasicBuilder::Restricted::build_logical_and(
     const Expr *rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(
-        !!lhs, !!rhs,
-        SemUtils::is_bool_or_const_bool_expr(lhs),
-        SemUtils::is_bool_or_const_bool_expr(rhs)
-    );
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+
+    lhs = ss_bridge_->materialize_if_table_item(lhs);
+    rhs = ss_bridge_->materialize_if_table_item(rhs);
+    lhs = ss_bridge_->normalize_to_bool_expr(lhs);
+    rhs = ss_bridge_->normalize_to_bool_expr(rhs);
+
+    DEBUG_SMART_ASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::AND>(result_loc, lhs, rhs))
         return optimized;
@@ -415,11 +442,14 @@ BasicBuilder::Restricted::build_logical_or(
     const Expr *rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(
-        !!lhs, !!rhs,
-        SemUtils::is_bool_or_const_bool_expr(lhs),
-        SemUtils::is_bool_or_const_bool_expr(rhs)
-    );
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+
+    lhs = ss_bridge_->materialize_if_table_item(lhs);
+    rhs = ss_bridge_->materialize_if_table_item(rhs);
+    lhs = ss_bridge_->normalize_to_bool_expr(lhs);
+    rhs = ss_bridge_->normalize_to_bool_expr(rhs);
+
+    DEBUG_SMART_ASSERT(        lhs->is_bool_or_const_bool(),        rhs->is_bool_or_const_bool()    );
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(result_loc, lhs, rhs))
         return optimized;
@@ -471,7 +501,7 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
     const OperandSide op_side)
 {
     DEBUG_SMART_ASSERT(!!expr);
-    if (SemUtils::is_arithmetic_convertible_expr(expr))
+    if (expr->is_arithmetic_convertible())
         return true;
 
     if (SemUtils::is_binary_arithmetic_opcode(opc))
@@ -497,7 +527,7 @@ BasicBuilder::Restricted::validate_relational_expr(
     if (SemUtils::is_relational_equality_iropcode(opc))
         return true;
     // If here relational operator is:  < <= > >=
-    if (SemUtils::is_arithmetic_convertible_expr(expr))
+    if (expr->is_arithmetic_convertible())
         return true;
     dr_->report_rel_op_nonarith_operand(op_side, SemUtils::relop_str(opc), expr->type, expr->loc);
     return false;
@@ -511,7 +541,7 @@ BasicBuilder::Restricted::validate_possible_division(
 {
     if (iropcode != ir::Opcode::DIV && iropcode != ir::Opcode::MOD)
         return true;
-    if (!SemUtils::is_const_0(rhs))
+    if (!rhs->is_const_0())
         return true;
     dr_->report_division_by_zero(division_loc);
     return false;
@@ -881,7 +911,9 @@ TableAccessBuilder::Restricted::build_index_access(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!index);
-    const Expr *const normalized_lvalue = ss_bridge_->materialize_if_table_item(lvalue);
-    return expr_maker_->make_table_item_expr(result_loc, normalized_lvalue, index);
+    const Expr *const materialized_lvalue = ss_bridge_->materialize_if_table_item(lvalue);
+    const Expr *const materialized_index = ss_bridge_->materialize_if_table_item(index);
+    ss_bridge_->finalize_bool_expr(materialized_index);
+    return expr_maker_->make_table_item_expr(result_loc, materialized_lvalue, materialized_index);
 }
 } // namespace alpha

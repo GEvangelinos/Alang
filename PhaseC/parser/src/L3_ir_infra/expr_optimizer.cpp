@@ -155,16 +155,12 @@ ExprFolder::try_fold_logical_or(
     if (!ExprFolder::should_fold_logical(lhs, rhs))
         return nullptr;
 
-    if (SemUtils::is_const_true_expr(lhs) || SemUtils::is_const_true_expr(rhs))
+    if (lhs->is_const_true() || rhs->is_const_true())
         return expr_maker_->make_const_bool_expr(result_loc, true);
-    if (SemUtils::is_const_false_expr(lhs) && SemUtils::is_const_false_expr(rhs))
+    if (lhs->is_const_false() && rhs->is_const_false())
         return expr_maker_->make_const_bool_expr(result_loc, false);
-    if (SemUtils::is_const_false_expr(lhs)) // false OR var = var
-        return expr_maker_->clone_with_updated_location(result_loc, rhs);
-    if (SemUtils::is_const_false_expr(rhs)) // var OR false = var
-        return expr_maker_->clone_with_updated_location(result_loc, lhs);
     throw std::logic_error(ATTACH_CONTEXT(
-        "This function should not be used, if at least one operand is not ConstBoolExpr"));
+        "This function must not be used, if both operands are not ConstBoolExpr"));
 }
 
 const Expr *
@@ -177,16 +173,12 @@ ExprFolder::try_fold_logical_and(
     if (!ExprFolder::should_fold_logical(lhs, rhs))
         return nullptr;
 
-    if (SemUtils::is_const_false_expr(lhs) || SemUtils::is_const_false_expr(rhs))
+    if (lhs->is_const_false() || rhs->is_const_false())
         return expr_maker_->make_const_bool_expr(result_loc, false);
-    if (SemUtils::is_const_true_expr(lhs) && SemUtils::is_const_true_expr(rhs))
+    if (lhs->is_const_true() && rhs->is_const_true())
         return expr_maker_->make_const_bool_expr(result_loc, true);
-    if (SemUtils::is_const_true_expr(lhs)) // true AND var = var
-        return expr_maker_->clone_with_updated_location(result_loc, rhs);
-    if (SemUtils::is_const_true_expr(rhs)) // var AND true = var
-        return expr_maker_->clone_with_updated_location(result_loc, lhs);
     throw std::logic_error(ATTACH_CONTEXT(
-        "This function should not be used, if at least one operand is not ConstBoolExpr"));
+        "This function must not be used, if both operands are not ConstBoolExpr"));
 }
 
 const Expr *
@@ -232,19 +224,43 @@ ExprTrimmer::try_trim_relational_equality(
     if (opc == ir::Opcode::IF_EQ)
     {
         // 1 == var(true) -> var(true), 1 == var(false) -> var(false) => 1 == var -> var
-        if (SemUtils::is_static_expr(lhs))
+        if (lhs->is_static() && SemUtils::as_bool(lhs) == true)
             return expr_maker_->clone_with_updated_location(result_loc, rhs);
-        if (SemUtils::is_static_expr(rhs))
+        if (rhs->is_static() && SemUtils::as_bool(rhs))
             return expr_maker_->clone_with_updated_location(result_loc, lhs);
     }
     if (opc == ir::Opcode::IF_NEQ) // var != 0 -> var  ,  0 != var -> var
     {
-        if (SemUtils::is_static_expr(lhs) && SemUtils::as_bool(lhs) == false)
+        if (lhs->is_static() && SemUtils::as_bool(lhs) == false)
             return expr_maker_->clone_with_updated_location(result_loc, rhs);
-        if (SemUtils::is_static_expr(rhs) && SemUtils::as_bool(rhs) == false)
+        if (rhs->is_static() && SemUtils::as_bool(rhs) == false)
             return expr_maker_->clone_with_updated_location(result_loc, lhs);
     }
     return nullptr; // Trimming failed (most common scenario)
+}
+
+const Expr *
+ExprTrimmer::try_trim_logical(
+    const ir::Opcode opc,
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation result_loc)
+{
+    if (opc == ir::Opcode::OR)
+    {
+        if (lhs->is_const_false()) // false OR var = var
+            return expr_maker_->clone_with_updated_location(result_loc, rhs);
+        if (rhs->is_const_false()) // var OR false = var
+            return expr_maker_->clone_with_updated_location(result_loc, lhs);
+    }
+    if (opc == ir::Opcode::AND)
+    {
+        if (lhs->is_const_true()) // true AND var = var
+            return expr_maker_->clone_with_updated_location(result_loc, rhs);
+        if (rhs->is_const_true()) // var AND true = var
+            return expr_maker_->clone_with_updated_location(result_loc, lhs);
+    }
+    return nullptr;
 }
 
 const Expr *
@@ -272,12 +288,12 @@ try_trim_add(
 {
     DEBUG_SMART_ASSERT(
         !!expr_maker, !!lhs, !!rhs,
-        !(SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs))
+        !(lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
         && "try_trim_add: both operands are const; should be folded by ExprFolder."
     );
     // 0 + x -> x and x + 0 -> x
-    if (SemUtils::is_const_0(lhs)) return expr_maker->clone_with_updated_location(add_loc, rhs);
-    if (SemUtils::is_const_0(rhs)) return expr_maker->clone_with_updated_location(add_loc, lhs);
+    if (lhs->is_const_0()) return expr_maker->clone_with_updated_location(add_loc, rhs);
+    if (rhs->is_const_0()) return expr_maker->clone_with_updated_location(add_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
 }
 
@@ -290,11 +306,11 @@ try_trim_sub(
 {
     DEBUG_SMART_ASSERT(
         !!expr_maker, !!lhs, !!rhs,
-        !(SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs))
+        !(lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
         && "try_trim_add: both operands are const; should be folded by ExprFolder."
     );
     // x - 0 -> x
-    if (SemUtils::is_const_0(rhs)) return expr_maker->clone_with_updated_location(sub_loc, lhs);
+    if (rhs->is_const_0()) return expr_maker->clone_with_updated_location(sub_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
 }
 
@@ -307,15 +323,16 @@ try_trim_mul(
 {
     DEBUG_SMART_ASSERT(
         !!expr_maker, !!lhs, !!rhs,
-        !(SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs))
+        !(lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
         && "try_trim_add: both operands are const; should be folded by ExprFolder."
     );
     // x * 0 -> 0 and 0 * x -> 0
-    if (SemUtils::is_const_0(lhs)) return expr_maker->make_const_int_expr(mul_loc, 0);
-    if (SemUtils::is_const_0(rhs)) return expr_maker->make_const_int_expr(mul_loc, 0);
+    if (lhs->is_const_0() || rhs->is_const_0())
+        return expr_maker->make_const_int_expr(mul_loc, 0);
+
     // x * 1 -> x and 1 * x -> x
-    if (SemUtils::is_const_1(lhs)) return expr_maker->clone_with_updated_location(mul_loc, rhs);
-    if (SemUtils::is_const_1(rhs)) return expr_maker->clone_with_updated_location(mul_loc, lhs);
+    if (lhs->is_const_1()) return expr_maker->clone_with_updated_location(mul_loc, rhs);
+    if (rhs->is_const_1()) return expr_maker->clone_with_updated_location(mul_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
 }
 
@@ -328,10 +345,10 @@ try_trim_div(
 {
     DEBUG_SMART_ASSERT(
         !!expr_maker, !!lhs, !!rhs,
-        !(SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs))
+        !(lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
         && "try_trim_add: both operands are const; should be folded by ExprFolder."
     );
-    if (SemUtils::is_const_1(rhs)) return expr_maker->clone_with_updated_location(div_loc, lhs);
+    if (rhs->is_const_1()) return expr_maker->clone_with_updated_location(div_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
 }
 
@@ -344,11 +361,11 @@ try_trim_mod(
 {
     DEBUG_SMART_ASSERT(
         !!expr_maker, !!lhs, !!rhs,
-        !(SemUtils::is_const_arithmetic_expr(lhs) && SemUtils::is_const_arithmetic_expr(rhs))
+        !(lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
         && "try_trim_add: both operands are const; should be folded by ExprFolder."
     );
     // x % 1 -> 0
-    if (SemUtils::is_const_1(rhs)) return expr_maker->make_const_int_expr(mod_loc, 0);
+    if (rhs->is_const_1()) return expr_maker->make_const_int_expr(mod_loc, 0);
     return nullptr; // Trimming failed (most common scenario)
 }
 } // namespace alpha

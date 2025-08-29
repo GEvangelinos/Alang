@@ -12,25 +12,70 @@ SemanticSystemBridge::SemanticSystemBridge(
     ParseCtx *const parse_ctx,
     ExprMaker *const expr_maker,
     QuadHandler *const quad_handler)
-    :       parse_ctx_(utils::require_ptr(parse_ctx)),
+    : parse_ctx_(utils::require_ptr(parse_ctx)),
       expr_maker_(utils::require_ptr(expr_maker)),
       quad_handler_(utils::require_ptr(quad_handler)) {}
 
 /// Materialize an lvalue base for further member/index access.
 /// If `lvalue` is a TABLE_ITEM, emits IR (TABLEGETELEM) and returns a temp variable;
 /// otherwise returns `lvalue` unchanged.
-/// @note Deprecated name: emit_if_table_item (kept below as a wrapper for migration).
 const Expr *
 SemanticSystemBridge::materialize_if_table_item(const Expr *const expr)
 {
-    DEBUG_SMART_ASSERT(!!expr,);
+    DEBUG_SMART_ASSERT(!!expr);
+    auto *const qh = quad_handler_; // Short alias for readability.
     if (expr->type != Expr::Type::TABLE_ITEM)
         return expr;
     const auto *const ti_expr = static_cast<const TableItemExpr *>(expr);
-    const auto *const temp_var = expr_maker_->make_variable_expr(
-        expr->loc, parse_ctx_->new_temp());
-    quad_handler_->emit_next(
-        ir::Opcode::TABLEGETELEM, temp_var, ti_expr, ti_expr->index, ti_expr->loc);
+    const auto *const temp_var = expr_maker_->make_variable_expr(expr->loc, parse_ctx_->new_temp());
+    qh->emit_next(ir::Opcode::TABLEGETELEM, temp_var, ti_expr, ti_expr->index, ti_expr->loc);
     return temp_var;
+}
+
+const Expr *
+SemanticSystemBridge::normalize_to_bool_expr(const Expr *const expr)
+{
+    DEBUG_SMART_ASSERT(!!expr);
+    auto *const qh = quad_handler_; // Short alias for readability.
+
+    if (expr->type == Expr::Type::BOOL_EXPR)
+        return expr;
+    if (expr->is_static())
+        return SemUtils::as_bool(expr)
+               ? expr_maker_->make_const_bool_expr(expr->loc, true)
+               : expr_maker_->make_const_bool_expr(expr->loc, false);
+
+    const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
+    bool_expr->true_list.push_back(qh->next_quad_label());
+    qh->emit_labelless(ir::Opcode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc);
+    bool_expr->false_list.push_back(qh->next_quad_label());
+    qh->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc);
+
+    return bool_expr;
+}
+
+void
+SemanticSystemBridge::finalize_bool_expr(const Expr *const expr)
+{
+    DEBUG_SMART_ASSERT(!!expr);
+    if (expr->type != Expr::Type::BOOL_EXPR)
+        return; // Nothing to backpatch if not bool_expr.
+
+    const BoolExpr *const bool_expr = static_cast<const BoolExpr *>(expr);
+    auto *const qh = quad_handler_; // Short alias for readability.
+
+    DEBUG_SMART_ASSERT(!!bool_expr->var_symbol);
+
+    // true branch: patch to here and assign true
+    qh->patch_list(bool_expr->true_list, qh->next_quad_label());
+    qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_true_expr, nullptr, expr->loc);
+
+    // Offset to land after the false branch
+    constexpr LabelID past_false_branch_offset = 2; // Depends on how many emits occur after jump.
+    qh->emit_next(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc, past_false_branch_offset);
+
+    // false branch: patch to here and assign false
+    qh->patch_list(bool_expr->false_list, qh->next_quad_label());
+    qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_false_expr, nullptr, expr->loc);
 }
 } // namespace alpha

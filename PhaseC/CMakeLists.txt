@@ -99,7 +99,7 @@ if (STD_FORMAT_SUPPORTED)
 endif ()
 
 if (DEBUG_MODE)
-    message(WARNING "CMAKE: Running with `" DEBUG_MODE "` ON")
+    message(WARNING "CMAKE: Configuring with `" DEBUG_MODE "` ON")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(WARNING "Enabling _GLIBCXX debugging")
         add_compile_definitions(
@@ -130,7 +130,7 @@ if (DEBUG_MODE)
 endif ()
 
 if (CYA_MODE)
-    message(WARNING "CMAKE: Running with `CYA_MODE` (Cover-Your-Ass Mode) ON")
+    message(WARNING "CMAKE: Configuring with `CYA_MODE` (Cover-Your-Ass Mode) ON")
     add_compile_definitions(CYA_MODE)
 endif ()
 
@@ -140,7 +140,7 @@ if (OPTIMIZED_MODE)
         -march=native
     )
     add_compile_definitions(OPTIMIZED_MODE)
-    log_info("CMAKE: Running with `" OPTIMIZED_MODE "` ON")
+    log_info("CMAKE: Configuring with `" OPTIMIZED_MODE "` ON")
 endif ()
 
 if (ENABLE_IWYU)

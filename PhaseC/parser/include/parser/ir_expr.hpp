@@ -48,9 +48,30 @@ struct Expr : private Immobile
     const Type type;
     const SourceLocation loc;
 
+    void rvalue_cast() const;
+    [[nodiscard]] bool is_rvalue_casted() const noexcept;
+    [[nodiscard]] bool is_arithmetic_convertible() const noexcept;
+    [[nodiscard]] bool is_func() const noexcept;
+    [[nodiscard]] bool is_bool_or_const_bool() const noexcept;
+    [[nodiscard]] bool is_const_bool() const noexcept;
+    [[nodiscard]] bool is_const_0() const noexcept;
+    [[nodiscard]] bool is_const_1() const noexcept;
+    [[nodiscard]] bool is_const_true() const noexcept;
+    [[nodiscard]] bool is_const_false() const noexcept;
+    [[nodiscard]] bool is_const_arithmetic() const noexcept;
+    [[nodiscard]] bool is_const() const noexcept;
+    [[nodiscard]] bool is_lvalue() const noexcept;
+    [[nodiscard]] bool is_rvalue() const noexcept;
+    [[nodiscard]] bool is_static() const noexcept;
+    [[nodiscard]] bool has_symbol() const noexcept;
+
 protected:
+    // DO NOT explicitly initialize @param rvalue_casted!
     ALWAYS_INLINE Expr(const Type type, const SourceLocation loc)
         : type(type), loc(loc) {}
+
+private:
+    mutable Once<bool> rvalue_casted;
 };
 
 const char *to_string(Expr::Type type) noexcept; // We keep outside of Expr, so ADL finds it.
@@ -203,6 +224,126 @@ struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
     u32 label;
     const ir::Opcode opcode;
 };
+
+inline void
+Expr::rvalue_cast() const { rvalue_casted.set(true); }
+
+inline bool
+Expr::is_rvalue_casted() const noexcept { return rvalue_casted.is_assigned(); }
+
+inline bool
+Expr::is_arithmetic_convertible() const noexcept
+{
+    switch (type)
+    {
+    case Type::ARITHMETIC_EXPR:
+    case Type::ASSIGN_EXPR:
+    case Type::CONST_INT:
+    case Type::CONST_FLOAT:
+    case Type::TABLE_ITEM:
+    case Type::VARIABLE: return true;
+    default: return false;
+    }
+}
+
+inline bool
+Expr::is_func() const noexcept
+{
+    return type == Type::LIBRARY_FUNCTION || type == Type::PROGRAM_FUNCTION;
+}
+
+inline bool
+Expr::is_bool_or_const_bool() const noexcept
+{
+    return type == Type::BOOL_EXPR || type == Type::CONST_BOOL;
+}
+
+inline bool
+Expr::is_const_bool() const noexcept { return type == Expr::Type::CONST_BOOL; }
+
+bool inline
+Expr::is_const_0()const noexcept
+{
+    switch (type)
+    {
+    case Expr::Type::CONST_INT: return static_cast<const ConstIntExpr *>(this)->value == 0;
+    case Expr::Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(this)->value == 0.0;
+    default: return false;
+    }
+}
+
+bool inline
+Expr::is_const_1()const noexcept
+{
+    switch (type)
+    {
+    case Expr::Type::CONST_INT: return static_cast<const ConstIntExpr *>(this)->value == 1;
+    case Expr::Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(this)->value == 1.0;
+    default: return false;
+    }
+}
+
+inline bool
+Expr::is_const_true()const noexcept
+{
+    return is_const_bool() && static_cast<const ConstBoolExpr *>(this)->value == true;
+}
+
+ inline bool
+Expr::is_const_false()const noexcept
+{
+    return is_const_bool() && static_cast<const ConstBoolExpr *>(this)->value == false;
+}
+
+ inline bool
+Expr::is_const_arithmetic()const noexcept
+{
+    return type == Type::CONST_INT || type == Type::CONST_FLOAT;
+}
+
+ inline bool Expr::is_const()const noexcept
+{
+    switch (type)
+    {
+    case Type::CONST_BOOL:
+    case Type::CONST_INT:
+    case Type::CONST_FLOAT:
+    case Type::CONST_STRING:
+    case Type::CONST_NIL: return true;
+    default: return false;
+    }
+}
+
+ inline bool
+Expr::is_lvalue()const noexcept
+{
+    switch (type)
+    {
+    case Type::ASSIGN_EXPR:
+    case Type::TABLE_ITEM:
+    case Type::VARIABLE: return !is_rvalue_casted();
+    default: return false;
+    }
+}
+
+ inline bool
+Expr::is_rvalue()const noexcept
+{
+    return !is_lvalue();
+}
+
+ inline bool
+Expr::is_static()const noexcept
+{
+    return is_const() || is_func();
+}
+
+ inline bool
+Expr::has_symbol()const noexcept
+{
+    return !is_const();
+}
+
 
 inline Expr::Type
 to_expr_type(const Symbol::Type symbol_type)

@@ -24,7 +24,7 @@ SemanticSystem::SemanticSystem(
           get_expr_optimizer_options(options),
           expr_maker_.get()
       )),
-      sd_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
+      ss_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
 
       // public servicers, used by users of semantic driver.
       aggregate_builder(create_semantic_system_services()),
@@ -48,7 +48,7 @@ SemanticSystem::create_semantic_system_services()
         .expr_maker = utils::require_ptr(expr_maker_.get()),
         .expr_optimizer = utils::require_ptr(expr_optimizer_.get()),
         .quad_handler = utils::require_ptr(quad_handler_.get()),
-        .ss_bridge = &sd_bridge_,
+        .ss_bridge = &ss_bridge_,
     };
 }
 
@@ -71,53 +71,14 @@ SemanticSystem::get_expr_optimizer_options(const Options &options)
     };
 }
 
-const Expr *
-SemanticSystem::normalize_to_bool_expr(const Expr *const expr)
-{
-    DEBUG_SMART_ASSERT(!!expr);
-
-    if (expr->type == Expr::Type::BOOL_EXPR)
-        return expr;
-    if (SemUtils::is_static_expr(expr))
-        return SemUtils::as_bool(expr)
-               ? expr_maker_->make_const_bool_expr(expr->loc, true)
-               : expr_maker_->make_const_bool_expr(expr->loc, false);
-
-    const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
-    bool_expr->true_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(ir::Opcode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc);
-    bool_expr->false_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc);
-
-    return bool_expr;
-}
-
 void
 SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->name_generator.reset_temp_names(); }
 
 void
-SemanticSystem::finalize_bool_expr(const Expr *const expr)
+SemanticSystem::consume_stmt_expr(const Expr *const expr)
 {
-    DEBUG_SMART_ASSERT(!!expr);
-    if (expr->type != Expr::Type::BOOL_EXPR)
-        return; // Nothing to backpatch if not bool_expr.
-
-    const BoolExpr *const bool_expr = static_cast<const BoolExpr *>(expr);
-    auto *const qh = quad_handler_.get(); // Short alias for readability.
-
-    DEBUG_SMART_ASSERT(!!bool_expr->var_symbol);
-
-    // true branch: patch to here and assign true
-    qh->patch_list(bool_expr->true_list, qh->next_quad_label());
-    qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_true_expr, nullptr, expr->loc);
-
-    // Offset to land after the false branch
-    constexpr LabelID past_false_branch_offset = 2; // Depends on how many emits occur after jump.
-    qh->emit_next(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc, past_false_branch_offset);
-
-    // false branch: patch to here and assign false
-    qh->patch_list(bool_expr->false_list, quad_handler_->next_quad_label());
-    qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_false_expr, nullptr, expr->loc);
+    const Expr *const materialized_expr = ss_bridge_.materialize_if_table_item(expr);
+    ss_bridge_.finalize_bool_expr(materialized_expr);
 }
 
 void

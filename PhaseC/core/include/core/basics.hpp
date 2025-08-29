@@ -97,7 +97,7 @@ public:
     template<typename U = T>
     std::enable_if_t<!std::is_pointer_v<U>, U> operator->() const { return std::addressof(get()); }
 
-    explicit operator bool() { return assigned(); }
+    explicit operator bool() { return is_assigned(); }
 
     [[nodiscard]] const T &get() const
     {
@@ -106,7 +106,7 @@ public:
         return value_;
     }
 
-    [[nodiscard]] bool assigned() const noexcept { return assigned_; }
+    [[nodiscard]] bool is_assigned() const noexcept { return assigned_; }
 
 private:
     T value_;

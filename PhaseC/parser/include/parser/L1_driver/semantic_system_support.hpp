@@ -37,9 +37,11 @@ class SemanticSystemBridge
 public:
     SemanticSystemBridge(ParseCtx *parse_ctx, ExprMaker *expr_maker, QuadHandler *quad_handler);
 
+    [[nodiscard]] const Expr *normalize_to_bool_expr(const Expr *expr);
     [[nodiscard]] const Expr *materialize_if_table_item(const Expr *expr);
+    void finalize_bool_expr(const Expr *expr);
 
-    [[deprecated("Use materialize_lvalue_base()")]]
+    [[deprecated("Use materialize_if_table_item()")]]
     const Expr *emit_if_table_item(const Expr *) = delete;
 
 private:

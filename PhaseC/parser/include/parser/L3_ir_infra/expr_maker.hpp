@@ -45,8 +45,11 @@ public:
         SourceLocation expr_loc, const Expr *lvalue, const Expr *index);
     [[nodiscard]] const VariableExpr *make_variable_expr(
         SourceLocation expr_loc, const VarSymbol *var);
+
     [[nodiscard]] const Expr *clone_with_updated_location(
-        SourceLocation new_loc, const Expr *donor_Expr);
+        SourceLocation new_loc, const Expr *donor_expr);
+    [[nodiscard]] const Expr *rvalue_cast_with_updated_location(
+        SourceLocation cast_loc, const Expr *expr);
 
 private:
     ParseCtx *const parse_ctx_;
@@ -151,8 +154,8 @@ ExprMaker::make_table_item_expr(
 {
     DEBUG_SMART_ASSERT(
         !!lvalue, !!index,
-        SemUtils::is_lvalue_expr(lvalue),
-        SemUtils::is_expr_with_symbol(lvalue)
+        lvalue->is_lvalue(),
+        lvalue->has_symbol()
     );
     // TODO POLISH
     DEBUG_SMART_ASSERT(

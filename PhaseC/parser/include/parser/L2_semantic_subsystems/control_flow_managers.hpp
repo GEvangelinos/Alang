@@ -91,12 +91,12 @@ private:
         void mark_forloop_condition_entry();
         void mark_forloop_update_list_entry();
         void mark_forloop_update_list_exit(SourceLocation exit_loc);
-        void manage_forloop_condition(const Expr *condition, SourceLocation condition_loc);
+        void manage_forloop_condition(const Expr *conditional, SourceLocation condition_loc);
         void manage_forloop_entry();
         void manage_forloop_exit(SourceLocation exit_loc);
         void manage_break(SourceLocation break_loc);
         void manage_continue(SourceLocation continue_loc);
-        void manage_return(SourceLocation return_loc, const Expr *expr = nullptr);
+        void manage_return(SourceLocation return_loc, const Expr *retval = nullptr);
 
         void mark_upcoming_forloop_sites();
         void manage_loop_keyword(LoopKeyword keyword, SourceLocation keyword_loc);

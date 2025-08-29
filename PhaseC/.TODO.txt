@@ -814,3 +814,36 @@ especially if we want reentrancy
 103)
 do constant branch folding.. like if(true)
 you know its true.. just eliminate the branch and go straight to code
+
+104) Optimization patterns:
+
+a = b+c;
+
+produces an add to a temp of b+c;
+and then an assignment of that temp to a.
+
+here is the thing.. we have thought of ADD SUB, ... istruction as producers only..
+and that the only way store a result is the ASSIGN Opcode..
+
+but that simply aint true..
+
+Opcode ADD.. can very well store stuff.. its result field is a store..
+So.. we can find continuous chains and optimize them..
+
+for example x= a+b; produces
+
+quad#      opcode          result               arg1                 arg2                 label      line
+---------------------------------------------------------------------------------------------------------------
+1          add             _t0                  a                    b                    -          1
+2          assign          x                    _t0                                       -          1
+
+which can simply become
+1          add             x                  a                    b                    -          1
+
+
+of course this requires a post ir-generation step.. fine.. I like it..
+
+By the way.. if we didnt have the ASSIGN opcode.. we could do stores (assignment)
+
+
+with add lhs , rhs, 0... it would practically be the same..

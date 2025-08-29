@@ -236,7 +236,7 @@ SymbolTable::attach_const_expr(
     const VarSymbol *var_symbol,
     const ConstExpr *const const_expr)
 {
-    DEBUG_SMART_ASSERT(!!const_expr, SemUtils::is_const_expr(const_expr));
+    DEBUG_SMART_ASSERT(!!const_expr, const_expr->is_const());
     var_symbol->const_expr_ = const_expr;
 }
 } // namespace alpha

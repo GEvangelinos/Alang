@@ -94,11 +94,11 @@
 %type  <const_expr_ptr> not_op
 %type  <const_expr_ptr> and_op
 %type  <const_expr_ptr> or_op
-%type  <const_expr_ptr> assignExpr
+%type  <const_expr_ptr> assign_expr
 %type  <const_expr_ptr> call
 
 %type  <expr_list_ptr> expr_list
-%type  <expr_list_ptr> comma_separated_exprs
+%type  <expr_list_ptr> cs_exprs
 %type  <expr_list_ptr> arg_list
 
 %type  <const_expr_pair_ptr> dict_entry
@@ -222,7 +222,7 @@ stmt:
 ;
 
 stmt_impl:
-  expr SEMICOLON { ss.call<"finalize_bool_expr">($expr); }
+  expr SEMICOLON { ss.call<"consume_stmt_expr">($expr); }
 | if_stmt
 | while_stmt
 | for_stmt
@@ -241,43 +241,24 @@ loop_ctrl_stmt:
 ;
 
 not_op:
-  NOT expr
-  {
-    $expr = ss.call<"normalize_to_bool_expr">($expr);
-    $not_op = ss.call<"basic_builder.build_logical_not">($expr, @not_op);
-  }
+  NOT expr { $not_op = ss.call<"basic_builder.build_logical_not">($expr, @not_op); }
 ;
 
 and_op:
   expr[lhs]
-  AND
-  {
-    $lhs = ss.call<"normalize_to_bool_expr">($lhs);
-    ss.call<"basic_builder.mark_short_circuit_jump_point">();
-  }
-  expr[rhs]
-  {
-    $rhs = ss.call<"normalize_to_bool_expr">($rhs);
-    $and_op = ss.call<"basic_builder.build_logical_and">($lhs, $rhs, @and_op);
-  }
+  AND       { ss.call<"basic_builder.mark_short_circuit_jump_point">(); }
+  expr[rhs] { $and_op = ss.call<"basic_builder.build_logical_and">($lhs, $rhs, @and_op); }
 ;
 
 or_op:
   expr[lhs]
-  OR
-  {
-    $lhs = ss.call<"normalize_to_bool_expr">($lhs);
-    ss.call<"basic_builder.mark_short_circuit_jump_point">();
-  }
-  expr[rhs]
-  {
-    $rhs = ss.call<"normalize_to_bool_expr">($rhs);
-    $or_op = ss.call<"basic_builder.build_logical_or">($lhs, $rhs, @or_op);
-  }
+  OR        { ss.call<"basic_builder.mark_short_circuit_jump_point">(); }
+  expr[rhs] { $or_op = ss.call<"basic_builder.build_logical_or">($lhs, $rhs, @or_op); }
 ;
 
+
 expr[out]:
-  assignExpr { $out = $assignExpr; }
+  assign_expr { $out = $assign_expr; }
 | term       { $out = $term; }
 | expr[lhs] PLUS  expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::ADD,    $lhs, $rhs, @out); }
 | expr[lhs] MINUS expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::SUB,    $lhs, $rhs, @out); }
@@ -298,6 +279,9 @@ expr[out]:
  * @note: finalizing at `(` expr `)`, would try to prematurely backpatch bool expr,
  * causing a shit-storm of errors. actually tried it... thank god my debug_asserts got mad af
  * leaving this docstring here so you won't try again in the future. ;p
+ 	// TODO: THIS IS ERROR!!!! and you dont recognize it..
+ 	// you must make it rvalue somehow (maybe add flag in expr)
+ 	// cause in alpha the following is illegal: (x) = 5; !!! SHOULD BE ERROR
  */
 term:
   primary                     { $term = $primary; }
@@ -310,19 +294,16 @@ term:
 | expr DEC { $term = ss.call<"assign_builder.build_post_dec">($expr, @term); }
 ;
 
-assignExpr:
+assign_expr:
   expr[lhs] ASSIGN expr[rhs]
-  {
-    ss.call<"finalize_bool_expr">($rhs);
-    $assignExpr = ss.call<"assign_builder.build_assignment">($lhs, $rhs, @assignExpr);
-  }
+  { $assign_expr = ss.call<"assign_builder.build_assignment">($lhs, $rhs, @assign_expr); }
 ;
 
-primary
-: const         { $primary = $const; }
+primary:
+  const         { $primary = $const; }
 | table_literal { $primary = $table_literal; }
-| lvalue        { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($lvalue); }
-| call          { $primary = ss.call<"lvalue_resolver.resolve_lvalue_to_rvalue">($call); }
+| lvalue        { $primary = $lvalue; }
+| call          { $primary = $call; }
 | LEFT_PAREN func_def RIGHT_PAREN
   { $primary = ss.call<"function_builder.build_program_function">($func_def, @primary); }
 ;
@@ -343,10 +324,7 @@ table_item:
   table_host DOT ID[member]
   { $table_item = ss.call<"table_access_builder.build_member_access">($table_host, $member, @member, @table_item); }
 | table_host LEFT_BRACKET expr[index] RIGHT_BRACKET
-  {
-    ss.call<"finalize_bool_expr">($index);
-    $table_item = ss.call<"table_access_builder.build_index_access">($table_host, $index, @table_item);
-  }
+  { $table_item = ss.call<"table_access_builder.build_index_access">($table_host, $index, @table_item); }
 ;
 
 method_call_id:
@@ -376,22 +354,16 @@ call[invocation]:
   { $invocation = ss.call<"call_builder.build_iife_call_consuming">($func_def, $arg_list, @arg_list); }
 ;
 
-comma_separated_exprs[out]:
+cs_exprs[out]:
   expr
-  {
-    ss.call<"finalize_bool_expr">($expr);
-    $out = ss.call<"aggregate_builder.build_expr_list">($expr);
-  }
-| comma_separated_exprs[prev]  COMMA  expr
-  {
-    ss.call<"finalize_bool_expr">($expr);
-    $out = ss.call<"aggregate_builder.extend_expr_list">($prev, $expr);
-  }
+  { $out = ss.call<"aggregate_builder.build_expr_list">($expr); }
+| cs_exprs[prev]  COMMA  expr
+  { $out = ss.call<"aggregate_builder.extend_expr_list">($prev, $expr); }
 ;
 
 expr_list:
-/* (empty) */           { $expr_list = ss.call<"aggregate_builder.build_expr_list">(); }
-| comma_separated_exprs { $expr_list = $comma_separated_exprs; }
+/* (empty) */ { $expr_list = ss.call<"aggregate_builder.build_expr_list">(); }
+| cs_exprs    { $expr_list = $cs_exprs; }
 ;
 
 /* TODO: IS this premature finalization ? like what if you do {a && b or f : x and y and z } */
@@ -402,9 +374,9 @@ expr_list:
 /* here for example... Anyway I am still leaving this todo here, to test it (just to be 100% certain) */
 dict_entry:
   LEFT_BRACE
-  expr[key]   { ss.call<"finalize_bool_expr">($key); }
+  expr[key]
   COLON
-  expr[value] { ss.call<"finalize_bool_expr">($value); }
+  expr[value]
   RIGHT_BRACE { $dict_entry = ss.call<"aggregate_builder.build_expr_pair">($key, $value); }
 ;
 
@@ -478,10 +450,7 @@ const:
 
 if_clause:
   IF LEFT_PAREN expr[condition] RIGHT_PAREN
-  {
-    ss.call<"finalize_bool_expr">($condition);
-    ss.call<"control_flow_manager.manage_ifbranch_entry">($condition, @if_clause);
-  }
+  { ss.call<"control_flow_manager.manage_ifbranch_entry">($condition, @if_clause); }
 ;
 
 else_clause:
@@ -495,10 +464,12 @@ if_stmt:
 
 
 while_clause:
-  WHILE { ss.call<"control_flow_manager.manage_whileloop_entry">(); }
+  WHILE
+  { ss.call<"control_flow_manager.manage_whileloop_entry">(); }
   LEFT_PAREN
-  expr[condition] { ss.call<"finalize_bool_expr">($condition); }
-  RIGHT_PAREN { ss.call<"control_flow_manager.manage_whileloop_condition">($condition, @while_clause); }
+  expr[condition]
+  RIGHT_PAREN
+  { ss.call<"control_flow_manager.manage_whileloop_condition">($condition, @while_clause); }
 ;
 
 while_stmt:
@@ -513,10 +484,7 @@ for_clause:
   SEMICOLON
   { ss.call<"control_flow_manager.mark_forloop_condition_entry">(); }
   expr[condition]
-  {
-    ss.call<"finalize_bool_expr">($condition);
-    ss.call<"control_flow_manager.manage_forloop_condition">($condition, @condition);
-  }
+  { ss.call<"control_flow_manager.manage_forloop_condition">($condition, @condition); }
   SEMICOLON
   { ss.call<"control_flow_manager.mark_forloop_update_list_entry">(); }
   expr_list[update_list]
@@ -537,10 +505,7 @@ return_stmt:
   RETURN
   { ss.call<"control_flow_manager.manage_return">(@RETURN); }
 | RETURN  expr[retval]
-  {
-    ss.call<"finalize_bool_expr">($retval);
-    ss.call<"control_flow_manager.manage_return">(@return_stmt, $retval);
-  }
+  { ss.call<"control_flow_manager.manage_return">(@return_stmt, $retval); }
 ;
 
 %%

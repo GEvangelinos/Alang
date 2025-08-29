@@ -35,50 +35,56 @@ ExprMaker::~ExprMaker() noexcept
 }
 
 const Expr *
-ExprMaker::clone_with_updated_location(
-    const SourceLocation new_loc,
-    const Expr *const donor_Expr)
+ExprMaker::clone_with_updated_location(const SourceLocation new_loc, const Expr *const donor_expr)
 {
-    DEBUG_SMART_ASSERT(!!donor_Expr);
+    DEBUG_SMART_ASSERT(!!donor_expr);
     using ET = Expr::Type;
-    switch (donor_Expr->type)
+    switch (donor_expr->type)
     {
     case ET::ARITHMETIC_EXPR:
-        return make_arithmetic_expr<true>(new_loc, static_cast<const ArithmeticExpr *>(donor_Expr));
+        return make_arithmetic_expr<true>(new_loc, static_cast<const ArithmeticExpr *>(donor_expr));
     case ET::ASSIGN_EXPR:
-        return make_assign_expr(new_loc, static_cast<const AssignExpr *>(donor_Expr)->var_symbol);
+        return make_assign_expr(new_loc, static_cast<const AssignExpr *>(donor_expr)->var_symbol);
     case ET::BOOL_EXPR:
-        return make_bool_expr<true>(new_loc, static_cast<const BoolExpr *>(donor_Expr));
+        return make_bool_expr<true>(new_loc, static_cast<const BoolExpr *>(donor_expr));
     case ET::CONST_BOOL:
-        return make_const_bool_expr(new_loc, static_cast<const ConstBoolExpr *>(donor_Expr)->value);
+        return make_const_bool_expr(new_loc, static_cast<const ConstBoolExpr *>(donor_expr)->value);
     case ET::CONST_INT:
-        return make_const_int_expr(new_loc, static_cast<const ConstIntExpr *>(donor_Expr)->value);
+        return make_const_int_expr(new_loc, static_cast<const ConstIntExpr *>(donor_expr)->value);
     case ET::CONST_FLOAT:
         return make_const_float_expr(
-            new_loc, static_cast<const ConstFloatExpr *>(donor_Expr)->value);
+            new_loc, static_cast<const ConstFloatExpr *>(donor_expr)->value);
     case ET::CONST_STRING:
         return make_const_string_expr(
-            new_loc, static_cast<const ConstStringExpr *>(donor_Expr)->value);
+            new_loc, static_cast<const ConstStringExpr *>(donor_expr)->value);
     case ET::CONST_NIL:
         return make_nil_expr(new_loc);
     case ET::LIBRARY_FUNCTION:
         return make_lib_func_expr(
-            new_loc, static_cast<const LibFuncExpr *>(donor_Expr)->func_symbol);
+            new_loc, static_cast<const LibFuncExpr *>(donor_expr)->func_symbol);
     case ET::PROGRAM_FUNCTION:
         return make_prog_func_expr(
-            new_loc, static_cast<const ProgFuncExpr *>(donor_Expr)->func_symbol);
+            new_loc, static_cast<const ProgFuncExpr *>(donor_expr)->func_symbol);
     case ET::NEW_TABLE:
-        return make_new_table_expr<true>(new_loc, static_cast<const NewTableExpr *>(donor_Expr));
+        return make_new_table_expr<true>(new_loc, static_cast<const NewTableExpr *>(donor_expr));
     case ET::TABLE_ITEM:
     {
-        const Expr *const index = static_cast<const TableItemExpr *>(donor_Expr)->index;
-        return make_table_item_expr(new_loc, donor_Expr, index);
+        const Expr *const index = static_cast<const TableItemExpr *>(donor_expr)->index;
+        return make_table_item_expr(new_loc, donor_expr, index);
     }
     case ET::VARIABLE:
         return make_variable_expr(
-            new_loc, static_cast<const VariableExpr *>(donor_Expr)->var_symbol);
+            new_loc, static_cast<const VariableExpr *>(donor_expr)->var_symbol);
     }
     UNREACHABLE(FMT::format(
-        "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(donor_Expr->type)));
+        "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(donor_expr->type)));
+}
+
+const Expr *
+ExprMaker::rvalue_cast_with_updated_location(const SourceLocation cast_loc, const Expr *const expr)
+{
+    const Expr *const new_expr = clone_with_updated_location(cast_loc, expr);
+    new_expr->rvalue_cast();
+    return new_expr;
 }
 } // namespace alpha

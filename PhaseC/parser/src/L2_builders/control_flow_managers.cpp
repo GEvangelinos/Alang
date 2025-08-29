@@ -14,6 +14,8 @@ ControlFlowManager::Restricted::manage_ifbranch_entry(
     const SourceLocation if_clause_loc)
 {
     DEBUG_SMART_ASSERT(!!conditional);
+    const Expr *const materialized_conditional = ss_bridge_->materialize_if_table_item(conditional);
+    ss_bridge_->finalize_bool_expr(materialized_conditional);
 
     auto *const qh = quad_handler_; // Short alias for readability.
 
@@ -22,7 +24,7 @@ ControlFlowManager::Restricted::manage_ifbranch_entry(
     qh->emit_next(
         ir::Opcode::IF_EQ,
         nullptr,
-        conditional,
+        materialized_conditional,
         &k_static_true_expr,
         if_clause_loc,
         offset_to_if_branch
@@ -98,13 +100,17 @@ ControlFlowManager::Restricted::manage_whileloop_condition(
     const SourceLocation while_clause_loc)
 {
     DEBUG_SMART_ASSERT(!!conditional);
+
+    const Expr *const materialized_conditional = ss_bridge_->materialize_if_table_item(conditional);
+    ss_bridge_->finalize_bool_expr(materialized_conditional);
+
     auto *const qh = quad_handler_; // Short alias for readability.
 
     constexpr LabelID offset_to_while_block = 2;
     qh->emit_next(
         ir::Opcode::IF_EQ,
         nullptr,
-        conditional,
+        materialized_conditional,
         &k_static_true_expr,
         while_clause_loc,
         offset_to_while_block
@@ -186,25 +192,6 @@ ControlFlowManager::Restricted::mark_forloop_update_list_exit(const SourceLocati
 }
 
 void
-ControlFlowManager::Restricted::manage_forloop_condition(
-    const Expr *const condition,
-    const SourceLocation condition_loc)
-{
-    DEBUG(
-        auto &flf_stack = build_ctx_.for_loop_frames;
-        SMART_ASSERT(!flf_stack.empty());
-    )
-    DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::CONDITION_TRUE);
-    mark_upcoming_forloop_sites();
-    quad_handler_->emit_labelless(
-        ir::Opcode::IF_EQ, nullptr, condition, &k_static_true_expr, condition_loc);
-
-    DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::CONDITION_FALSE);
-    mark_upcoming_forloop_sites();
-    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, condition_loc);
-}
-
-void
 ControlFlowManager::Restricted::manage_forloop_entry()
 {
     DEBUG(
@@ -215,6 +202,36 @@ ControlFlowManager::Restricted::manage_forloop_entry()
     mark_upcoming_forloop_sites();
     parse_ctx_->func_ctx_handler.enter_loop();
 }
+
+void
+ControlFlowManager::Restricted::manage_forloop_condition(
+    const Expr *const conditional,
+    const SourceLocation condition_loc)
+{
+    DEBUG(
+        auto &flf_stack = build_ctx_.for_loop_frames;
+        SMART_ASSERT(!flf_stack.empty());
+    )
+    DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::CONDITION_TRUE);
+
+    const Expr *const materialized_conditional = ss_bridge_->materialize_if_table_item(conditional);
+    ss_bridge_->finalize_bool_expr(materialized_conditional);
+
+    auto *const qh = quad_handler_;
+    mark_upcoming_forloop_sites();
+    qh->emit_labelless(
+        ir::Opcode::IF_EQ,
+        nullptr,
+        materialized_conditional,
+        &k_static_true_expr,
+        condition_loc
+    );
+
+    DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::CONDITION_FALSE);
+    mark_upcoming_forloop_sites();
+    qh->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, condition_loc);
+}
+
 
 void
 ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_loc)
@@ -263,14 +280,18 @@ ControlFlowManager::Restricted::manage_continue(const SourceLocation continue_lo
 void
 ControlFlowManager::Restricted::manage_return(
     const SourceLocation return_loc,
-    const Expr *const expr)
+    const Expr *const retval)
 {
     if (parse_ctx_->func_ctx_handler.function_nesting_depth() == 0)
     {
         dr_->report_return_keyword_outside_func(return_loc);
         return;
     }
-    quad_handler_->emit_next(ir::Opcode::RETURN, nullptr, expr, nullptr, return_loc);
+
+    const Expr *const materialized_retval = ss_bridge_->materialize_if_table_item(retval);
+    ss_bridge_->finalize_bool_expr(materialized_retval);
+
+    quad_handler_->emit_next(ir::Opcode::RETURN, nullptr, materialized_retval, nullptr, return_loc);
     parse_ctx_->func_ctx_handler.add_label_to_returnlist(quad_handler_->next_quad_label());
     quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, return_loc);
 }
