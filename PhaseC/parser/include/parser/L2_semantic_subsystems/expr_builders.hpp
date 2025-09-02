@@ -38,7 +38,7 @@ private:
         [[nodiscard]] ExprList *build_expr_list(const Expr *head_expr);
         [[nodiscard]] ExprList *extend_expr_list(ExprList *elist, const Expr *next_expr);
         static void delete_expr_list(ExprList *elist);
-        static void consume_expr_list(ExprList *elist) {  delete_expr_list(elist); }
+        static void consume_expr_list(ExprList *elist) { delete_expr_list(elist); }
 
         // Dict related (candidate for submodule)
         [[nodiscard]] const ExprPair *build_expr_pair(const Expr *first, const Expr *second);
@@ -109,27 +109,26 @@ private:
 
         [[nodiscard]] const Expr *build_assignment(
             const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
-        [[nodiscard]] const Expr *build_pre_inc(const Expr *lvalue, SourceLocation result_loc);
-        [[nodiscard]] const Expr *build_post_inc(const Expr *lvalue, SourceLocation result_loc);
-        [[nodiscard]] const Expr *build_pre_dec(const Expr *lvalue, SourceLocation result_loc);
-        [[nodiscard]] const Expr *build_post_dec(const Expr *lvalue, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_pre_inc(const Expr *expr, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_post_inc(const Expr *expr, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_pre_dec(const Expr *expr, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_post_dec(const Expr *expr, SourceLocation result_loc);
 
-        [[nodiscard]] bool validate_lvalue_assignment(
-            const Expr *lhs, SourceLocation assign_loc);
+        [[nodiscard]] bool validate_lvalue_assignment(const Expr *lhs, SourceLocation assign_loc);
         [[nodiscard]] bool try_record_const_expr(const Expr *lvalue, const Expr *rvalue);
         [[nodiscard]] const Expr *handle_table_item_assignment(
-            const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
+            const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
         [[nodiscard]] const Expr *handle_direct_assignment(
-            const Expr *lvalue, const Expr *rvalue, SourceLocation result_loc);
+            const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
 
+        template<typename Policy>
+        [[nodiscard]] const Expr *handle_pre_inc_dec(const Expr *expr, SourceLocation result_loc);
+        template<typename Policy>
+        [[nodiscard]] const Expr *handle_post_inc_dec(const Expr *expr, SourceLocation result_loc);
+        template<typename Policy>
+        [[nodiscard]] bool validate_inc_dec(const Expr *expr, SourceLocation result_loc);
         template<OpVariant op_variant, typename Policy>
-        [[nodiscard]] const Expr *build_inc_dec(const Expr *lvalue, SourceLocation result_loc);
-        template<typename Policy>
-        [[nodiscard]] const Expr *handle_pre_inc_dec(
-            const Expr *lvalue, SourceLocation result_loc);
-        template<typename Policy>
-        [[nodiscard]] const Expr *handle_post_inc_dec(
-            const Expr *lvalue, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_inc_dec(const Expr *expr, SourceLocation result_loc);
     };
 
     Restricted DISPATCH_TARGET;
@@ -379,9 +378,9 @@ private:
             const Expr *lvalue,
             const char *member_id,
             SourceLocation member_id_loc,
-            SourceLocation result_loc);
-        [[nodiscard]] const Expr *build_index_access(
-            const Expr *lvalue, const Expr *index, SourceLocation result_loc);
+            SourceLocation access_loc);
+        [[nodiscard]] const Expr *build_subscript_access(
+            const Expr *lvalue, const Expr *subscript, SourceLocation access_loc);
 
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
@@ -393,7 +392,7 @@ private:
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(build_member_access);
-    DISPATCH_SLAVE_METHOD_CALL(build_index_access);
+    DISPATCH_SLAVE_METHOD_CALL(build_subscript_access);
     DISPATCH_DEFINE_HANDLER_END();
 };
 
@@ -413,7 +412,7 @@ AggregateBuilder::Restricted::extend_expr_list(
     const Expr *const next_expr)
 {
     DEBUG_SMART_ASSERT(!!elist, !!next_expr);
-    const Expr*const materialized_next_expr = ss_bridge_->materialize_if_table_item(next_expr);
+    const Expr *const materialized_next_expr = ss_bridge_->materialize_if_table_item(next_expr);
     ss_bridge_->finalize_bool_expr(materialized_next_expr);
 
     elist->push_back(next_expr);
@@ -432,8 +431,8 @@ AggregateBuilder::Restricted::build_expr_pair(const Expr *const first, const Exp
 {
     DEBUG_SMART_ASSERT(!!first, !!second);
 
-    const Expr* const materialized_first = ss_bridge_->materialize_if_table_item(first);
-    const Expr* const materialized_second = ss_bridge_->materialize_if_table_item(second);
+    const Expr *const materialized_first = ss_bridge_->materialize_if_table_item(first);
+    const Expr *const materialized_second = ss_bridge_->materialize_if_table_item(second);
     ss_bridge_->finalize_bool_expr(materialized_first);
     ss_bridge_->finalize_bool_expr(materialized_second);
 

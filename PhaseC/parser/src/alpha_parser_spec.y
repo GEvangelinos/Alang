@@ -104,7 +104,7 @@
 %type  <const_expr_pair_ptr> dict_entry
 %type  <dict_list_ptr> dict_list
 %type  <const_expr_ptr> table_literal
-%type  <const_expr_ptr> table_host
+%type  <const_expr_ptr> table_base
 %type  <const_expr_ptr> table_item
 
 %type  <const_func_symbol_ptr> func_signature
@@ -312,16 +312,16 @@ lvalue:
 | GLOBAL ID  { $lvalue = ss.call<"lvalue_resolver.resolve_global_id">($ID, @ID); }
 ;
 
-table_host:
-  lvalue { $table_host = $lvalue; }
-| call   { $table_host = $call; }
+table_base:
+  lvalue { $table_base = $lvalue; }
+| call   { $table_base = $call; }
 ;
 
 table_item:
-  table_host DOT ID[member]
-  { $table_item = ss.call<"table_access_builder.build_member_access">($table_host, $member, @member, @table_item); }
-| table_host LEFT_BRACKET expr[index] RIGHT_BRACKET
-  { $table_item = ss.call<"table_access_builder.build_index_access">($table_host, $index, @table_item); }
+  table_base DOT ID[member]
+  { $table_item = ss.call<"table_access_builder.build_member_access">($table_base, $member, @member, @table_item); }
+| table_base LEFT_BRACKET expr[subscript] RIGHT_BRACKET
+  { $table_item = ss.call<"table_access_builder.build_subscript_access">($table_base, $subscript, @table_item); }
 ;
 
 method_call_id:

@@ -131,27 +131,27 @@ AssignBuilder::Restricted::build_assignment(
 }
 
 const Expr *
-AssignBuilder::Restricted::build_pre_inc(const Expr *const lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::build_pre_inc(const Expr *const expr, const SourceLocation result_loc)
 {
-    return build_inc_dec<OpVariant::PRE, IncPolicy>(lvalue, result_loc);
+    return build_inc_dec<OpVariant::PRE, IncPolicy>(expr, result_loc);
 }
 
 const Expr *
-AssignBuilder::Restricted::build_post_inc(const Expr *const lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::build_post_inc(const Expr *const expr, const SourceLocation result_loc)
 {
-    return build_inc_dec<OpVariant::POST, IncPolicy>(lvalue, result_loc);
+    return build_inc_dec<OpVariant::POST, IncPolicy>(expr, result_loc);
 }
 
 const Expr *
-AssignBuilder::Restricted::build_pre_dec(const Expr *const lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::build_pre_dec(const Expr *const expr, const SourceLocation result_loc)
 {
-    return build_inc_dec<OpVariant::PRE, DecPolicy>(lvalue, result_loc);
+    return build_inc_dec<OpVariant::PRE, DecPolicy>(expr, result_loc);
 }
 
 const Expr *
-AssignBuilder::Restricted::build_post_dec(const Expr *const lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::build_post_dec(const Expr *const expr, const SourceLocation result_loc)
 {
-    return build_inc_dec<OpVariant::POST, DecPolicy>(lvalue, result_loc);
+    return build_inc_dec<OpVariant::POST, DecPolicy>(expr, result_loc);
 }
 
 bool
@@ -210,18 +210,18 @@ AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const
 
 const Expr *
 AssignBuilder::Restricted::handle_table_item_assignment(
-    const Expr *const lvalue,
-    const Expr *const rvalue,
+    const Expr *const lhs,
+    const Expr *const rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
-    DEBUG_SMART_ASSERT(lvalue->type == Expr::Type::TABLE_ITEM);
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::TABLE_ITEM);
 
-    const auto *const ti = static_cast<const TableItemExpr *>(lvalue);
-    quad_handler_->emit_next(ir::Opcode::TABLESETELEM, rvalue, ti, ti->index, result_loc);
+    const auto *const ti = static_cast<const TableItemExpr *>(lhs);
+    quad_handler_->emit_next(ir::Opcode::TABLESETELEM, rhs, ti, ti->index, result_loc);
 
     // We resurface the assigned element of table to allow chained assignment. Ex.: a = b.c = d;
-    const Expr *temp_var = ss_bridge_->materialize_if_table_item(lvalue); // !CERTAIN EMIT!
+    const Expr *temp_var = ss_bridge_->materialize_if_table_item(lhs); // !CERTAIN EMIT!
 
     DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
     const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
@@ -230,59 +230,72 @@ AssignBuilder::Restricted::handle_table_item_assignment(
 
 inline const Expr *
 AssignBuilder::Restricted::handle_direct_assignment(
-    const Expr *const lvalue,
-    const Expr *const rvalue,
+    const Expr *const lhs,
+    const Expr *const rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
     if (options_.record_constant_variables)
-        if (try_record_const_expr(lvalue, rvalue))
-            return lvalue; // Now lvalue's symbol carries rvalue.
+        if (try_record_const_expr(lhs, rhs))
+            return lhs; // Now lvalue's symbol carries rvalue.
 
-    quad_handler_->emit_next(ir::Opcode::ASSIGN, lvalue, rvalue, nullptr, result_loc);
+    quad_handler_->emit_next(ir::Opcode::ASSIGN, lhs, rhs, nullptr, result_loc);
 
     // In calls, force each (x=val) to yield its arg value; avoid C’s unspecified arg order
     if (FORCE_ASSIGNMENT_TEMPS || parse_ctx_->call_ctx_handler.is_in_call())
     {
         const Expr *const temp = expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());
-        quad_handler_->emit_next(ir::Opcode::ASSIGN, temp, lvalue, nullptr, result_loc);
+        quad_handler_->emit_next(ir::Opcode::ASSIGN, temp, lhs, nullptr, result_loc);
         return temp;
     }
-    return lvalue;
+    return lhs;
+}
+
+template<typename Policy>
+bool
+AssignBuilder::Restricted::validate_inc_dec(const Expr *const expr, const SourceLocation result_loc)
+{
+    static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
+    if (expr->is_lvalue_type() && expr->is_rvalue_casted())
+    {
+        dr_->report_operator_inc_dec_on_lvalue_casted_to_rvalue(
+            Policy::op_name, Policy::op_symbol, result_loc, expr->loc);
+        return false;
+    }
+    if (expr->is_rvalue())
+    {
+        dr_->report_operator_inc_dec_requires_lvalue(Policy::op_name, Policy::op_symbol, result_loc);
+        return false;
+    }
+    return true;
 }
 
 template<AssignBuilder::Restricted::OpVariant op_variant, typename Policy>
 const Expr *
-AssignBuilder::Restricted::build_inc_dec(const Expr *const lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::build_inc_dec(const Expr *const expr, const SourceLocation result_loc)
 {
-    static_assert(std::is_same_v<Policy, IncPolicy> ||
-                  std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
-    if (lvalue->is_rvalue())
-    {
-        dr_->report_operator_requires_lvalue(Policy::op_name, Policy::op_symbol, result_loc);
+    static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
+    if (!validate_inc_dec<Policy>(expr, result_loc))
         return nullptr;
-    }
-
     if constexpr (op_variant == OpVariant::PRE)
-        return handle_pre_inc_dec<Policy>(lvalue, result_loc);
+        return handle_pre_inc_dec<Policy>(expr, result_loc);
     else if constexpr (op_variant == OpVariant::POST)
-        return handle_post_inc_dec<Policy>(lvalue, result_loc);
+        return handle_post_inc_dec<Policy>(expr, result_loc);
     else
         static_assert([]() { return false; }(), "build_inc_dec(): Unknown OpVariant");
 }
 
 template<typename Policy>
 const Expr *
-AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *expr, const SourceLocation result_loc)
 {
-    static_assert(std::is_same_v<Policy, IncPolicy> ||
-                  std::is_same_v<Policy, DecPolicy>, "Expected INC or DEC policy");
+    static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
     auto *const qh = quad_handler_; // Short alias for readability.
 
     const Expr *result = nullptr;
-    if (lvalue->type == Expr::Type::TABLE_ITEM)
+    if (expr->type == Expr::Type::TABLE_ITEM)
     {
-        const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
+        const auto *const ti_lvalue = static_cast<const TableItemExpr *>(expr);
         result = ss_bridge_->materialize_if_table_item(ti_lvalue); // EMITS!
         qh->emit_next(Policy::opc, result, result, &k_static_int_1_expr, result_loc);
         qh->emit_next(ir::Opcode::TABLESETELEM, result, ti_lvalue, ti_lvalue->index, result_loc);
@@ -294,8 +307,8 @@ AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *lvalue, const SourceLo
         // only if inside assignment. NOTE! ONLY ENABLE THIS OPTIMIZATION IFF optimization options is passed.
         // DO NOT make it standard behavior.. you may get fucked in examination :D
         result = expr_maker_->make_arithmetic_expr(result_loc);
-        qh->emit_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
-        qh->emit_next(ir::Opcode::ASSIGN, result, lvalue, nullptr, result_loc);
+        qh->emit_next(Policy::opc, expr, expr, &k_static_int_1_expr, result_loc);
+        qh->emit_next(ir::Opcode::ASSIGN, result, expr, nullptr, result_loc);
     }
     return DEBUG_REQUIRE_PTR(result); // Check because we initialized with nullptr.
 }
@@ -900,24 +913,34 @@ TableAccessBuilder::Restricted::build_member_access(
     const Expr *const lvalue,
     const char *const member_id,
     const SourceLocation member_id_loc,
-    const SourceLocation result_loc)
+    const SourceLocation access_loc)
 {
     DEBUG_SMART_ASSERT(!!lvalue, !!member_id);
+    if (!lvalue->is_lvalue())
+    {
+        dr_->report_member_access_on_nonlvalue(access_loc);
+        return nullptr;
+    }
     const Expr *const normalized_lvalue = ss_bridge_->materialize_if_table_item(lvalue);
     const Expr *const index = expr_maker_->make_const_string_expr(member_id_loc, member_id);
-    return expr_maker_->make_table_item_expr(result_loc, normalized_lvalue, index);
+    return expr_maker_->make_table_item_expr(access_loc, normalized_lvalue, index);
 }
 
 const Expr *
-TableAccessBuilder::Restricted::build_index_access(
+TableAccessBuilder::Restricted::build_subscript_access(
     const Expr *const lvalue,
-    const Expr *const index,
-    const SourceLocation result_loc)
+    const Expr *const subscript,
+    const SourceLocation access_loc)
 {
-    DEBUG_SMART_ASSERT(!!lvalue, !!index);
+    DEBUG_SMART_ASSERT(!!lvalue, !!subscript);
+    if (!lvalue->is_lvalue())
+    {
+        dr_->report_subscript_access_on_nonlvalue(access_loc);
+        return nullptr;
+    }
     const Expr *const materialized_lvalue = ss_bridge_->materialize_if_table_item(lvalue);
-    const Expr *const materialized_index = ss_bridge_->materialize_if_table_item(index);
+    const Expr *const materialized_index = ss_bridge_->materialize_if_table_item(subscript);
     ss_bridge_->finalize_bool_expr(materialized_index);
-    return expr_maker_->make_table_item_expr(result_loc, materialized_lvalue, materialized_index);
+    return expr_maker_->make_table_item_expr(access_loc, materialized_lvalue, materialized_index);
 }
 } // namespace alpha

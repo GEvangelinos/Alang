@@ -74,7 +74,7 @@
       Args: [ lhs_type ]
       Location: lhs_loc
   Notes:
-    - Message: "remove the parentheses around `expression` to allow assignment"
+    - Message: "remove the parentheses to allow assignment"
       Location: lhs_loc
 
 - Diagnostic: INACCESSIBLE_VAR_IN_FUNC
@@ -112,12 +112,29 @@
       Args: [ loop_keyword_name ]
       Location: loop_keyword_loc
 
-- Diagnostic: OPERATOR_REQUIRES_LVALUE
+- Diagnostic: MEMBER_ACCESS_ON_NONLVALUE
+  Type: HARD_ERROR
+  Primary:
+    - Message: "member access `operator.` can only be applied on an lvalue"
+      Location: full_expr_loc
+      
+- Diagnostic: OPERATOR_INC_DEC_REQUIRES_LVALUE
   Type: HARD_ERROR
   Primary:
     - Message: "`{0}` `operator{1}` requires an lvalue operand"
       Args: [ op_name, op_symbol ]
       Location: full_expr_loc
+
+- Diagnostic: OPERATOR_INC_DEC_ON_LVALUE_CASTED_TO_RVALUE
+  Type: HARD_ERROR
+  Primary:
+    - Message: "`{0}` operator`{1}` requires lvalue (operand was an lvalue, but cast to rvalue)"
+      Args: [ op_name, op_symbol ]
+      Location: full_expr_loc
+  Notes:
+    - Message: "remove the parentheses to allow `{0}`"
+      Args: [ op_name ]
+      Location: expr_loc
 
 - Diagnostic: REDEFINITION_OF_FUNC
   Type: HARD_ERROR
@@ -160,6 +177,12 @@
   Primary:
     - Message: "`return` statement not in a function statement"
       Location: return_keyword_loc
+
+- Diagnostic: SUBSCRIPT_ACCESS_ON_NONLVALUE
+  Type: HARD_ERROR
+  Primary:
+    - Message: "subscript `operator[]` can only be applied on an lvalue"
+      Location: full_expr_loc
 
 - Diagnostic: UNCLOSED_COMMENT
   Type: HARD_ERROR
