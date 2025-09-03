@@ -125,8 +125,6 @@ private:
         [[nodiscard]] const Expr *handle_pre_inc_dec(const Expr *expr, SourceLocation result_loc);
         template<typename Policy>
         [[nodiscard]] const Expr *handle_post_inc_dec(const Expr *expr, SourceLocation result_loc);
-        template<typename Policy>
-        [[nodiscard]] bool validate_inc_dec(const Expr *expr, SourceLocation result_loc);
         template<OpVariant op_variant, typename Policy>
         [[nodiscard]] const Expr *build_inc_dec(const Expr *expr, SourceLocation result_loc);
     };
@@ -375,12 +373,12 @@ private:
 
     private:
         [[nodiscard]] const Expr *build_member_access(
-            const Expr *lvalue,
+            const Expr *base,
             const char *member_id,
             SourceLocation member_id_loc,
             SourceLocation access_loc);
         [[nodiscard]] const Expr *build_subscript_access(
-            const Expr *lvalue, const Expr *subscript, SourceLocation access_loc);
+            const Expr *base, const Expr *subscript, SourceLocation access_loc);
 
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;

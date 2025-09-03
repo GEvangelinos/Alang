@@ -42,13 +42,6 @@
       Args: [ operand_side, operator_symbol, operand_expr_type ]
       Location: operand_loc
 
-- Diagnostic: ASSIGN_LHS_NOT_LVALUE
-  Type: HARD_ERROR
-  Primary:
-    - Message: "lvalue required as left operand of assignment (found type: {0})"
-      Args: [ lhs_type ]
-      Location: lhs_loc
-
 - Diagnostic: ASSIGN_TO_FUNC
   Type: HARD_ERROR
   Primary:
@@ -66,16 +59,6 @@
     - Message: "assignment of library function `{0}`"
       Args: [ func_name ]
       Location: assign_expr_loc
-
-- Diagnostic: ASSIGN_TO_LVALUE_CASTED_TO_RVALUE
-  Type: HARD_ERROR
-  Primary:
-    - Message: "assignment requires lvalue (expression of type {0} was an lvalue, but cast to rvalue)"
-      Args: [ lhs_type ]
-      Location: lhs_loc
-  Notes:
-    - Message: "remove the parentheses to allow assignment"
-      Location: lhs_loc
 
 - Diagnostic: INACCESSIBLE_VAR_IN_FUNC
   Type: HARD_ERROR
@@ -112,20 +95,18 @@
       Args: [ loop_keyword_name ]
       Location: loop_keyword_loc
 
-- Diagnostic: MEMBER_ACCESS_ON_NONLVALUE
+- Diagnostic: OPERATOR_REQUIRES_LVALUE
   Type: HARD_ERROR
   Primary:
-    - Message: "member access `operator.` can only be applied on an lvalue"
+    - Message: "{0} `operator{1}` requires an lvalue {2}"
+      Args: [ op_name, op_symbol, lvalue_subject]
       Location: full_expr_loc
-      
-- Diagnostic: OPERATOR_INC_DEC_REQUIRES_LVALUE
-  Type: HARD_ERROR
-  Primary:
-    - Message: "`{0}` `operator{1}` requires an lvalue operand"
-      Args: [ op_name, op_symbol ]
-      Location: full_expr_loc
+  Notes:
+    - Message: "current {0}: `{1}`"
+      Args: [ lvalue_subject, found_type ]
+      Location: rvalue_loc
 
-- Diagnostic: OPERATOR_INC_DEC_ON_LVALUE_CASTED_TO_RVALUE
+- Diagnostic: OPERATOR_ON_LVALUE_CASTED_TO_RVALUE
   Type: HARD_ERROR
   Primary:
     - Message: "`{0}` operator`{1}` requires lvalue (operand was an lvalue, but cast to rvalue)"
@@ -177,12 +158,6 @@
   Primary:
     - Message: "`return` statement not in a function statement"
       Location: return_keyword_loc
-
-- Diagnostic: SUBSCRIPT_ACCESS_ON_NONLVALUE
-  Type: HARD_ERROR
-  Primary:
-    - Message: "subscript `operator[]` can only be applied on an lvalue"
-      Location: full_expr_loc
 
 - Diagnostic: UNCLOSED_COMMENT
   Type: HARD_ERROR

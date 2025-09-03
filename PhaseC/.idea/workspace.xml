@@ -47,7 +47,9 @@
       <change beforePath="$PROJECT_DIR$/.tests/working/.Circle.asc.swp" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/working/.Circle.asc.swp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/working/Circle.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/working/Circle.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_formatter.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_formatter.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/trace_logger.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/trace_logger.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
     </list>
@@ -1124,7 +1126,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "CMake Application.alang.out.executor": "Debug",
+    "CMake Application.alang.out.executor": "Run",
     "CMake Application.alpha_driver.out.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "Python.main.executor": "Run",
@@ -1297,7 +1299,7 @@
       <workItem from="1756009747175" duration="3470000" />
       <workItem from="1756034472209" duration="21178000" />
       <workItem from="1756067007332" duration="38834000" />
-      <workItem from="1756263822969" duration="126982000" />
+      <workItem from="1756263822969" duration="138299000" />
     </task>
     <servers />
   </component>
@@ -1374,32 +1376,27 @@
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/cmake-build-debug/AUTOGEN/parser/src/alpha_parser.gen.cpp</url>
-          <line>2484</line>
+          <line>2488</line>
           <option name="timeStamp" value="91" />
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/cmake-build-debug/AUTOGEN/parser/src/alpha_parser.gen.cpp</url>
-          <line>2466</line>
+          <line>2470</line>
           <option name="timeStamp" value="92" />
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp</url>
-          <line>422</line>
+          <line>420</line>
           <option name="timeStamp" value="101" />
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp</url>
-          <line>399</line>
+          <line>397</line>
           <option name="timeStamp" value="102" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp</url>
-          <line>114</line>
-          <option name="timeStamp" value="105" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp</url>
-          <line>929</line>
+          <line>926</line>
           <option name="timeStamp" value="108" />
         </line-breakpoint>
       </breakpoints>

@@ -96,6 +96,8 @@
 %type  <const_expr_ptr> or_op
 %type  <const_expr_ptr> assign_expr
 %type  <const_expr_ptr> call
+%type  <const_expr_ptr> table_literal
+%type  <const_expr_ptr> table_item
 
 %type  <expr_list_ptr> expr_list
 %type  <expr_list_ptr> cs_exprs
@@ -103,9 +105,6 @@
 
 %type  <const_expr_pair_ptr> dict_entry
 %type  <dict_list_ptr> dict_list
-%type  <const_expr_ptr> table_literal
-%type  <const_expr_ptr> table_base
-%type  <const_expr_ptr> table_item
 
 %type  <const_func_symbol_ptr> func_signature
 %type  <const_func_symbol_ptr> func_def
@@ -312,20 +311,15 @@ lvalue:
 | GLOBAL ID  { $lvalue = ss.call<"lvalue_resolver.resolve_global_id">($ID, @ID); }
 ;
 
-table_base:
-  lvalue { $table_base = $lvalue; }
-| call   { $table_base = $call; }
-;
-
 table_item:
-  table_base DOT ID[member]
-  { $table_item = ss.call<"table_access_builder.build_member_access">($table_base, $member, @member, @table_item); }
-| table_base LEFT_BRACKET expr[subscript] RIGHT_BRACKET
-  { $table_item = ss.call<"table_access_builder.build_subscript_access">($table_base, $subscript, @table_item); }
+  expr DOT ID[member]
+  { $table_item = ss.call<"table_access_builder.build_member_access">($expr, $member, @member, @table_item); }
+| expr[base] LEFT_BRACKET expr[subscript] RIGHT_BRACKET
+  { $table_item = ss.call<"table_access_builder.build_subscript_access">($base, $subscript, @table_item); }
 ;
 
 method_call_id:
-  METHOD_CALL ID { ss.call<"call_builder.update_method_call_draft">($ID, @ID);  }
+  METHOD_CALL ID { ss.call<"call_builder.update_method_call_draft">($ID, @ID); }
 ;
 
 arg_list_begin:

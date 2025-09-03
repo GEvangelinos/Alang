@@ -5,7 +5,6 @@
 
 #include "diagnostic_types.hpp"
 #include "core/numeric_types.hpp"
-#include "utils/cli_color.h"
 
 namespace alpha
 {

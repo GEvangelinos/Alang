@@ -7,6 +7,35 @@
 #define FORCE_ASSIGNMENT_TEMPS 0
 #endif
 
+namespace
+{
+using namespace alpha;
+
+[[nodiscard]] bool validate_lvalue(
+    DiagnosticReporter &dr,
+    const Expr *const expr,
+    const SourceLocation full_expr_loc,
+    const char *op_name,
+    const char *op_symbol,
+    const char *lvalue_subject
+)
+{
+    if (expr->is_lvalue_type() && expr->is_rvalue_casted())
+    {
+        dr.report_operator_on_lvalue_casted_to_rvalue(
+            op_name, op_symbol, full_expr_loc, expr->loc);
+        return false;
+    }
+    if (!expr->is_lvalue())
+    {
+        dr.report_operator_requires_lvalue(
+            op_name, op_symbol, lvalue_subject, expr->type, full_expr_loc, expr->loc);
+        return false;
+    }
+    return true;
+}
+}
+
 namespace alpha
 {
 AggregateBuilder::AggregateBuilder(const SemanticSystemServices &ss_services)
@@ -172,17 +201,7 @@ AssignBuilder::Restricted::validate_lvalue_assignment(
         dr_->report_assign_to_func(func_symbol->name, assign_loc, func_symbol->loc);
         return false;
     }
-    if (lhs->is_lvalue_type() && lhs->is_rvalue_casted())
-    {
-        dr_->report_assign_to_lvalue_casted_to_rvalue(lhs->type, lhs->loc);
-        return false;
-    }
-    if (lhs->is_rvalue())
-    {
-        dr_->report_assign_lhs_not_lvalue(lhs->type, lhs->loc);
-        return false;
-    }
-    return true;
+    return validate_lvalue(*dr_, lhs, assign_loc, "assignment", "=", "left operand");
 }
 
 // TODO: do we propagate assignment of assignment like x = y = z = 5? If NOT
@@ -251,31 +270,12 @@ AssignBuilder::Restricted::handle_direct_assignment(
     return lhs;
 }
 
-template<typename Policy>
-bool
-AssignBuilder::Restricted::validate_inc_dec(const Expr *const expr, const SourceLocation result_loc)
-{
-    static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
-    if (expr->is_lvalue_type() && expr->is_rvalue_casted())
-    {
-        dr_->report_operator_inc_dec_on_lvalue_casted_to_rvalue(
-            Policy::op_name, Policy::op_symbol, result_loc, expr->loc);
-        return false;
-    }
-    if (expr->is_rvalue())
-    {
-        dr_->report_operator_inc_dec_requires_lvalue(Policy::op_name, Policy::op_symbol, result_loc);
-        return false;
-    }
-    return true;
-}
-
 template<AssignBuilder::Restricted::OpVariant op_variant, typename Policy>
 const Expr *
 AssignBuilder::Restricted::build_inc_dec(const Expr *const expr, const SourceLocation result_loc)
 {
     static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
-    if (!validate_inc_dec<Policy>(expr, result_loc))
+    if (!validate_lvalue(*dr_, expr, result_loc, Policy::op_name, Policy::op_symbol, "operand"))
         return nullptr;
     if constexpr (op_variant == OpVariant::PRE)
         return handle_pre_inc_dec<Policy>(expr, result_loc);
@@ -910,35 +910,30 @@ FunctionBuilder::Restricted::build_program_function_exit(const BlockSourceLocati
 
 const Expr *
 TableAccessBuilder::Restricted::build_member_access(
-    const Expr *const lvalue,
+    const Expr *const base,
     const char *const member_id,
     const SourceLocation member_id_loc,
     const SourceLocation access_loc)
 {
-    DEBUG_SMART_ASSERT(!!lvalue, !!member_id);
-    if (!lvalue->is_lvalue())
-    {
-        dr_->report_member_access_on_nonlvalue(access_loc);
+    DEBUG_SMART_ASSERT(!!base, !!member_id);
+    if (!validate_lvalue(*dr_, base, access_loc, "member access", ".", "base expression"))
         return nullptr;
-    }
-    const Expr *const normalized_lvalue = ss_bridge_->materialize_if_table_item(lvalue);
+    const Expr *const normalized_lvalue = ss_bridge_->materialize_if_table_item(base);
     const Expr *const index = expr_maker_->make_const_string_expr(member_id_loc, member_id);
     return expr_maker_->make_table_item_expr(access_loc, normalized_lvalue, index);
 }
 
 const Expr *
 TableAccessBuilder::Restricted::build_subscript_access(
-    const Expr *const lvalue,
+    const Expr *const base,
     const Expr *const subscript,
     const SourceLocation access_loc)
 {
-    DEBUG_SMART_ASSERT(!!lvalue, !!subscript);
-    if (!lvalue->is_lvalue())
-    {
-        dr_->report_subscript_access_on_nonlvalue(access_loc);
+    DEBUG_SMART_ASSERT(!!base, !!subscript);
+
+    if (!validate_lvalue(*dr_, base, access_loc, "subscript", "[]", "base expression"))
         return nullptr;
-    }
-    const Expr *const materialized_lvalue = ss_bridge_->materialize_if_table_item(lvalue);
+    const Expr *const materialized_lvalue = ss_bridge_->materialize_if_table_item(base);
     const Expr *const materialized_index = ss_bridge_->materialize_if_table_item(subscript);
     ss_bridge_->finalize_bool_expr(materialized_index);
     return expr_maker_->make_table_item_expr(access_loc, materialized_lvalue, materialized_index);
