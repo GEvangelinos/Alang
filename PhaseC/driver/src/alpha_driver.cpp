@@ -27,6 +27,13 @@ Driver::export_symbol_table() const
 }
 
 void
+Driver::export_symbol_table_without_temps() const
+{
+    if (this->ok())
+        tu.export_symbol_table_without_temps();
+}
+
+void
 Driver::export_compile_errors() const { tu.export_compile_errors(); }
 
 void

@@ -20,6 +20,8 @@ extern const std::vector<OptionSpec> option_specs;
 
 static constexpr char flag_input_file[] = "input-file";
 static constexpr char flag_export_symbol_table[] = "export-symbol-table";
+static constexpr char flag_export_symbol_table_without_temps[] =
+        "export-symbol-table-without-temps";
 static constexpr char flag_export_compile_errors[] = "export-compile-errors";
 static constexpr char flag_export_ir[] = "export-ir";
 static constexpr char flag_show_symbol_table[] = "show-symbol-table";

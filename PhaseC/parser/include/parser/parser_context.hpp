@@ -171,13 +171,17 @@ class NameGenerator : private Immobile
 public:
     [[nodiscard]] std::string new_temp_name();
 
-    void reset_temp_names() noexcept { temp_name_counter_ = 0; }
+    void fullreset_temps(); // Use at end of each stmt.
+    void reset_temps_at_checkpoint();
+    void push_temp_checkpoint(); // Use after generating new_temp_name().
+    void pop_temp_checkpoint();
 
     [[nodiscard]] std::string new_anonymous();
 
 private:
     u32 temp_name_counter_ = 0;
     u32 anonymous_counter_ = 0;
+    std::vector<u32> temp_checkpoints_;
 };
 
 class ParseCtx : private Immobile
@@ -415,6 +419,29 @@ inline std::string
 NameGenerator::new_temp_name()
 {
     return k_temp_variable_prefix + std::to_string(temp_name_counter_++);
+}
+
+inline void
+NameGenerator::fullreset_temps()
+{
+    temp_checkpoints_.clear();
+    temp_name_counter_ = 0;
+}
+
+inline void
+NameGenerator::reset_temps_at_checkpoint()
+{
+    temp_name_counter_ = temp_checkpoints_.empty() ? 0 : temp_checkpoints_.back();
+}
+
+inline void
+NameGenerator::push_temp_checkpoint() { temp_checkpoints_.push_back(temp_name_counter_); }
+
+inline void
+NameGenerator::pop_temp_checkpoint()
+{
+    DEBUG_SMART_ASSERT(!temp_checkpoints_.empty());
+    temp_checkpoints_.pop_back();
 }
 
 inline std::string

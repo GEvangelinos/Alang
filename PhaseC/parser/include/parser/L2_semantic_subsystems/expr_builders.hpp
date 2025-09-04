@@ -24,10 +24,19 @@ private:
         friend class AggregateBuilder;
 
     private:
+        struct TableLiteralCtx
+        {
+            std::size_t current_list_index = 0; // Only used for ExprList. NOT DictList!
+            const NewTableExpr *const current_table_expr;
+
+            explicit TableLiteralCtx(const NewTableExpr *const new_table_expr)
+                : current_table_expr(new_table_expr) {}
+        };
+
         struct
         {
-            ExprList elist;
-            DictList dlist;
+            // A stack is required because we might have nested aggregates.
+            std::stack<TableLiteralCtx, std::vector<TableLiteralCtx>> table_literal_stack;
         } draft_;
 
         explicit Restricted(const SemanticSystemServices &ss_services);
@@ -36,22 +45,25 @@ private:
         // List related (candidate for submodule)
         [[nodiscard]] static ExprList *build_expr_list();
         [[nodiscard]] ExprList *build_expr_list(const Expr *head_expr);
-        [[nodiscard]] ExprList *extend_expr_list(ExprList *elist, const Expr *next_expr);
+        [[nodiscard]] ExprList *extend_expr_list(ExprList *elist, const Expr *next);
         static void delete_expr_list(ExprList *elist);
         static void consume_expr_list(ExprList *elist) { delete_expr_list(elist); }
 
         // Dict related (candidate for submodule)
         [[nodiscard]] const ExprPair *build_expr_pair(const Expr *first, const Expr *second);
         [[nodiscard]] static DictList *build_dict_list();
-        [[nodiscard]] static DictList *build_dict_list(const ExprPair *head_pair);
-        [[nodiscard]] static DictList *extend_dict_list(DictList *dlist, const ExprPair *next_pair);
+        [[nodiscard]] DictList *build_dict_list(const ExprPair *head_pair);
+        [[nodiscard]] DictList *extend_dict_list(DictList *dlist, const ExprPair *next_pair);
         static void delete_dict_list(DictList *dlist);
         static void consume_dict_list(DictList *dlist) { delete_dict_list(dlist); }
 
-        [[nodiscard]] const Expr *build_table_list_consuming(
-            ExprList *elist, SourceLocation table_list_loc);
-        [[nodiscard]] const Expr *build_table_dict_consuming(
-            DictList *dlist, SourceLocation table_dict_loc);
+        void initiate_table_literal(SourceLocation table_list_loc);
+        [[nodiscard]] const Expr *extract_table_literal_consuming(ExprList *elist);
+        [[nodiscard]] const Expr *extract_table_literal_consuming(DictList *dlist);
+
+        template<typename ListT>
+        [[nodiscard]] const Expr *extract_table_literal_consuming_impl(
+            ListT *list, void (*deleter)(ListT *));
     };
 
     Restricted DISPATCH_TARGET;
@@ -66,8 +78,8 @@ private:
     DISPATCH_SLAVE_METHOD_CALL(extend_dict_list);
     DISPATCH_SLAVE_METHOD_CALL(consume_expr_list);
     DISPATCH_SLAVE_METHOD_CALL(consume_dict_list);
-    DISPATCH_SLAVE_METHOD_CALL(build_table_list_consuming);
-    DISPATCH_SLAVE_METHOD_CALL(build_table_dict_consuming);
+    DISPATCH_SLAVE_METHOD_CALL(initiate_table_literal);
+    DISPATCH_SLAVE_METHOD_CALL(extract_table_literal_consuming);
     DISPATCH_DEFINE_HANDLER_END();
 };
 
@@ -194,7 +206,7 @@ private:
         [[nodiscard]] bool validate_relational_expr(
             ir::Opcode opc, const Expr *expr, OperandSide op_side);
         [[nodiscard]] bool validate_possible_division(
-            ir::Opcode iropcode, const Expr *rhs, SourceLocation division_loc);
+            ir::Opcode opc, const Expr *rhs, SourceLocation division_loc);
 
         // When I built the compile-time call dispatcher for Bison, I didn’t add support for template args.
         // Later, I made the optimizer fully templated. Rather than making it runtime-based,
@@ -407,13 +419,28 @@ AggregateBuilder::Restricted::build_expr_list(const Expr *const head_expr)
 inline ExprList *
 AggregateBuilder::Restricted::extend_expr_list(
     ExprList *const elist,
-    const Expr *const next_expr)
+    const Expr *const next)
 {
-    DEBUG_SMART_ASSERT(!!elist, !!next_expr);
-    const Expr *const materialized_next_expr = ss_bridge_->materialize_if_table_item(next_expr);
+    DEBUG_SMART_ASSERT(!!elist, !!next);
+    const Expr *const materialized_next_expr = ss_bridge_->materialize_if_table_item(next);
     ss_bridge_->finalize_bool_expr(materialized_next_expr);
-
-    elist->push_back(next_expr);
+    if (!draft_.table_literal_stack.empty())
+    {
+        auto &top_elist_ctx = draft_.table_literal_stack.top();
+        const Expr *const index_expr = expr_maker_->make_const_int_expr(
+            next->loc,
+            top_elist_ctx.current_list_index++
+        );
+        quad_handler_->emit_next(
+            ir::Opcode::TABLESETELEM,
+            top_elist_ctx.current_table_expr,
+            index_expr,
+            materialized_next_expr,
+            materialized_next_expr->loc
+        );
+        reset_temps_if_temp_operand(next);
+    }
+    elist->push_back(next);
     return elist;
 }
 
@@ -455,6 +482,19 @@ AggregateBuilder::Restricted::extend_dict_list(
     const ExprPair *const next_pair)
 {
     DEBUG_SMART_ASSERT(!!dlist, !!next_pair);
+    if (!draft_.table_literal_stack.empty())
+    {
+        const auto [key, value] = *next_pair;
+        const SourceLocation pair_loc = merge(key->loc, value->loc);
+        quad_handler_->emit_next(
+            ir::Opcode::TABLESETELEM,
+            draft_.table_literal_stack.top().current_table_expr,
+            key,
+            value,
+            pair_loc
+        );
+        reset_temps_if_temp_operand(key, value);
+    }
     dlist->push_back(next_pair);
     return dlist;
 }

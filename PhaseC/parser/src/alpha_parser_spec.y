@@ -357,12 +357,6 @@ expr_list:
 | cs_exprs    { $expr_list = $cs_exprs; }
 ;
 
-/* TODO: IS this premature finalization ? like what if you do {a && b or f : x and y and z } */
-/* TODO: Should we add expr finalization after color and RIGHT brace as anchor points? */
-/* TODO: For some reason.. it seems more right.. But I know i have thought of that before.. and i came */
-/* TODO: To the realization that this was bettter... Only that I didnt document it.. and now I still dont know for certain. */
-/* FUTURE answer: it probably is correct as these exprs are the end result. expr && expr could not get matched*/
-/* here for example... Anyway I am still leaving this todo here, to test it (just to be 100% certain) */
 dict_entry:
   LEFT_BRACE
   expr[key]
@@ -378,16 +372,25 @@ dict_list[out]:
   { $out = ss.call<"aggregate_builder.extend_dict_list">($prev, $dict_entry); }
 ;
 
+table_literal_begin:
+  LEFT_BRACKET
+  { ss.call<"aggregate_builder.initiate_table_literal">(@table_literal_begin); }
+;
+
+table_literal_end:
+  RIGHT_BRACKET
+;
+
 table_literal:
-  LEFT_BRACKET expr_list RIGHT_BRACKET
-  { $table_literal = ss.call<"aggregate_builder.build_table_list_consuming">($expr_list, @table_literal); }
+  table_literal_begin expr_list table_literal_end
+  { $table_literal = ss.call<"aggregate_builder.extract_table_literal_consuming">($expr_list); }
 |
-  LEFT_BRACKET dict_list RIGHT_BRACKET
-  { $table_literal = ss.call<"aggregate_builder.build_table_dict_consuming">($dict_list, @table_literal); }
+  table_literal_begin dict_list table_literal_end
+  { $table_literal = ss.call<"aggregate_builder.extract_table_literal_consuming">($dict_list); }
 ;
 
 block_begin:
-  LEFT_BRACE  { ss.call<"block_manager.enter_block">(); }
+  LEFT_BRACE { ss.call<"block_manager.enter_block">(); }
 ;
 
 block_end:

@@ -7,6 +7,7 @@
 #include "_parser_common.hpp"
 #include "core/konstants.hpp"
 #include "core/source_location.hpp"
+#include "utils/misc.hpp"
 
 namespace alpha
 {
@@ -38,6 +39,7 @@ public:
     virtual ~Symbol() = default;
 
     [[nodiscard]] std::string_view type_to_string() const noexcept;
+    [[nodiscard]] bool is_temp_variable() const noexcept;
     [[nodiscard]] bool is_variable() const noexcept { return !is_function(); }
     [[nodiscard]] bool is_libfunc() const noexcept;
     [[nodiscard]] bool is_progfunc() const noexcept;
@@ -93,7 +95,7 @@ private:
 class FuncSymbol final : public Symbol
 {
     friend class SymbolTable;
-    
+
 public:
     const u32 address;
     const std::vector<Parameter> parameter_list; // TODO: change to vector (cache friendly...)
@@ -131,6 +133,13 @@ Symbol::type_to_string() const noexcept
     case Type::LOCAL_VARIABLE: return "LOCAL_VARIABLE";
     default: UNREACHABLE("Unexpected Symbol Type.");
     }
+}
+
+inline bool
+Symbol::is_temp_variable() const noexcept
+{
+    DEBUG(if (name.starts_with(k_temp_variable_prefix)) SMART_ASSERT(is_variable());)
+    return name.starts_with(k_temp_variable_prefix);
 }
 
 inline bool

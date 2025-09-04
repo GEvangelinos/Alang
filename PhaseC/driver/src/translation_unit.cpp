@@ -384,7 +384,14 @@ void
 TranslationUnit::export_symbol_table() const
 {
     export_within_dir(k_symbol_table_exports_dirname,
-                      &TranslationUnit::export_symbol_table_impl);
+                      &TranslationUnit::export_symbol_table_dispatch);
+}
+
+void
+TranslationUnit::export_symbol_table_without_temps() const
+{
+    export_within_dir(k_symbol_table_exports_dirname,
+                      &TranslationUnit::export_symbol_table_without_temps_dispatch);
 }
 
 void
@@ -406,7 +413,16 @@ bool TranslationUnit::compiled_ok() const noexcept
 }
 
 void
-TranslationUnit::export_symbol_table_impl() const
+TranslationUnit::export_symbol_table_dispatch() const { export_symbol_table_impl(true); }
+
+void
+TranslationUnit::export_symbol_table_without_temps_dispatch() const
+{
+    export_symbol_table_impl(false);
+}
+
+void
+TranslationUnit::export_symbol_table_impl(const bool export_temps) const
 {
     const std::string outfile_name = source_path_.filename().string() + k_symbol_table_export_ext;
     std::ofstream outfile(outfile_name);
@@ -430,7 +446,8 @@ TranslationUnit::export_symbol_table_impl() const
     const auto &symbol_per_scope_vector = symbol_table_.symbols_per_scope();
     for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
         for (const Symbol *symbol_ptr: symbol_per_scope_vector[scope])
-            write_symbol_line(symbol_ptr);
+            if (export_temps || !symbol_ptr->is_temp_variable())
+                write_symbol_line(symbol_ptr);
 }
 
 void

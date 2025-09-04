@@ -1,7 +1,6 @@
 #ifndef ALPHA_TRACE_LOGGER_HPP
 #define ALPHA_TRACE_LOGGER_HPP
 
-#include "utils/format_adapter.hpp"
 #include <iostream>
 #include <iomanip>
 #include <vector>

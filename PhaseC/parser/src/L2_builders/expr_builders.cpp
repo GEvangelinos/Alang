@@ -87,57 +87,48 @@ TableAccessBuilder::TableAccessBuilder(const SemanticSystemServices &ss_services
 TableAccessBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
 
-const Expr *
-AggregateBuilder::Restricted::build_table_list_consuming(
-    ExprList *elist,
-    const SourceLocation table_list_loc)
+void
+AggregateBuilder::Restricted::initiate_table_literal(const SourceLocation table_list_loc)
 {
-    DEBUG_SMART_ASSERT(!!elist);
-    auto *const qh = quad_handler_; // Short alias for readability.
-
     const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
-    qh->emit_next(ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
 
-    // Emit exprlist's items.
-    u32 list_index = 0;
-    for (auto expr_it = elist->cbegin(); expr_it != elist->cend(); ++expr_it)
-    {
-        const Expr *const list_item = *expr_it;
-        const SourceLocation list_item_loc = list_item->loc;
-        const Expr *const idx_expr = expr_maker_->make_const_int_expr(list_item_loc, list_index++);
-        qh->emit_next(ir::Opcode::TABLESETELEM, new_table_expr, idx_expr, list_item, list_item_loc);
-    }
+    // Push a checkpoint, so temporary names created inside this table literal cannot escape this scope.
+    parse_ctx_->name_generator.push_temp_checkpoint();
 
-    // Delete elist after use — it must not be used again
-    AggregateBuilder::Restricted::delete_expr_list(elist);
-
-    return new_table_expr;
+    quad_handler_->emit_next(
+        ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
+    draft_.table_literal_stack.emplace(new_table_expr);
 }
 
-const Expr *
-AggregateBuilder::Restricted::build_table_dict_consuming(
-    DictList *dlist,
-    const SourceLocation table_dict_loc)
+const Expr* AggregateBuilder::Restricted::extract_table_literal_consuming(ExprList* elist)
 {
-    DEBUG_SMART_ASSERT(!!dlist);
-    auto *const qh = quad_handler_; // Short alias for readability.
+    return extract_table_literal_consuming_impl(
+        elist, &AggregateBuilder::Restricted::delete_expr_list);
+}
 
-    const Expr *const new_table_expr = expr_maker_->make_new_table_expr(table_dict_loc);
-    qh->emit_next(ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_dict_loc);
+const Expr* AggregateBuilder::Restricted::extract_table_literal_consuming(DictList* dlist)
+{
+    DEBUG_SMART_ASSERT(
+        draft_.table_literal_stack.top().current_list_index == 0 &&
+        "In dictionary construction list_index should be not used, it should remain 0"
+    );
+    return extract_table_literal_consuming_impl(
+        dlist, &AggregateBuilder::Restricted::delete_dict_list);
+}
 
-    // Emit dict's items.
-    for (auto it = dlist->cbegin(); it != dlist->cend(); ++it)
-    {
-        const Expr *const key = (*it)->first;
-        const Expr *const value = (*it)->second;
-        const SourceLocation pair_loc = merge(key->loc, value->loc);
-        qh->emit_next(ir::Opcode::TABLESETELEM, new_table_expr, key, value, pair_loc);
-    }
+template <typename ListT>
+const Expr* AggregateBuilder::Restricted::extract_table_literal_consuming_impl(
+    ListT* list,
+    void (*deleter)(ListT*))
+{
+    DEBUG_SMART_ASSERT(!draft_.table_literal_stack.empty());
 
-    // Delete elist after use — it must not be used again
-    delete_dict_list(dlist);
+    const Expr* const retval = draft_.table_literal_stack.top().current_table_expr;
+    draft_.table_literal_stack.pop();
+    parse_ctx_->name_generator.pop_temp_checkpoint();
 
-    return new_table_expr;
+    deleter(list);
+    return retval;
 }
 
 const Expr *
@@ -357,6 +348,8 @@ BasicBuilder::Restricted::build_uminus(
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::UMINUS>(result_loc, expr))
         return optimized;
 
+    reset_temps_if_temp_operand(expr);
+
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
     quad_handler_->emit_next(ir::Opcode::UMINUS, arithmetic_expr, expr, nullptr, result_loc);
     return arithmetic_expr;
@@ -380,6 +373,8 @@ BasicBuilder::Restricted::build_arithmetic(
 
     if (const auto optimized = this->try_optimize_arithmetic_expr(opc, lhs, rhs, result_loc))
         return optimized;
+
+    reset_temps_if_temp_operand(lhs, rhs);
 
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
     quad_handler_->emit_next(opc, arithmetic_expr, lhs, rhs, result_loc);
@@ -424,9 +419,11 @@ BasicBuilder::Restricted::build_logical_not(const Expr *expr, const SourceLocati
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::NOT>(result_loc, expr))
         return optimized;
-
     // Sanity check, CONST_BOOL must be consumed by the optimizer.
     DEBUG_SMART_ASSERT(expr->type == Expr::Type::BOOL_EXPR);
+
+    reset_temps_if_temp_operand(expr);
+
     const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
     bool_result_expr->true_list = static_cast<const BoolExpr *>(expr)->false_list;
     bool_result_expr->false_list = static_cast<const BoolExpr *>(expr)->true_list;
@@ -445,11 +442,13 @@ BasicBuilder::Restricted::build_logical_and(
     rhs = ss_bridge_->materialize_if_table_item(rhs);
     lhs = ss_bridge_->normalize_to_bool_expr(lhs);
     rhs = ss_bridge_->normalize_to_bool_expr(rhs);
-
     DEBUG_SMART_ASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::AND>(result_loc, lhs, rhs))
         return optimized;
+
+    reset_temps_if_temp_operand(lhs, rhs);
+
     return build_short_circuit_bool_expr<AndShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
@@ -470,6 +469,9 @@ BasicBuilder::Restricted::build_logical_or(
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(result_loc, lhs, rhs))
         return optimized;
+
+    reset_temps_if_temp_operand(lhs, rhs);
+
     return build_short_circuit_bool_expr<OrShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
@@ -552,11 +554,11 @@ BasicBuilder::Restricted::validate_relational_expr(
 
 bool
 BasicBuilder::Restricted::validate_possible_division(
-    const ir::Opcode iropcode,
+    const ir::Opcode opc,
     const Expr *const rhs,
     const SourceLocation division_loc)
 {
-    if (iropcode != ir::Opcode::DIV && iropcode != ir::Opcode::MOD)
+    if (opc != ir::Opcode::DIV && opc != ir::Opcode::MOD)
         return true;
     if (!rhs->is_const_0())
         return true;

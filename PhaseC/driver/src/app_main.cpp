@@ -53,6 +53,8 @@ int main(const int argc, char **argv)
 
     if (cli_parser[alpha::flag_export_symbol_table].is_provided())
         driver->export_symbol_table();
+    if (cli_parser[alpha::flag_export_symbol_table_without_temps].is_provided())
+        driver->export_symbol_table_without_temps();
     if (cli_parser[alpha::flag_export_compile_errors].is_provided())
         driver->export_compile_errors();
     if (cli_parser[alpha::flag_export_ir].is_provided())

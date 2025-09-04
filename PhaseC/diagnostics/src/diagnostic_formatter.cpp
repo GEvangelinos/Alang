@@ -32,7 +32,7 @@ std::string expand_tabs(const std::string_view line, const int tab_width = 8)
         }
     }
     return result;
-}
+} // namespace
 
 [[maybe_unused, deprecated("Used in old diagnostic system")]]
 std::string capture_next_line(const char *const buffer)

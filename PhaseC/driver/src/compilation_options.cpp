@@ -39,16 +39,17 @@ namespace alpha
 {
 const std::vector<OptionSpec> option_specs
 { // clang-format off
-        {flag_input_file,            1, true,  "Provide the alpha file to parse."},
-        {flag_export_symbol_table,   0, false, "Write the compiler's symbol table to a CSV file named <source_filename>.st.csv."},
-        {flag_export_compile_errors, 0, false, "Write the compiler's errors to a CSV file named <source_filename>.error.csv."},
-        {flag_export_ir,          0, false, "Write the compiler's generated quads to <source_filename>.quads."},
-        {flag_show_parser_trace,     0, false, "Pretty-prints a message for each matched grammar rule."},
-        {flag_show_symbol_table,     0, false, "Pretty-prints the symbol table on console."},
-        {flag_show_ir,            0, false, "Pretty-prints the IR quads on console."},
-        {flag_no_show_errors,        0, false, "Disable error display (used for regression testing)."},
-        {flag_list_opts,             0, false, "List available optimizations for IR generation."},
-        {flag_max_errors,            1, false, "Set the maximum number of errors before compilation halts."},
+    {flag_input_file,            1, true,  "Provide the alpha file to parse."},
+    {flag_export_symbol_table,   0, false, "Write the compiler's symbol table to a CSV file named <source_filename>.st.csv."},
+    {flag_export_symbol_table_without_temps,   0, false, "Write the compiler's symbol table to a CSV file named <source_filename>.st.csv without the internal temp variables (used for regression testing)."},
+    {flag_export_compile_errors, 0, false, "Write the compiler's errors to a CSV file named <source_filename>.error.csv."},
+    {flag_export_ir,             0, false, "Write the compiler's generated quads to <source_filename>.quads."},
+    {flag_show_parser_trace,     0, false, "Pretty-prints a message for each matched grammar rule."},
+    {flag_show_symbol_table,     0, false, "Pretty-prints the symbol table on console."},
+    {flag_show_ir,               0, false, "Pretty-prints the IR quads on console."},
+    {flag_no_show_errors,        0, false, "Disable error display (used for regression testing)."},
+    {flag_list_opts,             0, false, "List available optimizations for IR generation."},
+    {flag_max_errors,            1, false, "Set the maximum number of errors before compilation halts."},
 }; // clang-format on
 
 CompilationOptions::Values CompilationOptions::create(const arguinator::Parser &cli_parser)

@@ -38,4 +38,25 @@ to_string(const Expr::Type type) noexcept
             "Unknown Expr::Type. int(type) = {}", static_cast<int>(type)));
     }
 }
+
+bool
+Expr::has_temp_symbol() const noexcept
+{
+    switch (type)
+    {
+    case Type::ARITHMETIC_EXPR:
+        return static_cast<const ArithmeticExpr *>(this)->var_symbol->is_temp_variable();
+    case Type::ASSIGN_EXPR:
+        return static_cast<const AssignExpr *>(this)->var_symbol->is_temp_variable();
+    case Type::BOOL_EXPR:
+        return static_cast<const BoolExpr *>(this)->var_symbol->is_temp_variable();
+    case Type::NEW_TABLE:
+        return static_cast<const NewTableExpr *>(this)->var_symbol->is_temp_variable();
+    case Type::TABLE_ITEM:
+        return static_cast<const TableItemExpr *>(this)->var_symbol->is_temp_variable();
+    case Type::VARIABLE:
+        return static_cast<const VariableExpr *>(this)->var_symbol->is_temp_variable();
+    default: return false;
+    }
+}
 } // namespace alpha

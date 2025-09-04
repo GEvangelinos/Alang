@@ -72,7 +72,7 @@ SemanticSystem::get_expr_optimizer_options(const Options &options)
 }
 
 void
-SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->name_generator.reset_temp_names(); }
+SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->name_generator.fullreset_temps(); }
 
 void
 SemanticSystem::consume_stmt_expr(const Expr *const expr)

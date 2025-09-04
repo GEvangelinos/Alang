@@ -150,7 +150,7 @@ def validate_compile_errors(golden_compile_error_dir: Path, asc_filepath: Path) 
 def run_alpha_compiler(alpha_compiler_path: Path, asc_filepath: Path) -> int:
     ac_process_args = [
         str(alpha_compiler_path),
-        "--export-symbol-table",
+        "--export-symbol-table-without-temps",
         "--export-ir",
         "--export-compile-errors",
         "--no-show-errors",
@@ -175,7 +175,7 @@ def run_valgrind_tests(
     ]
     ac_args = [
         str(alpha_compiler_path),
-        "--export-symbol-table",
+        "--export-symbol-table-without-temps",
         "--export-ir",
         "--export-compile-errors",
         "--show-symbol-table",
@@ -261,8 +261,10 @@ def delete_export_dir(export_dir: Path) -> None:
 
 
 def cleanup():
-    delete_export_dir(Path(os.path.join(os.getcwd(), SYMBOL_TABLES_DIR)))
-    delete_export_dir(Path(os.path.join(os.getcwd(), COMPILE_ERRORS_DIR)))
+    # delete_export_dir(Path(os.path.join(os.getcwd(), SYMBOL_TABLES_DIR)))
+    # delete_export_dir(Path(os.path.join(os.getcwd(), IR_DIR)))
+    # delete_export_dir(Path(os.path.join(os.getcwd(), COMPILE_ERRORS_DIR)))
+    pass
 
 
 def main():

@@ -96,6 +96,7 @@ public:
     void show_compile_issues() const;
     void show_ir() const;
     void export_symbol_table() const;
+    void export_symbol_table_without_temps() const;
     void export_compile_errors() const;
     void export_ir() const;
 
@@ -114,7 +115,9 @@ private:
 
     void export_within_dir(
         std::string_view dirname, void (TranslationUnit::*export_func)() const) const;
-    void export_symbol_table_impl() const;
+    void export_symbol_table_dispatch() const;
+    void export_symbol_table_without_temps_dispatch() const;
+    void export_symbol_table_impl(bool export_temps) const;
     void export_compile_errors_impl() const;
     void export_ir_impl() const;
     [[nodiscard]] DiagnosticEngine::Policy create_diagnostic_engine_policy();
