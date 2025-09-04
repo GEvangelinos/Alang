@@ -117,13 +117,14 @@ FunctionCtxHandler::exit_function() noexcept
 }
 
 ParseCtx::ParseCtx(SymbolTable *const symbol_table)
-    : func_ctx_handler(this),
+    : call_ctx_handler(this),
+      func_ctx_handler(this),
       symbol_table_(utils::require_ptr(symbol_table)) {}
 
 const VarSymbol *
 ParseCtx::new_temp()
 {
-    const std::string temp_name = name_generator.new_temp_name();
+    const std::string temp_name = temp_ctx_handler.new_name();
     const Symbol *symbol = symbol_table_->lookup_local(temp_name, scope_handler.scope());
 
     // We register new temp, only if current scope doesn't have that temp.

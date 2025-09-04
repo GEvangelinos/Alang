@@ -64,21 +64,14 @@ private:
 class CallContextHandler : private Immobile
 {
 public:
-    void enter_call() noexcept
-    {
-        DEBUG_SMART_ASSERT(call_nesting_count_< k_max_call_nesting && "A safe small sanity limit");
-        ++call_nesting_count_;
-    }
+    explicit CallContextHandler(ParseCtx *parse_ctx);
 
-    void exit_call() noexcept
-    {
-        DEBUG_SMART_ASSERT(call_nesting_count_ > 0);
-        --call_nesting_count_;
-    }
-
+    void enter_call();
+    void exit_call();
     bool is_in_call() const noexcept { return call_nesting_count_ > 0; }
 
 private:
+    ParseCtx *const parse_ctx_;
     u32 call_nesting_count_ = 0;
 };
 
@@ -169,29 +162,43 @@ private:
 class NameGenerator : private Immobile
 {
 public:
-    [[nodiscard]] std::string new_temp_name();
-
-    void fullreset_temps(); // Use at end of each stmt.
-    void reset_temps_at_checkpoint();
-    void push_temp_checkpoint(); // Use after generating new_temp_name().
-    void pop_temp_checkpoint();
-
     [[nodiscard]] std::string new_anonymous();
 
 private:
-    u32 temp_name_counter_ = 0;
     u32 anonymous_counter_ = 0;
-    std::vector<u32> temp_checkpoints_;
+};
+
+class TempCtxHandler
+{
+public:
+    [[nodiscard]] std::string new_name();
+
+    void reset_all();
+    void reset_to_checkpoint();
+    void push_checkpoint();
+    void pop_checkpoint();
+    void push_checkpoint_barrier();
+    void pop_checkpoint_barrier();
+
+private:
+    u32 temp_name_counter_ = 0;
+
+    std::vector<u32> checkpoints_;
+    VectorStack<u32> checkpoint_barriers_;
 };
 
 class ParseCtx : private Immobile
 {
 public:
+    enum class Ctx{CALL, TABLE};
+    VectorStack<Ctx> nested_ctxs;
+
     SpaceHandler space_handler;
     ScopeHandler scope_handler;
     CallContextHandler call_ctx_handler;
     FunctionCtxHandler func_ctx_handler;
     NameGenerator name_generator;
+    TempCtxHandler temp_ctx_handler;
 
     explicit ParseCtx(SymbolTable *symbol_table);
     ~ParseCtx() = default;
@@ -267,6 +274,24 @@ ScopeHandler::exit_scope() noexcept
         skip_next_scope_increment_.is_disabled() //
     );
     --scope_;
+}
+
+inline
+CallContextHandler::CallContextHandler(ParseCtx *const parse_ctx)
+    : parse_ctx_(utils::require_ptr(parse_ctx)) {}
+
+inline void
+CallContextHandler::enter_call()
+{
+    DEBUG_SMART_ASSERT(call_nesting_count_< k_max_call_nesting && "A safe small sanity limit");
+    ++call_nesting_count_;
+}
+
+inline void
+CallContextHandler::exit_call()
+{
+    DEBUG_SMART_ASSERT(call_nesting_count_ > 0);
+    --call_nesting_count_;
 }
 
 inline u32
@@ -416,38 +441,60 @@ FunctionCtxHandler::add_local() noexcept
 }
 
 inline std::string
-NameGenerator::new_temp_name()
-{
-    return k_temp_variable_prefix + std::to_string(temp_name_counter_++);
-}
+TempCtxHandler::new_name() { return k_temp_variable_prefix + std::to_string(temp_name_counter_++); }
 
 inline void
-NameGenerator::fullreset_temps()
+TempCtxHandler::reset_all()
 {
-    temp_checkpoints_.clear();
+    checkpoints_.clear();
     temp_name_counter_ = 0;
 }
 
 inline void
-NameGenerator::reset_temps_at_checkpoint()
+TempCtxHandler::reset_to_checkpoint()
 {
-    temp_name_counter_ = temp_checkpoints_.empty() ? 0 : temp_checkpoints_.back();
+    #ifndef CYA_MODE
+    temp_name_counter_ = checkpoints_.empty() ? 0 : checkpoints_.back();
+    #endif
 }
 
 inline void
-NameGenerator::push_temp_checkpoint() { temp_checkpoints_.push_back(temp_name_counter_); }
+TempCtxHandler::push_checkpoint()
+{
+    #ifndef CYA_MODE
+    checkpoints_.push_back(temp_name_counter_);
+    #endif
+}
 
 inline void
-NameGenerator::pop_temp_checkpoint()
+TempCtxHandler::pop_checkpoint()
 {
-    DEBUG_SMART_ASSERT(!temp_checkpoints_.empty());
-    temp_checkpoints_.pop_back();
+    #ifndef CYA_MODE
+    DEBUG_SMART_ASSERT(!checkpoints_.empty());
+    checkpoints_.pop_back();
+    #endif
+}
+
+inline void TempCtxHandler::push_checkpoint_barrier()
+{
+    #ifndef CYA_MODE
+    checkpoint_barriers_.push(checkpoints_.size());
+    #endif
+
+}
+
+inline void TempCtxHandler::pop_checkpoint_barrier()
+{
+    #ifndef CYA_MODE
+    DEBUG_SMART_ASSERT(!checkpoint_barriers_.empty());
+    while (checkpoints_.size() > checkpoint_barriers_.top())
+        pop_checkpoint();
+    checkpoint_barriers_.pop();
+    reset_to_checkpoint();
+    #endif
 }
 
 inline std::string
-NameGenerator::new_anonymous()
-{
-    return k_private_anonymous_prefix + std::to_string(anonymous_counter_++);
-}
+NameGenerator::new_anonymous() { return k_anonymous_prefix + std::to_string(anonymous_counter_++); }
 } // namespace alpha
 #endif // PARSER_CONTEXT_HPP

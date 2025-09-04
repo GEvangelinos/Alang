@@ -1,10 +1,15 @@
 #ifndef ALPHA_BASICS_HPP
 #define ALPHA_BASICS_HPP
+#include <stack>
+#include <vector>
+
 #include "utils/debug_tools.hpp"
 #include "utils/format_adapter.hpp"
 
 namespace alpha
 {
+template<typename T>
+using VectorStack = std::stack<T, std::vector<T>>;
 /// @brief A mixin that prevents copying, moving, or reassigning derived classes.
 /// @details
 ///   Inherit from this class to make your type “immobile”:

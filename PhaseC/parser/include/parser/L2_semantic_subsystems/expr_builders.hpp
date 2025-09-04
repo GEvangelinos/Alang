@@ -43,6 +43,7 @@ private:
         ~Restricted() override = default;
 
         // List related (candidate for submodule)
+        void mark_temp_checkpoint();
         [[nodiscard]] static ExprList *build_expr_list();
         [[nodiscard]] ExprList *build_expr_list(const Expr *head_expr);
         [[nodiscard]] ExprList *extend_expr_list(ExprList *elist, const Expr *next);
@@ -61,6 +62,13 @@ private:
         [[nodiscard]] const Expr *extract_table_literal_consuming(ExprList *elist);
         [[nodiscard]] const Expr *extract_table_literal_consuming(DictList *dlist);
 
+        #ifdef CYA_MODE
+        [[nodiscard]] const Expr *build_table_list_consuming(
+            ExprList *elist, SourceLocation table_list_loc);
+        [[nodiscard]] const Expr *build_table_dict_consuming(
+            DictList *dlist, SourceLocation table_dict_loc);
+        #endif
+
         template<typename ListT>
         [[nodiscard]] const Expr *extract_table_literal_consuming_impl(
             ListT *list, void (*deleter)(ListT *));
@@ -71,6 +79,7 @@ private:
     explicit AggregateBuilder(const SemanticSystemServices &ss_services);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
+    DISPATCH_SLAVE_METHOD_CALL(mark_temp_checkpoint);
     DISPATCH_SLAVE_METHOD_CALL(build_expr_list);
     DISPATCH_SLAVE_METHOD_CALL(build_expr_pair);
     DISPATCH_SLAVE_METHOD_CALL(build_dict_list);
@@ -80,6 +89,10 @@ private:
     DISPATCH_SLAVE_METHOD_CALL(consume_dict_list);
     DISPATCH_SLAVE_METHOD_CALL(initiate_table_literal);
     DISPATCH_SLAVE_METHOD_CALL(extract_table_literal_consuming);
+    #ifdef CYA_MODE
+    DISPATCH_SLAVE_METHOD_CALL(build_table_list_consuming);
+    DISPATCH_SLAVE_METHOD_CALL(build_table_dict_consuming);
+    #endif
     DISPATCH_DEFINE_HANDLER_END();
 };
 
@@ -406,6 +419,15 @@ private:
     DISPATCH_DEFINE_HANDLER_END();
 };
 
+inline void
+AggregateBuilder::Restricted::mark_temp_checkpoint()
+{
+    #ifndef CYA_MODE
+    if (draft_.table_literal_stack.empty())
+        parse_ctx_->temp_ctx_handler.push_checkpoint();
+    #endif
+}
+
 inline ExprList *
 AggregateBuilder::Restricted::build_expr_list() { return new ExprList(); }
 
@@ -424,7 +446,10 @@ AggregateBuilder::Restricted::extend_expr_list(
     DEBUG_SMART_ASSERT(!!elist, !!next);
     const Expr *const materialized_next_expr = ss_bridge_->materialize_if_table_item(next);
     ss_bridge_->finalize_bool_expr(materialized_next_expr);
-    if (!draft_.table_literal_stack.empty())
+    #ifndef CYA_MODE
+    if (!draft_.table_literal_stack.empty() &&
+        !parse_ctx_->nested_ctxs.empty() &&
+        parse_ctx_->nested_ctxs.top() == ParseCtx::Ctx::TABLE)
     {
         auto &top_elist_ctx = draft_.table_literal_stack.top();
         const Expr *const index_expr = expr_maker_->make_const_int_expr(
@@ -440,6 +465,7 @@ AggregateBuilder::Restricted::extend_expr_list(
         );
         reset_temps_if_temp_operand(next);
     }
+    #endif
     elist->push_back(next);
     return elist;
 }
@@ -482,6 +508,7 @@ AggregateBuilder::Restricted::extend_dict_list(
     const ExprPair *const next_pair)
 {
     DEBUG_SMART_ASSERT(!!dlist, !!next_pair);
+    #ifndef CYA_MODE
     if (!draft_.table_literal_stack.empty())
     {
         const auto [key, value] = *next_pair;
@@ -495,6 +522,7 @@ AggregateBuilder::Restricted::extend_dict_list(
         );
         reset_temps_if_temp_operand(key, value);
     }
+    #endif
     dlist->push_back(next_pair);
     return dlist;
 }
@@ -510,9 +538,25 @@ AggregateBuilder::Restricted::delete_dict_list(DictList *dlist)
 }
 
 inline void
-CallBuilder::Restricted::begin_call() { parse_ctx_->call_ctx_handler.enter_call(); }
+CallBuilder::Restricted::begin_call()
+{
+    #ifndef CYA_MODE
+    parse_ctx_->nested_ctxs.push(ParseCtx::Ctx::CALL);
+    parse_ctx_->temp_ctx_handler.push_checkpoint_barrier();
+    #endif
+    parse_ctx_->call_ctx_handler.enter_call();
+}
 
 inline void
-CallBuilder::Restricted::end_call() { parse_ctx_->call_ctx_handler.exit_call(); }
+CallBuilder::Restricted::end_call()
+{
+    parse_ctx_->call_ctx_handler.exit_call();
+    #ifndef CYA_MODE
+    parse_ctx_->temp_ctx_handler.pop_checkpoint_barrier();
+    DEBUG_SMART_ASSERT(!parse_ctx_->nested_ctxs.empty());
+    DEBUG_SMART_ASSERT(parse_ctx_->nested_ctxs.top() == ParseCtx::Ctx::CALL);
+    parse_ctx_->nested_ctxs.pop();
+    #endif
+}
 } // namespace alpha
 #endif // EXPR_BUILDERS_HPP

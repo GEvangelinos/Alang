@@ -29,7 +29,7 @@ SemanticSubsystem::reset_temps_if_temp_operand(const Expr *const unary)
 {
     // Rvalue operands don't persist, so temp names can be safely reused.
     if (unary->has_temp_symbol())
-        parse_ctx_->name_generator.reset_temps_at_checkpoint();
+        parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
 }
 
 inline void
@@ -37,7 +37,7 @@ SemanticSubsystem::reset_temps_if_temp_operand(const Expr *const lhs, const Expr
 {
     // Rvalue operands don't persist, so temp names can be safely reused.
     if (lhs->has_temp_symbol() || rhs->has_temp_symbol())
-        parse_ctx_->name_generator.reset_temps_at_checkpoint();
+        parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
 }
 
 // Destructor is always called, even if pure virtual, so we need to explicitly define it.

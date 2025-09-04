@@ -86,7 +86,7 @@ ControlFlowManager::Restricted::manage_elsebranch_exit()
 void
 ControlFlowManager::Restricted::manage_whileloop_entry()
 {
-    build_ctx_.push_new_while_loop_frame();
+    build_ctx_.push_new_whileloop_frame();
     DEBUG(
         const auto &wlf_stack = build_ctx_.while_loop_frames;
         SMART_ASSERT(!wlf_stack.empty());
@@ -159,7 +159,7 @@ ControlFlowManager::Restricted::manage_whileloop_exit(const SourceLocation while
 void
 ControlFlowManager::Restricted::mark_forloop_condition_entry()
 {
-    build_ctx_.push_new_for_loop_frame();
+    build_ctx_.push_new_forloop_frame();
     DEBUG(
         auto &flf_stack = build_ctx_.for_loop_frames;
         SMART_ASSERT(!flf_stack.empty());
@@ -231,7 +231,6 @@ ControlFlowManager::Restricted::manage_forloop_condition(
     mark_upcoming_forloop_sites();
     qh->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, condition_loc);
 }
-
 
 void
 ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_loc)

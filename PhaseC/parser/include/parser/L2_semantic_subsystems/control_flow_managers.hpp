@@ -75,8 +75,8 @@ private:
             std::stack<WhileLoopPatchPoints, std::vector<WhileLoopPatchPoints>> while_loop_frames;
             std::stack<ForLoopPatchPoints, std::vector<ForLoopPatchPoints>> for_loop_frames;
 
-            void push_new_while_loop_frame() { while_loop_frames.push(WhileLoopPatchPoints()); }
-            void push_new_for_loop_frame() { for_loop_frames.push(ForLoopPatchPoints()); }
+            void push_new_whileloop_frame() { while_loop_frames.push(WhileLoopPatchPoints()); }
+            void push_new_forloop_frame() { for_loop_frames.push(ForLoopPatchPoints()); }
         } build_ctx_;
 
         explicit Restricted(const SemanticSystemServices &ss_services);

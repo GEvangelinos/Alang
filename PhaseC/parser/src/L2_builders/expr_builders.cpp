@@ -90,14 +90,14 @@ TableAccessBuilder::Restricted::Restricted(const SemanticSystemServices &ss_serv
 void
 AggregateBuilder::Restricted::initiate_table_literal(const SourceLocation table_list_loc)
 {
+    #ifndef CYA_MODE
     const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
-
-    // Push a checkpoint, so temporary names created inside this table literal cannot escape this scope.
-    parse_ctx_->name_generator.push_temp_checkpoint();
-
+    parse_ctx_->temp_ctx_handler.push_checkpoint();
+    parse_ctx_->nested_ctxs.push(ParseCtx::Ctx::TABLE);
     quad_handler_->emit_next(
         ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
     draft_.table_literal_stack.emplace(new_table_expr);
+    #endif
 }
 
 const Expr* AggregateBuilder::Restricted::extract_table_literal_consuming(ExprList* elist)
@@ -125,11 +125,71 @@ const Expr* AggregateBuilder::Restricted::extract_table_literal_consuming_impl(
 
     const Expr* const retval = draft_.table_literal_stack.top().current_table_expr;
     draft_.table_literal_stack.pop();
-    parse_ctx_->name_generator.pop_temp_checkpoint();
+    parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
+    parse_ctx_->temp_ctx_handler.pop_checkpoint();
+
+    DEBUG_SMART_ASSERT(!parse_ctx_->nested_ctxs.empty());
+    DEBUG_SMART_ASSERT(parse_ctx_->nested_ctxs.top() == ParseCtx::Ctx::TABLE);
+    parse_ctx_->nested_ctxs.pop();
 
     deleter(list);
     return retval;
 }
+
+#ifdef CYA_MODE
+const Expr *
+AggregateBuilder::Restricted::build_table_list_consuming(
+    ExprList *elist,
+    const SourceLocation table_list_loc)
+{
+    DEBUG_SMART_ASSERT(!!elist);
+    auto *const qh = quad_handler_; // Short alias for readability.
+
+    const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
+    qh->emit_next(ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
+
+    // Emit exprlist's items.
+    u32 list_index = 0;
+    for (auto expr_it = elist->cbegin(); expr_it != elist->cend(); ++expr_it)
+    {
+        const Expr *const list_item = *expr_it;
+        const SourceLocation list_item_loc = list_item->loc;
+        const Expr *const idx_expr = expr_maker_->make_const_int_expr(list_item_loc, list_index++);
+        qh->emit_next(ir::Opcode::TABLESETELEM, new_table_expr, idx_expr, list_item, list_item_loc);
+    }
+
+    // Delete elist after use — it must not be used again
+    AggregateBuilder::Restricted::delete_expr_list(elist);
+
+    return new_table_expr;
+}
+
+const Expr *
+AggregateBuilder::Restricted::build_table_dict_consuming(
+    DictList *dlist,
+    const SourceLocation table_dict_loc)
+{
+    DEBUG_SMART_ASSERT(!!dlist);
+    auto *const qh = quad_handler_; // Short alias for readability.
+
+    const Expr *const new_table_expr = expr_maker_->make_new_table_expr(table_dict_loc);
+    qh->emit_next(ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_dict_loc);
+
+    // Emit dict's items.
+    for (auto it = dlist->cbegin(); it != dlist->cend(); ++it)
+    {
+        const Expr *const key = (*it)->first;
+        const Expr *const value = (*it)->second;
+        const SourceLocation pair_loc = merge(key->loc, value->loc);
+        qh->emit_next(ir::Opcode::TABLESETELEM, new_table_expr, key, value, pair_loc);
+    }
+
+    // Delete elist after use — it must not be used again
+    delete_dict_list(dlist);
+
+    return new_table_expr;
+}
+#endif
 
 const Expr *
 AssignBuilder::Restricted::build_assignment(
@@ -662,7 +722,7 @@ CallBuilder::Restricted::build_call_consuming(
         quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, method, nullptr, method->loc);
 
     quad_handler_->emit_next(ir::Opcode::CALL, nullptr, func_expr, nullptr, call_loc);
-
+    reset_temps_if_temp_operand(func_expr);
     const Expr *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
 

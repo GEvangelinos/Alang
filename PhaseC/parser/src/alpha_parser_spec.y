@@ -346,10 +346,10 @@ call[invocation]:
 ;
 
 cs_exprs[out]:
-  expr
-  { $out = ss.call<"aggregate_builder.build_expr_list">($expr); }
-| cs_exprs[prev]  COMMA  expr
-  { $out = ss.call<"aggregate_builder.extend_expr_list">($prev, $expr); }
+  expr  { $out = ss.call<"aggregate_builder.build_expr_list">($expr); }
+| cs_exprs[prev]
+  COMMA { ss.call<"aggregate_builder.mark_temp_checkpoint">(); }
+  expr  { $out = ss.call<"aggregate_builder.extend_expr_list">($prev, $expr); }
 ;
 
 expr_list:
@@ -373,8 +373,7 @@ dict_list[out]:
 ;
 
 table_literal_begin:
-  LEFT_BRACKET
-  { ss.call<"aggregate_builder.initiate_table_literal">(@table_literal_begin); }
+  LEFT_BRACKET { ss.call<"aggregate_builder.initiate_table_literal">(@table_literal_begin); }
 ;
 
 table_literal_end:
@@ -383,10 +382,22 @@ table_literal_end:
 
 table_literal:
   table_literal_begin expr_list table_literal_end
-  { $table_literal = ss.call<"aggregate_builder.extract_table_literal_consuming">($expr_list); }
+  {
+    #ifdef CYA_MODE
+    $table_literal = ss.call<"aggregate_builder.build_table_list_consuming">($expr_list, @table_literal);
+    #else
+    $table_literal = ss.call<"aggregate_builder.extract_table_literal_consuming">($expr_list);
+    #endif
+  }
 |
   table_literal_begin dict_list table_literal_end
-  { $table_literal = ss.call<"aggregate_builder.extract_table_literal_consuming">($dict_list); }
+  {
+   #ifdef CYA_MODE
+   $table_literal = ss.call<"aggregate_builder.build_table_dict_consuming">($dict_list, @table_literal);
+   #else
+   $table_literal = ss.call<"aggregate_builder.extract_table_literal_consuming">($dict_list);
+   #endif
+  }
 ;
 
 block_begin:
