@@ -438,38 +438,6 @@ AggregateBuilder::Restricted::build_expr_list(const Expr *const head_expr)
     return extend_expr_list(build_expr_list(), head_expr);
 }
 
-inline ExprList *
-AggregateBuilder::Restricted::extend_expr_list(
-    ExprList *const elist,
-    const Expr *const next)
-{
-    DEBUG_SMART_ASSERT(!!elist, !!next);
-    const Expr *const materialized_next_expr = ss_bridge_->materialize_if_table_item(next);
-    ss_bridge_->finalize_bool_expr(materialized_next_expr);
-    #ifndef CYA_MODE
-    if (!draft_.table_literal_stack.empty() &&
-        !parse_ctx_->nested_ctxs.empty() &&
-        parse_ctx_->nested_ctxs.top() == ParseCtx::Ctx::TABLE)
-    {
-        auto &top_elist_ctx = draft_.table_literal_stack.top();
-        const Expr *const index_expr = expr_maker_->make_const_int_expr(
-            next->loc,
-            top_elist_ctx.current_list_index++
-        );
-        quad_handler_->emit_next(
-            ir::Opcode::TABLESETELEM,
-            top_elist_ctx.current_table_expr,
-            index_expr,
-            materialized_next_expr,
-            materialized_next_expr->loc
-        );
-        reset_temps_if_temp_operand(next);
-    }
-    #endif
-    elist->push_back(next);
-    return elist;
-}
-
 inline void
 AggregateBuilder::Restricted::delete_expr_list(ExprList *elist)
 {
@@ -502,61 +470,5 @@ AggregateBuilder::Restricted::build_dict_list(const ExprPair *const head_pair)
     return extend_dict_list(build_dict_list(), head_pair);
 }
 
-inline DictList *
-AggregateBuilder::Restricted::extend_dict_list(
-    DictList *const dlist,
-    const ExprPair *const next_pair)
-{
-    DEBUG_SMART_ASSERT(!!dlist, !!next_pair);
-    #ifndef CYA_MODE
-    if (!draft_.table_literal_stack.empty())
-    {
-        const auto [key, value] = *next_pair;
-        const SourceLocation pair_loc = merge(key->loc, value->loc);
-        quad_handler_->emit_next(
-            ir::Opcode::TABLESETELEM,
-            draft_.table_literal_stack.top().current_table_expr,
-            key,
-            value,
-            pair_loc
-        );
-        reset_temps_if_temp_operand(key, value);
-    }
-    #endif
-    dlist->push_back(next_pair);
-    return dlist;
-}
-
-// Passed by reference to nullify after deletion -- avoids leaving a dangling pointer.
-inline void
-AggregateBuilder::Restricted::delete_dict_list(DictList *dlist)
-{
-    // Note: Do NOT delete the expressions in ExprPair -- those are handler by ExprMaker.
-    for (const ExprPair *pair: *dlist)
-        delete pair; // Shallow delete, it does NOT delete the expressions it's holding.
-    delete dlist;
-}
-
-inline void
-CallBuilder::Restricted::begin_call()
-{
-    #ifndef CYA_MODE
-    parse_ctx_->nested_ctxs.push(ParseCtx::Ctx::CALL);
-    parse_ctx_->temp_ctx_handler.push_checkpoint_barrier();
-    #endif
-    parse_ctx_->call_ctx_handler.enter_call();
-}
-
-inline void
-CallBuilder::Restricted::end_call()
-{
-    parse_ctx_->call_ctx_handler.exit_call();
-    #ifndef CYA_MODE
-    parse_ctx_->temp_ctx_handler.pop_checkpoint_barrier();
-    DEBUG_SMART_ASSERT(!parse_ctx_->nested_ctxs.empty());
-    DEBUG_SMART_ASSERT(parse_ctx_->nested_ctxs.top() == ParseCtx::Ctx::CALL);
-    parse_ctx_->nested_ctxs.pop();
-    #endif
-}
 } // namespace alpha
 #endif // EXPR_BUILDERS_HPP

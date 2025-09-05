@@ -11,8 +11,20 @@
 
 inline constexpr auto k_reescaped_warning_banner =
         SGR_BOLD "Note" SGR_BLINK "❗" SGR_RESET ": "
-        "special characters are escaped; Ex.: \"\\n\" prints literally "
-        "(not a newline) to keep the table aligned.\n" SGR_RESET;
+        "Special characters are escaped; Ex.: \"\\n\" prints literally (not a newline) to keep the table aligned.\n"
+        SGR_RESET;
+
+inline constexpr auto k_cya_mode_off_warning_banner =
+#ifdef CYA_MODE
+        ""
+#else
+        SGR_BOLD "Note" SGR_BLINK "❗" SGR_RESET ": "
+        "This executable was built with CYA_MODE disabled. As a result:\n"
+        "  a) Aggressive reuse of temporary variables is enabled; table literals are handled differently.\n"
+        "  b) Assignment temps are no longer created except when strictly required (e.g., inside function calls).\n"
+        SGR_RESET
+#endif
+;
 
 namespace
 {
@@ -132,8 +144,8 @@ void print_ir(Stream &out, const std::vector<alpha::Quad> &quads, const alpha::L
         return width;
     }();
 
-    if (Colorize)
-        out << k_reescaped_warning_banner;
+    out << k_reescaped_warning_banner;
+    out << k_cya_mode_off_warning_banner;
 
     // Write export header.
     out << FMT::format(

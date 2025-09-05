@@ -484,6 +484,7 @@ while_stmt:
 for_clause:
   FOR
   LEFT_PAREN
+  { ss.call<"control_flow_manager.enter_forloop_clause">(); }
   expr_list[init_list]
   { ss.call<"aggregate_builder.consume_expr_list">($init_list); }
   SEMICOLON
@@ -498,6 +499,7 @@ for_clause:
     ss.call<"aggregate_builder.consume_expr_list">($update_list);
   }
   RIGHT_PAREN
+  { ss.call<"control_flow_manager.exit_forloop_clause">(); }
 ;
 
 for_stmt:

@@ -1,7 +1,6 @@
 #ifndef PARSER_CONTEXT_HPP
 #define PARSER_CONTEXT_HPP
 
-#include <list>
 #include <stack>
 #include <vector>
 #include "core/konstants.hpp"
@@ -159,7 +158,7 @@ private:
     ParseCtx *const parse_ctx_;
 };
 
-class NameGenerator : private Immobile
+class AnonymousGenerator : private Immobile
 {
 public:
     [[nodiscard]] std::string new_anonymous();
@@ -171,6 +170,9 @@ private:
 class TempCtxHandler
 {
 public:
+    enum class TempRegion{CALL, TABLE, FORLOOP_CLAUSE};
+    VectorStack<TempRegion> region_stack;
+
     [[nodiscard]] std::string new_name();
 
     void reset_all();
@@ -179,6 +181,7 @@ public:
     void pop_checkpoint();
     void push_checkpoint_barrier();
     void pop_checkpoint_barrier();
+
 
 private:
     u32 temp_name_counter_ = 0;
@@ -190,14 +193,11 @@ private:
 class ParseCtx : private Immobile
 {
 public:
-    enum class Ctx{CALL, TABLE};
-    VectorStack<Ctx> nested_ctxs;
-
     SpaceHandler space_handler;
     ScopeHandler scope_handler;
     CallContextHandler call_ctx_handler;
     FunctionCtxHandler func_ctx_handler;
-    NameGenerator name_generator;
+    AnonymousGenerator anonymous_generator;
     TempCtxHandler temp_ctx_handler;
 
     explicit ParseCtx(SymbolTable *symbol_table);
@@ -495,6 +495,6 @@ inline void TempCtxHandler::pop_checkpoint_barrier()
 }
 
 inline std::string
-NameGenerator::new_anonymous() { return k_anonymous_prefix + std::to_string(anonymous_counter_++); }
+AnonymousGenerator::new_anonymous() { return k_anonymous_prefix + std::to_string(anonymous_counter_++); }
 } // namespace alpha
 #endif // PARSER_CONTEXT_HPP

@@ -265,6 +265,25 @@ ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_lo
 }
 
 void
+ControlFlowManager::Restricted::enter_forloop_clause()
+{
+    parse_ctx_->temp_ctx_handler.region_stack.push(TempCtxHandler::TempRegion::FORLOOP_CLAUSE);
+    parse_ctx_->temp_ctx_handler.push_checkpoint();
+}
+
+void
+ControlFlowManager::Restricted::exit_forloop_clause()
+{
+    parse_ctx_->temp_ctx_handler.pop_checkpoint();
+    DEBUG_SMART_ASSERT(!parse_ctx_->temp_ctx_handler.region_stack.empty());
+    DEBUG_SMART_ASSERT(
+        parse_ctx_->temp_ctx_handler.region_stack.top() ==
+        TempCtxHandler::TempRegion::FORLOOP_CLAUSE
+    );
+    parse_ctx_->temp_ctx_handler.region_stack.pop();
+}
+
+void
 ControlFlowManager::Restricted::manage_break(const SourceLocation break_loc)
 {
     manage_loop_keyword(LoopKeyword::BREAK, break_loc);
