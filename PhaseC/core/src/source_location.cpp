@@ -91,15 +91,19 @@ LocationTracker::find_first_column(const SourceLocation location) const
     return starting_column;
 }
 
+/**
+ * @brief Map a byte-index range to source line numbers.
+ *
+ * (0,0) is a sentinel for LIBFUNCs → returns {k_no_line, k_no_line}.
+ * Zero-width ranges (first_index == last_index) are valid; both ends map to the same line.
+ * No normalization is performed; the caller must ensure
+ */
 LineRange
 LocationTracker::find_lines(const u32 first_index, const u32 last_index) const
 {
+    // LIBFUNCs -- Only libfuncs are defined at Location{0,0}
     if (first_index == 0 && last_index == 0)
-        // LIBFUNCs -- Only libfuncs are defined at Location{0,0}
         return {k_no_line, k_no_line};
-    if (first_index == last_index)
-        throw std::logic_error(ATTACH_CONTEXT(
-            "BUG: Location with zero length. Start and end index are equal."));
     return {find_line(first_index), find_line(last_index)};
 }
 

@@ -4,13 +4,15 @@ namespace alpha
 {
 LvalueResolver::LvalueResolver(const SemanticSystemServices &ss_services)
     : DISPATCH_TARGET(ss_services) {}
+
 LvalueResolver::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
 
 const Expr *
 LvalueResolver::Restricted::resolve_id(const char *id_name, const SourceLocation id_loc)
 {
-    const Symbol *result = symbol_table_->lookup_nearest(id_name, parse_ctx_->scope_handler.scope());
+    const Symbol *result = symbol_table_->
+            lookup_nearest(id_name, parse_ctx_->scope_handler.scope());
     if (!result) // Symbol not found, so insert it!
     {
         result = symbol_table_->insert_variable(
@@ -39,10 +41,13 @@ LvalueResolver::Restricted::resolve_local_id(const char *const id_name, const So
     const Symbol *result = symbol_table_->lookup_local(id_name, parse_ctx_->scope_handler.scope());
     if (!result)
     {
+        const auto current_scope = parse_ctx_->scope_handler.scope();
         const VarSymbol *const inserted = symbol_table_->insert_variable(
             id_name,
-            parse_ctx_->scope_handler.scope(),
-            VarSymbol::Type::LOCAL_VARIABLE,
+            current_scope,
+            current_scope == k_global_scope
+            ? VarSymbol::Type::GLOBAL_VARIABLE
+            : VarSymbol::Type::LOCAL_VARIABLE,
             parse_ctx_->space_handler.space(),
             parse_ctx_->space_handler.next_offset(),
             id_loc
@@ -61,7 +66,8 @@ LvalueResolver::Restricted::resolve_local_id(const char *const id_name, const So
     UNREACHABLE("Unexpected symbol type");
 }
 
-const Expr *LvalueResolver::Restricted::resolve_global_id(const char *id_name, SourceLocation id_loc)
+const Expr *LvalueResolver::Restricted::resolve_global_id(const char *id_name,
+                                                          SourceLocation id_loc)
 {
     const Symbol *result = symbol_table_->lookup_global(id_name);
     if (!result)

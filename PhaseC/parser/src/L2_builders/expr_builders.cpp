@@ -121,7 +121,7 @@ AggregateBuilder::Restricted::extend_expr_list(
         parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     }
     #endif
-    elist->push_back(next);
+    elist->push_back(materialized_next_expr);
     return elist;
 }
 
@@ -389,7 +389,7 @@ AssignBuilder::Restricted::handle_table_item_assignment(
     DEBUG_SMART_ASSERT(lhs->type == Expr::Type::TABLE_ITEM);
 
     const auto *const ti = static_cast<const TableItemExpr *>(lhs);
-    quad_handler_->emit_next(ir::Opcode::TABLESETELEM, rhs, ti, ti->index, result_loc);
+    quad_handler_->emit_next(ir::Opcode::TABLESETELEM, ti, ti->index, rhs, result_loc);
 
     // We resurface the assigned element of table to allow chained assignment. Ex.: a = b.c = d;
     const Expr *temp_var = ss_bridge_->materialize_if_table_item(lhs); // !CERTAIN EMIT!
@@ -1081,9 +1081,9 @@ TableAccessBuilder::Restricted::build_member_access(
     DEBUG_SMART_ASSERT(!!base, !!member_id);
     if (!validate_lvalue(*dr_, base, access_loc, "member access", ".", "base expression"))
         return nullptr;
-    const Expr *const normalized_lvalue = ss_bridge_->materialize_if_table_item(base);
+    const Expr *const materialized_lvalue = ss_bridge_->materialize_if_table_item(base);
     const Expr *const index = expr_maker_->make_const_string_expr(member_id_loc, member_id);
-    return expr_maker_->make_table_item_expr(access_loc, normalized_lvalue, index);
+    return expr_maker_->make_table_item_expr(access_loc, materialized_lvalue, index);
 }
 
 const Expr *

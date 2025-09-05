@@ -203,7 +203,7 @@
 
 %%
 program:
-/* (empty) */
+/* (void) */
 | multiStmt
 ;
 
@@ -353,7 +353,7 @@ cs_exprs[out]:
 ;
 
 expr_list:
-/* (empty) */ { $expr_list = ss.call<"aggregate_builder.build_expr_list">(); }
+/* (void) */ { $expr_list = ss.call<"aggregate_builder.build_expr_list">(); }
 | cs_exprs    { $expr_list = $cs_exprs; }
 ;
 
@@ -409,7 +409,7 @@ block_end:
 ;
 
 block_body:
-/* (empty) */
+/* (void) */
 | multiStmt
 ;
 
@@ -430,7 +430,7 @@ func_params:
 ;
 
 funcArgList:
-  LEFT_PAREN /*Empty*/ RIGHT_PAREN
+  LEFT_PAREN /* (void) */ RIGHT_PAREN
 | LEFT_PAREN func_params  RIGHT_PAREN
 ;
 

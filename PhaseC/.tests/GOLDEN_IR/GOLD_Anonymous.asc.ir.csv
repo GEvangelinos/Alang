@@ -1,17 +1,17 @@
 quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 1,jump,NA,NA,NA,13,5,5
-2,funcstart,NA,@f0,NA,NA,5,5
+2,funcstart,NA,@0,NA,NA,5,5
 3,jump,NA,NA,NA,12,10,10
-4,funcstart,NA,@f1,NA,NA,10,10
+4,funcstart,NA,@1,NA,NA,10,10
 5,jump,NA,NA,NA,8,15,15
-6,funcstart,NA,@f2,NA,NA,15,15
-7,funcend,NA,@f2,NA,NA,15,15
+6,funcstart,NA,@2,NA,NA,15,15
+7,funcend,NA,@2,NA,NA,15,15
 8,jump,NA,NA,NA,11,20,20
-9,funcstart,NA,@f3,NA,NA,20,20
-10,funcend,NA,@f3,NA,NA,20,20
-11,funcend,NA,@f1,NA,NA,21,21
-12,funcend,NA,@f0,NA,NA,22,22
+9,funcstart,NA,@3,NA,NA,20,20
+10,funcend,NA,@3,NA,NA,20,20
+11,funcend,NA,@1,NA,NA,21,21
+12,funcend,NA,@0,NA,NA,22,22
 13,jump,NA,NA,NA,16,28,28
-14,funcstart,NA,@f4,NA,NA,28,28
-15,funcend,NA,@f4,NA,NA,28,28
+14,funcstart,NA,@4,NA,NA,28,28
+15,funcend,NA,@4,NA,NA,28,28
 

@@ -76,7 +76,7 @@ QuadHandler::emit(
             requirement_matches(ii::result(opc), result),
             requirement_matches(ii::arg1(opc), arg1),
             requirement_matches(ii::arg2(opc), arg2),
-            loc != k_no_loc
+            loc != k_no_loc,
         );
     )
 
