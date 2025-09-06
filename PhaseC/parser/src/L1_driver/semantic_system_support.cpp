@@ -32,28 +32,6 @@ SemanticSystemBridge::materialize_if_table_item(const Expr *const expr)
     return temp_var;
 }
 
-const Expr *
-SemanticSystemBridge::normalize_to_bool_expr(const Expr *const expr)
-{
-    DEBUG_SMART_ASSERT(!!expr);
-    auto *const qh = quad_handler_; // Short alias for readability.
-
-    if (expr->type == Expr::Type::BOOL_EXPR)
-        return expr;
-    if (expr->is_static())
-        return SemUtils::as_bool(expr)
-               ? expr_maker_->make_const_bool_expr(expr->loc, true)
-               : expr_maker_->make_const_bool_expr(expr->loc, false);
-
-    const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
-    bool_expr->true_list.push_back(qh->next_quad_label());
-    qh->emit_labelless(ir::Opcode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc);
-    bool_expr->false_list.push_back(qh->next_quad_label());
-    qh->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc);
-
-    return bool_expr;
-}
-
 void
 SemanticSystemBridge::finalize_bool_expr(const Expr *const expr)
 {

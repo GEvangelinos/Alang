@@ -198,6 +198,7 @@ private:
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
 
+        [[nodiscard]] const Expr *prepare_logical_operand_expr(const Expr *expr);
         void mark_short_circuit_jump_point();
         [[nodiscard]] const Expr *build_uminus(const Expr *expr, SourceLocation result_loc);
         [[nodiscard]] const Expr *build_arithmetic(
@@ -209,11 +210,11 @@ private:
             const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
         [[nodiscard]] const Expr *build_logical_or(
             const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
-
         template<typename BackpatchingPolicy>
         [[nodiscard]] const Expr *build_short_circuit_bool_expr(
             const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
 
+        [[nodiscard]] const Expr *normalize_to_bool_expr(const Expr *expr);
         [[nodiscard]] bool validate_arithmetic_expr(
             ir::Opcode opc, const Expr *expr, OperandSide op_side);
         [[nodiscard]] bool validate_relational_expr(
@@ -239,6 +240,7 @@ private:
     explicit BasicBuilder(const SemanticSystemServices &ss_services);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
+    DISPATCH_SLAVE_METHOD_CALL(prepare_logical_operand_expr);
     DISPATCH_SLAVE_METHOD_CALL(mark_short_circuit_jump_point);
     DISPATCH_SLAVE_METHOD_CALL(build_uminus);
     DISPATCH_SLAVE_METHOD_CALL(build_arithmetic);
@@ -355,7 +357,7 @@ private:
             void reset() { id = std::string(), loc = k_no_loc, parameter_list.clear(); }
         } function_draft_;
 
-        u32 next_function_address_;
+        u32 next_function_address_ = k_first_function_address;
 
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
@@ -363,7 +365,7 @@ private:
         void update_function_draft(SourceLocation function_loc);
         void update_function_draft(const std::string &id, SourceLocation function_loc);
         void collect_function_parameter(const std::string &id, SourceLocation id_loc);
-        [[nodiscard]] const Expr *build_program_function(
+        [[nodiscard]] const Expr *forward_program_function(
             const FuncSymbol *func_symbol, SourceLocation result_loc);
         [[nodiscard]] const FuncSymbol *build_program_function_entry(SourceLocation entry_loc);
         [[nodiscard]] const FuncSymbol *build_program_function_exit(BlockSourceLocation block_loc);
@@ -381,7 +383,7 @@ private:
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(update_function_draft);
     DISPATCH_SLAVE_METHOD_CALL(collect_function_parameter);
-    DISPATCH_SLAVE_METHOD_CALL(build_program_function);
+    DISPATCH_SLAVE_METHOD_CALL(forward_program_function);
     DISPATCH_SLAVE_METHOD_CALL(build_program_function_entry);
     DISPATCH_SLAVE_METHOD_CALL(build_program_function_exit);
     DISPATCH_DEFINE_HANDLER_END();
@@ -469,6 +471,5 @@ AggregateBuilder::Restricted::build_dict_list(const ExprPair *const head_pair)
     DEBUG_SMART_ASSERT(!!head_pair);
     return extend_dict_list(build_dict_list(), head_pair);
 }
-
 } // namespace alpha
 #endif // EXPR_BUILDERS_HPP

@@ -226,12 +226,12 @@ const Expr *AggregateBuilder::Restricted::extract_table_literal_consuming_impl(
     parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     parse_ctx_->temp_ctx_handler.pop_checkpoint();
 
-    DEBUG_SMART_ASSERT(!parse_ctx_->temp_ctx_handler.region_stack.empty());
+    DEBUG_SMART_ASSERT(parse_ctx_->temp_ctx_handler.current_critical_region().has_value());
     DEBUG_SMART_ASSERT(
-        parse_ctx_->temp_ctx_handler.region_stack.top() ==
-        TempCtxHandler::TempRegion::TABLE
+        parse_ctx_->temp_ctx_handler.current_critical_region().value() ==
+        TempCtxHandler::CriticalRegion::TABLE
     );
-    parse_ctx_->temp_ctx_handler.region_stack.pop();
+    parse_ctx_->temp_ctx_handler.exit_critical_region();
 
     deleter(list);
     return retval;
@@ -450,7 +450,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *expr, const SourceLoca
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(expr);
         result = ss_bridge_->materialize_if_table_item(ti_lvalue); // EMITS!
         qh->emit_next(Policy::opc, result, result, &k_static_int_1_expr, result_loc);
-        qh->emit_next(ir::Opcode::TABLESETELEM, result, ti_lvalue, ti_lvalue->index, result_loc);
+        qh->emit_next(ir::Opcode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result, result_loc);
     }
     else
     {
@@ -479,7 +479,7 @@ AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue, const SourceL
         const Expr *ti = ss_bridge_->materialize_if_table_item(lvalue);
         qh->emit_next(ir::Opcode::ASSIGN, result, ti, nullptr, result_loc);
         qh->emit_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
-        qh->emit_next(ir::Opcode::TABLESETELEM, ti, ti_lvalue, ti_lvalue->index, result_loc);
+        qh->emit_next(ir::Opcode::TABLESETELEM, ti_lvalue, ti_lvalue->index, ti, result_loc);
     }
     else
     {
@@ -487,6 +487,13 @@ AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue, const SourceL
         qh->emit_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
     }
     return result;
+}
+
+const Expr *
+BasicBuilder::Restricted::prepare_logical_operand_expr(const Expr *expr)
+{
+    expr = ss_bridge_->materialize_if_table_item(expr);
+    return normalize_to_bool_expr(expr);
 }
 
 void
@@ -569,13 +576,9 @@ BasicBuilder::Restricted::build_relational(
 }
 
 const Expr *
-BasicBuilder::Restricted::build_logical_not(const Expr *expr, const SourceLocation result_loc)
+BasicBuilder::Restricted::build_logical_not(const Expr *const expr, const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
-
-    expr = ss_bridge_->materialize_if_table_item(expr);
-    expr = ss_bridge_->normalize_to_bool_expr(expr);
-
     DEBUG_SMART_ASSERT(expr->is_bool_or_const_bool());
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::NOT>(result_loc, expr))
@@ -593,16 +596,11 @@ BasicBuilder::Restricted::build_logical_not(const Expr *expr, const SourceLocati
 
 const Expr *
 BasicBuilder::Restricted::build_logical_and(
-    const Expr *lhs,
-    const Expr *rhs,
+    const Expr *const lhs,
+    const Expr *const rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-
-    lhs = ss_bridge_->materialize_if_table_item(lhs);
-    rhs = ss_bridge_->materialize_if_table_item(rhs);
-    lhs = ss_bridge_->normalize_to_bool_expr(lhs);
-    rhs = ss_bridge_->normalize_to_bool_expr(rhs);
     DEBUG_SMART_ASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::AND>(result_loc, lhs, rhs))
@@ -620,12 +618,6 @@ BasicBuilder::Restricted::build_logical_or(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-
-    lhs = ss_bridge_->materialize_if_table_item(lhs);
-    rhs = ss_bridge_->materialize_if_table_item(rhs);
-    lhs = ss_bridge_->normalize_to_bool_expr(lhs);
-    rhs = ss_bridge_->normalize_to_bool_expr(rhs);
-
     DEBUG_SMART_ASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(result_loc, lhs, rhs))
@@ -662,9 +654,10 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
     Policy::backpatch_list(lhs_bool).clear();
 
     // Merging right side.
-    auto &lhs_merge = Policy::merge_lhs_list(lhs_bool);
-    auto &rhs_merge = Policy::merge_rhs_list(rhs_bool);
-    auto &result_merge = Policy::merge_lhs_list(bool_result_expr);
+    auto &lhs_merge = Policy::merge_lhs_list(lhs_bool);            //lhs_bool->false_list
+    auto &rhs_merge = Policy::merge_rhs_list(rhs_bool);            //rhs_bool->false_list
+    auto &result_merge = Policy::merge_lhs_list(bool_result_expr); //lhs_bool->false_list
+
     // We could use merge_rhs too
     result_merge.reserve(lhs_merge.size() + rhs_merge.size());
     result_merge.insert(result_merge.end(), lhs_merge.begin(), lhs_merge.end());
@@ -672,6 +665,28 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
 
     Policy::assign_list(bool_result_expr) = Policy::assign_list(rhs_bool);
     return bool_result_expr;
+}
+
+const Expr *
+BasicBuilder::Restricted::normalize_to_bool_expr(const Expr *const expr)
+{
+    DEBUG_SMART_ASSERT(!!expr);
+    auto *const qh = quad_handler_; // Short alias for readability.
+
+    if (expr->type == Expr::Type::BOOL_EXPR)
+        return expr;
+    if (expr->is_static())
+        return SemUtils::as_bool(expr)
+               ? expr_maker_->make_const_bool_expr(expr->loc, true)
+               : expr_maker_->make_const_bool_expr(expr->loc, false);
+
+    const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
+    bool_expr->true_list.push_back(qh->next_quad_label());
+    qh->emit_labelless(ir::Opcode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc);
+    bool_expr->false_list.push_back(qh->next_quad_label());
+    qh->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc);
+
+    return bool_expr;
 }
 
 bool
@@ -908,6 +923,7 @@ FunctionBuilder::Restricted::update_function_draft(
 {
     function_draft_.id = id;
     function_draft_.loc = function_loc;
+
     // We probably enter next space before function_entry but early on here, for formal arguments.
     parse_ctx_->space_handler.enter_space();
 }
@@ -991,7 +1007,7 @@ FunctionBuilder::Restricted::validate_formal_param_name(const Parameter &param)
 }
 
 const Expr *
-FunctionBuilder::Restricted::build_program_function(
+FunctionBuilder::Restricted::forward_program_function(
     const FuncSymbol *const func_symbol,
     const SourceLocation result_loc)
 {
@@ -1021,7 +1037,7 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation e
         func_symbol = symbol_table_->insert_function(
             func_name,
             parse_ctx_->scope_handler.scope(),
-            next_function_address_,
+            next_function_address_++,
             function_draft_.parameter_list,
             func_loc
         );
@@ -1036,8 +1052,8 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation e
     }
     DEBUG_SMART_ASSERT(utils::logical_xnor(validated_funcname, !!func_symbol)); // Sanity check
 
-    parse_ctx_->func_ctx_handler.enter_function(func_name, func_loc, func_symbol,
-                                                skip_func_jump_label);
+    parse_ctx_->func_ctx_handler.enter_function(
+        func_name, func_loc, func_symbol, skip_func_jump_label);
     register_function_parameters();
     function_draft_.reset(); // Mandatory to support nested functions in the upcoming func-block.
     parse_ctx_->space_handler.enter_space(); // New var space -- must be after param registration.

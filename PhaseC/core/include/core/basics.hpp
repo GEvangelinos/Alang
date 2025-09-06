@@ -10,6 +10,7 @@ namespace alpha
 {
 template<typename T>
 using VectorStack = std::stack<T, std::vector<T>>;
+
 /// @brief A mixin that prevents copying, moving, or reassigning derived classes.
 /// @details
 ///   Inherit from this class to make your type “immobile”:
@@ -116,6 +117,18 @@ public:
 private:
     T value_;
     bool assigned_ = false;
+};
+
+class OnceFlag : private Immobile
+{
+public:
+    OnceFlag() = default;
+
+    [[nodiscard]] bool raised() const { return once_flag.is_assigned(); }
+    void raise() { if (!raised()) once_flag.set(true); }
+
+private:
+    Once<bool> once_flag;
 };
 } // namespace alpha
 

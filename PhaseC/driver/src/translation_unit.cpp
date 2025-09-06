@@ -243,7 +243,7 @@ PassManager::notify_hard_error()
 {
     switch (running_phase_)
     {
-    case Phase::FRONTEND: return semantic_system_.gateway.notify_hard_error();
+    case Phase::FRONTEND: return semantic_system_.gateway->notify_hard_error();
     default: UNREACHABLE("Unknown `running_phase`");
     }
 }

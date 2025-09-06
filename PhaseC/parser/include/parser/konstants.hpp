@@ -6,6 +6,7 @@ namespace alpha
 {
 static constexpr LabelID k_no_label = 0;
 static constexpr LabelID k_first_label = 1;
+static constexpr LabelID k_first_function_address = 1;
 
 static_assert(k_first_label > k_no_label);
 } // namespace alpha

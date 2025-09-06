@@ -2,27 +2,55 @@
 
 namespace alpha
 {
-SpaceHandler::SpaceHandler()
+SpaceHandler::SpaceHandler(const ParseCtx *const host)
+    : host_(utils::require_ptr(host))
 {
     enter_space(); // We push the first scope space frame (PROGRAM_VAR)
-};
+}
 
 SpaceHandler::~SpaceHandler()
 {
-    // The following check is only valid if there was no syntax error.
-    DEBUG_SMART_ASSERT(variable_offset_stack_.size() == 1);
+    // Only check invariants if no fatal errors occurred.
+    // Parse error recovery may leave stacks inconsistent,
+    // so assertions are skipped in that case.
+    DEBUG(
+        if (host_->error_occurred.raised()) return;
+        DEBUG_SMART_ASSERT(variable_offset_stack_.size() == 1);
+    )
 }
 
-ScopeHandler::ScopeHandler() : scope_(k_global_scope)
+ScopeHandler::ScopeHandler(const ParseCtx *host)
+    : host_(host)
 {
     DEBUG_SMART_ASSERT(
+        scope_ == k_global_scope &&
+        "Scope should always start from global scope",
         skip_next_scope_increment_.is_disabled() &&
         "A ToggleSwitch must always be initialized as disabled."
     );
 }
 
-FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const parse_ctx)
-    : parse_ctx_(utils::require_ptr(parse_ctx))
+ScopeHandler::~ScopeHandler()
+{
+    DEBUG(
+        if (!host_->error_occurred.raised()) return;
+        DEBUG_SMART_ASSERT(scope_ == k_global_scope);
+    )
+}
+
+CallContextHandler::CallContextHandler(ParseCtx *const host)
+    : host_(utils::require_ptr(host)) {}
+
+CallContextHandler::~CallContextHandler()
+{
+    DEBUG(
+        if (!host_->error_occurred.raised()) return;
+        DEBUG_SMART_ASSERT(call_nesting_count_ == 0);
+    )
+}
+
+FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const host)
+    : host_(utils::require_ptr(host))
 {
     // We push a stack-frame, for loops that might occur outside functions.
     // So every frame corresponds to a function except the first.
@@ -36,10 +64,13 @@ FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const parse_ctx)
 
 FunctionCtxHandler::~FunctionCtxHandler()
 {
-    DEBUG_SMART_ASSERT(
-        frame_stack_.size() == k_global_data_frame_count,
-        function_parameters_.empty() // All parameters must be used.
-    );
+    DEBUG(
+        if (host_->error_occurred.raised()) return;
+        DEBUG_SMART_ASSERT(
+            frame_stack_.size() == k_global_data_frame_count,
+            function_parameters_.empty() // All parameters must be used.
+        );
+    )
 }
 
 /**
@@ -71,7 +102,7 @@ FunctionCtxHandler::enter_function(
     DEBUG(
         if (!!func_symbol) DEBUG_SMART_ASSERT(
             func_symbol->name == func_name,
-            func_symbol->scope == parse_ctx_->scope_handler.scope() &&
+            func_symbol->scope == host_->scope_handler.scope() &&
             "FuncSymbol's scope must match the parser scope at the point of entering the function" ,
             func_symbol->loc == func_loc,
             func_symbol->is_function(),
@@ -82,13 +113,14 @@ FunctionCtxHandler::enter_function(
 
     frame_stack_.emplace(FunctionDataFrame(
         func_name,
-        parse_ctx_->scope_handler.scope(),
+        host_->scope_handler.scope(),
         func_loc,
         func_symbol,
         label_of_jump
     ));
-    parse_ctx_->scope_handler.enter_scope();
-    parse_ctx_->scope_handler.skip_next_scope_increment();
+    host_->scope_handler.enter_scope();
+    host_->scope_handler.skip_next_scope_increment();
+    host_->temp_ctx_handler.push_temp_ctx_frame();
 }
 
 FunctionCtxHandler::FunctionBackpatchInfo
@@ -103,6 +135,8 @@ FunctionCtxHandler::exit_function() noexcept
         "All loops must be closed before exiting a function."
     );
 
+    host_->temp_ctx_handler.pop_temp_ctx_frame();
+
     const FunctionDataFrame top_frame = std::move(frame_stack_.top());
     frame_stack_.pop();
 
@@ -116,9 +150,122 @@ FunctionCtxHandler::exit_function() noexcept
     };
 }
 
+TempCtxHandler::TempCtxHandler(const ParseCtx *const host)
+    : host_(host) { push_temp_ctx_frame(); }
+
+TempCtxHandler::~TempCtxHandler()
+{
+    DEBUG(
+        if (host_->error_occurred.raised()) return;
+        // At the end (before destruction) if everything went right, there should be only a single frame.
+        // The one pushed at construction.
+        DEBUG_SMART_ASSERT(temp_ctx_frame_stack_.size() == 1);
+    )
+}
+
+void
+TempCtxHandler::push_temp_ctx_frame() { temp_ctx_frame_stack_.emplace(); }
+
+void
+TempCtxHandler::pop_temp_ctx_frame()
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    temp_ctx_frame_stack_.pop();
+}
+
+void
+TempCtxHandler::reset_current_frame()
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    pop_temp_ctx_frame();
+    push_temp_ctx_frame();
+}
+
+std::optional<TempCtxHandler::CriticalRegion>
+TempCtxHandler::current_critical_region() const
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    const TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
+
+    if (current_frame.critical_region_stack.empty())
+        return std::nullopt;
+    return current_frame.critical_region_stack.top();
+}
+
+void
+TempCtxHandler::enter_critical_region(const TempCtxHandler::CriticalRegion region_to_enter)
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    temp_ctx_frame_stack_.top().critical_region_stack.push(region_to_enter);
+}
+
+void
+TempCtxHandler::exit_critical_region()
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    temp_ctx_frame_stack_.top().critical_region_stack.pop();
+}
+
+void
+TempCtxHandler::reset_to_checkpoint()
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
+    current_frame.temp_counter_ = current_frame.checkpoints_.empty()
+                                  ? 0
+                                  : current_frame.checkpoints_.back();
+}
+
+void
+TempCtxHandler::push_checkpoint()
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
+    current_frame.checkpoints_.push_back(current_frame.temp_counter_);
+}
+
+void
+TempCtxHandler::pop_checkpoint()
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
+    DEBUG_SMART_ASSERT(!current_frame.checkpoints_.empty());
+    current_frame.checkpoints_.pop_back();
+}
+
+void
+TempCtxHandler::push_checkpoint_barrier()
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
+    current_frame.checkpoint_barriers_.push(current_frame.checkpoints_.size());
+}
+
+void
+TempCtxHandler::pop_checkpoint_barrier()
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
+    DEBUG_SMART_ASSERT(!current_frame.checkpoint_barriers_.empty());
+    while (current_frame.checkpoints_.size() > current_frame.checkpoint_barriers_.top())
+        pop_checkpoint();
+    current_frame.checkpoint_barriers_.pop();
+    reset_to_checkpoint();
+}
+
+std::string
+TempCtxHandler::new_name()
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    return k_temp_variable_prefix + std::to_string(temp_ctx_frame_stack_.top().temp_counter_++);
+}
+
 ParseCtx::ParseCtx(SymbolTable *const symbol_table)
-    : call_ctx_handler(this),
+    : space_handler(this),
+      scope_handler(this),
+      call_ctx_handler(this),
       func_ctx_handler(this),
+      temp_ctx_handler(this),
       symbol_table_(utils::require_ptr(symbol_table)) {}
 
 const VarSymbol *

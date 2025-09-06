@@ -47,7 +47,7 @@ class SemanticSystem : private Immobile
 {
     friend class SemanticSystemBridge;
 
-public:
+public: // More public stuff at the end (check it out)
     struct Options
     {
         const bool expr_folding;
@@ -55,26 +55,6 @@ public:
         const bool propagate_constants;
         const bool propagate_const_return;
     };
-
-    // Gateway lets PassManager mark hard errors, but not clear them;
-    // recovery hooks via call() dispatch can still reset, so it’s not bulletproof.
-    // Gateway also provides access to the generated quads.
-    class Gateway
-    {
-        friend class PassManager;
-        friend class SemanticSystem;
-
-        SemanticSystem *const host_;
-
-        explicit Gateway(SemanticSystem *const ss) : host_(utils::require_ptr(ss)) {}
-
-        void notify_hard_error() noexcept;
-
-        [[nodiscard]] const auto &get_quads() const noexcept
-        {
-            return host_->quad_handler_->quads();
-        }
-    } gateway;
 
     SemanticSystem(
         const Options &options,
@@ -140,7 +120,51 @@ private:
     [[nodiscard]] SemanticSystemServices create_semantic_system_services();
 
     [[nodiscard]] static AssignBuilder::Options get_assign_builder_options(const Options &options);
+
     [[nodiscard]] static ExprOptimizer::Options get_expr_optimizer_options(const Options &options);
+
+public:
+    // Gateway lets PassManager mark hard errors, but not clear them;
+    // recovery hooks via call() dispatch can still reset, so it’s not bulletproof.
+    // Gateway also provides access to the generated quads.
+    class Gateway;
+
+    // Used to give access to specific queries to Bison's custom syntax error handler
+    class ParserContextView;
+
+    std::unique_ptr<Gateway> gateway;
+    std::unique_ptr<ParserContextView> parser_context_view;
+};
+
+class SemanticSystem::ParserContextView
+{
+    friend class SemanticSystem;
+
+public:
+    [[nodiscard]] bool is_in_func_param_list() const noexcept;
+
+private:
+    SemanticSystem *const host_;
+
+    explicit ParserContextView(SemanticSystem *ss);
+};
+
+// Gateway lets PassManager mark hard errors, but not clear them;
+// recovery hooks via call() dispatch can still reset, so it’s not bulletproof.
+// Gateway also provides access to the generated quads.
+class SemanticSystem::Gateway
+{
+    friend class PassManager;
+    friend class SemanticSystem;
+
+private:
+    SemanticSystem *const host_;
+
+    explicit Gateway(SemanticSystem *const ss)
+        : host_(utils::require_ptr(ss)) {}
+
+    void notify_hard_error() noexcept;
+    [[nodiscard]] const auto &get_quads() const noexcept { return host_->quad_handler_->quads(); }
 };
 } // namespace alpha
 #endif // SEMANTIC_SYSTEM_HPP

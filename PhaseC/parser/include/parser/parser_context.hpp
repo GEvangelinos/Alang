@@ -24,8 +24,7 @@ public:
     static constexpr u32 k_initial_variable_offset = 0;
     static_assert(k_initial_variable_offset == 0, "Variable offset must start at 0");
 
-    SpaceHandler();
-
+    explicit SpaceHandler(const ParseCtx *host);
     ~SpaceHandler();
 
     void enter_space();
@@ -37,40 +36,40 @@ public:
     [[nodiscard]] u32 next_offset() noexcept;
 
 private:
+    const ParseCtx *const host_;
+
     std::stack<u32> variable_offset_stack_;
 };
 
 class ScopeHandler : private Immobile
 {
 public:
-    ScopeHandler();
-
-    ~ScopeHandler() = default;
+    explicit ScopeHandler(const ParseCtx *host);
+    ~ScopeHandler();
 
     void skip_next_scope_increment() noexcept;
-
     void enter_scope() noexcept;
-
     void exit_scope() noexcept;
-
     [[nodiscard]] u32 scope() const noexcept { return scope_; }
 
 private:
+    const ParseCtx *const host_;
     ToggleSwitch skip_next_scope_increment_;
-    u32 scope_;
+    u32 scope_ = k_global_scope;
 };
 
 class CallContextHandler : private Immobile
 {
 public:
-    explicit CallContextHandler(ParseCtx *parse_ctx);
+    explicit CallContextHandler(ParseCtx *host);
+    ~CallContextHandler();
 
     void enter_call();
     void exit_call();
     bool is_in_call() const noexcept { return call_nesting_count_ > 0; }
 
 private:
-    ParseCtx *const parse_ctx_;
+    ParseCtx *const host_;
     u32 call_nesting_count_ = 0;
 };
 
@@ -87,7 +86,7 @@ public:
         const LabelID funcdef_skip_jump;
     };
 
-    explicit FunctionCtxHandler(ParseCtx *parse_ctx);
+    explicit FunctionCtxHandler(ParseCtx *host);
 
     ~FunctionCtxHandler();
 
@@ -155,7 +154,7 @@ private:
     std::vector<Parameter> function_parameters_;
     u32 next_function_address_ = 1; // Function addresses are positive integers, so we start from 1.
 
-    ParseCtx *const parse_ctx_;
+    ParseCtx *const host_;
 };
 
 class AnonymousGenerator : private Immobile
@@ -170,24 +169,40 @@ private:
 class TempCtxHandler
 {
 public:
-    enum class TempRegion{CALL, TABLE, FORLOOP_CLAUSE};
-    VectorStack<TempRegion> region_stack;
+    enum class CriticalRegion { CALL, TABLE, FORLOOP_CLAUSE };
 
-    [[nodiscard]] std::string new_name();
+    explicit TempCtxHandler(const ParseCtx *host);
+    ~TempCtxHandler();
 
-    void reset_all();
-    void reset_to_checkpoint();
+    void push_temp_ctx_frame();
+    void pop_temp_ctx_frame();
+    void reset_current_frame();
+
+    std::optional<CriticalRegion> current_critical_region() const;
+    void enter_critical_region(CriticalRegion region_to_enter);
+    void exit_critical_region();
+
     void push_checkpoint();
     void pop_checkpoint();
+    void reset_to_checkpoint();
+
     void push_checkpoint_barrier();
     void pop_checkpoint_barrier();
 
+    [[nodiscard]] std::string new_name();
 
 private:
-    u32 temp_name_counter_ = 0;
+    struct TempCtxFrame
+    {
+        u32 temp_counter_ = 0;
+        VectorStack<CriticalRegion> critical_region_stack;
+        std::vector<u32> checkpoints_;
+        VectorStack<u32> checkpoint_barriers_;
+    };
 
-    std::vector<u32> checkpoints_;
-    VectorStack<u32> checkpoint_barriers_;
+    const ParseCtx *const host_;
+
+    VectorStack<TempCtxFrame> temp_ctx_frame_stack_;
 };
 
 class ParseCtx : private Immobile
@@ -199,6 +214,8 @@ public:
     FunctionCtxHandler func_ctx_handler;
     AnonymousGenerator anonymous_generator;
     TempCtxHandler temp_ctx_handler;
+
+    OnceFlag error_occurred;
 
     explicit ParseCtx(SymbolTable *symbol_table);
     ~ParseCtx() = default;
@@ -269,16 +286,12 @@ ScopeHandler::exit_scope() noexcept
     // entered it. So if you exit a block and the
     // `skip_next_scope_increment` switch is enabled, there is a logic
     // issue.
-    DEBUG_SMART_ASSERT(                          //
-        scope_ > k_global_scope,                 //
-        skip_next_scope_increment_.is_disabled() //
+    DEBUG_SMART_ASSERT(
+        scope_ > k_global_scope,
+        skip_next_scope_increment_.is_disabled()
     );
     --scope_;
 }
-
-inline
-CallContextHandler::CallContextHandler(ParseCtx *const parse_ctx)
-    : parse_ctx_(utils::require_ptr(parse_ctx)) {}
 
 inline void
 CallContextHandler::enter_call()
@@ -441,60 +454,9 @@ FunctionCtxHandler::add_local() noexcept
 }
 
 inline std::string
-TempCtxHandler::new_name() { return k_temp_variable_prefix + std::to_string(temp_name_counter_++); }
-
-inline void
-TempCtxHandler::reset_all()
+AnonymousGenerator::new_anonymous()
 {
-    checkpoints_.clear();
-    temp_name_counter_ = 0;
+    return k_anonymous_prefix + std::to_string(anonymous_counter_++);
 }
-
-inline void
-TempCtxHandler::reset_to_checkpoint()
-{
-    #ifndef CYA_MODE
-    temp_name_counter_ = checkpoints_.empty() ? 0 : checkpoints_.back();
-    #endif
-}
-
-inline void
-TempCtxHandler::push_checkpoint()
-{
-    #ifndef CYA_MODE
-    checkpoints_.push_back(temp_name_counter_);
-    #endif
-}
-
-inline void
-TempCtxHandler::pop_checkpoint()
-{
-    #ifndef CYA_MODE
-    DEBUG_SMART_ASSERT(!checkpoints_.empty());
-    checkpoints_.pop_back();
-    #endif
-}
-
-inline void TempCtxHandler::push_checkpoint_barrier()
-{
-    #ifndef CYA_MODE
-    checkpoint_barriers_.push(checkpoints_.size());
-    #endif
-
-}
-
-inline void TempCtxHandler::pop_checkpoint_barrier()
-{
-    #ifndef CYA_MODE
-    DEBUG_SMART_ASSERT(!checkpoint_barriers_.empty());
-    while (checkpoints_.size() > checkpoint_barriers_.top())
-        pop_checkpoint();
-    checkpoint_barriers_.pop();
-    reset_to_checkpoint();
-    #endif
-}
-
-inline std::string
-AnonymousGenerator::new_anonymous() { return k_anonymous_prefix + std::to_string(anonymous_counter_++); }
 } // namespace alpha
 #endif // PARSER_CONTEXT_HPP

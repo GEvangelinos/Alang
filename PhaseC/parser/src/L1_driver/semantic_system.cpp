@@ -10,24 +10,23 @@ SemanticSystem::SemanticSystem(
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
     DiagnosticReporter *const dr)
-    : gateway(this),
+    : parse_ctx_(utils::require_ptr(parse_ctx)),
 
-      // External resources, required to initialize class.
-      parse_ctx_(utils::require_ptr(parse_ctx)),
+      // External components, required to initialize class.
       symbol_table_(utils::require_ptr(symbol_table)),
       dr_(utils::require_ptr(dr)),
-
-      // Private resources, used by public submodules.
       expr_maker_(std::make_unique<ExprMaker>(parse_ctx_)),
+
+      // Private components, used by public submodules.
       quad_handler_(std::make_unique<QuadHandler>()),
       expr_optimizer_(std::make_unique<ExprOptimizer>(
           get_expr_optimizer_options(options),
           expr_maker_.get()
       )),
       ss_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
-
-      // public servicers, used by users of semantic driver.
       aggregate_builder(create_semantic_system_services()),
+
+      // public (through call() dispatcher) servicers, used by users of semantic driver.
       assign_builder(get_assign_builder_options(options), create_semantic_system_services()),
       basic_builder(create_semantic_system_services()),
       block_manager(create_semantic_system_services()),
@@ -36,7 +35,11 @@ SemanticSystem::SemanticSystem(
       control_flow_manager(create_semantic_system_services()),
       lvalue_resolver(create_semantic_system_services()),
       function_builder(create_semantic_system_services()),
-      table_access_builder(create_semantic_system_services()) {}
+      table_access_builder(create_semantic_system_services()),
+
+      // public resources used by external components.
+      gateway(std::unique_ptr<Gateway>(new Gateway(this))),
+      parser_context_view(std::unique_ptr<ParserContextView>(new ParserContextView(this))) {}
 
 SemanticSystemServices
 SemanticSystem::create_semantic_system_services()
@@ -72,7 +75,7 @@ SemanticSystem::get_expr_optimizer_options(const Options &options)
 }
 
 void
-SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->temp_ctx_handler.reset_all(); }
+SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->temp_ctx_handler.reset_current_frame(); }
 
 void
 SemanticSystem::consume_stmt_expr(const Expr *const expr)
@@ -93,5 +96,13 @@ void
 SemanticSystem::Gateway::notify_hard_error() noexcept
 {
     host_->ss_status_ = SemanticSystem::Status::ERROR;
+}
+
+SemanticSystem::ParserContextView::ParserContextView(SemanticSystem *const ss)
+    : host_(utils::require_ptr(ss)) {}
+
+bool SemanticSystem::ParserContextView::is_in_func_param_list() const noexcept
+{
+    return host_->parse_ctx_->space_handler.space() == VarSymbol::Space::FORMAL_ARGUMENT;
 }
 } // namespace alpha

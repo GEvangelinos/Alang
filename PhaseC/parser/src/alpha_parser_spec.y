@@ -240,21 +240,50 @@ loop_ctrl_stmt:
 ;
 
 not_op:
-  NOT expr { $not_op = ss.call<"basic_builder.build_logical_not">($expr, @not_op); }
+  NOT expr
+  {
+    $expr = ss.call<"basic_builder.prepare_logical_operand_expr">($expr);
+    $not_op = ss.call<"basic_builder.build_logical_not">($expr, @not_op);
+  }
 ;
 
+/**
+ * @note: bool exprs *must* be prepared here, before marking jumps.
+ * Tried hiding it inside build_* more than once → instant chaos.
+ * Don’t repeat past-me’s mistake. ;)
+ */
 and_op:
   expr[lhs]
-  AND       { ss.call<"basic_builder.mark_short_circuit_jump_point">(); }
-  expr[rhs] { $and_op = ss.call<"basic_builder.build_logical_and">($lhs, $rhs, @and_op); }
+  AND
+  {
+   $lhs = ss.call<"basic_builder.prepare_logical_operand_expr">($lhs);
+   ss.call<"basic_builder.mark_short_circuit_jump_point">();
+  }
+  expr[rhs]
+  {
+    $rhs = ss.call<"basic_builder.prepare_logical_operand_expr">($rhs);
+    $and_op = ss.call<"basic_builder.build_logical_and">($lhs, $rhs, @and_op);
+  }
 ;
 
+/**
+ * @note: bool exprs *must* be prepared here, before marking jumps.
+ * Tried hiding it inside build_* more than once → instant chaos.
+ * Don’t repeat past-me’s mistake. ;)
+ */
 or_op:
   expr[lhs]
-  OR        { ss.call<"basic_builder.mark_short_circuit_jump_point">(); }
-  expr[rhs] { $or_op = ss.call<"basic_builder.build_logical_or">($lhs, $rhs, @or_op); }
+  OR
+  {
+    $lhs = ss.call<"basic_builder.prepare_logical_operand_expr">($lhs);
+    ss.call<"basic_builder.mark_short_circuit_jump_point">();
+  }
+  expr[rhs]
+  {
+    $rhs = ss.call<"basic_builder.prepare_logical_operand_expr">($rhs);
+    $or_op = ss.call<"basic_builder.build_logical_or">($lhs, $rhs, @or_op);
+  }
 ;
-
 
 expr[out]:
   assign_expr { $out = $assign_expr; }
@@ -301,7 +330,7 @@ primary:
 | lvalue        { $primary = $lvalue; }
 | call          { $primary = $call; }
 | LEFT_PAREN func_def RIGHT_PAREN
-  { $primary = ss.call<"function_builder.build_program_function">($func_def, @primary); }
+  { $primary = ss.call<"function_builder.forward_program_function">($func_def, @primary); }
 ;
 
 lvalue:
@@ -312,8 +341,8 @@ lvalue:
 ;
 
 table_item:
-  expr DOT ID[member]
-  { $table_item = ss.call<"table_access_builder.build_member_access">($expr, $member, @member, @table_item); }
+  expr[base] DOT ID[member]
+  { $table_item = ss.call<"table_access_builder.build_member_access">($base, $member, @member, @table_item); }
 | expr[base] LEFT_BRACKET expr[subscript] RIGHT_BRACKET
   { $table_item = ss.call<"table_access_builder.build_subscript_access">($base, $subscript, @table_item); }
 ;

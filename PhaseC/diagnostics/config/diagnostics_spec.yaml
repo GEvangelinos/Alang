@@ -35,6 +35,42 @@
       Args: [ escape_code_str ]
       Location: escape_code_loc
 
+- Diagnostic: LIBFUNC_REDEFINED_AS_FORMAL_PARAMETER
+  Type: HARD_ERROR
+  Primary:
+    - Message: "`{0}` is a library function, can't declare it as formal parameter"
+      Args: [ libfunc_name ]
+      Location: formal_param_loc
+
+
+- Diagnostic: REDEFINITION_OF_FUNC
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "redefinition of function `{0}`"
+      Args: [ func_name ]
+      Location: redef_loc
+  Notes:
+    - Message: "initial definition of function `{0}` here"
+      Args: [ func_name ]
+      Location: initial_def_loc
+
+- Diagnostic: REDEFINITION_OF_FORMAL_PARAMETER
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "redefinition of formal parameter `{0}`"
+      Args: [ param_name ]
+      Location: param_loc
+  Notes:
+    - Message: "initial definition of formal parameter `{0}` is here"
+      Args: [ param_name ]
+      Location: initial_param_loc
+
+- Diagnostic: REDEFINITION_OF_LIBFUNC
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "redefinition of library function `{0}`"
+      Args: [ libfunc_name ]
+      Location: redef_loc
 - Diagnostic: ARITH_OP_NONARITH_OPERAND
   Type: HARD_ERROR
   Primary:
@@ -74,13 +110,6 @@
       Args: [ id_name ]
       Location: var_decl_loc
 
-- Diagnostic: LIBFUNC_REDEFINED_AS_FORMAL_PARAMETER
-  Type: HARD_ERROR
-  Primary:
-    - Message: "`{0}` is a library function, can't declare it as formal parameter"
-      Args: [ libfunc_name ]
-      Location: formal_param_loc
-
 - Diagnostic: LOCAL_ID_SHADOWS_LIBFUNC
   Type: HARD_ERROR
   Primary:
@@ -116,35 +145,6 @@
     - Message: "remove the parentheses to allow `{0}`"
       Args: [ op_name ]
       Location: expr_loc
-
-- Diagnostic: REDEFINITION_OF_FUNC
-  Type: HARD_ERROR
-  Primary:
-    - Message: "redefinition of function `{0}`"
-      Args: [ func_name ]
-      Location: redef_loc
-  Notes:
-    - Message: "initial definition of function `{0}` here"
-      Args: [ func_name ]
-      Location: initial_def_loc
-
-- Diagnostic: REDEFINITION_OF_FORMAL_PARAMETER
-  Type: HARD_ERROR
-  Primary:
-    - Message: "redefinition of formal parameter `{0}`"
-      Args: [ param_name ]
-      Location: param_loc
-  Notes:
-    - Message: "initial definition of formal parameter `{0}` is here"
-      Args: [ param_name ]
-      Location: initial_param_loc
-
-- Diagnostic: REDEFINITION_OF_LIBFUNC
-  Type: HARD_ERROR
-  Primary:
-    - Message: "redefinition of library function `{0}`"
-      Args: [ libfunc_name ]
-      Location: redef_loc
 
 - Diagnostic: REL_OP_NONARITH_OPERAND
   Type: HARD_ERROR

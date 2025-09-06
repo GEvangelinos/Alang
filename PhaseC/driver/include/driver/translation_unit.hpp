@@ -50,7 +50,7 @@ public:
     void notify_hard_error();
 
     [[nodiscard]] bool is_in_hard_error();
-    [[nodiscard]] const auto &get_quads() { return semantic_system_.gateway.get_quads(); }
+    [[nodiscard]] const auto &get_quads() { return semantic_system_.gateway->get_quads(); }
 
 private:
     enum class Phase { FRONTEND };
