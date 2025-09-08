@@ -14,6 +14,13 @@ inline constexpr auto k_reescaped_warning_banner =
         "Special characters are escaped; Ex.: \"\\n\" prints literally (not a newline) to keep the table aligned.\n"
         SGR_RESET;
 
+inline constexpr auto k_temp_reuse_warning_banner =
+    SGR_BOLD "Note" SGR_BLINK "❗" SGR_RESET ": "
+    "Temporaries are context-local. Each function starts with a fresh temp frame (counter reset to zero).\n"
+    "Nested function definitions or functions assigned to tables/variables therefore allocate temps from a\n"
+    "clean slate. When the function definition ends, the previous temp counter is restored.\n"
+    SGR_RESET;
+
 inline constexpr auto k_cya_mode_off_warning_banner =
 #ifdef CYA_MODE
         ""

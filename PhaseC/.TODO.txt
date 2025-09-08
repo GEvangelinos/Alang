@@ -863,3 +863,22 @@ By the way.. if we didnt have the ASSIGN opcode.. we could do stores (assignment
 
 
 with add lhs , rhs, 0... it would practically be the same..
+
+200) POST_IR_GENERATION OPTIMIZATIONS:
+
+1) * if jump, jumps to next instruction below, remove (useless)
+	ex : quad 93: jump 94.
+
+    93,jump,NA,NA,NA,94,62,62
+    94,funcend,NA,$3,NA,NA,63,63
+
+
+2) * if jump, jumps to another jump, replace the number the initial jump number
+     with the final target:
+        ex: quad47 : jump 106
+
+            ...
+
+            quad106: jump 150
+
+            then make quad47 jump at 150
