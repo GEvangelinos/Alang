@@ -215,7 +215,7 @@ public:
     AnonymousGenerator anonymous_generator;
     TempCtxHandler temp_ctx_handler;
 
-    OnceFlag error_occurred;
+    OnceFlag hard_error_occurred;
 
     explicit ParseCtx(SymbolTable *symbol_table);
     ~ParseCtx() = default;

@@ -14,7 +14,7 @@ SpaceHandler::~SpaceHandler()
     // Parse error recovery may leave stacks inconsistent,
     // so assertions are skipped in that case.
     DEBUG(
-        if (host_->error_occurred.raised()) return;
+        if (host_->hard_error_occurred.raised()) return;
         DEBUG_SMART_ASSERT(variable_offset_stack_.size() == 1);
     )
 }
@@ -33,7 +33,7 @@ ScopeHandler::ScopeHandler(const ParseCtx *host)
 ScopeHandler::~ScopeHandler()
 {
     DEBUG(
-        if (!host_->error_occurred.raised()) return;
+        if (host_->hard_error_occurred.raised()) return;
         DEBUG_SMART_ASSERT(scope_ == k_global_scope);
     )
 }
@@ -44,7 +44,7 @@ CallContextHandler::CallContextHandler(ParseCtx *const host)
 CallContextHandler::~CallContextHandler()
 {
     DEBUG(
-        if (!host_->error_occurred.raised()) return;
+        if (host_->hard_error_occurred.raised()) return;
         DEBUG_SMART_ASSERT(call_nesting_count_ == 0);
     )
 }
@@ -65,7 +65,7 @@ FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const host)
 FunctionCtxHandler::~FunctionCtxHandler()
 {
     DEBUG(
-        if (host_->error_occurred.raised()) return;
+        if (host_->hard_error_occurred.raised()) return;
         DEBUG_SMART_ASSERT(
             frame_stack_.size() == k_global_data_frame_count,
             function_parameters_.empty() // All parameters must be used.
@@ -156,7 +156,7 @@ TempCtxHandler::TempCtxHandler(const ParseCtx *const host)
 TempCtxHandler::~TempCtxHandler()
 {
     DEBUG(
-        if (host_->error_occurred.raised()) return;
+        if (host_->hard_error_occurred.raised()) return;
         // At the end (before destruction) if everything went right, there should be only a single frame.
         // The one pushed at construction.
         DEBUG_SMART_ASSERT(temp_ctx_frame_stack_.size() == 1);

@@ -58,7 +58,7 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 57,if_eq,NA,$1,true,59,35,35
 58,jump,NA,NA,NA,62,35,35
 59,assign,global_var,true,NA,NA,36,36
-60,assign,$2,global_var,NA,NA,36,36
+60,assign,$0,global_var,NA,NA,36,36
 61,jump,NA,NA,NA,64,38,38
 62,assign,global_var,false,NA,NA,39,39
 63,assign,$0,global_var,NA,NA,39,39
@@ -78,7 +78,7 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 77,add,i,i,1,NA,41,41
 78,assign,$6,i,NA,NA,41,41
 79,jump,NA,NA,NA,66,41,41
-80,assign,$7,i,NA,NA,42,42
+80,assign,$0,i,NA,NA,42,42
 81,add,i,i,1,NA,42,42
 82,if_neq,NA,i,1,84,44,44
 83,jump,NA,NA,NA,86,44,44
@@ -88,7 +88,7 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 87,if_eq,NA,$0,true,89,44,44
 88,jump,NA,NA,NA,91,44,44
 89,call,NA,print,NA,NA,45,45
-90,getretval,$1,NA,NA,NA,45,45
+90,getretval,$0,NA,NA,NA,45,45
 91,if_lte,NA,i,2,93,47,47
 92,jump,NA,NA,NA,95,47,47
 93,assign,$0,true,NA,NA,47,47
@@ -97,7 +97,7 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 96,if_eq,NA,$0,true,98,47,47
 97,jump,NA,NA,NA,106,47,47
 98,assign,i,9,NA,NA,48,48
-99,assign,$1,i,NA,NA,48,48
+99,assign,$0,i,NA,NA,48,48
 100,call,NA,print,NA,NA,49,49
 101,getretval,$0,NA,NA,NA,49,49
 102,assign,$0,i,NA,NA,50,50
@@ -131,12 +131,12 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 130,jump,NA,NA,NA,142,63,63
 131,if_eq,NA,global_var,true,135,65,65
 132,jump,NA,NA,NA,133,65,65
-133,assign,$3,true,NA,NA,65,65
+133,assign,$1,true,NA,NA,65,65
 134,jump,NA,NA,NA,136,65,65
-135,assign,$3,false,NA,NA,65,65
-136,assign,j,$3,NA,NA,65,65
-137,assign,$4,j,NA,NA,65,65
-138,if_eq,NA,$4,true,140,65,65
+135,assign,$1,false,NA,NA,65,65
+136,assign,j,$1,NA,NA,65,65
+137,assign,$2,j,NA,NA,65,65
+138,if_eq,NA,$2,true,140,65,65
 139,jump,NA,NA,NA,141,65,65
 140,jump,NA,NA,NA,142,66,66
 141,jump,NA,NA,NA,124,63,67

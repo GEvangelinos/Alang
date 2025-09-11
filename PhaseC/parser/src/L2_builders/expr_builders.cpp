@@ -55,11 +55,15 @@ AssignBuilder::Restricted::Restricted(
     : SemanticSubsystem(ss_services),
       options_(options) {}
 
-BasicBuilder::BasicBuilder(const SemanticSystemServices &ss_services)
-    : DISPATCH_TARGET(ss_services) {}
+BasicBuilder::BasicBuilder(
+    BasicBuilder::Options &&options,
+    const SemanticSystemServices &ss_services)
+    : DISPATCH_TARGET(std::move(options), ss_services) {}
 
-BasicBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
-    : SemanticSubsystem(ss_services) {}
+BasicBuilder::Restricted::Restricted(
+    BasicBuilder::Options &&options,
+    const SemanticSystemServices &ss_services)
+    : SemanticSubsystem(ss_services), options_(options) {}
 
 CallBuilder::CallBuilder(const SemanticSystemServices &ss_services)
     : DISPATCH_TARGET(ss_services) {}
@@ -79,7 +83,7 @@ FunctionBuilder::FunctionBuilder(const SemanticSystemServices &ss_services)
 
 FunctionBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services),
-      function_draft_(std::string(), k_no_loc) {}
+      function_draft_(std::string()) {}
 
 TableAccessBuilder::TableAccessBuilder(const SemanticSystemServices &ss_services)
     : DISPATCH_TARGET(ss_services) {}
@@ -454,13 +458,12 @@ AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *expr, const SourceLoca
     }
     else
     {
-        // TODO: HOOK: After you implemented logic to make assignment aware of if its happening,
-        // inside a function parameter list (TODO 52), create this new arithmetic_expr (new temp)
-        // only if inside assignment. NOTE! ONLY ENABLE THIS OPTIMIZATION IFF optimization options is passed.
-        // DO NOT make it standard behavior.. you may get fucked in examination :D
-        result = expr_maker_->make_arithmetic_expr(result_loc);
         qh->emit_next(Policy::opc, expr, expr, &k_static_int_1_expr, result_loc);
-        qh->emit_next(ir::Opcode::ASSIGN, result, expr, nullptr, result_loc);
+        if (FORCE_ASSIGNMENT_TEMPS || parse_ctx_->call_ctx_handler.is_in_call())
+        {
+            result = expr_maker_->make_arithmetic_expr(result_loc);
+            qh->emit_next(ir::Opcode::ASSIGN, result, expr, nullptr, result_loc);
+        }
     }
     return DEBUG_REQUIRE_PTR(result); // Check because we initialized with nullptr.
 }
@@ -537,11 +540,14 @@ BasicBuilder::Restricted::build_arithmetic(
 
     if (!validate_arithmetic_expr(opc, lhs, OperandSide::LEFT)) return nullptr;
     if (!validate_arithmetic_expr(opc, rhs, OperandSide::RIGHT)) return nullptr;
-    if (!validate_possible_division(opc, rhs, result_loc)) return nullptr;
+
+    // Warn on CT div-by-zero, skip folding; VM must still handle division-by-zero at runtime.
+    if (!validate_possible_division(opc, rhs, result_loc)) goto past_ct_optimization;
 
     if (const auto optimized = this->try_optimize_arithmetic_expr(opc, lhs, rhs, result_loc))
         return optimized;
 
+past_ct_optimization:
     reset_temps_if_temp_operand(lhs, rhs);
 
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
@@ -584,7 +590,7 @@ BasicBuilder::Restricted::build_logical_not(const Expr *const expr, const Source
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::NOT>(result_loc, expr))
         return optimized;
     // Sanity check, CONST_BOOL must be consumed by the optimizer.
-    DEBUG_SMART_ASSERT(expr->type == Expr::Type::BOOL_EXPR);
+    DEBUG_SMART_ASSERT(expr->is_bool_or_const_bool());
 
     reset_temps_if_temp_operand(expr);
 
@@ -675,10 +681,12 @@ BasicBuilder::Restricted::normalize_to_bool_expr(const Expr *const expr)
 
     if (expr->type == Expr::Type::BOOL_EXPR)
         return expr;
-    if (expr->is_static())
-        return SemUtils::as_bool(expr)
-               ? expr_maker_->make_const_bool_expr(expr->loc, true)
-               : expr_maker_->make_const_bool_expr(expr->loc, false);
+
+    if (options_.fold_static_bools)
+        if (expr->is_static())
+            return SemUtils::as_bool(expr)
+                   ? expr_maker_->make_const_bool_expr(expr->loc, true)
+                   : expr_maker_->make_const_bool_expr(expr->loc, false);
 
     const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
     bool_expr->true_list.push_back(qh->next_quad_label());
@@ -700,8 +708,8 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
         return true;
 
     if (SemUtils::is_binary_arithmetic_opcode(opc))
-        dr_->report_arith_op_nonarith_operand(op_side, SemUtils::arith_op_str(opc), expr->type,
-                                              expr->loc);
+        dr_->report_arith_op_nonarith_operand(
+            op_side, SemUtils::arith_op_str(opc), expr->type, expr->loc);
     else if (opc == ir::Opcode::UMINUS)
         dr_->report_uminus_nonarith_operand(expr->type, expr->loc);
     else
@@ -910,19 +918,15 @@ ConstBuilder::Restricted::build_nil_expr(const SourceLocation loc)
 }
 
 void
-FunctionBuilder::Restricted::update_function_draft(
-    const SourceLocation function_loc)
+FunctionBuilder::Restricted::update_function_draft()
 {
-    update_function_draft(parse_ctx_->anonymous_generator.new_anonymous(), function_loc);
+    update_function_draft(parse_ctx_->anonymous_generator.new_anonymous());
 }
 
 void
-FunctionBuilder::Restricted::update_function_draft(
-    const std::string &id,
-    const SourceLocation function_loc)
+FunctionBuilder::Restricted::update_function_draft(const std::string &id)
 {
     function_draft_.id = id;
-    function_draft_.loc = function_loc;
 
     // We probably enter next space before function_entry but early on here, for formal arguments.
     parse_ctx_->space_handler.enter_space();
@@ -1023,14 +1027,13 @@ FunctionBuilder::Restricted::forward_program_function(
 /// or we’ll end up polluting the original function’s frame with
 /// local_variable_count from the redefinition. TODO: DO WE POLLUTE CURRENTLY?
 const FuncSymbol *
-FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation entry_loc)
+FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation func_signature_loc)
 {
     const auto &func_name = function_draft_.id; // Local alias for readability
-    const auto func_loc = function_draft_.loc;  // Local alias for readability.
-    const bool validated_funcname = validate_funcdef_name(func_name, func_loc);
+    const bool validated_funcname = validate_funcdef_name(func_name, func_signature_loc);
 
     const u32 skip_func_jump_label = quad_handler_->next_quad_label();
-    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_loc);
+    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_signature_loc);
     const FuncSymbol *func_symbol = nullptr;
     if (validated_funcname)
     {
@@ -1039,21 +1042,21 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation e
             parse_ctx_->scope_handler.scope(),
             next_function_address_++,
             function_draft_.parameter_list,
-            func_loc
+            func_signature_loc
         );
 
         quad_handler_->emit_next(
             ir::Opcode::FUNCSTART,
             nullptr,
-            expr_maker_->make_prog_func_expr(entry_loc, func_symbol),
+            expr_maker_->make_prog_func_expr(func_signature_loc, func_symbol),
             nullptr,
-            func_loc
+            func_signature_loc
         );
     }
     DEBUG_SMART_ASSERT(utils::logical_xnor(validated_funcname, !!func_symbol)); // Sanity check
 
     parse_ctx_->func_ctx_handler.enter_function(
-        func_name, func_loc, func_symbol, skip_func_jump_label);
+        func_name, func_signature_loc, func_symbol, skip_func_jump_label);
     register_function_parameters();
     function_draft_.reset(); // Mandatory to support nested functions in the upcoming func-block.
     parse_ctx_->space_handler.enter_space(); // New var space -- must be after param registration.

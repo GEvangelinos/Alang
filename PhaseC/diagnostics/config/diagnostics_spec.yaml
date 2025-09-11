@@ -9,17 +9,17 @@
       Args: [ func_name ]
       Location: func_decl_loc
 
+- Diagnostic: DIVISION_BY_ZERO
+  Type: WARNING
+  Primary:
+    - Message: "Division by zero"
+      Location: division_loc
+
 - Diagnostic: IMPLICIT_INT_TO_FLOAT_LOSS
   Type: WARNING
   Primary:
     - Message: "integer to floating-point implicit conversion results in integral precision loss"
       Location: conversion_loc
-
-- Diagnostic: DIVISION_BY_ZERO
-  Type: SOFT_ERROR
-  Primary:
-    - Message: "Division by zero"
-      Location: division_loc
 
 - Diagnostic: INVALID_CHARACTER
   Type: SOFT_ERROR
@@ -36,23 +36,12 @@
       Location: escape_code_loc
 
 - Diagnostic: LIBFUNC_REDEFINED_AS_FORMAL_PARAMETER
-  Type: HARD_ERROR
+  Type: SOFT_ERROR
   Primary:
     - Message: "`{0}` is a library function, can't declare it as formal parameter"
       Args: [ libfunc_name ]
       Location: formal_param_loc
 
-
-- Diagnostic: REDEFINITION_OF_FUNC
-  Type: SOFT_ERROR
-  Primary:
-    - Message: "redefinition of function `{0}`"
-      Args: [ func_name ]
-      Location: redef_loc
-  Notes:
-    - Message: "initial definition of function `{0}` here"
-      Args: [ func_name ]
-      Location: initial_def_loc
 
 - Diagnostic: REDEFINITION_OF_FORMAL_PARAMETER
   Type: SOFT_ERROR
@@ -65,8 +54,19 @@
       Args: [ param_name ]
       Location: initial_param_loc
 
+- Diagnostic: REDEFINITION_OF_FUNC
+  Type: HARD_ERROR
+  Primary:
+    - Message: "redefinition of function `{0}`"
+      Args: [ func_name ]
+      Location: redef_loc
+  Notes:
+    - Message: "initial definition of function `{0}` here"
+      Args: [ func_name ]
+      Location: initial_def_loc
+
 - Diagnostic: REDEFINITION_OF_LIBFUNC
-  Type: SOFT_ERROR
+  Type: HARD_ERROR
   Primary:
     - Message: "redefinition of library function `{0}`"
       Args: [ libfunc_name ]

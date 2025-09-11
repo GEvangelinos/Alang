@@ -19,7 +19,7 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 18,if_eq,NA,$0,true,20,20,20
 19,jump,NA,NA,NA,22,20,20
 20,assign,globalVarSecond,false,NA,NA,22,22
-21,assign,$1,globalVarSecond,NA,NA,22,22
+21,assign,$0,globalVarSecond,NA,NA,22,22
 22,if_neq,NA,globalVarSecond,true,24,24,24
 23,jump,NA,NA,NA,26,24,24
 24,assign,$0,true,NA,NA,24,24
@@ -28,7 +28,7 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 27,if_eq,NA,$0,true,29,24,24
 28,jump,NA,NA,NA,33,24,24
 29,assign,globalVarSecond,true,NA,NA,25,25
-30,assign,$1,globalVarSecond,NA,NA,25,25
+30,assign,$0,globalVarSecond,NA,NA,25,25
 31,assign,localVar,1,NA,NA,27,27
 32,assign,$0,localVar,NA,NA,27,27
 33,jump,NA,NA,NA,36,34,34

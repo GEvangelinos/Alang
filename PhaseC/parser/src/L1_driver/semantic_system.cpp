@@ -28,7 +28,7 @@ SemanticSystem::SemanticSystem(
 
       // public (through call() dispatcher) servicers, used by users of semantic driver.
       assign_builder(get_assign_builder_options(options), create_semantic_system_services()),
-      basic_builder(create_semantic_system_services()),
+      basic_builder(get_basic_builder_options(options), create_semantic_system_services()),
       block_manager(create_semantic_system_services()),
       call_builder(create_semantic_system_services()),
       const_builder(create_semantic_system_services()),
@@ -64,6 +64,14 @@ SemanticSystem::get_assign_builder_options(const Options &options)
     };
 }
 
+BasicBuilder::Options
+SemanticSystem::get_basic_builder_options(const Options &options)
+{
+    return {
+        .fold_static_bools = options.expr_folding
+    };
+}
+
 ExprOptimizer::Options
 SemanticSystem::get_expr_optimizer_options(const Options &options)
 {
@@ -75,7 +83,10 @@ SemanticSystem::get_expr_optimizer_options(const Options &options)
 }
 
 void
-SemanticSystem::reset_stmt_context() noexcept { parse_ctx_->temp_ctx_handler.reset_current_frame(); }
+SemanticSystem::reset_stmt_context() noexcept
+{
+    parse_ctx_->temp_ctx_handler.reset_current_frame();
+}
 
 void
 SemanticSystem::consume_stmt_expr(const Expr *const expr)
@@ -96,6 +107,7 @@ void
 SemanticSystem::Gateway::notify_hard_error() noexcept
 {
     host_->ss_status_ = SemanticSystem::Status::ERROR;
+    host_->parse_ctx_->hard_error_occurred.raise();
 }
 
 SemanticSystem::ParserContextView::ParserContextView(SemanticSystem *const ss)
@@ -104,5 +116,10 @@ SemanticSystem::ParserContextView::ParserContextView(SemanticSystem *const ss)
 bool SemanticSystem::ParserContextView::is_in_func_param_list() const noexcept
 {
     return host_->parse_ctx_->space_handler.space() == VarSymbol::Space::FORMAL_ARGUMENT;
+}
+
+bool SemanticSystem::ParserContextView::is_in_call_arg_list() const noexcept
+{
+    return host_->parse_ctx_->call_ctx_handler.is_in_call();
 }
 } // namespace alpha

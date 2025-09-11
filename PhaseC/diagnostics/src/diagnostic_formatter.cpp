@@ -184,6 +184,18 @@ DiagnosticFormatter::build_underline(const Issue &issue, const u32 line_no) cons
                 underline += underline_marker;
         }
     }
+
+    // Fill spaces between underline markers like ^ and ~
+    // TODO: space filling is inefficient. Prefer to find start and end and fill with ~ once.
+    // currently we are reputting ~.
+    auto start = underline.find_first_of(pointer_marker);
+    if (start == std::string::npos)
+        start = underline.find_first_of(underline_marker);
+    const auto end = underline.find_last_of(underline_marker);
+
+    if (end != std::string::npos)
+        for (auto i = start + 1; i < end; ++i) // start +1 to go past first ~ or first ^
+            underline[i] = underline_marker;
     return underline;
 }
 
@@ -325,6 +337,7 @@ DiagnosticFormatter::format_issue(const Issue &issue, const bool colorize) const
     out << '\n';
 
     highlight_pointer_flag.enable();
+
     const Issue::RenderingSpan span = issue.compute_printing_span(loc_tracker_);
 
     const auto issue_line_count = span.end_line - span.start_line;
@@ -342,6 +355,11 @@ DiagnosticFormatter::format_issue(const Issue &issue, const bool colorize) const
         for (u32 line_no = span.end_line - shown_part_size; line_no <= span.end_line; ++line_no)
             format_issue_line(out, issue, line_no, colorize);
     }
+
+    // Basically some errors like unclosed string end up with EOF,
+    // and usually there is nothing to underline. Thus flag is never disabled internally.
+    if (highlight_pointer_flag.is_enabled())
+        highlight_pointer_flag.disable();
 
     return out.str();
 }

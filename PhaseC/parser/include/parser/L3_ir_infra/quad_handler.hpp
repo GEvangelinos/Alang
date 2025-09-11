@@ -63,6 +63,7 @@ QuadHandler::emit(
     DEBUG(
         namespace ii = ir::info_traits;
         using Requirement = ii::Requirement;
+
         auto requirement_matches = [](const Requirement req, const Expr *const expr) -> bool
         {
         return req == Requirement::OPTIONAL ||
@@ -77,6 +78,9 @@ QuadHandler::emit(
             requirement_matches(ii::arg1(opc), arg1),
             requirement_matches(ii::arg2(opc), arg2),
             loc != k_no_loc,
+        );
+        if (opc == ir::Opcode::JUMP && label == next_quad_label()) SMART_ASSERT(
+            false && "ir::Opcode::JUMP jumps to itself"
         );
     )
 

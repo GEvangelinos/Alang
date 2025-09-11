@@ -1,0 +1,16 @@
+quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
+1,assign,i,3,NA,NA,1,1
+2,assign,$0,i,NA,NA,1,1
+3,if_lt,NA,i,5,5,1,1
+4,jump,NA,NA,NA,7,1,1
+5,assign,$1,true,NA,NA,1,1
+6,jump,NA,NA,NA,8,1,1
+7,assign,$1,false,NA,NA,1,1
+8,if_eq,NA,$1,true,13,1,1
+9,jump,NA,NA,NA,16,1,1
+10,assign,$2,i,NA,NA,1,1
+11,add,i,i,1,NA,1,1
+12,jump,NA,NA,NA,3,1,1
+13,assign,x,5,NA,NA,2,2
+14,assign,$0,x,NA,NA,2,2
+15,jump,NA,NA,NA,10,2,2

@@ -216,7 +216,6 @@ stmt:
   stmt_impl
   {
     ss.call<"reset_stmt_context">();
-    ss.recover();
   }
 ;
 
@@ -448,8 +447,8 @@ block:
 ;
 
 func_prefix:
-  FUNCTION    { ss.call<"function_builder.update_function_draft">(@func_prefix); }
-| FUNCTION ID { ss.call<"function_builder.update_function_draft">($ID, @func_prefix); }
+  FUNCTION    { ss.call<"function_builder.update_function_draft">(); }
+| FUNCTION ID { ss.call<"function_builder.update_function_draft">($ID); }
 ;
 
 func_params:

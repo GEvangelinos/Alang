@@ -120,6 +120,7 @@ private:
     [[nodiscard]] SemanticSystemServices create_semantic_system_services();
 
     [[nodiscard]] static AssignBuilder::Options get_assign_builder_options(const Options &options);
+    [[nodiscard]] static BasicBuilder::Options get_basic_builder_options(const Options &options);
 
     [[nodiscard]] static ExprOptimizer::Options get_expr_optimizer_options(const Options &options);
 
@@ -142,6 +143,7 @@ class SemanticSystem::ParserContextView
 
 public:
     [[nodiscard]] bool is_in_func_param_list() const noexcept;
+    [[nodiscard]] bool is_in_call_arg_list() const noexcept;
 
 private:
     SemanticSystem *const host_;

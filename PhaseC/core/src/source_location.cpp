@@ -52,14 +52,7 @@ LocationTracker::find_symbol_line(const SourceLocation location) const
 {
     if (location == k_no_loc)
         return k_no_line;
-
-    auto [begin_line, end_line] = find_lines(location);
-
-    if (begin_line != end_line)
-        throw std::logic_error(ATTACH_CONTEXT(
-            "BUG: Symbol spans multiple lines."
-            "Symbol must be defined on a single line."));
-    return begin_line;
+    return find_lines(location).first_line;
 }
 
 u32

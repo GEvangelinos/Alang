@@ -2,8 +2,6 @@
 /// BUT BASICALLY ITS MY FAULT... WHEN WRITING THIS.. I WAS BORED AND ANXIOUS...
 /// SO PLEASE DONT JUDGE ME TOO HARSH...
 
-
-
 #ifndef PARSER_EPILOGUE_CODE_HPP
 #define PARSER_EPILOGUE_CODE_HPP
 // TODO: When you have the time.. please fix-up / rewrite this file.. its a mess
@@ -46,6 +44,7 @@ has_expected(const Info &info, const yysymbol_kind_t s)
 
 [[nodiscard]] static yysymbol_kind_t
 determine_suggested_token_based_on_parsing_heuristics(
+    const SemanticSystem &ss,
     const LocationTracker &loc_tracker,
     const LexerCtx &lexer_ctx,
     const Info &info)
@@ -70,6 +69,11 @@ determine_suggested_token_based_on_parsing_heuristics(
         slast_token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE &&
         slast_last_line < unexpected_first_line) { return YYSYMBOL_SEMICOLON; }
     if (has_expected(info, YYSYMBOL_COLON)) return YYSYMBOL_COLON;
+    if (has_expected(info, YYSYMBOL_COMMA) &&
+        (
+            ss.parser_context_view->is_in_func_param_list() ||
+            ss.parser_context_view->is_in_call_arg_list()
+        )) { return YYSYMBOL_COMMA; }
     if (has_expected(info, YYSYMBOL_RIGHT_PAREN)) return YYSYMBOL_RIGHT_PAREN;
     if (has_expected(info, YYSYMBOL_RIGHT_BRACKET)) return YYSYMBOL_RIGHT_BRACKET;
     if (has_expected(info, YYSYMBOL_RIGHT_BRACE)) return YYSYMBOL_RIGHT_BRACE;
@@ -353,7 +357,8 @@ static void report_unexpected_eof(
 }
 
 static void
-report_too_many_expected_diagnostic(
+report_many_expected_diagnostic(
+    const SemanticSystem &ss,
     const LocationTracker &loc_tracker,
     const LexerCtx &lexer_ctx,
     const Info &info,
@@ -386,7 +391,7 @@ report_too_many_expected_diagnostic(
     }
 
     const yysymbol_kind_t suggested_symbol =
-            determine_suggested_token_based_on_parsing_heuristics(loc_tracker, lexer_ctx, info);
+            determine_suggested_token_based_on_parsing_heuristics(ss, loc_tracker, lexer_ctx, info);
 
     if (suggested_symbol != YYSYMBOL_YYEMPTY)
     {
@@ -477,7 +482,7 @@ report_unexpected_diagnostic(
     else if (info.expected_tokens.size() <= FEW_TOKENS)
         report_few_expected_diagnostic(lexer_ctx, info, diagnostic_engine);
     else
-        report_too_many_expected_diagnostic(loc_tracker, lexer_ctx, info, diagnostic_engine);
+        report_many_expected_diagnostic(ss, loc_tracker, lexer_ctx, info, diagnostic_engine);
 }
 
 /**

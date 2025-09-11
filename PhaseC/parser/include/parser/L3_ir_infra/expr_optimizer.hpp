@@ -61,9 +61,9 @@ class ExprOptimizer : private Immobile
 public:
     struct Options
     {
-        bool constant_propagation;
-        bool expr_folding;
-        bool expr_trimming;
+        const bool constant_propagation;
+        const bool expr_folding;
+        const bool expr_trimming;
     };
 
     ExprOptimizer(ExprOptimizer::Options &&options, ExprMaker *expr_maker);

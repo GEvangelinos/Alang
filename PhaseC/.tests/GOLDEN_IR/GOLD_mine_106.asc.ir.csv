@@ -1,0 +1,16 @@
+quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
+1,jump,NA,NA,NA,16,2,2
+2,funcstart,NA,ff,NA,NA,2,2
+3,jump,NA,NA,NA,15,4,4
+4,funcstart,NA,gg,NA,NA,4,4
+5,jump,NA,NA,NA,14,6,6
+6,funcstart,NA,hh,NA,NA,6,6
+7,call,NA,ff,NA,NA,12,12
+8,getretval,$0,NA,NA,NA,12,12
+9,call,NA,gg,NA,NA,13,13
+10,getretval,$0,NA,NA,NA,13,13
+11,call,NA,hh,NA,NA,14,14
+12,getretval,$0,NA,NA,NA,14,14
+13,funcend,NA,hh,NA,NA,15,15
+14,funcend,NA,gg,NA,NA,16,16
+15,funcend,NA,ff,NA,NA,17,17

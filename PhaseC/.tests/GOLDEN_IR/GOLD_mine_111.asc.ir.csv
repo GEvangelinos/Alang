@@ -1,0 +1,4 @@
+quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
+1,param,NA,"",NA,NA,16,16
+2,call,NA,var,NA,NA,1,16
+3,getretval,$0,NA,NA,NA,1,16

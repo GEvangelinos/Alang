@@ -33,6 +33,13 @@ ControlFlowManager::Restricted::manage_ifbranch_entry(
     build_ctx_.unpatched_if_bypass_jumps.push(qh->next_quad_label());
     // Emit unconditional jump that will eventually point at the end of the if-block.
     qh->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, if_clause_loc);
+
+    // In CYA_MODE we don't do complex temp reuse,
+    // so we cant rely on temp reuse in ifbranch's condition.
+    // Thus, we reset temps at end of ifbranch entry (ifbranch clause)
+    #ifdef CYA_MODE
+    parse_ctx_->temp_ctx_handler.reset_current_frame();
+    #endif
 }
 
 void
@@ -121,6 +128,13 @@ ControlFlowManager::Restricted::manage_whileloop_condition(
     qh->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, while_clause_loc);
 
     parse_ctx_->func_ctx_handler.enter_loop();
+
+    // In CYA_MODE we don't do complex temp reuse,
+    // so we cant rely on, temp reuse in whileloop's condition.
+    // Thus, we reset temps at end of while clause (whileloop condition)
+    #ifdef CYA_MODE
+    parse_ctx_->temp_ctx_handler.reset_current_frame();
+    #endif
 }
 
 void
@@ -281,7 +295,15 @@ ControlFlowManager::Restricted::exit_forloop_clause()
         parse_ctx_->temp_ctx_handler.current_critical_region().value() ==
         TempCtxHandler::CriticalRegion::FORLOOP_CLAUSE
     );
+
+    // In CYA_MODE we don't do complex temp reuse,
+    // so we cant rely on, temp reuse in each for-loop stage.
+    // Thus, we reset temps at end of forloop clause
+    #ifdef CYA_MODE
+    parse_ctx_->temp_ctx_handler.reset_current_frame();
+    #else
     parse_ctx_->temp_ctx_handler.exit_critical_region();
+    #endif
 }
 
 void

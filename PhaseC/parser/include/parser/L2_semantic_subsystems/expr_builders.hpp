@@ -172,6 +172,11 @@ class BasicBuilder
     friend class SemanticSystem;
 
 private:
+    struct Options
+    {
+        bool fold_static_bools;
+    };
+
     class Restricted final : private SemanticSubsystem
     {
         friend class BasicBuilder;
@@ -193,9 +198,10 @@ private:
             static auto &assign_list(const BoolExpr *e) { return e->true_list; }
         };
 
+        const Options options_;
         std::stack<LabelID> short_circuit_jump_stack_;
 
-        explicit Restricted(const SemanticSystemServices &ss_services);
+        Restricted(Options &&options, const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
 
         [[nodiscard]] const Expr *prepare_logical_operand_expr(const Expr *expr);
@@ -237,7 +243,7 @@ private:
 
     Restricted DISPATCH_TARGET;
 
-    explicit BasicBuilder(const SemanticSystemServices &ss_services);
+    BasicBuilder(Options &&options, const SemanticSystemServices &ss_services);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(prepare_logical_operand_expr);
@@ -351,10 +357,9 @@ private:
         struct
         {
             std::string id;
-            SourceLocation loc;
             std::vector<Parameter> parameter_list;
 
-            void reset() { id = std::string(), loc = k_no_loc, parameter_list.clear(); }
+            void reset() { id = std::string(), parameter_list.clear(); }
         } function_draft_;
 
         u32 next_function_address_ = k_first_function_address;
@@ -362,12 +367,12 @@ private:
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
 
-        void update_function_draft(SourceLocation function_loc);
-        void update_function_draft(const std::string &id, SourceLocation function_loc);
+        void update_function_draft();
+        void update_function_draft(const std::string &id);
         void collect_function_parameter(const std::string &id, SourceLocation id_loc);
         [[nodiscard]] const Expr *forward_program_function(
             const FuncSymbol *func_symbol, SourceLocation result_loc);
-        [[nodiscard]] const FuncSymbol *build_program_function_entry(SourceLocation entry_loc);
+        [[nodiscard]] const FuncSymbol *build_program_function_entry(SourceLocation func_signature_loc);
         [[nodiscard]] const FuncSymbol *build_program_function_exit(BlockSourceLocation block_loc);
 
         void register_function_parameters();

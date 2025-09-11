@@ -13,7 +13,7 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 12,param,NA,nl,NA,NA,9,9
 13,param,NA,"Assertion",NA,NA,9,9
 14,call,NA,print,NA,NA,9,9
-15,getretval,$2,NA,NA,NA,9,9
+15,getretval,$0,NA,NA,NA,9,9
 16,funcend,NA,Assert,NA,NA,10,10
 17,jump,NA,NA,NA,28,15,15
 18,funcstart,NA,IsEven,NA,NA,15,15
@@ -64,14 +64,14 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 63,jump,NA,NA,NA,53,39,39
 64,param,NA,i,NA,NA,40,40
 65,call,NA,IsEven,NA,NA,40,40
-66,getretval,$4,NA,NA,NA,40,40
-67,if_eq,NA,$4,true,69,40,40
+66,getretval,$0,NA,NA,NA,40,40
+67,if_eq,NA,$0,true,69,40,40
 68,jump,NA,NA,NA,75,40,40
 69,param,NA,nl,NA,NA,41,41
 70,param,NA," is evan",NA,NA,41,41
 71,param,NA,i,NA,NA,41,41
 72,call,NA,print,NA,NA,41,41
-73,getretval,$5,NA,NA,NA,41,41
+73,getretval,$0,NA,NA,NA,41,41
 74,jump,NA,NA,NA,89,42,42
 75,param,NA,i,NA,NA,42,42
 76,call,NA,IsOdd,NA,NA,42,42
@@ -82,7 +82,7 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 81,param,NA," is odd",NA,NA,43,43
 82,param,NA,i,NA,NA,43,43
 83,call,NA,print,NA,NA,43,43
-84,getretval,$1,NA,NA,NA,43,43
+84,getretval,$0,NA,NA,NA,43,43
 85,jump,NA,NA,NA,89,44,44
 86,assign,exit,false,NA,NA,45,45
 87,assign,$0,exit,NA,NA,45,45
@@ -120,10 +120,10 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 119,jump,NA,NA,NA,99,56,56
 120,if_eq,NA,cnt,10,122,57,57
 121,jump,NA,NA,NA,124,57,57
-122,assign,$11,true,NA,NA,57,57
+122,assign,$0,true,NA,NA,57,57
 123,jump,NA,NA,NA,125,57,57
-124,assign,$11,false,NA,NA,57,57
-125,if_eq,NA,$11,true,127,57,57
+124,assign,$0,false,NA,NA,57,57
+125,if_eq,NA,$0,true,127,57,57
 126,jump,NA,NA,NA,128,57,57
 127,jump,NA,NA,NA,142,58,58
 128,if_eq,NA,cnt,0,130,59,59
@@ -134,7 +134,7 @@ quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
 133,if_eq,NA,$0,true,135,59,59
 134,jump,NA,NA,NA,141,59,59
 135,assign,even,1,NA,NA,60,60
-136,assign,$1,even,NA,NA,60,60
+136,assign,$0,even,NA,NA,60,60
 137,assign,odd,0,NA,NA,61,61
 138,assign,$0,odd,NA,NA,61,61
 139,assign,cnt,10,NA,NA,62,62

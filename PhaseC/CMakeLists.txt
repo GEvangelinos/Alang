@@ -116,8 +116,10 @@ if (DEBUG_MODE)
         )
     endif ()
 
+    SET(SANITIZERS "-fsanitize=address,undefined")
     add_compile_options(
         -g
+#        ${SANITIZERS}
         #        -Wunused-result
         #        -Wnull-dereference
         #        -Wsuggest-override
@@ -125,6 +127,10 @@ if (DEBUG_MODE)
         #        -Wuseless-cast
         #        -Wduplicated-cond
         #        -Wmissing-declarations
+    )
+
+    add_link_options(
+#        ${SANITIZERS}
     )
     add_compile_definitions(DEBUG_MODE)
 endif ()
