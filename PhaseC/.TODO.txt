@@ -1013,3 +1013,44 @@ but the safest and simplest way would be to remove function definitions about de
 Also remember.. that in post optimization IR code.. you have to rebalance the labels..
 
 for anything you remove.. you must recalculate the labels below it.
+
+210)
+
+    how to optimize this:
+
+        if (x == 1)
+        {
+                getnum();
+        }
+
+    from this:
+        quad#      opcode          result               arg1                 arg2                 label      line
+        ---------------------------------------------------------------------------------------------------------------
+        1          if_eq                                x                    1                    3          1
+        2          jump                                                                           5          1
+        3          assign          $0                   true                                      -          1
+        4          jump                                                                           6          1
+        5          assign          $0                   false                                     -          1
+        6          if_eq                                $0                   true                 8          1
+        7          jump                                                                           10         1
+        8          call                                 getnum                                    -          3
+        9          getretval       $0                                                             -          3
+
+    to this:
+        quad#      opcode          result               arg1                 arg2                 label      line
+        ---------------------------------------------------------------------------------------------------------------
+        1          if_eq                                x                    1                    3          1
+        2          jump                                                                           5          1
+        3          call                                 getnum                                    -          3
+        4          getretval       $0                                                             -          3
+
+
+211) In error Diagnostics, highlight // comments with brown
+
+also beggiing or /* or end of */
+
+and keyword with blue, maybe operators too.. or different color
+
+212) why do we emit both return and jump when we use return keyword?
+if reutrn doesnt just.. then in retuns with no expr, return  should not be ommitted.
+except if we say return can also jump.. but thewe dont need the explicit jump.

@@ -42,6 +42,26 @@
       Args: [ libfunc_name ]
       Location: formal_param_loc
 
+- Diagnostic: NONARITH_ARITH_OP_OPERAND
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "`{0}` operand of arithmetic operator `{1}` is never arithmetic\n(operand's expression type: `{2}`)"
+      Args: [ operand_side, operator_symbol, operand_expr_type ]
+      Location: operand_loc
+
+- Diagnostic: NONARITH_REL_OP_OPERAND
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "`{0}` operand of relational operator `{1}` is never arithmetic\n(operand's expression type: `{2}`)"
+      Args: [ operand_side, operator_symbol, operand_expr_type ]
+      Location: operand_loc
+
+- Diagnostic: NONARITH_UMINUS_OPERAND
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "operand of unary `-` is never arithmetic\n(operand's expression type: `{0}`)"
+      Args: [ operand_expr_type ]
+      Location: operand_loc
 
 - Diagnostic: REDEFINITION_OF_FORMAL_PARAMETER
   Type: SOFT_ERROR
@@ -55,7 +75,7 @@
       Location: initial_param_loc
 
 - Diagnostic: REDEFINITION_OF_FUNC
-  Type: HARD_ERROR
+  Type: SOFT_ERROR
   Primary:
     - Message: "redefinition of function `{0}`"
       Args: [ func_name ]
@@ -66,17 +86,22 @@
       Location: initial_def_loc
 
 - Diagnostic: REDEFINITION_OF_LIBFUNC
-  Type: HARD_ERROR
+  Type: SOFT_ERROR
   Primary:
     - Message: "redefinition of library function `{0}`"
       Args: [ libfunc_name ]
       Location: redef_loc
-- Diagnostic: ARITH_OP_NONARITH_OPERAND
-  Type: HARD_ERROR
+
+- Diagnostic: REDEFINITION_OF_VAR_AS_FUNC
+  Type: SOFT_ERROR
   Primary:
-    - Message: "`{0}` operand of arithmetic operator `{1}` is never arithmetic -- operand's expression type: `{2}`"
-      Args: [ operand_side, operator_symbol, operand_expr_type ]
-      Location: operand_loc
+    - Message: "`{0}` redefined as a function"
+      Args: [ func_name ]
+      Location: redef_loc
+  Notes:
+    - Message: "`{0}` initially defined as a variable here"
+      Args: [ func_name ]
+      Location: var_def_loc
 
 - Diagnostic: ASSIGN_TO_FUNC
   Type: HARD_ERROR
@@ -146,13 +171,6 @@
       Args: [ op_name ]
       Location: expr_loc
 
-- Diagnostic: REL_OP_NONARITH_OPERAND
-  Type: HARD_ERROR
-  Primary:
-    - Message: "`{0}` operand of relational operator `{1}` is never arithmetic -- operand's expression type: `{2}`"
-      Args: [ operand_side, operator_symbol, operand_expr_type ]
-      Location: operand_loc
-
 - Diagnostic: RETURN_KEYWORD_OUTSIDE_FUNC
   Type: HARD_ERROR
   Primary:
@@ -180,27 +198,6 @@
 - Diagnostic: UNRESOLVED_GLOBAL_SYMBOL
   Type: HARD_ERROR
   Primary:
-    - Message: "symbol `::{0}` not found in global scope"
+    - Message: "symbol `{0}` not found in global scope"
       Args: [ symbol_name ]
       Location: symbol_use_loc
-
-- Diagnostic: UMINUS_NONARITH_OPERAND
-  Type: HARD_ERROR
-  Primary:
-    - Message: "operand of unary `-` is never arithmetic"
-      Location: operand_loc
-  Notes:
-    - Message: "operand's expression type: `{0}`"
-      Args: [ operand_expr_type ]
-      Location: operand_loc
-
-- Diagnostic: VAR_REDEFINED_AS_FUNC
-  Type: HARD_ERROR
-  Primary:
-    - Message: "`{0}` redefined as a function"
-      Args: [ func_name ]
-      Location: redef_loc
-  Notes:
-    - Message: "`{0}` initially defined as a variable here"
-      Args: [ func_name ]
-      Location: var_def_loc

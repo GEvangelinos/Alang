@@ -4,16 +4,7 @@
 namespace alpha
 {
 Suggestion::Suggestion(const std::string_view text, const SourceLocation insert_after)
-    : text(text), insert_after(insert_after)
-{
-    // TODO: uncomment (I commented it during developement of diagnostic formatting, to test
-    // multi-line suggestions)
-    // Remove this assertion, in case there are useful multiline suggestions.
-    // DEBUG_SMART_ASSERT(
-    //     text.find('\n') == std::string::npos &&
-    //     "Suggestion should be contained inside a single line"
-    // );
-}
+    : text(text), insert_after(insert_after) {}
 
 u32
 Suggestion::compute_printing_span() const

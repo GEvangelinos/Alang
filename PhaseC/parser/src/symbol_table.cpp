@@ -67,8 +67,9 @@ SymbolTable::insert_symbol(
     symbols_per_scope_[scope].push_back(symbol_ptr.get());
     actives_per_scope_[scope].push_back(symbol_ptr.get());
 
-    return static_cast<SymbolKind *>(
-        synonym_symbols.emplace(symbol_it, std::move(symbol_ptr))->get());
+    return DEBUG_REQUIRE_PTR(static_cast<SymbolKind *>(
+        synonym_symbols.emplace(symbol_it, std::move(symbol_ptr))->get()
+    ));
 }
 
 // Explicit instantiations for insert_symbol()

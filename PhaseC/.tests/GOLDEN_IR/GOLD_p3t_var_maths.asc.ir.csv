@@ -1,0 +1,6 @@
+quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
+1,add,$0,x,y,NA,1,1
+2,mul,$0,z,w,NA,2,2
+3,sub,$0,t,s,NA,3,3
+4,div,$0,u,v,NA,4,4
+5,mod,$0,r,l,NA,5,5

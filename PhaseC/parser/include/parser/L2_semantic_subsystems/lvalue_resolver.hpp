@@ -27,8 +27,8 @@ private:
         ~Restricted() override = default;
 
         [[nodiscard]] const Expr *resolve_id(const char *id_name, SourceLocation id_loc);
-        [[nodiscard]] const Expr *resolve_local_id(const char *id_name, SourceLocation id_loc);
-        [[nodiscard]] const Expr *resolve_global_id(const char *id_name, SourceLocation id_loc);
+        [[nodiscard]] const Expr *resolve_local_id(const char *lid_name, SourceLocation lid_loc);
+        [[nodiscard]] const Expr *resolve_global_id(const char *gid_name, SourceLocation gid_loc);
         [[nodiscard]] const Expr *resolve_lvalue_to_rvalue(const Expr *lvalue);
 
         [[nodiscard]] bool ensure_reachable_symbol(

@@ -51,7 +51,7 @@
    #include "core/shared_interface.hpp"
    YY_DECL;
    #include <scanner/alpha_scanner.gen.hpp>
-    #include "parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
+   #include "parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
 }
 %locations
 
@@ -212,10 +212,12 @@ multiStmt:
 | multiStmt stmt
 ;
 
+/* We also recover at this point (mainly for semantic hard errors, which do not tirgger parser error). */
 stmt:
   stmt_impl
   {
     ss.call<"reset_stmt_context">();
+    ss.recover();
   }
 ;
 
@@ -229,8 +231,8 @@ stmt_impl:
 | block
 | func_def
 | SEMICOLON
-| error SEMICOLON   { ss.recover(); yyerrok; }
-| error RIGHT_BRACE { ss.recover(); yyerrok; }
+| error SEMICOLON   { CLEAR_ERROR_IF_NOT_IN_FORLOOP_CLAUSE(ss); }
+| error RIGHT_BRACE { CLEAR_ERROR(ss); }
 ;
 
 loop_ctrl_stmt:
@@ -334,9 +336,9 @@ primary:
 
 lvalue:
   table_item { $lvalue = $table_item; }
-| ID         { $lvalue = ss.call<"lvalue_resolver.resolve_id">($ID, @ID); }
-| LOCAL ID   { $lvalue = ss.call<"lvalue_resolver.resolve_local_id">($ID, @ID); }
-| GLOBAL ID  { $lvalue = ss.call<"lvalue_resolver.resolve_global_id">($ID, @ID); }
+| ID         { $lvalue = ss.call<"lvalue_resolver.resolve_id">($ID, @lvalue); }
+| LOCAL ID   { $lvalue = ss.call<"lvalue_resolver.resolve_local_id">($ID, @lvalue); }
+| GLOBAL ID  { $lvalue = ss.call<"lvalue_resolver.resolve_global_id">($ID, @lvalue); }
 ;
 
 table_item:
@@ -460,11 +462,12 @@ func_params:
 funcArgList:
   LEFT_PAREN /* (void) */ RIGHT_PAREN
 | LEFT_PAREN func_params  RIGHT_PAREN
+| LEFT_PAREN    error     RIGHT_PAREN { CLEAR_ERROR_IF_IN_FUNC_PARAM_LIST(ss); }
 ;
 
 func_signature:
   func_prefix funcArgList
-  { $func_signature = ss.call<"function_builder.build_program_function_entry">(@func_signature);}
+  { $func_signature = ss.call<"function_builder.build_program_function_entry">(@func_signature); }
 ;
 
 func_def:
@@ -511,8 +514,8 @@ while_stmt:
 
 for_clause:
   FOR
-  LEFT_PAREN
   { ss.call<"control_flow_manager.enter_forloop_clause">(); }
+  LEFT_PAREN
   expr_list[init_list]
   { ss.call<"aggregate_builder.consume_expr_list">($init_list); }
   SEMICOLON
@@ -528,6 +531,11 @@ for_clause:
   }
   RIGHT_PAREN
   { ss.call<"control_flow_manager.exit_forloop_clause">(); }
+| FOR error RIGHT_PAREN
+  {
+    CLEAR_ERROR(ss);
+    ss.call<"control_flow_manager.mark_bad_forloop_clause">();
+  }
 ;
 
 for_stmt:

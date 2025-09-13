@@ -36,51 +36,56 @@ LvalueResolver::Restricted::resolve_id(const char *id_name, const SourceLocation
 }
 
 const Expr *
-LvalueResolver::Restricted::resolve_local_id(const char *const id_name, const SourceLocation id_loc)
+LvalueResolver::Restricted::resolve_local_id(
+    const char *const lid_name,
+    const SourceLocation lid_loc)
 {
-    const Symbol *result = symbol_table_->lookup_local(id_name, parse_ctx_->scope_handler.scope());
+    DEBUG_SMART_ASSERT(!!lid_name);
+    const Symbol *result = symbol_table_->lookup_local(lid_name, parse_ctx_->scope_handler.scope());
     if (!result)
     {
         const auto current_scope = parse_ctx_->scope_handler.scope();
         const VarSymbol *const inserted = symbol_table_->insert_variable(
-            id_name,
+            lid_name,
             current_scope,
             current_scope == k_global_scope
             ? VarSymbol::Type::GLOBAL_VARIABLE
             : VarSymbol::Type::LOCAL_VARIABLE,
             parse_ctx_->space_handler.space(),
             parse_ctx_->space_handler.next_offset(),
-            id_loc
+            lid_loc
         );
-        return expr_maker_->make_variable_expr(id_loc, inserted);
+        return expr_maker_->make_variable_expr(lid_loc, inserted);
     }
     if (result->is_variable())
-        return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol *>(result));
+        return expr_maker_->make_variable_expr(lid_loc, static_cast<const VarSymbol *>(result));
     if (result->is_progfunc())
-        return expr_maker_->make_prog_func_expr(id_loc, static_cast<const FuncSymbol *>(result));
+        return expr_maker_->make_prog_func_expr(lid_loc, static_cast<const FuncSymbol *>(result));
     if (result->is_libfunc())
     {
-        dr_->report_local_id_shadows_libfunc(id_name, id_loc);
+        dr_->report_local_id_shadows_libfunc(lid_name, lid_loc);
         return nullptr;
     }
     UNREACHABLE("Unexpected symbol type");
 }
 
-const Expr *LvalueResolver::Restricted::resolve_global_id(const char *id_name,
-                                                          SourceLocation id_loc)
+const Expr *LvalueResolver::Restricted::resolve_global_id(
+    const char * const gid_name,
+    const SourceLocation gid_loc)
 {
-    const Symbol *result = symbol_table_->lookup_global(id_name);
+    DEBUG_SMART_ASSERT(!!gid_name);
+    const Symbol *result = symbol_table_->lookup_global(gid_name);
     if (!result)
     {
-        dr_->report_unresolved_global_symbol(id_name, id_loc);
+        dr_->report_unresolved_global_symbol(gid_name, gid_loc);
         return nullptr;
     }
     if (result->is_variable())
-        return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol *>(result));
+        return expr_maker_->make_variable_expr(gid_loc, static_cast<const VarSymbol *>(result));
     if (result->is_progfunc())
-        return expr_maker_->make_prog_func_expr(id_loc, static_cast<const FuncSymbol *>(result));
+        return expr_maker_->make_prog_func_expr(gid_loc, static_cast<const FuncSymbol *>(result));
     if (result->is_libfunc())
-        return expr_maker_->make_lib_func_expr(id_loc, static_cast<const FuncSymbol *>(result));
+        return expr_maker_->make_lib_func_expr(gid_loc, static_cast<const FuncSymbol *>(result));
     UNREACHABLE("Unexpected symbol type");
 }
 

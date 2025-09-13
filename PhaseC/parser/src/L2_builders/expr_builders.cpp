@@ -515,12 +515,12 @@ BasicBuilder::Restricted::build_uminus(
     expr = ss_bridge_->materialize_if_table_item(expr);
 
     if (!validate_arithmetic_expr(ir::Opcode::UMINUS, expr, OperandSide::UNARY))
-        return nullptr;
+        goto skip_opt;
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::UMINUS>(result_loc, expr))
         return optimized;
 
+skip_opt:
     reset_temps_if_temp_operand(expr);
-
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
     quad_handler_->emit_next(ir::Opcode::UMINUS, arithmetic_expr, expr, nullptr, result_loc);
     return arithmetic_expr;
@@ -538,18 +538,20 @@ BasicBuilder::Restricted::build_arithmetic(
     lhs = ss_bridge_->materialize_if_table_item(lhs);
     rhs = ss_bridge_->materialize_if_table_item(rhs);
 
-    if (!validate_arithmetic_expr(opc, lhs, OperandSide::LEFT)) return nullptr;
-    if (!validate_arithmetic_expr(opc, rhs, OperandSide::RIGHT)) return nullptr;
-
+    // Always build IR. On validation errors we report error diagnostics and never export bad IR.
+    const bool valid_lhs = validate_arithmetic_expr(opc, lhs, OperandSide::LEFT);
+    const bool valid_rhs = validate_arithmetic_expr(opc, rhs, OperandSide::RIGHT);
+    if (!(valid_lhs && valid_rhs))
+        goto skip_opt;
     // Warn on CT div-by-zero, skip folding; VM must still handle division-by-zero at runtime.
-    if (!validate_possible_division(opc, rhs, result_loc)) goto past_ct_optimization;
+    if (!validate_possible_division(opc, rhs, result_loc))
+        goto skip_opt;
 
     if (const auto optimized = this->try_optimize_arithmetic_expr(opc, lhs, rhs, result_loc))
         return optimized;
 
-past_ct_optimization:
+skip_opt:
     reset_temps_if_temp_operand(lhs, rhs);
-
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
     quad_handler_->emit_next(opc, arithmetic_expr, lhs, rhs, result_loc);
     return arithmetic_expr;
@@ -567,12 +569,20 @@ BasicBuilder::Restricted::build_relational(
     lhs = ss_bridge_->materialize_if_table_item(lhs);
     rhs = ss_bridge_->materialize_if_table_item(rhs);
 
-    if (!validate_relational_expr(opc, lhs, OperandSide::LEFT)) return nullptr;
-    if (!validate_relational_expr(opc, rhs, OperandSide::RIGHT)) return nullptr;
+    // In case of == and != the expr need to be finalized.
+    ss_bridge_->finalize_bool_expr(lhs);
+    ss_bridge_->finalize_bool_expr(rhs);
+
+    // Always build IR. On validation errors we report error diagnostics and never export bad IR.
+    const bool valid_lhs = validate_relational_expr(opc, lhs, OperandSide::LEFT);
+    const bool valid_rhs = validate_relational_expr(opc, rhs, OperandSide::RIGHT);
+    if (!(valid_lhs && valid_rhs))
+        goto skip_opt;
 
     if (const auto optimized = this->try_optimize_relational_expr(opc, lhs, rhs, result_loc))
         return optimized;
 
+skip_opt:
     const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
     result_expr->true_list.push_back(quad_handler_->next_quad_label());
     quad_handler_->emit_labelless(opc, nullptr, lhs, rhs, result_loc);
@@ -593,7 +603,6 @@ BasicBuilder::Restricted::build_logical_not(const Expr *const expr, const Source
     DEBUG_SMART_ASSERT(expr->is_bool_or_const_bool());
 
     reset_temps_if_temp_operand(expr);
-
     const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
     bool_result_expr->true_list = static_cast<const BoolExpr *>(expr)->false_list;
     bool_result_expr->false_list = static_cast<const BoolExpr *>(expr)->true_list;
@@ -613,7 +622,6 @@ BasicBuilder::Restricted::build_logical_and(
         return optimized;
 
     reset_temps_if_temp_operand(lhs, rhs);
-
     return build_short_circuit_bool_expr<AndShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
@@ -630,7 +638,6 @@ BasicBuilder::Restricted::build_logical_or(
         return optimized;
 
     reset_temps_if_temp_operand(lhs, rhs);
-
     return build_short_circuit_bool_expr<OrShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
@@ -708,10 +715,10 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
         return true;
 
     if (SemUtils::is_binary_arithmetic_opcode(opc))
-        dr_->report_arith_op_nonarith_operand(
+        dr_->report_nonarith_arith_op_operand(
             op_side, SemUtils::arith_op_str(opc), expr->type, expr->loc);
     else if (opc == ir::Opcode::UMINUS)
-        dr_->report_uminus_nonarith_operand(expr->type, expr->loc);
+        dr_->report_nonarith_uminus_operand(expr->type, expr->loc);
     else
         throw std::logic_error(ATTACH_CONTEXT(
             "Expected arithmetic ir::Opcode (bin arith or uminus)"));
@@ -732,7 +739,7 @@ BasicBuilder::Restricted::validate_relational_expr(
     // If here relational operator is:  < <= > >=
     if (expr->is_arithmetic_convertible())
         return true;
-    dr_->report_rel_op_nonarith_operand(op_side, SemUtils::relop_str(opc), expr->type, expr->loc);
+    dr_->report_nonarith_rel_op_operand(op_side, SemUtils::relop_str(opc), expr->type, expr->loc);
     return false;
 }
 
@@ -928,7 +935,7 @@ FunctionBuilder::Restricted::update_function_draft(const std::string &id)
 {
     function_draft_.id = id;
 
-    // We probably enter next space before function_entry but early on here, for formal arguments.
+    // We probably enter next space before function_entry early on here, for formal arguments.
     parse_ctx_->space_handler.enter_space();
 }
 
@@ -941,9 +948,7 @@ void
 FunctionBuilder::Restricted::register_function_parameters()
 {
     constexpr auto space = VarSymbol::Space::FORMAL_ARGUMENT;
-    DEBUG_SMART_ASSERT(
-        parse_ctx_->space_handler.space() == VarSymbol::Space::FORMAL_ARGUMENT
-    );
+    DEBUG_SMART_ASSERT(parse_ctx_->space_handler.space() == VarSymbol::Space::FORMAL_ARGUMENT);
 
     for (const Parameter &p: function_draft_.parameter_list)
         if (validate_formal_param_name(p))
@@ -978,7 +983,7 @@ FunctionBuilder::Restricted::validate_funcdef_name(
         }
         if (found_symbol->is_variable())
         {
-            dr_->report_var_redefined_as_func(func_name, funcname_loc, found_symbol->loc);
+            dr_->report_redefinition_of_var_as_func(func_name, funcname_loc, found_symbol->loc);
             return false;
         }
     }
@@ -1029,16 +1034,14 @@ FunctionBuilder::Restricted::forward_program_function(
 const FuncSymbol *
 FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation func_signature_loc)
 {
-    const auto &func_name = function_draft_.id; // Local alias for readability
-    const bool validated_funcname = validate_funcdef_name(func_name, func_signature_loc);
-
+    const bool validated_funcname = validate_funcdef_name(function_draft_.id, func_signature_loc);
     const u32 skip_func_jump_label = quad_handler_->next_quad_label();
     quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_signature_loc);
     const FuncSymbol *func_symbol = nullptr;
     if (validated_funcname)
     {
         func_symbol = symbol_table_->insert_function(
-            func_name,
+            function_draft_.id,
             parse_ctx_->scope_handler.scope(),
             next_function_address_++,
             function_draft_.parameter_list,
@@ -1056,15 +1059,13 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation f
     DEBUG_SMART_ASSERT(utils::logical_xnor(validated_funcname, !!func_symbol)); // Sanity check
 
     parse_ctx_->func_ctx_handler.enter_function(
-        func_name, func_signature_loc, func_symbol, skip_func_jump_label);
+        function_draft_.id, func_signature_loc, func_symbol, skip_func_jump_label);
     register_function_parameters();
     function_draft_.reset(); // Mandatory to support nested functions in the upcoming func-block.
     parse_ctx_->space_handler.enter_space(); // New var space -- must be after param registration.
 
     return func_symbol;
 }
-
-//TODO reallocate? Am I even needed?
 
 const FuncSymbol *
 FunctionBuilder::Restricted::build_program_function_exit(const BlockSourceLocation block_loc)

@@ -64,6 +64,7 @@ public: // More public stuff at the end (check it out)
 
     // TODO: make a function that user calls before destructor call that basically extracts all this
     // alpha drivers would want (like the generated quads).
+
     void recover() noexcept { ss_status_ = Status::OK; }
     [[nodiscard]] bool good() const noexcept { return ss_status_ == Status::OK; }
 
@@ -121,7 +122,6 @@ private:
 
     [[nodiscard]] static AssignBuilder::Options get_assign_builder_options(const Options &options);
     [[nodiscard]] static BasicBuilder::Options get_basic_builder_options(const Options &options);
-
     [[nodiscard]] static ExprOptimizer::Options get_expr_optimizer_options(const Options &options);
 
 public:
@@ -144,6 +144,7 @@ class SemanticSystem::ParserContextView
 public:
     [[nodiscard]] bool is_in_func_param_list() const noexcept;
     [[nodiscard]] bool is_in_call_arg_list() const noexcept;
+    [[nodiscard]] bool is_in_forloop_clause() const noexcept;
 
 private:
     SemanticSystem *const host_;

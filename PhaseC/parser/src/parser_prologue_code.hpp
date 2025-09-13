@@ -19,6 +19,33 @@
         }                                                           \
     } while (0)
 
+#define CLEAR_ERROR(local_semantic_driver) \
+    do                                     \
+    {                                      \
+        local_semantic_driver.recover();   \
+        yyerrok;                           \
+    }while (0)
+
+#define CLEAR_ERROR_IF_IN_FUNC_PARAM_LIST(local_semantic_driver)                \
+    do                                                                          \
+    {                                                                           \
+        if (local_semantic_driver.parser_context_view->is_in_func_param_list()) \
+        {                                                                       \
+            local_semantic_driver.recover();                                    \
+            yyerrok;                                                            \
+        }                                                                       \
+    }while(0)
+
+#define CLEAR_ERROR_IF_NOT_IN_FORLOOP_CLAUSE(local_semantic_driver)             \
+    do                                                                          \
+    {                                                                           \
+        if (!local_semantic_driver.parser_context_view->is_in_forloop_clause()) \
+        {                                                                       \
+            local_semantic_driver.recover();                                    \
+            yyerrok;                                                            \
+        }                                                                       \
+    }while(0)
+
 namespace alpha
 {
 class LexerCtx;

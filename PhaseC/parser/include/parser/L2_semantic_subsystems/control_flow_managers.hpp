@@ -70,6 +70,7 @@ private:
                 LabelID after_update_list;
                 LabelID before_body;
                 LabelID after_body;
+                bool bad_clause;
             };
 
             std::stack<WhileLoopPatchPoints, std::vector<WhileLoopPatchPoints>> while_loop_frames;
@@ -96,6 +97,7 @@ private:
         void manage_forloop_exit(SourceLocation exit_loc);
         void enter_forloop_clause();
         void exit_forloop_clause();
+        void mark_bad_forloop_clause();
         void manage_break(SourceLocation break_loc);
         void manage_continue(SourceLocation continue_loc);
         void manage_return(SourceLocation return_loc, const Expr *retval = nullptr);
@@ -128,6 +130,7 @@ private:
     DISPATCH_SLAVE_METHOD_CALL(manage_forloop_condition);
     DISPATCH_SLAVE_METHOD_CALL(manage_forloop_entry);
     DISPATCH_SLAVE_METHOD_CALL(manage_forloop_exit);
+    DISPATCH_SLAVE_METHOD_CALL(mark_bad_forloop_clause);
     DISPATCH_SLAVE_METHOD_CALL(enter_forloop_clause);
     DISPATCH_SLAVE_METHOD_CALL(exit_forloop_clause);
     DISPATCH_DEFINE_HANDLER_END();

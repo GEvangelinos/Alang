@@ -206,26 +206,12 @@ ControlFlowManager::Restricted::mark_forloop_update_list_exit(const SourceLocati
 }
 
 void
-ControlFlowManager::Restricted::manage_forloop_entry()
-{
-    DEBUG(
-        auto & flf_stack = build_ctx_.for_loop_frames;
-        SMART_ASSERT(!flf_stack.empty());
-        SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::BEFORE_BODY);
-    )
-    mark_upcoming_forloop_sites();
-    parse_ctx_->func_ctx_handler.enter_loop();
-}
-
-void
 ControlFlowManager::Restricted::manage_forloop_condition(
     const Expr *const conditional,
     const SourceLocation condition_loc)
 {
-    DEBUG(
-        auto &flf_stack = build_ctx_.for_loop_frames;
-        SMART_ASSERT(!flf_stack.empty());
-    )
+    DEBUG(auto &flf_stack = build_ctx_.for_loop_frames;)
+    DEBUG_SMART_ASSERT(!flf_stack.empty());
     DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::CONDITION_TRUE);
 
     const Expr *const materialized_conditional = ss_bridge_->materialize_if_table_item(conditional);
@@ -247,32 +233,50 @@ ControlFlowManager::Restricted::manage_forloop_condition(
 }
 
 void
+ControlFlowManager::Restricted::manage_forloop_entry()
+{
+    DEBUG(auto & flf_stack = build_ctx_.for_loop_frames;)
+    DEBUG_SMART_ASSERT(!flf_stack.empty());
+    // Increment loop counter to keep stack balanced, even if the for-clause is malformed.
+    parse_ctx_->func_ctx_handler.enter_loop();
+
+    if (build_ctx_.for_loop_frames.top().bad_clause)
+        return;
+
+    DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::BEFORE_BODY);
+    mark_upcoming_forloop_sites();
+}
+
+void
 ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_loc)
 {
-    DEBUG(
-        auto & flf_stack = build_ctx_.for_loop_frames;
-        SMART_ASSERT(!flf_stack.empty());
-    )
+    DEBUG(auto & flf_stack = build_ctx_.for_loop_frames;)
+    DEBUG_SMART_ASSERT(!flf_stack.empty());
 
-    auto *const qh = quad_handler_;               // Short alias to improve readability.
-    auto &flf = build_ctx_.for_loop_frames.top(); // Short alias to improve readability.
+    auto *const qh = quad_handler_; // Short alias to improve readability.
 
-    // Emit closure loop jump.
-    DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::AFTER_BODY);
-    mark_upcoming_forloop_sites();
-    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, exit_loc);
+    const auto &flf = build_ctx_.for_loop_frames.top(); // Short alias to improve readability.
+    if (!flf.bad_clause)
+    {
+        // Emit closure loop jump.
+        DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::AFTER_BODY);
+        mark_upcoming_forloop_sites();
+        quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, exit_loc);
 
-    const LabelID after_loop_quad_label = qh->next_quad_label(); // First quad outside for-loop.
+        const LabelID after_loop_quad_label = qh->next_quad_label(); // First quad outside for-loop.
 
-    qh->patch_quad(flf.condition_true, flf.before_body); // Set IF_EQ true jump inside body
-    qh->patch_quad(flf.condition_false, after_loop_quad_label); // Set IF_EQ false jump outside body
-    qh->patch_quad(flf.after_update_list, flf.before_condition); // After update go check condition
-    qh->patch_quad(flf.after_body, flf.before_update_list); // After closure go update iterators
+        qh->patch_quad(flf.condition_true, flf.before_body); // Set IF_EQ true jump inside body
+        qh->patch_quad(flf.condition_false, after_loop_quad_label);
+        // Set IF_EQ false jump outside body
+        qh->patch_quad(flf.after_update_list, flf.before_condition);
+        // After update go check condition
+        qh->patch_quad(flf.after_body, flf.before_update_list); // After closure go update iterators
 
-    // We route all breaks outside the body of the for loop.
-    qh->patch_list(parse_ctx_->func_ctx_handler.break_list(), after_loop_quad_label);
-    // We route all continues at the beginning of the update_list
-    qh->patch_list(parse_ctx_->func_ctx_handler.continue_list(), flf.before_update_list);
+        // We route all breaks outside the body of the for loop.
+        qh->patch_list(parse_ctx_->func_ctx_handler.break_list(), after_loop_quad_label);
+        // We route all continues at the beginning of the update_list
+        qh->patch_list(parse_ctx_->func_ctx_handler.continue_list(), flf.before_update_list);
+    }
 
     parse_ctx_->func_ctx_handler.exit_loop(); // This kills break and continue lists.
     build_ctx_.for_loop_frames.pop();         // DO NOT USE `flf` PAST THIS POINT
@@ -307,6 +311,14 @@ ControlFlowManager::Restricted::exit_forloop_clause()
 }
 
 void
+ControlFlowManager::Restricted::mark_bad_forloop_clause()
+{
+    DEBUG_SMART_ASSERT(!build_ctx_.for_loop_frames.empty());
+    build_ctx_.for_loop_frames.top().bad_clause = true;
+    parse_ctx_->temp_ctx_handler.reset_current_frame();
+}
+
+void
 ControlFlowManager::Restricted::manage_break(const SourceLocation break_loc)
 {
     manage_loop_keyword(LoopKeyword::BREAK, break_loc);
@@ -329,8 +341,12 @@ ControlFlowManager::Restricted::manage_return(
         return;
     }
 
-    const Expr *const materialized_retval = ss_bridge_->materialize_if_table_item(retval);
-    ss_bridge_->finalize_bool_expr(materialized_retval);
+    const Expr *materialized_retval = nullptr;
+    if (retval)
+    {
+        materialized_retval = ss_bridge_->materialize_if_table_item(retval);
+        ss_bridge_->finalize_bool_expr(materialized_retval);
+    }
 
     quad_handler_->emit_next(ir::Opcode::RETURN, nullptr, materialized_retval, nullptr, return_loc);
     parse_ctx_->func_ctx_handler.add_label_to_returnlist(quad_handler_->next_quad_label());
@@ -341,29 +357,28 @@ void
 ControlFlowManager::Restricted::mark_upcoming_forloop_sites()
 {
     DEBUG_SMART_ASSERT(!build_ctx_.for_loop_frames.empty());
-
-    using FLPP = ForLoopSite;
+    using FLS = ForLoopSite;
 
     auto &flf = build_ctx_.for_loop_frames.top();
 
     // clang-format off
     switch (const LabelID next_jump_label = quad_handler_->next_quad_label(); flf.next_patch_point)
     {
-    case FLPP::BEFORE_CONDITION:   flf.before_condition = next_jump_label;   break;
-    case FLPP::CONDITION_TRUE:     flf.condition_true = next_jump_label;     break;
-    case FLPP::CONDITION_FALSE:    flf.condition_false = next_jump_label;    break;
-    case FLPP::BEFORE_UPDATE_LIST: flf.before_update_list = next_jump_label; break;
-    case FLPP::AFTER_UPDATE_LIST:  flf.after_update_list = next_jump_label;  break;
-    case FLPP::BEFORE_BODY:        flf.before_body = next_jump_label;        break;
-    case FLPP::AFTER_BODY:         flf.after_body = next_jump_label;         break;
+    case FLS::BEFORE_CONDITION:   flf.before_condition = next_jump_label;   break;
+    case FLS::CONDITION_TRUE:     flf.condition_true = next_jump_label;     break;
+    case FLS::CONDITION_FALSE:    flf.condition_false = next_jump_label;    break;
+    case FLS::BEFORE_UPDATE_LIST: flf.before_update_list = next_jump_label; break;
+    case FLS::AFTER_UPDATE_LIST:  flf.after_update_list = next_jump_label;  break;
+    case FLS::BEFORE_BODY:        flf.before_body = next_jump_label;        break;
+    case FLS::AFTER_BODY:         flf.after_body = next_jump_label;         break;
     default: [[unlikely]] UNREACHABLE(FMT::format(
         "Unknown patch_point: int(patch_point) = {}", static_cast<int>(flf.next_patch_point)));
     }
     // clang-format on
 
-    using UT = std::underlying_type_t<FLPP>;
-    if (flf.next_patch_point != FLPP::AFTER_BODY)
-        flf.next_patch_point = static_cast<FLPP>(static_cast<UT>(flf.next_patch_point) + 1);
+    using UT = std::underlying_type_t<FLS>;
+    if (flf.next_patch_point != FLS::AFTER_BODY)
+        flf.next_patch_point = static_cast<FLS>(static_cast<UT>(flf.next_patch_point) + 1);
 }
 
 bool
