@@ -2,11 +2,14 @@
 #include "arguinator/arguinator.hpp" // for Flag, Parser
 #include "driver/alpha_driver.hpp"
 #include <driver/compilation_options.hpp>
-#include "utils/cli_color.h"
+
 
 static constexpr char alpha_driver_description[] =
         "A tool for syntactical analysis on programming language Alpha";
 
+#if defined(OPTIMIZED_MODE) || defined(HATE_PYTHON_MODE)
+#include "utils/cli_color.h"
+#endif
 static arguinator::Parser launch_cli_parser(const int argc, const char *const *const argv)
 {
     arguinator::Parser parser(argc, argv, alpha_driver_description);
@@ -55,16 +58,16 @@ int main(const int argc, char **argv)
         driver->export_symbol_table();
     if (cli_parser[alpha::flag_export_symbol_table_without_temps].is_provided())
         driver->export_symbol_table_without_temps();
-    if (cli_parser[alpha::flag_export_compile_errors].is_provided())
-        driver->export_compile_errors();
+    if (cli_parser[alpha::flag_export_diagnostics].is_provided())
+        driver->export_diagnostics();
     if (cli_parser[alpha::flag_export_ir].is_provided())
         driver->export_ir();
     if (cli_parser[alpha::flag_show_symbol_table].is_provided())
         driver->show_symbol_table();
     if (cli_parser[alpha::flag_show_ir].is_provided())
         driver->show_ir();
-    if (!cli_parser[alpha::flag_no_show_errors].is_provided()) // Used by regression-test tool.
-        driver->show_compile_issues();
+    if (!cli_parser[alpha::flag_no_show_diagnostics].is_provided()) // Used by regression-test tool.
+        driver->show_diagnostics();
 
     return driver->ok() ? 0 : 1;
 }

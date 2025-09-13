@@ -3,9 +3,11 @@
 #include <list>
 #include <optional>
 #include <string>
+#include <memory>
 
 #include "core/numeric_types.hpp"
 #include "core/source_location.hpp"
+#include "diagnostics/diagnostic_codes.gen.hpp"
 
 namespace alpha
 {
@@ -72,13 +74,17 @@ class Diagnostic
     friend class DiagnosticEngine;
 
 public:
+    const DiagnosticCode code;
     const Issue primary;
     const std::list<Note> note_list;
 
     Diagnostic() = delete;
 
 private:
-    explicit Diagnostic(Issue &&primary, std::list<Note> &&note_list = std::list<Note>());
+    Diagnostic(
+        DiagnosticCode code,
+        Issue &&primary,
+        std::list<Note> &&note_list = std::list<Note>());
 };
 } // namespace alpha
 

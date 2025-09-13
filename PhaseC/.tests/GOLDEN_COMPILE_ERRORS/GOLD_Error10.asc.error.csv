@@ -1,5 +1,0 @@
-line,column,diagnostic_type,message
-1,14,error,`print` is a library function, can't declare it as formal
-1,20,error,`input` is a library function, can't declare it as formal
-5,10,error,redefinition of library function `print`
-10,10,error,shadowing library function `print`

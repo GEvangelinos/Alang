@@ -1,4 +1,5 @@
 #include <L2_semantic_subsystems/expr_builders.hpp>
+#include <diagnostics/diagnostic_reporter.gen.hpp>
 #include "parser/internal_typedefs.hpp"
 
 #ifdef CYA_MODE

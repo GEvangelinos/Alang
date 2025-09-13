@@ -1,3 +1,0 @@
-line,column,diagnostic_type,message
-4,11,error,`x` redefined as a function
-3,12,note,`x` previously defined as a variable here

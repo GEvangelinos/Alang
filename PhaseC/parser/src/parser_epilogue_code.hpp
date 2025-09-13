@@ -106,7 +106,7 @@ made_diagnostic_based_on_semantic_heuristics(
     {
         auto expected = yysymbol_name(YYSYMBOL_RIGHT_PAREN);
 
-        diagnostic_engine.report(Issue(
+        diagnostic_engine.report_syntax_error(Issue(
             SYNTAX_ERROR_ISSUE_TYPE,
             FMT::format("expected {} before `{}`",
                         expected, info.unexpected_token_name),
@@ -128,7 +128,7 @@ made_diagnostic_based_on_semantic_heuristics(
             error_message = FMT::format(
                 "expected `{}` instead of `{}`", expected, info.unexpected_token_name);
 
-        diagnostic_engine.report(Issue(
+        diagnostic_engine.report_syntax_error(Issue(
             SYNTAX_ERROR_ISSUE_TYPE,
             error_message,
             info.unexpected_token_loc,
@@ -143,7 +143,7 @@ made_diagnostic_based_on_semantic_heuristics(
         lexer_ctx.second_last_token_info().has_value() &&
         lexer_ctx.second_last_token_info().value().id == COMMA)
     {
-        diagnostic_engine.report(Issue(
+        diagnostic_engine.report_syntax_error(Issue(
             SYNTAX_ERROR_ISSUE_TYPE,
             FMT::format("remove `{}`", yysymbol_name(YYSYMBOL_COMMA)),
             lexer_ctx.second_last_token_info()->loc
@@ -259,7 +259,7 @@ report_no_expected_diagnostic(const Info &info, DiagnosticEngine &diagnostic_eng
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
     DEBUG_SMART_ASSERT(info.expected_tokens.empty());
 
-    return diagnostic_engine.report(Issue(
+    return diagnostic_engine.report_syntax_error(Issue(
         SYNTAX_ERROR_ISSUE_TYPE,
         FMT::format("unexpected `{}`", get_formatted_unexpected_token_name(info)),
         info.unexpected_token_loc
@@ -293,7 +293,7 @@ report_few_expected_diagnostic(
     if (const auto token_info = lexer_ctx.second_last_token_info(); token_info.has_value())
         suggestion.emplace(join_expected("\n", false), token_info->loc);
 
-    diagnostic_engine.report(Issue(
+    diagnostic_engine.report_syntax_error(Issue(
         SYNTAX_ERROR_ISSUE_TYPE,
         FMT::format("expected {} instead of `{}`", join_expected(" or ", true),
                     get_formatted_unexpected_token_name(info)),
@@ -318,7 +318,7 @@ static void report_unexpected_eof(
 
     if (!last_token_info_opt.has_value())
     {
-        diagnostic_engine.report(generic_issue);
+        diagnostic_engine.report_syntax_error(generic_issue);
         return;
     }
 
@@ -344,7 +344,7 @@ static void report_unexpected_eof(
         if (last_token_info_opt.has_value())
             suggestion.emplace(expected_name, last_token_info_opt->loc);
 
-        diagnostic_engine.report(Issue(
+        diagnostic_engine.report_syntax_error(Issue(
             SYNTAX_ERROR_ISSUE_TYPE,
             FMT::format("expected {} before reaching EOF", expected_name,
                         get_formatted_unexpected_token_name(info)),
@@ -353,7 +353,7 @@ static void report_unexpected_eof(
         ));
     }
     else
-        diagnostic_engine.report(generic_issue);
+        diagnostic_engine.report_syntax_error(generic_issue);
 }
 
 static void
@@ -386,7 +386,7 @@ report_many_expected_diagnostic(
             info.unexpected_token_loc,
             suggestion
         );
-        diagnostic_engine.report(std::move(primary), std::move(notes));
+        diagnostic_engine.report_syntax_error(std::move(primary), std::move(notes));
         return;
     }
 
@@ -431,7 +431,7 @@ report_many_expected_diagnostic(
                 FMT::format("to match this `{}`", DEBUG_REQUIRE_PTR(opener_name)),
                 opener_loc.value()
             );
-            diagnostic_engine.report(std::move(primary), std::move(notes));
+            diagnostic_engine.report_syntax_error(std::move(primary), std::move(notes));
             return;
         }
     }
@@ -443,7 +443,7 @@ report_many_expected_diagnostic(
         suggestion
     );
 
-    diagnostic_engine.report(std::move(primary), std::move(notes));
+    diagnostic_engine.report_syntax_error(std::move(primary), std::move(notes));
 }
 
 static void
@@ -456,7 +456,7 @@ report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc, DiagnosticEngine &
         "Basically if there is no unexpected, it must mean\n"
         "that there is NOTHING to cause an error... Right?\n"
     );
-    diagnostic_engine.report(Issue(
+    diagnostic_engine.report_syntax_error(Issue(
         Issue::Type::FATAL_ERROR,
         "Hey a syntax error occurred, PLEASE if you see this message, "
         "contact the developer and tell him you got this message."
@@ -538,7 +538,7 @@ static void alpha_yyerror(
 {
     DEBUG_SMART_ASSERT(
         false && "alpha_yyerror function called why? Memory exhaustion occurred?");
-    diagnostic_engine.report(Issue(
+    diagnostic_engine.report_syntax_error(Issue(
         Issue::Type::FATAL_ERROR,
         std::string("ERROR_MESSAGE: ")
         + error_message

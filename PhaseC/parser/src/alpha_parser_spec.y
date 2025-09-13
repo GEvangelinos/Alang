@@ -338,7 +338,7 @@ lvalue:
   table_item { $lvalue = $table_item; }
 | ID         { $lvalue = ss.call<"lvalue_resolver.resolve_id">($ID, @lvalue); }
 | LOCAL ID   { $lvalue = ss.call<"lvalue_resolver.resolve_local_id">($ID, @lvalue); }
-| GLOBAL ID  { $lvalue = ss.call<"lvalue_resolver.resolve_global_id">($ID, @lvalue); }
+| GLOBAL ID  { $lvalue = ss.call<"lvalue_resolver.resolve_global_id">($ID, @lvalue	); }
 ;
 
 table_item:

@@ -1,3 +1,12 @@
+# ======================================================================================
+# NOTE: SPECIAL DIAGNOSTIC CODE
+# --------------------------------------------------------------------------------------
+# SYNTAX_ERROR is special and hardcoded in the generator. It does NOT appear below in
+# this YAML, since it has no template definition or reporter.
+# It exists ONLY in the DiagnosticCode enum so the parser can tag generic syntax errors
+# for diagnostics and regression testing.
+# ======================================================================================
+
 - Diagnostic: CALL_ARGUMENT_MISMATCH
   Type: WARNING
   Primary:
@@ -145,7 +154,7 @@
 - Diagnostic: LOOP_CTRL_KEYWORD_OUTSIDE_LOOP
   Type: HARD_ERROR
   Primary:
-    - Message: "`{0}` found outside a loop statement"
+    - Message: "`{0}` statement not in loop statement"
       Args: [ loop_keyword_name ]
       Location: loop_keyword_loc
 
@@ -174,7 +183,7 @@
 - Diagnostic: RETURN_KEYWORD_OUTSIDE_FUNC
   Type: HARD_ERROR
   Primary:
-    - Message: "`return` statement not in a function statement"
+    - Message: "`return` outside of function"
       Location: return_keyword_loc
 
 - Diagnostic: UNCLOSED_COMMENT

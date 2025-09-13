@@ -15,11 +15,11 @@ inline constexpr auto k_reescaped_warning_banner =
         SGR_RESET;
 
 inline constexpr auto k_temp_reuse_warning_banner =
-    SGR_BOLD "Note" SGR_BLINK "❗" SGR_RESET ": "
-    "Temporaries are context-local. Each function starts with a fresh temp frame (counter reset to zero).\n"
-    "Nested function definitions or functions assigned to tables/variables therefore allocate temps from a\n"
-    "clean slate. When the function definition ends, the previous temp counter is restored.\n"
-    SGR_RESET;
+        SGR_BOLD "Note" SGR_BLINK "❗" SGR_RESET ": "
+        "Temporaries are context-local. Each function starts with a fresh temp frame (counter reset to zero).\n"
+        "Nested function definitions or functions assigned to tables/variables therefore allocate temps from a\n"
+        "clean slate. When the function definition ends, the previous temp counter is restored.\n"
+        SGR_RESET;
 
 inline constexpr auto k_cya_mode_off_warning_banner =
 #ifdef CYA_MODE
@@ -216,7 +216,7 @@ PassManager::PassManager(
       lexer_ctx_(),
       semantic_system_(
           ss_options_, &parse_ctx_, utils::require_ptr(symbol_table),
-          &diagnostic_engine_.reporter) {}
+          diagnostic_engine_.reporter.get()) {}
 
 void
 PassManager::execute() { run_frontend(); }
@@ -230,7 +230,7 @@ PassManager::run_frontend()
         lexer_ctx_,
         lt_,
         diagnostic_engine_,
-        diagnostic_engine_.reporter,
+        *diagnostic_engine_.reporter.get(),
         semantic_system_
     );
 }
@@ -383,7 +383,7 @@ TranslationUnit::show_symbol_table() const
 }
 
 void
-TranslationUnit::show_compile_issues() const
+TranslationUnit::show_diagnostics() const
 {
     const std::string source_filename = source_path_.filename().string();
 
@@ -414,10 +414,10 @@ TranslationUnit::export_symbol_table_without_temps() const
 }
 
 void
-TranslationUnit::export_compile_errors() const
+TranslationUnit::export_diagnostics() const
 {
-    export_within_dir(k_compile_error_exports_dirname,
-                      &TranslationUnit::export_compile_errors_impl);
+    export_within_dir(k_diagnostic_exports_dirname,
+                      &TranslationUnit::export_diagnostics_impl);
 }
 
 void
@@ -482,7 +482,7 @@ TranslationUnit::export_within_dir(
 }
 
 void
-TranslationUnit::export_compile_errors_impl() const
+TranslationUnit::export_diagnostics_impl() const
 {
     const std::string outfile_name = source_path_.filename().string() + k_diagnostic_export_ext;
     std::ofstream outfile(outfile_name);
@@ -490,23 +490,23 @@ TranslationUnit::export_compile_errors_impl() const
         throw std::runtime_error(FMT::format(
             "Failed opening file {} to export compile errors", outfile_name));
 
-    outfile << k_error_csv_export_header; // Write CSV header.
-    auto write_diagnostic_line = [&](const Issue &diag)
+    outfile << k_diagnostic_csv_export_header; // Write CSV header.
+    auto write_issue_line = [&](const DiagnosticCode code, const Issue &issue)
     {
         outfile << FMT::format(
             "{0},{1},{2},{3}\n",
-            diag.line(loc_tracker_),
-            diag.column(loc_tracker_),
-            to_string(diag.type),
-            diag.desc
+            to_string(code),
+            issue.line(loc_tracker_),
+            issue.column(loc_tracker_),
+            to_string(issue.type)
         );
     };
 
-    for (const auto &cti: diagnostic_engine_.get_diagnostics())
+    for (const auto &d: diagnostic_engine_.get_diagnostics())
     {
-        write_diagnostic_line(cti->primary);
-        for (const Issue &note: cti->note_list)
-            write_diagnostic_line(note);
+        write_issue_line(d->code, d->primary);
+        for (const Issue &note: d->note_list)
+            write_issue_line(d->code, note);
     }
 }
 

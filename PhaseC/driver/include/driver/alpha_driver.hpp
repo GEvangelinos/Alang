@@ -17,11 +17,11 @@ public:
 
     // Simple wrappers for now
     void show_symbol_table() const;
-    void show_compile_issues() const;
+    void show_diagnostics() const;
     void show_ir() const;
     void export_symbol_table() const;
     void export_symbol_table_without_temps() const;
-    void export_compile_errors() const;
+    void export_diagnostics() const;
     void export_ir() const;
 
     void run();

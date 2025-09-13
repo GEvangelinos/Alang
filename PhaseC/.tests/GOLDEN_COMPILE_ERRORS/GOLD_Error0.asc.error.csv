@@ -1,2 +1,0 @@
-line,column,diagnostic_type,message
-4,10,error,variable `::Global` not found in global scope

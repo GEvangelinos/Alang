@@ -41,7 +41,13 @@ LvalueResolver::Restricted::resolve_local_id(
     const SourceLocation lid_loc)
 {
     DEBUG_SMART_ASSERT(!!lid_name);
+
     const Symbol *result = symbol_table_->lookup_local(lid_name, parse_ctx_->scope_handler.scope());
+    if (symbol_table_->is_libfunc_name(lid_name))
+    {
+        dr_->report_local_id_shadows_libfunc(lid_name, lid_loc);
+        return nullptr;
+    }
     if (!result)
     {
         const auto current_scope = parse_ctx_->scope_handler.scope();
@@ -61,11 +67,7 @@ LvalueResolver::Restricted::resolve_local_id(
         return expr_maker_->make_variable_expr(lid_loc, static_cast<const VarSymbol *>(result));
     if (result->is_progfunc())
         return expr_maker_->make_prog_func_expr(lid_loc, static_cast<const FuncSymbol *>(result));
-    if (result->is_libfunc())
-    {
-        dr_->report_local_id_shadows_libfunc(lid_name, lid_loc);
-        return nullptr;
-    }
+    DEBUG_SMART_ASSERT(!result->is_libfunc() && "libfunc, should be resolved at name lookup");
     UNREACHABLE("Unexpected symbol type");
 }
 

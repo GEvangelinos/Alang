@@ -81,8 +81,10 @@ const char *to_string(const Issue::Type type) noexcept
 }
 
 Diagnostic::Diagnostic(
+    const DiagnosticCode code,
     Issue &&primary,
     std::list<Note> &&note_list)
-    : primary(std::move(primary)),
+    : code(code),
+      primary(std::move(primary)),
       note_list(std::move(note_list)) {}
 } // namespace alpha

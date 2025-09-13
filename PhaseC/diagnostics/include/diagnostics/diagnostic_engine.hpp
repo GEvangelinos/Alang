@@ -7,13 +7,13 @@
 #include <optional>
 #include <string>                  // for string, basic_string
 #include <core/basics.hpp>
-#include <diagnostics/diagnostic_reporter.gen.hpp>
 
 #include "diagnostic_types.hpp"
 #include "core/source_location.hpp" // for SourceLocation, SourceLocationTracker
 
 namespace alpha
 {
+class DiagnosticReporter;
 class DiagnosticEngine : private Immobile
 {
     friend class DiagnosticReporter;
@@ -27,12 +27,12 @@ public:
         std::function<void()> notify_hard_error;         // notify: a hard error occurred.
     };
 
-    DiagnosticReporter reporter;
+    std::unique_ptr<DiagnosticReporter> reporter;
 
     explicit DiagnosticEngine(
         Policy &&policy, std::optional<std::size_t> max_errors = std::nullopt);
 
-    void report(Issue primary, std::list<Note> &&note_list = std::list<Note>());
+    void report_syntax_error(Issue primary, std::list<Note> &&note_list = std::list<Note>());
 
     // TODO: add an export function for all diagnostics (export the diagnostics vector) // or DETATCH method
     [[nodiscard]] const auto &get_diagnostics() const noexcept { return diagnostics_; }
@@ -62,12 +62,16 @@ private:
     std::vector<const Diagnostic *> fatals_;
 
     void report(
+        DiagnosticCode code,
         Issue::Type type,
         std::string desc,
         SourceLocation loc,
         std::list<Note> &&note_list = std::list<Note>());
 
-    void emit(Issue &&primary, std::list<Note> &&note_list);
+    void emit(
+        DiagnosticCode code,
+        Issue &&primary,
+        std::list<Note> &&note_list);
 };
 } // namespace alpha
 #endif // DIAGNOSTIC_ENGINE_HPP

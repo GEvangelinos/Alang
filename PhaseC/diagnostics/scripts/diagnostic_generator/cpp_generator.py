@@ -118,7 +118,7 @@ class CppGenerator:
             definition += f'\tconst std::string primary = FMT::format("{d.primary.message}"{", " if d.primary.args else ''}{", ".join(d.primary.args)});\n'
             for i, note in enumerate(d.notes):
                 definition += f'\tconst std::string note{i} = FMT::format("{note.message}"{", " if note.args else ''}{", ".join(note.args)});\n'
-            definition += f"\tdiagnostic_engine_->report(Issue::Type::{d.type}, primary, {d.primary.location}"
+            definition += f"\tdiagnostic_engine_->report(DiagnosticCode::{d.name}, Issue::Type::{d.type}, primary, {d.primary.location}"
 
             if d.notes:
                 definition += f", std::list{{"
@@ -136,7 +136,18 @@ class CppGenerator:
     def generate_codes_header_file(self) -> None:
         temp_filename = utils.temp_version(self.codes_header_filename)
         guard_name = self.codes_header_filename.upper().replace('.', '_')
-        enum_entries = "".join(f"\t{d.name},\n" for d in self.diagnostics)
+
+        # NOTE:
+        # Special DiagnosticCodes are hardcoded here (not loaded from YAML).
+        # They represent fundamental categories like SYNTAX_ERROR that
+        # must always exist for parser/lexer reporting and regression tests.
+        # If more specials are needed add them here directly.
+
+
+        x_macro_name = "DIAGNOSTIC_CODES"
+        enum_class_name = "DiagnosticCode"
+        special_codes = "\tX(SYNTAX_ERROR)\\"
+        defined_codes = "".join(f"\tX({d.name})\\\n" for d in self.diagnostics)
 
         fout = open(temp_filename, 'w')
         fout.write(
@@ -145,20 +156,43 @@ class CppGenerator:
             f"#ifndef {guard_name}\n"
             f"#define {guard_name}\n"
             f"\n"
+            f"#include\"utils/debug_tools.hpp\"\n"
+            f"\n"
+            f"#define {x_macro_name}\\\n"
+            f"\t/* Special DiagnosticCodes (hardcoded, not YAML-driven): */\\\n"
+            f"{special_codes}\n"
+            f"\t/* Regular DiagnosticCodes (defined in the YAML source file): */\\\n"
+            f"{defined_codes}"
+            f"\n"
             f"namespace {_namespace}\n"
             f"{{\n"
-            f"enum class DiagnosticCodes\n"
+            f"enum class {enum_class_name}\n"
             f"{{\n"
-            f"{enum_entries}"
+            f"\t#define X(code) code,\n"
+            f"\t{x_macro_name}\n"
+            f"\t#undef  X\n"
             f"}};\n"
+            f"\n"
+            f"inline const char *\n"
+            f"to_string(const {enum_class_name} dcode)\n"
+            f"{{\n"
+            f"\tswitch(dcode)\n"
+            f"\t{{\n"
+            f"\t#define X(code) case {enum_class_name}::code: return TO_STRING(code);\n"
+            f"\t{x_macro_name}\n"
+            f"\t#undef  X\n"
+            f"\tdefault: UNREACHABLE(\"Unknown {enum_class_name}.\");\n"
+            f"\t}}\n"
+            f"}}\n"
             f"}} // namespace {_namespace}\n"
+            f"#undef {x_macro_name}\n"
             f"#endif // {guard_name}\n"
         )
         os.rename(temp_filename, self.codes_header_filename)
 
     def generate_reporter_header_file(self) -> None:
         temp_filename = utils.temp_version(self.reporter_header_filename)
-        guard_name = self.codes_header_filename.upper().replace('.', '_')
+        guard_name = self.reporter_header_filename.upper().replace('.', '_')
         impl_method_declarations = f"{'\n'.join(f"{definition}" for definition in CppGenerator._generate_impl_declarations(self.diagnostics))}\n"
         adapter_method_definitions = f"{'\n'.join(f"{definition}" for definition in CppGenerator._generate_adapter_definitions(self.diagnostics))}\n"
 

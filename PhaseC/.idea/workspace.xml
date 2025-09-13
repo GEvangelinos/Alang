@@ -43,25 +43,78 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/d" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/d" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/test.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/test.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/working/MINE_EXTRA_no_need_for_temps.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/working/mine1.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_flow_control_error.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Anonymous.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Block.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Circle.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error0.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error1.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error10.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error11.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error12.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error2.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error3.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error4.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error5.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error6.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error7.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error8.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Error9.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_GlobalAndLocal.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Grammar.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_MyError0.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_MyError1.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Random.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_ShadowedNameOffunctions.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Simple.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_Tree.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_100.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_101.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_102.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_103.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_104.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_105.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_106.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_107.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_108.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_109.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_110.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_111.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_112.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_113.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_200.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_201.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_202.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_203.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_204.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_205.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_206.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_COMPILE_ERRORS/GOLD_mine_207.asc.error.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/.Error0.asc.swp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error12.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/error/Error12.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error6.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/error/Error6.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_engine.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_engine.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_types.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_types.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/cpp_generator.py" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/cpp_generator.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/line_tracker.py" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/line_tracker.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/src/diagnostic_engine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/diagnostic_engine.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/diagnostics/src/diagnostic_types.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/diagnostic_types.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_managers.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_managers.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/lvalue_resolver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/lvalue_resolver.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/control_flow_managers.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/control_flow_managers.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/compilation_options.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/compilation_options.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/konstants.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/konstants.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/app_main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/app_main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/compilation_options.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/compilation_options.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/translation_unit.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/symbol_table.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/symbol_table.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/alpha_regression_runner.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/alpha_regression_runner.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -83,6 +136,22 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -1662,33 +1731,33 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;CMake Application.alang.out.executor&quot;: &quot;Debug&quot;,
-    &quot;CMake Application.alpha_driver.out.executor&quot;: &quot;Run&quot;,
-    &quot;CMake Debug.Alpha.executor&quot;: &quot;Debug&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.west.config.association.type.startup.service&quot;: &quot;true&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;refactor/ir-gen&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/.tests/GOLDEN_IR&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "CMake Application.alang.out.executor": "Debug",
+    "CMake Application.alpha_driver.out.executor": "Run",
+    "CMake Debug.Alpha.executor": "Debug",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.main.executor": "Run",
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "RunOnceActivity.west.config.association.type.startup.service": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "refactor/ir-gen",
+    "last_opened_file_path": "/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/.tests/GOLDEN_DIAGNOSTICS",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
       <console-settings module-name="PhaseC">
@@ -1698,11 +1767,11 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS" />
+      <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/.tests/GOLDEN_IR" />
       <recent name="$PROJECT_DIR$/.tests/working" />
       <recent name="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator" />
-      <recent name="$PROJECT_DIR$/parser/scripts/log_injector" />
-      <recent name="$PROJECT_DIR$/diagnostics/config" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/parser/include/parser" />
@@ -1718,7 +1787,7 @@
         <option name="CLION.EXTERNAL.BUILD" enabled="true" />
       </method>
     </configuration>
-    <configuration name="alang.out" type="CMakeRunConfiguration" factoryName="Application" nameIsGenerated="true" PROGRAM_PARAMS="--show-ir --input-file ./.tests/test.asc" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang.out" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang.out">
+    <configuration name="alang.out" type="CMakeRunConfiguration" factoryName="Application" nameIsGenerated="true" PROGRAM_PARAMS="--show-ir --input-file ./.tests/error/Error10.asc" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang.out" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang.out">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -1860,7 +1929,7 @@
       <workItem from="1756263822969" duration="154740000" />
       <workItem from="1756929587840" duration="131182000" />
       <workItem from="1757447617222" duration="39813000" />
-      <workItem from="1757671766621" duration="35142000" />
+      <workItem from="1757671766621" duration="53572000" />
     </task>
     <servers />
   </component>
@@ -1874,6 +1943,13 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp</url>
+          <line>38</line>
+          <option name="timeStamp" value="169" />
+        </line-breakpoint>
+      </breakpoints>
       <default-breakpoints>
         <breakpoint enabled="true" type="CidrExceptionBreakpoint" />
       </default-breakpoints>

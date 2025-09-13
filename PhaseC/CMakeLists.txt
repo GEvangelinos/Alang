@@ -217,7 +217,7 @@ set(WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/working")
 set(ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/error")
 set(GOLDEN_SYMBOL_TABLES_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_SYMBOL_TABLES")
 set(GOLDEN_IR_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_IR")
-set(GOLDEN_COMPILE_ERRORS_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_COMPILE_ERRORS")
+set(GOLDEN_DIAGNOSTICS_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_DIAGNOSTICS")
 
 function(make_dir_verbose dirname)
     file(MAKE_DIRECTORY ${dirname})
@@ -235,7 +235,7 @@ function(add_regression_check_target target_name do_memcheck)
         "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ALPHA_DRIVER_EXECUTABLE}"
         "--golden-symbol-tables-dir" "${GOLDEN_SYMBOL_TABLES_DIR}"
         "--golden-ir-dir" "${GOLDEN_IR_DIR}"
-        "--golden-compile-errors-dir" "${GOLDEN_COMPILE_ERRORS_DIR}"
+        "--golden-diagnostics-dir" "${GOLDEN_DIAGNOSTICS_DIR}"
         "--working-dir" "${WORKING_TESTS_DIR}"
         "--error-dir" "${ERROR_TESTS_DIR}"
     )

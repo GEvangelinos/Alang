@@ -16,5 +16,8 @@ class LineTracker:
         return self._line_index >= len(self.lines)
 
     def skip_empty_lines(self) -> None:
-        while not self.at_end() and not self.line().strip():
+        def is_skippable_line(line: str) -> bool:
+            return line.lstrip().startswith("#") or not line.strip()
+
+        while not self.at_end() and is_skippable_line(self.line()):
             self.advance()

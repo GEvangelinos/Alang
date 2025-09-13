@@ -1,6 +1,0 @@
-line,column,diagnostic_type,message
-4,5,error,assignment of function `foo`
-1,10,note,function foo declared here
-5,7,error,assignment of library function `print`
-6,1,error,increment operator can not be used on function
-7,1,error,decrement operator can not be used on function

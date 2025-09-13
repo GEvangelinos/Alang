@@ -10,7 +10,7 @@ Driver::show_symbol_table() const
 }
 
 void
-Driver::show_compile_issues() const { tu.show_compile_issues(); }
+Driver::show_diagnostics() const { tu.show_diagnostics(); }
 
 void
 Driver::show_ir() const
@@ -34,7 +34,7 @@ Driver::export_symbol_table_without_temps() const
 }
 
 void
-Driver::export_compile_errors() const { tu.export_compile_errors(); }
+Driver::export_diagnostics() const { tu.export_diagnostics(); }
 
 void
 Driver::export_ir() const

@@ -10,45 +10,51 @@
 
 #include "core/konstants.hpp"
 #include "core/source_location.hpp"  // for SourceLocation, SourceLocationTracker
-#include "diagnostics/diagnostic_types.hpp"
 #include "utils/misc.hpp"
 #include "utils/smart_assert.h" // for DEBUG_SMART_ASSERT
+#include <diagnostics/diagnostic_reporter.gen.hpp>
 
 namespace alpha
 {
 DiagnosticEngine::DiagnosticEngine(
     DiagnosticEngine::Policy &&policy,
     const std::optional<std::size_t> max_errors)
-    : reporter(this),
+    : reporter(std::make_unique<DiagnosticReporter>(this)),
       policy_(std::move(policy)),
       max_errors(max_errors) {}
 
 void
-DiagnosticEngine::report(Issue primary, std::list<Note> &&note_list)
+DiagnosticEngine::report_syntax_error(Issue primary, std::list<Note> &&note_list)
 {
-    emit(std::move(primary), std::move(note_list));
+    emit(DiagnosticCode::SYNTAX_ERROR, std::move(primary), std::move(note_list));
 }
 
 void
 DiagnosticEngine::report(
+    const DiagnosticCode code,
     const Issue::Type type,
     std::string desc,
     const SourceLocation loc,
     std::list<Note> &&note_list)
 {
     emit(
+        code,
         Issue(type, std::move(desc), loc),
         std::move(note_list)
     );
 }
 
 void
-DiagnosticEngine::emit(Issue &&primary, std::list<Note> &&note_list)
+DiagnosticEngine::emit(
+    const DiagnosticCode code,
+    Issue &&primary,
+    std::list<Note> &&note_list)
 {
     if (!policy_.should_emit_diagnostic())
         return;
 
     diagnostics_.emplace_back(std::unique_ptr<Diagnostic>(new Diagnostic(
+        code,
         std::move(primary),
         std::move(note_list)
     )));

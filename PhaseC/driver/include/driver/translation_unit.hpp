@@ -93,11 +93,11 @@ public:
 
     void compile();
     void show_symbol_table() const;
-    void show_compile_issues() const;
+    void show_diagnostics() const;
     void show_ir() const;
     void export_symbol_table() const;
     void export_symbol_table_without_temps() const;
-    void export_compile_errors() const;
+    void export_diagnostics() const;
     void export_ir() const;
 
     [[nodiscard]] bool compiled_ok() const noexcept;
@@ -118,7 +118,7 @@ private:
     void export_symbol_table_dispatch() const;
     void export_symbol_table_without_temps_dispatch() const;
     void export_symbol_table_impl(bool export_temps) const;
-    void export_compile_errors_impl() const;
+    void export_diagnostics_impl() const;
     void export_ir_impl() const;
     [[nodiscard]] DiagnosticEngine::Policy create_diagnostic_engine_policy();
 
