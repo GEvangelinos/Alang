@@ -19,7 +19,7 @@
 #include "parser/alpha_backpatcher.hpp"
 #include "parser/alpha_parser_context.hpp" // for ParseCtx
 #include "utils/format_adapter.hpp"        // for format, FMT
-#include "utils/misc.hpp"                  // for DEBUG_ALWAYS_INLINE
+#include "utils/misc_utils.hpp"                  // for DEBUG_ALWAYS_INLINE
 #include "utils/smart_assert.h"            // for DEBUG_SMART_ASSERT
 
 namespace Alpha

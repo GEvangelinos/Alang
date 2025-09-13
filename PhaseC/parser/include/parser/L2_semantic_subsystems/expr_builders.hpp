@@ -4,7 +4,7 @@
 #include <functional>
 #include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 #include <parser/ir_opcode.gen.hpp>
-#include  <utils/misc.hpp>
+#include  <utils/misc_utils.hpp>
 #include "semantic_subsystem.hpp"
 #include "L1_driver/semantic_system_support.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
@@ -139,11 +139,12 @@ private:
         [[nodiscard]] const Expr *build_pre_dec(const Expr *expr, SourceLocation result_loc);
         [[nodiscard]] const Expr *build_post_dec(const Expr *expr, SourceLocation result_loc);
 
-        [[nodiscard]] bool validate_lvalue_assignment(const Expr *lhs, SourceLocation assign_loc);
+        [[nodiscard]] static bool is_direct_target_expr(const Expr *expr);
+        [[nodiscard]] bool validate_assignment(const Expr *lhs, SourceLocation assign_loc);
         [[nodiscard]] bool try_record_const_expr(const Expr *lvalue, const Expr *rvalue);
-        [[nodiscard]] const Expr *handle_table_item_assignment(
-            const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
         [[nodiscard]] const Expr *handle_direct_assignment(
+            const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+        [[nodiscard]] const Expr *handle_table_item_assignment(
             const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
 
         template<typename Policy>

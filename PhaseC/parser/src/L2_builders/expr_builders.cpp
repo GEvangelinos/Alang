@@ -13,7 +13,7 @@ namespace
 using namespace alpha;
 
 [[nodiscard]] bool validate_lvalue(
-    DiagnosticReporter &dr,
+    DiagnosticReporter *const dr,
     const Expr *const expr,
     const SourceLocation full_expr_loc,
     const char *op_name,
@@ -21,21 +21,49 @@ using namespace alpha;
     const char *lvalue_subject
 )
 {
+    DEBUG_SMART_ASSERT(!!dr, !!expr, !!op_name, !!op_symbol, !!lvalue_subject);
+    DEBUG_SMART_ASSERT(!!*op_name, !!*op_symbol, !!*lvalue_subject);
     if (expr->is_lvalue_type() && expr->is_rvalue_casted())
     {
-        dr.report_operator_on_lvalue_casted_to_rvalue(
+        dr->report_operator_on_lvalue_casted_to_rvalue(
             op_name, op_symbol, full_expr_loc, expr->loc);
         return false;
     }
     if (!expr->is_lvalue())
     {
-        dr.report_operator_requires_lvalue(
+        dr->report_operator_requires_lvalue(
             op_name, op_symbol, lvalue_subject, expr->type, full_expr_loc, expr->loc);
         return false;
     }
     return true;
 }
+
+[[nodiscard]] bool validate_direct_lvalue(
+    DiagnosticReporter *const dr,
+    const Expr *const expr,
+    const SourceLocation full_expr_loc,
+    const char *op_name,
+    const char *op_symbol,
+    const char *lvalue_subject)
+
+{
+    DEBUG_SMART_ASSERT(!!expr);
+    DEBUG_SMART_ASSERT(
+        expr->type != Expr::Type::TABLE_ITEM &&
+        "validate_direct_lvalue: TABLE_ITEM is not a direct lvalue (use table-item path)"
+    );
+
+    if (!validate_lvalue(dr, expr, full_expr_loc, op_name, op_symbol, lvalue_subject))
+        return false;
+    if (expr->has_temp_symbol())
+    {
+        dr->report_operator_requires_non_temp_lvalue(
+            op_name, op_symbol, lvalue_subject, expr->type, full_expr_loc, expr->loc);
+        return false;
+    }
+    return true;
 }
+} // namespace
 
 namespace alpha
 {
@@ -304,16 +332,15 @@ AssignBuilder::Restricted::build_assignment(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    if (!validate_assignment(lhs, result_loc))
+        return nullptr;
 
     const Expr *const materialized_rhs = ss_bridge_->materialize_if_table_item(rhs);
     ss_bridge_->finalize_bool_expr(materialized_rhs);
 
-    if (!validate_lvalue_assignment(lhs, result_loc))
-        return nullptr;
-
-    return lhs->type == Expr::Type::TABLE_ITEM
-           ? handle_table_item_assignment(lhs, materialized_rhs, result_loc)
-           : handle_direct_assignment(lhs, materialized_rhs, result_loc);
+    return AssignBuilder::Restricted::is_direct_target_expr(lhs)
+           ? handle_direct_assignment(lhs, materialized_rhs, result_loc)
+           : handle_table_item_assignment(lhs, materialized_rhs, result_loc);
 }
 
 const Expr *
@@ -341,7 +368,13 @@ AssignBuilder::Restricted::build_post_dec(const Expr *const expr, const SourceLo
 }
 
 bool
-AssignBuilder::Restricted::validate_lvalue_assignment(
+AssignBuilder::Restricted::is_direct_target_expr(const Expr *expr)
+{
+    return expr->type != Expr::Type::TABLE_ITEM;
+}
+
+bool
+AssignBuilder::Restricted::validate_assignment(
     const Expr *const lhs,
     const SourceLocation assign_loc)
 {
@@ -358,7 +391,11 @@ AssignBuilder::Restricted::validate_lvalue_assignment(
         dr_->report_assign_to_func(func_symbol->name, assign_loc, func_symbol->loc);
         return false;
     }
-    return validate_lvalue(*dr_, lhs, assign_loc, "assignment", "=", "left operand");
+
+    const auto validator = AssignBuilder::Restricted::is_direct_target_expr(lhs)
+                           ? &validate_direct_lvalue
+                           : &validate_lvalue;
+    return validator(dr_, lhs, assign_loc, "assignment", "=", "left operand");
 }
 
 // TODO: do we propagate assignment of assignment like x = y = z = 5? If NOT
@@ -384,26 +421,6 @@ AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const
     return true;
 }
 
-const Expr *
-AssignBuilder::Restricted::handle_table_item_assignment(
-    const Expr *const lhs,
-    const Expr *const rhs,
-    const SourceLocation result_loc)
-{
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::TABLE_ITEM);
-
-    const auto *const ti = static_cast<const TableItemExpr *>(lhs);
-    quad_handler_->emit_next(ir::Opcode::TABLESETELEM, ti, ti->index, rhs, result_loc);
-
-    // We resurface the assigned element of table to allow chained assignment. Ex.: a = b.c = d;
-    const Expr *temp_var = ss_bridge_->materialize_if_table_item(lhs); // !CERTAIN EMIT!
-
-    DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
-    const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
-    return expr_maker_->make_assign_expr(result_loc, temp_symbol);
-}
-
 inline const Expr *
 AssignBuilder::Restricted::handle_direct_assignment(
     const Expr *const lhs,
@@ -427,12 +444,36 @@ AssignBuilder::Restricted::handle_direct_assignment(
     return lhs;
 }
 
+const Expr *
+AssignBuilder::Restricted::handle_table_item_assignment(
+    const Expr *const lhs,
+    const Expr *const rhs,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::TABLE_ITEM);
+
+    const auto *const ti = static_cast<const TableItemExpr *>(lhs);
+    quad_handler_->emit_next(ir::Opcode::TABLESETELEM, ti, ti->index, rhs, result_loc);
+
+    // We resurface the assigned element of table to allow chained assignment. Ex.: a = b.c = d;
+    const Expr *temp_var = ss_bridge_->materialize_if_table_item(lhs); // !CERTAIN EMIT!
+
+    DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
+    const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
+    return expr_maker_->make_assign_expr(result_loc, temp_symbol);
+}
+
 template<AssignBuilder::Restricted::OpVariant op_variant, typename Policy>
 const Expr *
 AssignBuilder::Restricted::build_inc_dec(const Expr *const expr, const SourceLocation result_loc)
 {
     static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
-    if (!validate_lvalue(*dr_, expr, result_loc, Policy::op_name, Policy::op_symbol, "operand"))
+
+    const auto validator = AssignBuilder::Restricted::is_direct_target_expr(expr)
+                           ? &validate_direct_lvalue
+                           : &validate_lvalue;
+    if (!validator(dr_, expr, result_loc, Policy::op_name, Policy::op_symbol, "operand"))
         return nullptr;
     if constexpr (op_variant == OpVariant::PRE)
         return handle_pre_inc_dec<Policy>(expr, result_loc);
@@ -1100,7 +1141,7 @@ TableAccessBuilder::Restricted::build_member_access(
     const SourceLocation access_loc)
 {
     DEBUG_SMART_ASSERT(!!base, !!member_id);
-    if (!validate_lvalue(*dr_, base, access_loc, "member access", ".", "base expression"))
+    if (!validate_lvalue(dr_, base, access_loc, "member access", ".", "base expression"))
         return nullptr;
     const Expr *const materialized_lvalue = ss_bridge_->materialize_if_table_item(base);
     const Expr *const index = expr_maker_->make_const_string_expr(member_id_loc, member_id);
@@ -1115,7 +1156,7 @@ TableAccessBuilder::Restricted::build_subscript_access(
 {
     DEBUG_SMART_ASSERT(!!base, !!subscript);
 
-    if (!validate_lvalue(*dr_, base, access_loc, "subscript", "[]", "base expression"))
+    if (!validate_lvalue(dr_, base, access_loc, "subscript", "[]", "base expression"))
         return nullptr;
     const Expr *const materialized_lvalue = ss_bridge_->materialize_if_table_item(base);
     const Expr *const materialized_index = ss_bridge_->materialize_if_table_item(subscript);

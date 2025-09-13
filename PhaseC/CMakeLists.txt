@@ -62,6 +62,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+log_info("Using C++ version: ${CMAKE_CXX_STANDARD}")
 
 
 # Warnings applied to all builds
@@ -119,7 +120,7 @@ if (DEBUG_MODE)
     SET(SANITIZERS "-fsanitize=address,undefined")
     add_compile_options(
         -g
-#        ${SANITIZERS}
+        #        ${SANITIZERS}
         #        -Wunused-result
         #        -Wnull-dereference
         #        -Wsuggest-override
@@ -130,7 +131,7 @@ if (DEBUG_MODE)
     )
 
     add_link_options(
-#        ${SANITIZERS}
+        #        ${SANITIZERS}
     )
     add_compile_definitions(DEBUG_MODE)
 endif ()

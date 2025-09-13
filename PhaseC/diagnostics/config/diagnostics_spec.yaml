@@ -112,6 +112,26 @@
       Args: [ func_name ]
       Location: var_def_loc
 
+# --------------------------------------------------------------------------------------
+# NOTE ON UNCLOSED TOKENS
+# --------------------------------------------------------------------------------------
+# UNCLOSED_COMMENT and UNCLOSED_STRING are marked as SOFT_ERROR. They act like "blackholes":
+# once triggered, the lexer may still hit EOF. Making them SOFT allows the EOF diagnostic
+# to also be reported, which is helpful if a prior statement was left unfinished. If they
+# were HARD_ERROR, parsing would stop immediately, blocking EOF from being shown.
+# --------------------------------------------------------------------------------------
+- Diagnostic: UNCLOSED_COMMENT
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "unclosed comment, missing terminating `*/`"
+      Location: comment_start_loc
+
+- Diagnostic: UNCLOSED_STRING
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "unclosed string literal, missing terminating `\"` character"
+      Location: string_start_loc
+
 - Diagnostic: ASSIGN_TO_FUNC
   Type: HARD_ERROR
   Primary:
@@ -129,6 +149,15 @@
     - Message: "assignment of library function `{0}`"
       Args: [ func_name ]
       Location: assign_expr_loc
+
+- Diagnostic: ASSIGN_DIRECTLY_TO_TEMP
+  Type: HARD_ERROR
+  Primary:
+    - Message: "assignment to temporary value"
+      Location: assign_expr_loc
+  Notes:
+    - Message: "left-hand side is a temporary here"
+      Location: lhs_loc
 
 - Diagnostic: INACCESSIBLE_VAR_IN_FUNC
   Type: HARD_ERROR
@@ -169,6 +198,17 @@
       Args: [ lvalue_subject, found_type ]
       Location: rvalue_loc
 
+- Diagnostic: OPERATOR_REQUIRES_NON_TEMP_LVALUE
+  Type: HARD_ERROR
+  Primary:
+    - Message: "{0} `operator{1}` requires a non-temporary lvalue {2}"
+      Args: [ op_name, op_symbol, lvalue_subject]
+      Location: full_expr_loc
+  Notes:
+    - Message: "current {0} is a temporary `{1}`"
+      Args: [ lvalue_subject, found_type ]
+      Location: rvalue_loc
+
 - Diagnostic: OPERATOR_ON_LVALUE_CASTED_TO_RVALUE
   Type: HARD_ERROR
   Primary:
@@ -185,24 +225,6 @@
   Primary:
     - Message: "`return` outside of function"
       Location: return_keyword_loc
-
-- Diagnostic: UNCLOSED_COMMENT
-  Type: HARD_ERROR
-  Primary:
-    - Message: "unclosed comment, expected terminating `*/` character"
-      Location: comment_end_loc
-  Notes:
-    - Message: "comment starts here"
-      Location: comment_start_loc
-
-- Diagnostic: UNCLOSED_STRING
-  Type: HARD_ERROR
-  Primary:
-    - Message: "unclosed string literal, expected terminating `\"` character"
-      Location: string_end_loc
-  Notes:
-    - Message: "string literal starts here"
-      Location: string_start_loc
 
 - Diagnostic: UNRESOLVED_GLOBAL_SYMBOL
   Type: HARD_ERROR

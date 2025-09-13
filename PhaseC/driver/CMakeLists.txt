@@ -38,6 +38,7 @@ target_link_libraries("${ALPHA_DRIVER_EXECUTABLE}" PRIVATE
     alpha_driver_api
 
     arguinator_impl
+    utils_impl
     alpha_driver_impl
     alpha_core_impl
     alpha_diagnostics_impl

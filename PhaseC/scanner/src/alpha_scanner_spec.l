@@ -125,7 +125,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
 }
 <INSIDE_COMMENT_BLOCK>{any_character_but_newline} { /* Just eat up any character use see. */ }
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        dr.report_unclosed_comment(*yylloc, alpha::TokenComment::get_starting_location());
+        dr.report_unclosed_comment(alpha::TokenComment::get_starting_location());
         return ALPHA_YYEOF;
 }
 
@@ -144,7 +144,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
         dr.report_invalid_escape_code(yytext, *yylloc);
 }
 <INSIDE_STRING><<EOF>> {
-        dr.report_unclosed_string(*yylloc, alpha::TokenString::get_starting_location());
+        dr.report_unclosed_string(alpha::TokenString::get_starting_location());
         return ALPHA_YYEOF;
 }
 <INSIDE_STRING>{string_end_rule} {

@@ -1,2 +1,2 @@
-line,column,diagnostic_type,message
-1,7,error,shadowing library function `print`
+code,line,column,issue_type
+LOCAL_ID_SHADOWS_LIBFUNC,1,1,error

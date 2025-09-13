@@ -1,4 +1,4 @@
-line,column,diagnostic_type,message
-6,4,error,variable `x` is not accessible in function `ff`
-4,12,note,function `ff` declared here
-2,2,note,variable `x` declared here
+code,line,column,issue_type
+INACCESSIBLE_VAR_IN_FUNC,6,4,error
+INACCESSIBLE_VAR_IN_FUNC,4,3,note
+INACCESSIBLE_VAR_IN_FUNC,2,2,note

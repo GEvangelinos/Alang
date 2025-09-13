@@ -7,8 +7,9 @@
 #include "parser/symbols.hpp"
 
 #include "core/konstants.hpp"
-#include "utils/misc.hpp"
+#include "utils/misc_utils.hpp"
 #include "parser/ir_opcode.gen.hpp"
+#include "utils/string_utils.hpp"
 
 namespace alpha
 {

@@ -70,14 +70,14 @@ namespace
 {
 using namespace arguinator;
 
-[[nodiscard]] std::string str_to_upper(std::string str)
+[[nodiscard]] std::string toupper_str(std::string str)
 {
     std::transform(str.begin(), str.end(), str.begin(),
                    [](unsigned char c) { return std::toupper(c); });
     return str;
 }
 
-[[maybe_unused]] [[nodiscard]] std::string str_to_lower(std::string str)
+[[maybe_unused]] [[nodiscard]] std::string tolower_str(std::string str)
 {
     std::transform(str.begin(), str.end(), str.begin(),
                    [](unsigned char c) { return std::tolower(c); });
@@ -99,7 +99,7 @@ void write_help_header(const std::string &executable_name, const std::string &de
 [[nodiscard]] std::string generate_example_values(const std::string &flag_name,
                                                   const std::size_t arity)
 {
-    const std::string base = str_to_upper(flag_name);
+    const std::string base = toupper_str(flag_name);
     if (arity == 0)
         return ""; // No inputs expected → no example
     if (arity == 1)

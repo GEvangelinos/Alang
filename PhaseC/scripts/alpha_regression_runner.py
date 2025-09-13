@@ -36,7 +36,8 @@ ASC_EXT = ".asc"
 VALGRIND_ERROR_EXITCODE = 1
 BAR_WIDTH = 40
 print_lock = threading.Lock()
-
+tests_completed = 0
+total_tests = 0
 
 def parser_startup_arguments() -> argparse.Namespace:
     """
@@ -179,6 +180,7 @@ def run_valgrind_tests(
         "--export-ir",
         "--export-diagnostics",
         "--show-symbol-table",
+        "--no-show-diagnostics",
         "--show-ir",
         "--show-parser-trace",
         "--input-file",
@@ -205,7 +207,7 @@ def run_working_test_file(args, asc_filepath) -> str:
     alang_retval = run_alpha_compiler(
         Path(args.alpha_compiler).resolve(), asc_filepath)
     result_line = []
-    result_line.append(f"--Testing: {os.path.basename(asc_filepath):<30} ")
+    result_line.append(f"--Testing working: {os.path.basename(asc_filepath):<30} ")
     if (alang_retval == 0):
         retval, result_str = validate_symbol_table(args.golden_symbol_tables_dir, asc_filepath)
         result_line.append(pretty_status(f"Symtable:" + result_str, retval))
@@ -226,8 +228,8 @@ def run_error_test_file(args, asc_filepath) -> str:
     alang_retval = run_alpha_compiler(
         Path(args.alpha_compiler).resolve(), asc_filepath)
     result_line = []
-    result_line.append(f"--Testing: {os.path.basename(asc_filepath):<30} ")
-    if (alang_retval != 0):
+    result_line.append(f"--Testing error: {os.path.basename(asc_filepath):<30} ")
+    if (alang_retval == 0):
         retval, result_str = validate_diagnostics(args.golden_diagnostics_dir, asc_filepath)
         result_line.append(pretty_status(f"Diagnostics:" + result_str, retval))
         if args.memcheck:
@@ -251,10 +253,10 @@ def print_progress_bar(completed: int, total: int, bar_width: int = 40):
 
 
 def run_working_test_files(args, working_testfile_paths):
+    global tests_completed
+    global total_tests
     working_testfile_paths.sort()
-    total_tests = len(working_testfile_paths)
-    test_completed = 0
-    print_progress_bar(test_completed, total_tests)
+    print_progress_bar(tests_completed, total_tests)
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
         futures = []
         for asc_testfile_path in working_testfile_paths:
@@ -264,19 +266,18 @@ def run_working_test_files(args, working_testfile_paths):
         for future in futures:
             result = future.result()
             with print_lock:
-                test_completed += 1
+                tests_completed += 1
                 print()
-                print_progress_bar(test_completed, total_tests)
+                print_progress_bar(tests_completed, total_tests)
                 print("\033[2F\r")
                 print(result)
-        print_progress_bar(test_completed, total_tests)
-        print()
+        print_progress_bar(tests_completed, total_tests)
 
 def run_error_test_files(args, error_testfile_paths):
+    global tests_completed
+    global total_tests
     error_testfile_paths.sort()
-    total_tests = len(error_testfile_paths)
-    test_completed = 0
-    print_progress_bar(test_completed, total_tests)
+    print_progress_bar(tests_completed, total_tests)
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
         futures = []
         for asc_testfile_path in error_testfile_paths:
@@ -286,12 +287,12 @@ def run_error_test_files(args, error_testfile_paths):
         for future in futures:
             result = future.result()
             with print_lock:
-                test_completed += 1
+                tests_completed += 1
                 print()
-                print_progress_bar(test_completed, total_tests)
+                print_progress_bar(tests_completed, total_tests)
                 print("\033[2F\r")
                 print(result)
-        print_progress_bar(test_completed, total_tests)
+        print_progress_bar(tests_completed, total_tests)
         print()
 
 
@@ -309,10 +310,12 @@ def cleanup():
 
 
 def main():
+    global total_tests
     args = parser_startup_arguments()
     ensure_alpha_compiler_executable(args.alpha_compiler)
     working_asc_files = load_asc_filepaths(args.working_dir)
     error_asc_files = load_asc_filepaths(args.error_dir)
+    total_tests = len(working_asc_files) + len(error_asc_files)
     run_working_test_files(args, working_asc_files)
     run_error_test_files(args, error_asc_files)
     cleanup()

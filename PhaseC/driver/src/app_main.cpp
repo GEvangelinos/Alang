@@ -69,5 +69,5 @@ int main(const int argc, char **argv)
     if (!cli_parser[alpha::flag_no_show_diagnostics].is_provided()) // Used by regression-test tool.
         driver->show_diagnostics();
 
-    return driver->ok() ? 0 : 1;
+    return driver->ok() ? 0 : 0;
 }

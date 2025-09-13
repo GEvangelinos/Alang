@@ -1,5 +1,7 @@
-line,column,diagnostic_type,message
-2,9,error,unexpected assignment operator `=`
-4,8,error,unexpected assignment operator `=`
-5,12,error,unexpected `]`
-8,6,error,unexpected end of file
+code,line,column,issue_type
+OPERATOR_REQUIRES_NON_TEMP_LVALUE,1,1,error
+OPERATOR_REQUIRES_NON_TEMP_LVALUE,1,1,note
+OPERATOR_REQUIRES_NON_TEMP_LVALUE,3,1,error
+OPERATOR_REQUIRES_NON_TEMP_LVALUE,3,1,note
+SYNTAX_ERROR,4,12,error
+SYNTAX_ERROR,7,40,error

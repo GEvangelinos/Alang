@@ -6,7 +6,8 @@
 #include "core/source_location.hpp"
 #include "diagnostics/diagnostic_types.hpp"
 #include "utils/cli_color.h"
-#include "utils/misc.hpp"
+#include "utils/misc_utils.hpp"
+#include "utils/string_utils.hpp"
 
 namespace
 {
@@ -123,13 +124,12 @@ DiagnosticFormatter::build_issue_header(
 
 std::string DiagnosticFormatter::build_codeline(const u32 line_no) const
 {
-    std::string line;
-
     // Build codeline and also expand tabs
-    u32 i = loc_tracker_.find_index_of_line(line_no);
+    std::string line;
     u32 column = 0;
-    char ch;
-    while ((ch = source_buffer_[i]) != '\n' && ch != '\0')
+    // Get the buffer index at which this line starts
+    u32 i = loc_tracker_.find_index_of_line(line_no); // We start from start of line
+    for (char ch; ((ch = source_buffer_[i])) && ch != '\n'; ++i)
     {
         if (ch == '\t')
         {
@@ -142,25 +142,21 @@ std::string DiagnosticFormatter::build_codeline(const u32 line_no) const
             line += ch;
             ++column;
         }
-        ++i;
     }
-    return line;
+    return utils::rstrip(line); // We remove redundant suffix spaces.
 }
 
 std::string
 DiagnosticFormatter::build_underline(const Issue &issue, const u32 line_no) const
 {
-    std::string underline;
-
-    // Get the buffer index at which this line starts
-    const u32 line_start = loc_tracker_.find_index_of_line(line_no);
-
-    u32 column = 0;
     // Walk characters until newline, building a highlight string (also expand tabs).
-    for (auto idx = line_start; source_buffer_[idx] != '\n'; ++idx)
+    std::string underline;
+    u32 column = 0;
+    // Get the buffer index at which this line starts
+    u32 i = loc_tracker_.find_index_of_line(line_no);
+    for (char ch; ((ch = source_buffer_[i])) && ch != '\n'; ++i)
     {
-        const bool outside_issue = idx < issue.loc.first_index || idx >= issue.loc.last_index;
-        const char ch = source_buffer_[idx];
+        const bool outside_issue = i < issue.loc.first_index || i >= issue.loc.last_index;
         if (ch == '\t') // expand tab to spaces (based on its position)
         {
             const int spaces = k_tab_width_ - column % k_tab_width_;
@@ -272,6 +268,8 @@ DiagnosticFormatter::format_issue_line(
 
     const std::string codeline = build_codeline(line_no);
     const std::string underline = build_underline(issue, line_no);
+    if (utils::is_blank_str(codeline) && utils::is_blank_str(underline) && !issue.suggestion.has_value())
+        return;
 
     u32 suggestion_line_no = 0;
     if (issue.suggestion.has_value())
@@ -330,7 +328,7 @@ DiagnosticFormatter::format_issue(const Issue &issue, const bool colorize) const
 {
     constexpr u32 max_shown_lines = 10;
     constexpr auto shown_part_size = max_shown_lines / 2;
-    constexpr char ellipsis_block[] = "...\n...\n...\n";
+    constexpr char ellipsis_block[] = "\t...\n\t...\n\t...\n";
 
     std::stringstream out;
     build_issue_header(out, issue, colorize);

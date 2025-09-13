@@ -17,7 +17,7 @@
 #include "diagnostics/diagnostic_types.hpp"
 #include "L1_driver/semantic_system.hpp"
 #include "scanner/scanner_context.hpp"
-#include "utils/debug_tools.hpp"
+#include "utils/debug_utils.hpp"
 
 using namespace alpha;
 constexpr Issue::Type SYNTAX_ERROR_ISSUE_TYPE = Issue::Type::HARD_ERROR;
@@ -310,10 +310,14 @@ static void report_unexpected_eof(
     DEBUG_SMART_ASSERT(info.unexpected_token == YYSYMBOL_YYEOF);
 
     const std::optional<TokenInfo> last_token_info_opt = lexer_ctx.last_token_info();
+    std::optional<Suggestion> suggestion;
+    if (last_token_info_opt.has_value())
+        suggestion.emplace("finish or remove statement", last_token_info_opt->loc);
     const Issue generic_issue = Issue(
         SYNTAX_ERROR_ISSUE_TYPE,
         "unexpected EOF reached",
-        info.unexpected_token_loc
+        info.unexpected_token_loc,
+        suggestion
     );
 
     if (!last_token_info_opt.has_value())
@@ -337,6 +341,25 @@ static void report_unexpected_eof(
     if (has_expected(info, YYSYMBOL_RIGHT_BRACE)) expected = YYSYMBOL_RIGHT_BRACE;
     if (has_expected(info, YYSYMBOL_COMMA)) expected = YYSYMBOL_COMMA;
 
+    const char *opener_name;
+    std::optional<SourceLocation> opener_loc;
+    switch (expected)
+    {
+    case YYSYMBOL_RIGHT_PAREN:
+        opener_loc = lexer_ctx.lastest_open_parenthesis_loc();
+        opener_name = yysymbol_name(YYSYMBOL_LEFT_PAREN);
+        break;
+    case YYSYMBOL_RIGHT_BRACKET:
+        opener_loc = lexer_ctx.lastest_open_bracket_loc();
+        opener_name = yysymbol_name(YYSYMBOL_LEFT_BRACKET);
+        break;
+    case YYSYMBOL_RIGHT_BRACE:
+        opener_loc = lexer_ctx.latest_open_brace_loc();
+        opener_name = yysymbol_name(YYSYMBOL_LEFT_BRACE);
+        break;
+    default: break;
+    }
+
     if (expected != YYSYMBOL_YYEMPTY)
     {
         const char *const expected_name = yysymbol_name(expected);
@@ -344,13 +367,27 @@ static void report_unexpected_eof(
         if (last_token_info_opt.has_value())
             suggestion.emplace(expected_name, last_token_info_opt->loc);
 
-        diagnostic_engine.report_syntax_error(Issue(
-            SYNTAX_ERROR_ISSUE_TYPE,
-            FMT::format("expected {} before reaching EOF", expected_name,
-                        get_formatted_unexpected_token_name(info)),
-            info.unexpected_token_loc,
-            suggestion
-        ));
+        std::list<Note> notes;
+        if (opener_loc.has_value())
+        {
+            DEBUG_SMART_ASSERT(opener_loc.value() != k_no_loc);
+            notes.emplace_back(
+                FMT::format("to match this `{}`", DEBUG_REQUIRE_PTR(opener_name)),
+                opener_loc.value()
+            );
+        }
+
+        diagnostic_engine.report_syntax_error(
+            Issue(
+                SYNTAX_ERROR_ISSUE_TYPE,
+                FMT::format(
+                    "expected {} before reaching EOF",
+                    expected_name,
+                    get_formatted_unexpected_token_name(info)),
+                info.unexpected_token_loc,
+                suggestion
+            ),
+            std::move(notes));
     }
     else
         diagnostic_engine.report_syntax_error(generic_issue);

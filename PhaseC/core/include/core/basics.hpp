@@ -3,7 +3,7 @@
 #include <stack>
 #include <vector>
 
-#include "utils/debug_tools.hpp"
+#include "utils/debug_utils.hpp"
 #include "utils/format_adapter.hpp"
 
 namespace alpha

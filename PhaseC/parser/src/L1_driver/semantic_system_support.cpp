@@ -1,5 +1,5 @@
 #include "L1_driver/semantic_system_support.hpp"
-#include <utils/debug_tools.hpp>
+#include <utils/debug_utils.hpp>
 #include "parser/konstants.hpp"
 #include  "core/konstants.hpp"
 #include "L3_ir_infra/expr_maker.hpp"

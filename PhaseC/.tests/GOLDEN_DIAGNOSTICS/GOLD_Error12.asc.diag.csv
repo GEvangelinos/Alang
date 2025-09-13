@@ -1,3 +1,7 @@
-line,column,diagnostic_type,message
-2,9,error,unexpected assignment operator `=`
-4,8,error,unexpected assignment operator `=`
+code,line,column,issue_type
+OPERATOR_REQUIRES_NON_TEMP_LVALUE,2,1,error
+OPERATOR_REQUIRES_NON_TEMP_LVALUE,2,1,note
+OPERATOR_REQUIRES_NON_TEMP_LVALUE,4,1,error
+OPERATOR_REQUIRES_NON_TEMP_LVALUE,4,1,note
+OPERATOR_REQUIRES_NON_TEMP_LVALUE,6,1,error
+OPERATOR_REQUIRES_NON_TEMP_LVALUE,6,1,note

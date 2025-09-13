@@ -156,7 +156,7 @@ class CppGenerator:
             f"#ifndef {guard_name}\n"
             f"#define {guard_name}\n"
             f"\n"
-            f"#include\"utils/debug_tools.hpp\"\n"
+            f"#include\"utils/debug_utils.hpp\"\n"
             f"\n"
             f"#define {x_macro_name}\\\n"
             f"\t/* Special DiagnosticCodes (hardcoded, not YAML-driven): */\\\n"
