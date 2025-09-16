@@ -6,8 +6,8 @@
 #include <string>
 #include "arguinator/arguinator.hpp"
 #include "driver/alpha_driver_exceptions.hpp"
-#include "utils/debug_utils.hpp"
-#include "utils/format_adapter.hpp"
+#include "support/debug_tools.hpp"
+#include "support/format_adapter.hpp"
 
 namespace
 {

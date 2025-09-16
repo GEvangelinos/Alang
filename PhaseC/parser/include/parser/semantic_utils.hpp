@@ -3,7 +3,7 @@
 
 #include <parser/ir_opcode.gen.hpp>
 #include "parser/ir_expr.hpp"
-#include "utils/smart_assert.h"
+#include "support/smart_assert.h"
 
 namespace alpha::SemUtils
 {

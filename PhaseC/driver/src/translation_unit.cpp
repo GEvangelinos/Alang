@@ -7,28 +7,29 @@
 #include "driver/alpha_driver_exceptions.hpp"
 #include "driver/konstants.hpp"
 #include "scanner/alpha_scanner.gen.hpp"
-#include "utils/cli_color.h"
+#include "support/cli_color.h"
 
+#define WARNING_BANNER_PREFIX COLOR_ASCII_MAGENTA SGR_BOLD "Warning" SGR_BLINK "❗" SGR_RESET ": "
 inline constexpr auto k_reescaped_warning_banner =
-        SGR_BOLD "Note" SGR_BLINK "❗" SGR_RESET ": "
+        WARNING_BANNER_PREFIX
         "Special characters are escaped; Ex.: \"\\n\" prints literally (not a newline) to keep the table aligned.\n"
         SGR_RESET;
 
 inline constexpr auto k_temp_reuse_warning_banner =
-        SGR_BOLD "Note" SGR_BLINK "❗" SGR_RESET ": "
+        WARNING_BANNER_PREFIX
         "Temporaries are context-local. Each function starts with a fresh temp frame (counter reset to zero).\n"
-        "Nested function definitions or functions assigned to tables/variables therefore allocate temps from a\n"
-        "clean slate. When the function definition ends, the previous temp counter is restored.\n"
+        "           Nested function definitions or functions assigned to tables/variables therefore allocate temps from a\n"
+        "           clean slate. When the function definition ends, the previous temp counter is restored.\n"
         SGR_RESET;
 
 inline constexpr auto k_cya_mode_off_warning_banner =
 #ifdef CYA_MODE
         ""
 #else
-        SGR_BOLD "Note" SGR_BLINK "❗" SGR_RESET ": "
+        WARNING_BANNER_PREFIX
         "This executable was built with CYA_MODE disabled. As a result:\n"
-        "  a) Aggressive reuse of temporary variables is enabled; table literals are handled differently.\n"
-        "  b) Assignment temps are no longer created except when strictly required (e.g., inside function calls).\n"
+        "           a) Aggressive reuse of temporary variables is enabled; table literals are handled differently.\n"
+        "           b) Assignment temps are no longer created except when strictly required (e.g., inside function calls).\n"
         SGR_RESET
 #endif
 ;
@@ -152,6 +153,7 @@ void print_ir(Stream &out, const std::vector<alpha::Quad> &quads, const alpha::L
     }();
 
     out << k_reescaped_warning_banner;
+    out << k_temp_reuse_warning_banner;
     out << k_cya_mode_off_warning_banner;
 
     // Write export header.
@@ -205,17 +207,17 @@ namespace alpha
 inline constexpr auto k_scanner_eof_null_padding = 2; // For 2 consecutive NULL bytes.
 
 PassManager::PassManager(
-    TUBuffer &tu_buffer,
+    TranslationUnitBuffer &tu_buffer,
     LocationTracker &lt,
     DiagnosticEngine &diagnostic_engine,
     SymbolTable *const symbol_table)
     : lt_(lt),
       diagnostic_engine_(diagnostic_engine),
       scanner_handle_(tu_buffer),
-      parse_ctx_(utils::require_ptr(symbol_table)),
+      parse_ctx_(support::require_ptr(symbol_table)),
       lexer_ctx_(),
       semantic_system_(
-          ss_options_, &parse_ctx_, utils::require_ptr(symbol_table),
+          ss_options_, &parse_ctx_, support::require_ptr(symbol_table),
           diagnostic_engine_.reporter.get()) {}
 
 void
@@ -224,6 +226,11 @@ PassManager::execute() { run_frontend(); }
 void
 PassManager::run_frontend()
 {
+    // The following are the possible return values yyparse can return (based on bison's manual).
+    constexpr auto successful_parsing = 0;
+    constexpr auto invalid_input = 1;
+    constexpr auto memory_exhaustion = 2;
+
     running_phase_ = Phase::FRONTEND;
     parser_retval_ = alpha_yyparse(
         scanner_handle_.get(),
@@ -266,7 +273,7 @@ TranslationUnit::create_diagnostic_engine_policy()
     };
 }
 
-TUBuffer::TUBuffer(
+TranslationUnitBuffer::TranslationUnitBuffer(
     const std::filesystem::path &path,
     const std::size_t null_padding)
     : null_padding(null_padding)
@@ -293,8 +300,12 @@ TUBuffer::TUBuffer(
 }
 
 std::ifstream
-TUBuffer::open_source(const std::filesystem::path &path)
+TranslationUnitBuffer::open_source(const std::filesystem::path &path)
 {
+    if (!std::filesystem::exists(path))
+        throw std::invalid_argument(FMT::format("no such file or directory: `{}`", path.string()));
+    if (std::filesystem::is_directory(path))
+        throw std::invalid_argument(FMT::format("file {} is a directory", path.string()));
     if (!std::filesystem::is_regular_file(path))
         throw std::invalid_argument(FMT::format("{} is not a regular file.", path.string()));
     if (std::ifstream ifs(path); ifs)
@@ -307,15 +318,15 @@ TranslationUnit::TranslationUnit(
     CompilationOptions::Values comp_options)
     : source_path_(source_path),
       compilation_options_(std::move(comp_options)),
-      tu_buffer_(source_path, k_scanner_eof_null_padding),
-      loc_tracker_(tu_buffer_.size() - tu_buffer_.null_padding),
       diagnostic_engine_(create_diagnostic_engine_policy(), comp_options.max_errors),
-      diagnostic_formatter_(source_path, loc_tracker_, tu_buffer_.data()),
+      translation_unit_buffer_(source_path, k_scanner_eof_null_padding),
+      loc_tracker_(translation_unit_buffer_.size() - translation_unit_buffer_.null_padding),
+      diagnostic_formatter_(source_path, loc_tracker_, translation_unit_buffer_.data()),
       symbol_table_(),
       pass_manager_(std::make_unique<PassManager>(
-          tu_buffer_, loc_tracker_, diagnostic_engine_, &symbol_table_)) {}
+          translation_unit_buffer_, loc_tracker_, diagnostic_engine_, &symbol_table_)) {}
 
-PassManager::ScannerHandle::ScannerHandle(TUBuffer &tu_buffer)
+PassManager::ScannerHandle::ScannerHandle(TranslationUnitBuffer &tu_buffer)
 {
     if (alpha_yylex_init(&scanner_) != 0)
         throw std::runtime_error(ATTACH_CONTEXT("Failed to initializing scanner"));

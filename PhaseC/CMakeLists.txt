@@ -286,7 +286,7 @@ add_subdirectory(driver)
 
 # === Utilities ===
 add_subdirectory(arguinator)
-add_subdirectory(utils)
+add_subdirectory(support)
 
 # === External Dependencies ===
 add_subdirectory(third_party)

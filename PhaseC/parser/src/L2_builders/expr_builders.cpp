@@ -130,8 +130,9 @@ AggregateBuilder::Restricted::extend_expr_list(
     ss_bridge_->finalize_bool_expr(materialized_next_expr);
     #ifndef CYA_MODE
     if (!draft_.table_literal_stack.empty() &&
-        !parse_ctx_->temp_ctx_handler.region_stack.empty() &&
-        parse_ctx_->temp_ctx_handler.region_stack.top() == TempCtxHandler::TempRegion::TABLE)
+        parse_ctx_->temp_ctx_handler.current_critical_region().has_value() &&
+        parse_ctx_->temp_ctx_handler.current_critical_region().value() ==
+        TempCtxHandler::CriticalRegion::TABLE)
     {
         auto &top_elist_ctx = draft_.table_literal_stack.top();
         const Expr *const index_expr = expr_maker_->make_const_int_expr(
@@ -147,9 +148,9 @@ AggregateBuilder::Restricted::extend_expr_list(
         );
         parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     }
-    else if (!parse_ctx_->temp_ctx_handler.region_stack.empty() &&
-             parse_ctx_->temp_ctx_handler.region_stack.top() ==
-             TempCtxHandler::TempRegion::FORLOOP_CLAUSE)
+    else if (parse_ctx_->temp_ctx_handler.current_critical_region().has_value() &&
+             parse_ctx_->temp_ctx_handler.current_critical_region().value() ==
+             TempCtxHandler::CriticalRegion::FORLOOP_CLAUSE)
     {
         parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     }
@@ -199,7 +200,7 @@ void
 CallBuilder::Restricted::begin_call()
 {
     #ifndef CYA_MODE
-    parse_ctx_->temp_ctx_handler.region_stack.push(TempCtxHandler::TempRegion::CALL);
+    parse_ctx_->temp_ctx_handler.enter_critical_region(TempCtxHandler::CriticalRegion::CALL);
     parse_ctx_->temp_ctx_handler.push_checkpoint_barrier();
     #endif
     parse_ctx_->call_ctx_handler.enter_call();
@@ -211,10 +212,11 @@ CallBuilder::Restricted::end_call()
     parse_ctx_->call_ctx_handler.exit_call();
     #ifndef CYA_MODE
     parse_ctx_->temp_ctx_handler.pop_checkpoint_barrier();
-    DEBUG_SMART_ASSERT(!parse_ctx_->temp_ctx_handler.region_stack.empty());
+    DEBUG_SMART_ASSERT(parse_ctx_->temp_ctx_handler.current_critical_region().has_value());
     DEBUG_SMART_ASSERT(
-        parse_ctx_->temp_ctx_handler.region_stack.top() == TempCtxHandler::TempRegion::CALL);
-    parse_ctx_->temp_ctx_handler.region_stack.pop();
+        parse_ctx_->temp_ctx_handler.current_critical_region().value()== TempCtxHandler::
+        CriticalRegion::CALL);
+    parse_ctx_->temp_ctx_handler.exit_critical_region();
     #endif
 }
 
@@ -224,7 +226,7 @@ AggregateBuilder::Restricted::initiate_table_literal(const SourceLocation table_
     #ifndef CYA_MODE
     const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
     parse_ctx_->temp_ctx_handler.push_checkpoint();
-    parse_ctx_->temp_ctx_handler.region_stack.push(TempCtxHandler::TempRegion::TABLE);
+    parse_ctx_->temp_ctx_handler.enter_critical_region(TempCtxHandler::CriticalRegion::TABLE);
     quad_handler_->emit_next(
         ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
     draft_.table_literal_stack.emplace(new_table_expr);
@@ -485,29 +487,30 @@ AssignBuilder::Restricted::build_inc_dec(const Expr *const expr, const SourceLoc
 
 template<typename Policy>
 const Expr *
-AssignBuilder::Restricted::handle_pre_inc_dec(const Expr *expr, const SourceLocation result_loc)
+AssignBuilder::Restricted::handle_pre_inc_dec(
+    const Expr *const expr,
+    const SourceLocation result_loc)
 {
     static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
+    DEBUG_SMART_ASSERT(!!expr);
     auto *const qh = quad_handler_; // Short alias for readability.
 
-    const Expr *result = nullptr;
     if (expr->type == Expr::Type::TABLE_ITEM)
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(expr);
-        result = ss_bridge_->materialize_if_table_item(ti_lvalue); // EMITS!
+        const Expr *const result = ss_bridge_->materialize_if_table_item(ti_lvalue); // EMITS!
         qh->emit_next(Policy::opc, result, result, &k_static_int_1_expr, result_loc);
         qh->emit_next(ir::Opcode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result, result_loc);
+        return DEBUG_REQUIRE_PTR(result);
     }
-    else
+    qh->emit_next(Policy::opc, expr, expr, &k_static_int_1_expr, result_loc);
+    if (FORCE_ASSIGNMENT_TEMPS || parse_ctx_->call_ctx_handler.is_in_call())
     {
-        qh->emit_next(Policy::opc, expr, expr, &k_static_int_1_expr, result_loc);
-        if (FORCE_ASSIGNMENT_TEMPS || parse_ctx_->call_ctx_handler.is_in_call())
-        {
-            result = expr_maker_->make_arithmetic_expr(result_loc);
-            qh->emit_next(ir::Opcode::ASSIGN, result, expr, nullptr, result_loc);
-        }
+        const Expr *const result = expr_maker_->make_arithmetic_expr(result_loc);
+        qh->emit_next(ir::Opcode::ASSIGN, result, expr, nullptr, result_loc);
+        return DEBUG_REQUIRE_PTR(result);
     }
-    return DEBUG_REQUIRE_PTR(result); // Check because we initialized with nullptr.
+    return DEBUG_REQUIRE_PTR(expr);
 }
 
 template<typename Policy>
@@ -843,7 +846,7 @@ BasicBuilder::Restricted::warn_if_lossy_conversion_int_to_float(
     const AlphaInt value,
     const SourceLocation conversion_loc)
 {
-    if (!utils::is_lossless_int_to_float<AlphaFloat>(value))
+    if (!support::is_lossless_int_to_float<AlphaFloat>(value))
         dr_->report_implicit_int_to_float_loss(conversion_loc);
 }
 
@@ -1098,7 +1101,7 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation f
             func_signature_loc
         );
     }
-    DEBUG_SMART_ASSERT(utils::logical_xnor(validated_funcname, !!func_symbol)); // Sanity check
+    DEBUG_SMART_ASSERT(support::logical_xnor(validated_funcname, !!func_symbol)); // Sanity check
 
     parse_ctx_->func_ctx_handler.enter_function(
         function_draft_.id, func_signature_loc, func_symbol, skip_func_jump_label);

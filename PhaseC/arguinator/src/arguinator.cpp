@@ -7,8 +7,8 @@
 #include <stdexcept>                // for out_of_range, logic_error
 #include <utility>                  // for pair
 #include "arguinator/defaults.hpp"  // for default_flag_prefix, def...
-#include "utils/format_adapter.hpp" // for format, FMT
-#include "utils/smart_assert.h"     // for SMART_ASSERT
+#include "support/format_adapter.hpp" // for format, FMT
+#include "support/smart_assert.h"     // for SMART_ASSERT
 
 #define ATTACH_CONTEXT(message)                                                                    \
         FMT::format("[{}:{}:{}]\n{}", __FILE__, __LINE__, __func__, (message))

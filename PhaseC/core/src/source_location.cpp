@@ -4,7 +4,7 @@
 #include <iterator>                 // for distance
 #include <stdexcept>                // for logic_error
 #include "core/konstants.hpp" // for k_no_line
-#include "utils/smart_assert.h"     // for DEBUG_SMART_ASSERT
+#include "support/smart_assert.h"     // for DEBUG_SMART_ASSERT
 
 namespace alpha
 {

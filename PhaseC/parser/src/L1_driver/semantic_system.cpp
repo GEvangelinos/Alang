@@ -10,11 +10,11 @@ SemanticSystem::SemanticSystem(
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
     DiagnosticReporter *const dr)
-    : parse_ctx_(utils::require_ptr(parse_ctx)),
+    : parse_ctx_(support::require_ptr(parse_ctx)),
 
       // External components, required to initialize class.
-      symbol_table_(utils::require_ptr(symbol_table)),
-      dr_(utils::require_ptr(dr)),
+      symbol_table_(support::require_ptr(symbol_table)),
+      dr_(support::require_ptr(dr)),
       expr_maker_(std::make_unique<ExprMaker>(parse_ctx_)),
 
       // Private components, used by public submodules.
@@ -45,12 +45,12 @@ SemanticSystemServices
 SemanticSystem::create_semantic_system_services()
 {
     return {
-        .symbol_table = utils::require_ptr(symbol_table_),
-        .parse_ctx = utils::require_ptr(parse_ctx_),
-        .dr = utils::require_ptr(dr_),
-        .expr_maker = utils::require_ptr(expr_maker_.get()),
-        .expr_optimizer = utils::require_ptr(expr_optimizer_.get()),
-        .quad_handler = utils::require_ptr(quad_handler_.get()),
+        .symbol_table = support::require_ptr(symbol_table_),
+        .parse_ctx = support::require_ptr(parse_ctx_),
+        .dr = support::require_ptr(dr_),
+        .expr_maker = support::require_ptr(expr_maker_.get()),
+        .expr_optimizer = support::require_ptr(expr_optimizer_.get()),
+        .quad_handler = support::require_ptr(quad_handler_.get()),
         .ss_bridge = &ss_bridge_,
     };
 }
@@ -111,7 +111,7 @@ SemanticSystem::Gateway::notify_hard_error() noexcept
 }
 
 SemanticSystem::ParserContextView::ParserContextView(SemanticSystem *const ss)
-    : host_(utils::require_ptr(ss)) {}
+    : host_(support::require_ptr(ss)) {}
 
 bool SemanticSystem::ParserContextView::is_in_func_param_list() const noexcept
 {

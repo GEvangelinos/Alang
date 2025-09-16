@@ -1,14 +1,14 @@
-#ifndef UTILS_MISC_HPP
-#define UTILS_MISC_HPP
+#ifndef SUPPORT_MISC_TOOLS_HPP
+#define SUPPORT_MISC_TOOLS_HPP
 
 #include <algorithm>
 #include <iostream>
 #include <source_location>
 #include <string>
-#include "utils/format_adapter.hpp"
-#include "utils/smart_assert.h"
+#include "support/format_adapter.hpp"
+#include "support/smart_assert.h"
 
-namespace utils
+namespace alpha::support
 {
 template<typename N>
     requires std::is_integral_v<N>
@@ -52,7 +52,7 @@ template<typename T>
 }
 
 #ifdef DEBUG_MODE
-#define DEBUG_REQUIRE_PTR(ptr) utils::require_ptr(ptr)
+#define DEBUG_REQUIRE_PTR(ptr) support::require_ptr(ptr)
 #else
 #define DEBUG_REQUIRE_PTR(ptr) (ptr)
 #endif
@@ -63,6 +63,6 @@ bool is_lossless_int_to_float(IntType i)
 {
     return i == static_cast<IntType>(static_cast<FloatType>(i));
 }
-} // namespace Utils
+} // namespace alpha::support
 
-#endif // UTILS_MISC_HPP
+#endif // SUPPORT_MISC_TOOLS_HPP

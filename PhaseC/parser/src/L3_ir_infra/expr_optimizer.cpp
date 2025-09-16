@@ -19,11 +19,11 @@ try_trim_mod(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLoca
 
 ExprOptimizer::ExprOptimizer(ExprOptimizer::Options &&options, ExprMaker *const expr_maker)
     : options_(std::move(options)),
-      expr_folder_(utils::require_ptr(expr_maker)),
-      expr_trimmer_(utils::require_ptr(expr_maker)) {}
+      expr_folder_(support::require_ptr(expr_maker)),
+      expr_trimmer_(support::require_ptr(expr_maker)) {}
 
 ExprFolder::ExprFolder(ExprMaker *const expr_maker)
-    : expr_maker_(utils::require_ptr(expr_maker)) {}
+    : expr_maker_(support::require_ptr(expr_maker)) {}
 
 ExprTrimmer::ExprTrimmer(ExprMaker *const expr_maker)
     : expr_maker_(expr_maker) {}

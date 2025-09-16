@@ -6,7 +6,7 @@
         #include "core/shared_interface.hpp"    // for ALPHA_YYLEX_SIGNATURE
         #include "scanner/scanner_token.hpp"            // for TokenString, TokenComment
         #include "scanner/scanner_context.hpp"
-        #include "utils/format_adapter.hpp"           // for format, FMT
+        #include "support/format_adapter.hpp"           // for format, FMT
         #include <diagnostics/diagnostic_reporter.gen.hpp>
 
         #define YY_USER_ACTION                                                \

@@ -9,8 +9,8 @@
 #include "parser/konstants.hpp"
 #include "parser/symbol_table.hpp"
 #include "parser/_parser_common.hpp"
-#include "utils/misc_utils.hpp"
-#include "utils/smart_assert.h"
+#include "support/misc_tools.hpp"
+#include "support/smart_assert.h"
 
 namespace alpha
 {
@@ -236,7 +236,7 @@ SpaceHandler::exit_space()
 
     DEBUG_SMART_ASSERT(
         variable_offset_stack_.size() > spaces_for_closure,
-        utils::is_odd(variable_offset_stack_.size())
+        support::is_odd(variable_offset_stack_.size())
     );
 
     for (auto i = 0; i < spaces_for_closure; ++i)
@@ -251,7 +251,7 @@ SpaceHandler::space() const noexcept
 
     if (frame_index == k_initial_space)
         return VarSymbol::Space::PROGRAM_VAR;
-    if (utils::is_odd(frame_index))
+    if (support::is_odd(frame_index))
         return VarSymbol::Space::FORMAL_ARGUMENT;
     return VarSymbol::Space::FUNCTION_LOCAL;
 }

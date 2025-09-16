@@ -5,14 +5,14 @@
 #include <sstream>                  // for basic_stringstream, basic_ostream
 #include <stdexcept>
 #include <utility>                  // for move
-#include <utils/debug_utils.hpp>
-#include <utils/format_adapter.hpp>
+#include <support/debug_tools.hpp>
+#include <support/format_adapter.hpp>
 
+#include <diagnostics/diagnostic_reporter.gen.hpp>
 #include "core/konstants.hpp"
 #include "core/source_location.hpp"  // for SourceLocation, SourceLocationTracker
-#include "utils/misc_utils.hpp"
-#include "utils/smart_assert.h" // for DEBUG_SMART_ASSERT
-#include <diagnostics/diagnostic_reporter.gen.hpp>
+#include "support/misc_tools.hpp"
+#include "support/smart_assert.h" // for DEBUG_SMART_ASSERT
 
 namespace alpha
 {

@@ -164,7 +164,7 @@ private:
     SemanticSystem *const host_;
 
     explicit Gateway(SemanticSystem *const ss)
-        : host_(utils::require_ptr(ss)) {}
+        : host_(support::require_ptr(ss)) {}
 
     void notify_hard_error() noexcept;
     [[nodiscard]] const auto &get_quads() const noexcept { return host_->quad_handler_->quads(); }

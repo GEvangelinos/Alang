@@ -12,5 +12,5 @@ add_library(arguinator_impl STATIC
 
 target_link_libraries(arguinator_impl PRIVATE
     arguinator_api
-    utils_api
+    support_api
 )

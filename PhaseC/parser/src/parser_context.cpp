@@ -3,7 +3,7 @@
 namespace alpha
 {
 SpaceHandler::SpaceHandler(const ParseCtx *const host)
-    : host_(utils::require_ptr(host))
+    : host_(support::require_ptr(host))
 {
     enter_space(); // We push the first scope space frame (PROGRAM_VAR)
 }
@@ -39,7 +39,7 @@ ScopeHandler::~ScopeHandler()
 }
 
 CallContextHandler::CallContextHandler(ParseCtx *const host)
-    : host_(utils::require_ptr(host)) {}
+    : host_(support::require_ptr(host)) {}
 
 CallContextHandler::~CallContextHandler()
 {
@@ -50,7 +50,7 @@ CallContextHandler::~CallContextHandler()
 }
 
 FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const host)
-    : host_(utils::require_ptr(host))
+    : host_(support::require_ptr(host))
 {
     // We push a stack-frame, for loops that might occur outside functions.
     // So every frame corresponds to a function except the first.
@@ -266,7 +266,7 @@ ParseCtx::ParseCtx(SymbolTable *const symbol_table)
       call_ctx_handler(this),
       func_ctx_handler(this),
       temp_ctx_handler(this),
-      symbol_table_(utils::require_ptr(symbol_table)) {}
+      symbol_table_(support::require_ptr(symbol_table)) {}
 
 const VarSymbol *
 ParseCtx::new_temp()

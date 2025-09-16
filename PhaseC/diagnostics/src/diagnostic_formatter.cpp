@@ -5,9 +5,9 @@
 
 #include "core/source_location.hpp"
 #include "diagnostics/diagnostic_types.hpp"
-#include "utils/cli_color.h"
-#include "utils/misc_utils.hpp"
-#include "utils/string_utils.hpp"
+#include "support/cli_color.h"
+#include "support/misc_tools.hpp"
+#include "support/string_tools.hpp"
 
 namespace
 {
@@ -67,7 +67,7 @@ DiagnosticFormatter::DiagnosticFormatter(
     const LocationTracker &loc_tracker,
     const char *const source_buffer)
     : source_filename_(source_path.string()),
-      source_buffer_(utils::require_ptr(source_buffer)),
+      source_buffer_(support::require_ptr(source_buffer)),
       loc_tracker_(loc_tracker) {}
 
 const char *
@@ -143,7 +143,7 @@ std::string DiagnosticFormatter::build_codeline(const u32 line_no) const
             ++column;
         }
     }
-    return utils::rstrip(line); // We remove redundant suffix spaces.
+    return support::rstrip(line); // We remove redundant suffix spaces.
 }
 
 std::string
@@ -268,7 +268,7 @@ DiagnosticFormatter::format_issue_line(
 
     const std::string codeline = build_codeline(line_no);
     const std::string underline = build_underline(issue, line_no);
-    if (utils::is_blank_str(codeline) && utils::is_blank_str(underline) && !issue.suggestion.has_value())
+    if (support::is_blank_str(codeline) && support::is_blank_str(underline) && !issue.suggestion.has_value())
         return;
 
     u32 suggestion_line_no = 0;

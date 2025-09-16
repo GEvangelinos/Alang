@@ -7,9 +7,9 @@
 #include "parser/symbols.hpp"
 
 #include "core/konstants.hpp"
-#include "utils/misc_utils.hpp"
+#include "support/misc_tools.hpp"
 #include "parser/ir_opcode.gen.hpp"
-#include "utils/string_utils.hpp"
+#include "support/string_tools.hpp"
 
 namespace alpha
 {
@@ -167,7 +167,7 @@ struct ConstStringExpr final : public ConstExpr
 
     ConstStringExpr(const SourceLocation loc, const char *const value)
         : ConstExpr(Type::CONST_STRING, loc),
-          value(utils::cstrdup(DEBUG_REQUIRE_PTR(value))) { DEBUG_SMART_ASSERT(!!this->value); }
+          value(support::cstrdup(DEBUG_REQUIRE_PTR(value))) { DEBUG_SMART_ASSERT(!!this->value); }
 
     ~ConstStringExpr()
     {

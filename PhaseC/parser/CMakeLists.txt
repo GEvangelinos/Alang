@@ -123,9 +123,7 @@ target_include_directories(alpha_parser_api INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/parser"
 )
-target_link_libraries(alpha_parser_api INTERFACE
-    utils_api
-)
+target_link_libraries(alpha_parser_api INTERFACE support_api)
 #TODO short in alphabetical order! (like in directory explorer tab)
 add_library(alpha_parser_impl STATIC
     ${ALPHA_PARSER_OUTPUT_FILEPATH} # <- Generated

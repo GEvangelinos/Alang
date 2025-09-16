@@ -17,7 +17,7 @@
 #include "diagnostics/diagnostic_types.hpp"
 #include "L1_driver/semantic_system.hpp"
 #include "scanner/scanner_context.hpp"
-#include "utils/debug_utils.hpp"
+#include "support/debug_tools.hpp"
 
 using namespace alpha;
 constexpr Issue::Type SYNTAX_ERROR_ISSUE_TYPE = Issue::Type::HARD_ERROR;
@@ -544,7 +544,7 @@ static int yyreport_syntax_error(
     SemanticSystem &ss)
 {
     const yysymbol_kind_t unexpected_token = yypcontext_token(yyctx);
-    const YYLTYPE unexpected_token_loc = *utils::require_ptr(yypcontext_location(yyctx));
+    const YYLTYPE unexpected_token_loc = *support::require_ptr(yypcontext_location(yyctx));
 
     if (unexpected_token == YYSYMBOL_YYEMPTY)
     // According to bison manual this mean NO-LOOKAHEAD

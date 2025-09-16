@@ -1,15 +1,12 @@
-#ifndef UTILS_STRING_UTILS_HPP
-#define UTILS_STRING_UTILS_HPP
+#ifndef SUPPORT_STRING_TOOLS_HPP
+#define SUPPORT_STRING_TOOLS_HPP
+
 #include <cstring>
 #include <string>
+#include "support/debug_tools.hpp"
 
-#ifdef DEBUG_MODE
-#include "utils/debug_utils.hpp"
-#endif
-
-namespace utils
+namespace alpha::support
 {
-
 [[nodiscard]] std::string tolower_str(std::string str);
 [[nodiscard]] std::string toupper_str(std::string str);
 std::string &lstrip(std::string &str);
@@ -28,5 +25,5 @@ bool is_blank_str(const std::string &str);
     std::memcpy(dest, src, src_size);
     return dest;
 }
-} // namespace utils
-#endif // UTILS_STRING_UTILS_HPP
+} // namespace alpha::support
+#endif // SUPPORT_STRING_TOOLS_HPP

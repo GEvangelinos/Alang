@@ -107,14 +107,14 @@ class CPPGenerator:
     def write_ir_opcode_to_string_impl(self, fout: TextIO):
         fout.write(
             f'#include <parser/{os.path.basename(self._config_args.out_opcode_header_filepath)}>\n'
-            f'#include <utils/string_utils.hpp>\n'
+            f'#include <support/string_tools.hpp>\n'
             f"namespace {CPPGenerator.IR_NAMESPACE}\n"
             f"{{\n"
             f"std::string to_string(const {self._opcode_enum_name} opc) noexcept\n"
             f"{{\n"
             f"\tswitch (opc)\n"
             f"\t{{\n"
-            f"\t\t#define X(opc) case {self._opcode_enum_name}::opc: return utils::tolower_str(#opc);\n"
+            f"\t\t#define X(opc) case {self._opcode_enum_name}::opc: return support::tolower_str(#opc);\n"
             f"\t\t{CPPGenerator.ALPHA_IR_OPCODES_MACRO}\n"
             f"\t\t#undef  X\n"
             f"\t\tdefault:\n"

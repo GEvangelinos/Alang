@@ -1,8 +1,8 @@
 #include "parser/symbol_table.hpp"
 #include "core/konstants.hpp"  // for k_global_scope, k_private_anony...
 #include "parser/_parser_common.hpp"
-#include "utils/format_adapter.hpp"  // for format, FMT
-#include "utils/smart_assert.h"      // for DEBUG_SMART_ASSERT
+#include "support/format_adapter.hpp"  // for format, FMT
+#include "support/smart_assert.h"      // for DEBUG_SMART_ASSERT
 #include <utility>                   // for move, pair, forward
 #include "parser/semantic_utils.hpp"
 

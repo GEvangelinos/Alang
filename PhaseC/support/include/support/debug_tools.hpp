@@ -1,8 +1,9 @@
-#ifndef DEBUG_TOOLS_HPP
-#define DEBUG_TOOLS_HPP
-#include "utils/format_adapter.hpp"
-#include "utils/smart_assert.h"
+#ifndef SUPPORT_DEBUG_TOOLS_HPP
+#define SUPPORT_DEBUG_TOOLS_HPP
+
 #include <iostream>
+#include "support/format_adapter.hpp"
+#include "support/smart_assert.h"
 
 #ifndef TO_STRING
 #define TO_STRING(x) #x
@@ -83,4 +84,4 @@
                         std::abort();                                      \
                 } while (0)
 #endif
-#endif // DEBUG_TOOLS_HPP
+#endif // SUPPORT_DEBUG_TOOLS_HPP

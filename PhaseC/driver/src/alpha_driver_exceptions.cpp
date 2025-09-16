@@ -3,7 +3,7 @@
 // compile times and dependencies cleaner.
 
 #include "driver/alpha_driver_exceptions.hpp"
-#include "utils/format_adapter.hpp"
+#include "support/format_adapter.hpp"
 
 namespace alpha::exceptions
 {

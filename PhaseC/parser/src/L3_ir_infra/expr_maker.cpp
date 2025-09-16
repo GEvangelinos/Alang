@@ -3,7 +3,7 @@
 namespace alpha
 {
 ExprMaker::ExprMaker(ParseCtx *const parse_ctx)
-    : parse_ctx_(utils::require_ptr(parse_ctx)) {}
+    : parse_ctx_(support::require_ptr(parse_ctx)) {}
 
 ExprMaker::~ExprMaker() noexcept
 {

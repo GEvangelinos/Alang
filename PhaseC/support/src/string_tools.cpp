@@ -1,8 +1,8 @@
-#include "utils/string_utils.hpp"
+#include "support/string_tools.hpp"
 
 #include <algorithm>
 
-namespace utils
+namespace alpha::support
 {
 std::string tolower_str(std::string str)
 {
@@ -62,4 +62,4 @@ bool is_blank_str(const std::string &str)
                str.begin(), str.end(), [](const unsigned char ch) { return std::isspace(ch); }
            );
 }
-} // namespace utils
+} // namespace alpha::support

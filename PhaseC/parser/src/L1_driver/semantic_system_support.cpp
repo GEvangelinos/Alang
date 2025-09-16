@@ -1,5 +1,5 @@
 #include "L1_driver/semantic_system_support.hpp"
-#include <utils/debug_utils.hpp>
+#include <support/debug_tools.hpp>
 #include "parser/konstants.hpp"
 #include  "core/konstants.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
@@ -12,9 +12,9 @@ SemanticSystemBridge::SemanticSystemBridge(
     ParseCtx *const parse_ctx,
     ExprMaker *const expr_maker,
     QuadHandler *const quad_handler)
-    : parse_ctx_(utils::require_ptr(parse_ctx)),
-      expr_maker_(utils::require_ptr(expr_maker)),
-      quad_handler_(utils::require_ptr(quad_handler)) {}
+    : parse_ctx_(support::require_ptr(parse_ctx)),
+      expr_maker_(support::require_ptr(expr_maker)),
+      quad_handler_(support::require_ptr(quad_handler)) {}
 
 /// Materialize an lvalue base for further member/index access.
 /// If `lvalue` is a TABLE_ITEM, emits IR (TABLEGETELEM) and returns a temp variable;

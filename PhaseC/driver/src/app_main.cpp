@@ -8,7 +8,7 @@ static constexpr char alpha_driver_description[] =
         "A tool for syntactical analysis on programming language Alpha";
 
 #if defined(OPTIMIZED_MODE) || defined(HATE_PYTHON_MODE)
-#include "utils/cli_color.h"
+#include "support/cli_color.h"
 #endif
 static arguinator::Parser launch_cli_parser(const int argc, const char *const *const argv)
 {

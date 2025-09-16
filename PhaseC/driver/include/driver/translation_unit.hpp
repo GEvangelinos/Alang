@@ -18,13 +18,13 @@ class LocationTracker;
 class DiagnosticReporter;
 class SymbolTable;
 
-class TUBuffer
+class TranslationUnitBuffer
 {
 public:
     const std::size_t null_padding;
 
-    explicit TUBuffer(const std::filesystem::path &path, std::size_t null_padding);
-    ~TUBuffer() = default;
+    explicit TranslationUnitBuffer(const std::filesystem::path &path, std::size_t null_padding);
+    ~TranslationUnitBuffer() = default;
 
     [[nodiscard]] char *data() { return data_.get(); }
     [[nodiscard]] const char *data() const { return data_.get(); }
@@ -41,7 +41,7 @@ class PassManager : private Immobile
 {
 public:
     PassManager(
-        TUBuffer &tu_buffer,
+        TranslationUnitBuffer &tu_buffer,
         LocationTracker &lt,
         DiagnosticEngine &diagnostic_engine,
         SymbolTable *symbol_table);
@@ -59,7 +59,7 @@ private:
     {
     public:
         ScannerHandle() = delete;
-        explicit ScannerHandle(TUBuffer &tu_buffer);
+        explicit ScannerHandle(TranslationUnitBuffer &tu_buffer);
         ~ScannerHandle();
 
         [[nodiscard]] yyscan_t get() const noexcept { return scanner_; }
@@ -105,9 +105,9 @@ public:
 private:
     const std::filesystem::path source_path_;
     const CompilationOptions::Values compilation_options_;
-    TUBuffer tu_buffer_;
-    LocationTracker loc_tracker_;
     DiagnosticEngine diagnostic_engine_;
+    TranslationUnitBuffer translation_unit_buffer_;
+    LocationTracker loc_tracker_;
     DiagnosticFormatter diagnostic_formatter_;
     SymbolTable symbol_table_;
     std::unique_ptr<PassManager> pass_manager_;
