@@ -54,7 +54,7 @@ Each test outputs `TEST_PASSED` or `TEST_FAILED`.
 
 Executable options:
 
-- `--input-file <file>`  
+- `--source <file>`  
   **(Required)** Specifies the input alpha source file to parse.
 
 - `--export-symbol-table`  

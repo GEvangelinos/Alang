@@ -38,6 +38,8 @@ BAR_WIDTH = 40
 print_lock = threading.Lock()
 tests_completed = 0
 total_tests = 0
+CPUS_TO_USE = os.cpu_count()
+
 
 def parser_startup_arguments() -> argparse.Namespace:
     """
@@ -128,6 +130,7 @@ def validate_symbol_table(golden_symbol_table_dir: Path, asc_filepath: Path) -> 
     )
     return compare_csv(Path(golden_filepath), Path(export_filepath))
 
+
 def validate_ir(golden_ir_dir: Path, asc_filepath: Path) -> int:
     golden_filepath = os.path.join(
         golden_ir_dir,
@@ -137,6 +140,7 @@ def validate_ir(golden_ir_dir: Path, asc_filepath: Path) -> int:
         IR_DIR, f"{os.path.basename(asc_filepath)}{IR_CSV}"
     )
     return compare_csv(Path(golden_filepath), Path(export_filepath))
+
 
 def validate_diagnostics(golden_diagnostic_dir: Path, asc_filepath: Path) -> int:
     golden_filepath = os.path.join(
@@ -148,30 +152,30 @@ def validate_diagnostics(golden_diagnostic_dir: Path, asc_filepath: Path) -> int
     return compare_csv(Path(golden_filepath), Path(export_filepath))
 
 
-def run_alpha_compiler(alpha_compiler_path: Path, asc_filepath: Path) -> int:
-    ac_process_args = [
+def run_compiler(alpha_compiler_path: Path, asc_filepath: Path, expect_errors: bool) -> int:
+    alang_process_args = [
         str(alpha_compiler_path),
         "--export-symbol-table-without-temps",
         "--export-ir",
         "--export-diagnostics",
         "--no-show-diagnostics",
-        "--input-file",
+        "--source",
         asc_filepath,
     ]
-    completed_process = subprocess.run(ac_process_args)
+    if expect_errors:
+        alang_process_args.append("--expect-errors")
+    completed_process = subprocess.run(alang_process_args)
     return completed_process.returncode
 
 
-def run_valgrind_tests(
-        alpha_compiler_path: Path, asc_filepath: Path, valgrind_error_exitcode: int
-) -> int:
+def run_valgrind_tests(alpha_compiler_path: Path, asc_filepath: Path, expect_errors: bool) -> int:
     valgrind_args = [
         "valgrind",
         "--leak-check=full",
         "--track-origins=yes",
         "--show-leak-kinds=all",
         "--errors-for-leak-kinds=all",
-        f"--error-exitcode={valgrind_error_exitcode}",
+        f"--error-exitcode={VALGRIND_ERROR_EXITCODE}",
         "--quiet",
     ]
     ac_args = [
@@ -183,12 +187,15 @@ def run_valgrind_tests(
         "--no-show-diagnostics",
         "--show-ir",
         "--show-parser-trace",
-        "--input-file",
+        "--source",
         asc_filepath,
     ]
 
+    if expect_errors:
+        ac_args.append("--expect-errors")
+
     completed_process = subprocess.run(
-        valgrind_args + ac_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        valgrind_args + ac_args, stdout=subprocess.DEVNULL
     )
 
     return completed_process.returncode
@@ -204,8 +211,8 @@ def pretty_status(message: str, return_code: int) -> str:
 
 
 def run_working_test_file(args, asc_filepath) -> str:
-    alang_retval = run_alpha_compiler(
-        Path(args.alpha_compiler).resolve(), asc_filepath)
+    alang_retval = run_compiler(
+        Path(args.alpha_compiler).resolve(), asc_filepath, False)
     result_line = []
     result_line.append(f"--Testing working: {os.path.basename(asc_filepath):<30} ")
     if (alang_retval == 0):
@@ -216,30 +223,33 @@ def run_working_test_file(args, asc_filepath) -> str:
         retval, result_str = validate_diagnostics(args.golden_diagnostics_dir, asc_filepath)
         result_line.append(pretty_status(f"Diagnostics:" + result_str, retval))
         if args.memcheck:
-            val_retval = run_valgrind_tests(
-                Path(args.alpha_compiler).resolve(), asc_filepath, VALGRIND_ERROR_EXITCODE)
+            val_retval = run_valgrind_tests(Path(args.alpha_compiler).resolve(), asc_filepath,
+                                            False)
             result_line.append(pretty_status(f"MEMcheck:", val_retval))
     else:
         result_line.append(f"{COLOR_RED}Failure, working test produced errors.{SGR_RESET}")
 
     return "".join(result_line)
 
+
 def run_error_test_file(args, asc_filepath) -> str:
-    alang_retval = run_alpha_compiler(
-        Path(args.alpha_compiler).resolve(), asc_filepath)
+    alang_retval = run_compiler(
+        Path(args.alpha_compiler).resolve(), asc_filepath, True)
     result_line = []
     result_line.append(f"--Testing error: {os.path.basename(asc_filepath):<30} ")
     if (alang_retval == 0):
         retval, result_str = validate_diagnostics(args.golden_diagnostics_dir, asc_filepath)
-        result_line.append(pretty_status(f"Diagnostics:" + result_str, retval))
+        # We print 28 spaces to align with "Diagnostics" label of working tests
+        result_line.append(pretty_status(f"{" " * 28}Diagnostics:" + result_str, retval))
         if args.memcheck:
-            val_retval = run_valgrind_tests(
-                Path(args.alpha_compiler).resolve(), asc_filepath, VALGRIND_ERROR_EXITCODE)
+            val_retval = run_valgrind_tests(Path(args.alpha_compiler).resolve(), asc_filepath, True)
             result_line.append(pretty_status(f"MEMcheck:", val_retval))
     else:
-        result_line.append(f"{COLOR_RED}Failure, error test did not produce diagnostics.{SGR_RESET}")
+        result_line.append(
+            f"{COLOR_RED}Failure, error test did not produce diagnostics.{SGR_RESET}")
 
     return "".join(result_line)
+
 
 def print_progress_bar(completed: int, total: int, bar_width: int = 40):
     progress_ratio = completed / total
@@ -248,7 +258,7 @@ def print_progress_bar(completed: int, total: int, bar_width: int = 40):
     bar = '=' * (filled - 1 if filled > 0 else 0) + pointer
     spaces = ' ' * (bar_width - len(bar))
     percent = int(progress_ratio * 100)
-    print(f"[{bar}{spaces}] {percent}% ({completed}/{total}) Using {os.cpu_count()} threads",
+    print(f"[{bar}{spaces}] {percent}% ({completed}/{total}) Using {CPUS_TO_USE} CPUs",
           end='\r', flush=True)
 
 
@@ -257,7 +267,7 @@ def run_working_test_files(args, working_testfile_paths):
     global total_tests
     working_testfile_paths.sort()
     print_progress_bar(tests_completed, total_tests)
-    with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
+    with ThreadPoolExecutor(max_workers=CPUS_TO_USE) as pool:
         futures = []
         for asc_testfile_path in working_testfile_paths:
             future = pool.submit(run_working_test_file, args, asc_testfile_path)
@@ -273,12 +283,13 @@ def run_working_test_files(args, working_testfile_paths):
                 print(result)
         print_progress_bar(tests_completed, total_tests)
 
+
 def run_error_test_files(args, error_testfile_paths):
     global tests_completed
     global total_tests
     error_testfile_paths.sort()
     print_progress_bar(tests_completed, total_tests)
-    with ThreadPoolExecutor(max_workers=os.cpu_count()) as pool:
+    with ThreadPoolExecutor(max_workers=CPUS_TO_USE) as pool:
         futures = []
         for asc_testfile_path in error_testfile_paths:
             future = pool.submit(run_error_test_file, args, asc_testfile_path)

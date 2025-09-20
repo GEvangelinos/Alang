@@ -26,13 +26,12 @@ public:
 class FlagArityError final : public FlagError
 {
 public:
-    FlagArityError(const std::string &flag_name, std::size_t expected_arity,
-                   std::size_t provided_arity);
+    FlagArityError(
+        const std::string &flag_name, std::size_t expected_arity, std::size_t provided_arity);
 
 private:
-    [[nodiscard]] static std::string build_error_message(const std::string &flag_name,
-                                                         std::size_t expected_arity,
-                                                         std::size_t provided_arity);
+    [[nodiscard]] static std::string build_error_message(
+        const std::string &flag_name, std::size_t expected_arity, std::size_t provided_arity);
 }; /* class FlagArityError */
 
 class FlagUnknownError final : public FlagError
@@ -196,7 +195,7 @@ void process_flag_inputs(const std::size_t argc, const char *const *const argv, 
         throw FlagArityError(flag.get_name(), expected_inputs, matched_inputs);
 }
 
-void ensure_required_flags_present(std::map<std::string, Flag> flag_map)
+void ensure_required_flags_present(const std::map<std::string, Flag> &flag_map)
 {
     std::vector<std::string> missing_flags_vector; /* Flags that are required but missing. */
     for (auto flag_entry: flag_map)
@@ -390,8 +389,8 @@ std::string FlagUnknownError::build_error_message(const std::string &flag_name)
     return FMT::format("{}{} flag is unknown", ParserConsts::default_flag_prefix, flag_name);
 }
 
-FlagMissingError::FlagMissingError(const std::string &error_message)
-    : FlagError(error_message) {}
+FlagMissingError::FlagMissingError(const std::string &missing_flag)
+    : FlagError(missing_flag) {}
 
 FlagMissingError::FlagMissingError(const std::vector<std::string> &missing_flags_vector)
     : FlagError(build_error_message(missing_flags_vector)) {}
@@ -400,7 +399,7 @@ std::string FlagMissingError::build_error_message(
     const std::vector<std::string> &missing_flags_vector)
 {
     std::stringstream ss;
-    ss << "Arguinator error, the following flags are required:\n";
+    ss << "The following flags are required:\n";
     for (auto &flag_name: missing_flags_vector)
         ss << '\t' << ParserConsts::default_flag_prefix << flag_name << '\n';
     ss << '\n';

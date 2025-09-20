@@ -47,5 +47,5 @@ void
 Driver::run() { tu.compile(); }
 
 bool
-Driver::ok() const { return tu.compiled_ok(); }
+Driver::ok() const noexcept { return tu.compiled_ok(); }
 } // namespace alpha

@@ -26,7 +26,7 @@ public:
 
     void run();
 
-    bool ok() const;
+    bool ok() const noexcept;
 
 private:
     // So far its only 1 TU, I made parsing system reentrant, to let multiple tu get compiled at once.

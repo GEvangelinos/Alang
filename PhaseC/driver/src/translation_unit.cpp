@@ -4,8 +4,9 @@
 
 #include "core/konstants.hpp"
 #include "driver/alpha_driver.hpp"
-#include "driver/alpha_driver_exceptions.hpp"
+#include "driver/exception.hpp"
 #include "driver/konstants.hpp"
+#include "core/exception.hpp"
 #include "scanner/alpha_scanner.gen.hpp"
 #include "support/cli_color.h"
 
@@ -279,20 +280,13 @@ TranslationUnitBuffer::TranslationUnitBuffer(
     : null_padding(null_padding)
 {
     std::ifstream ifs = open_source(path);
-
     const auto filesize = std::filesystem::file_size(path);
-    // TODO: specify filesize.. If C++ doesnt have a way to convert bytes to KB,MB,GB
-    // You have a conversion function in MicroTCP's project code.
-    if (filesize > k_max_input_file_size)
-        throw std::invalid_argument(FMT::format("file {} is too big.", path.string()));
-
     const auto tub_size = filesize + null_padding;
     data_ = std::make_unique<char[]>(tub_size);
     size_ = tub_size;
 
     if (!ifs.read(data_.get(), filesize))
-        throw std::invalid_argument(
-            FMT::format("Failed reading source file: {}", path.string()));
+        throw alpha::exception::FileReadError(path.string());
 
     // Flex requires two NULL-bytes at the end of the buffer (End-Of-Buffer marker).
     for (auto i = filesize; i < tub_size; ++i)
@@ -302,15 +296,19 @@ TranslationUnitBuffer::TranslationUnitBuffer(
 std::ifstream
 TranslationUnitBuffer::open_source(const std::filesystem::path &path)
 {
+    using FOMode = alpha::exception::FileOpenError::Mode;
     if (!std::filesystem::exists(path))
-        throw std::invalid_argument(FMT::format("no such file or directory: `{}`", path.string()));
+        throw alpha::exception::FileNotFoundError(path.string());
     if (std::filesystem::is_directory(path))
-        throw std::invalid_argument(FMT::format("file {} is a directory", path.string()));
+        throw alpha::exception::FileIsADirectoryError(path.string());
     if (!std::filesystem::is_regular_file(path))
-        throw std::invalid_argument(FMT::format("{} is not a regular file.", path.string()));
-    if (std::ifstream ifs(path); ifs)
-        return ifs;
-    throw std::invalid_argument(FMT::format("Failed opening {} for reading.", path.string()));
+        throw alpha::exception::FileNotRegularError(path.string());
+    if (const auto filesize = std::filesystem::file_size(path); filesize > k_max_source_filesize)
+        throw alpha::exception::FileTooLargeError(path.string(), filesize, k_max_source_filesize);
+    std::ifstream ifs(path);
+    if (!ifs)
+        throw alpha::exception::FileOpenError(path.string(), FOMode::READ);
+    return ifs;
 }
 
 TranslationUnit::TranslationUnit(
@@ -356,19 +354,20 @@ TranslationUnit::compile()
         // If we reach this point, execute() completed without throwing any exceptions.
         execution_completed_ = true;
     }
-    catch (exceptions::DiagnosticFatalError) {}
-    catch (exceptions::DiagnosticErrorLimitExceeded) {}
-    catch (exceptions::SanityLimitExceededError &e)
+    catch (exception::SanityLimitError &e)
     {
-        std::cerr << FMT::format("Exception caught: {}", e.what()) << std::endl;
+        std::cerr << FMT::format("Sanity limit exceeded: {}", e.what()) << std::endl;
+        std::exit(EXIT_FAILURE);
     }
+    catch (exception::DiagnosticFatalError) { /* Reached a fatal diagnostic - stop compilation. */ }
+    catch (exception::DiagnosticLimitError) { /* Reached diagnostics limit  - stop compilation. */ }
 }
 
 void
-TranslationUnit::notify_fatal_error() { throw exceptions::DiagnosticFatalError(); }
+TranslationUnit::notify_fatal_error() { throw exception::DiagnosticFatalError(); }
 
 void
-TranslationUnit::notify_max_errors_reached() { throw exceptions::DiagnosticErrorLimitExceeded(); }
+TranslationUnit::notify_max_errors_reached() { throw exception::DiagnosticLimitError(); }
 
 void
 TranslationUnit::show_symbol_table() const

@@ -1,5 +1,40 @@
 cmake_minimum_required(VERSION 3.18)
 
+##########################################--==>> CONFIGURABLE <<==--###########################################
+set(COMPILER_NAME "alang" CACHE STRING "Name of the main compiler")
+set(COMPILER_EXE_NAME "${COMPILER_NAME}" CACHE STRING "Name of the main compiler")
+
+set(AUTOGEN_DIRNAME "AUTOGEN" CACHE STRING "Name of the directory where auto-generated files are stored")
+
+set(FLEX_OUTPUT_FILENAME "alpha_scanner.gen.cpp" CACHE STRING "Filename of the Flex-generated C++ source file")
+set(FLEX_HEADER_FILENAME "alpha_scanner.gen.hpp" CACHE STRING "Filename of the Flex-generated header file")
+
+set(BISON_OUTPUT_FILENAME "alpha_parser.gen.cpp" CACHE STRING "Filename of the Bison-generated C++ source file")
+set(BISON_HEADER_FILENAME "alpha_parser.gen.hpp" CACHE STRING "Filename of the Bison-generated header file")
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/executables" CACHE PATH "Directory where compiled executables will be placed")
+
+set(IR_OPCODE_HEADER_FILENAME "ir_opcode.gen.hpp" CACHE STRING "Filename of the IR opcode header file")
+set(IR_OPCODE_SOURCE_FILENAME "ir_opcode.gen.cpp" CACHE STRING "Filename of the IR opcode source file")
+set(IR_OPCODE_INFO_TRAITS_HEADER_FILENAME "ir_opcode_info_traits.gen.hpp" CACHE STRING "Filename of the IR opcode info traits header file")
+set(IR_OPCODE_OPT_TRAITS_HEADER_FILENAME "ir_opcode_opt_traits.gen.hpp" CACHE STRING "Filename of the IR opcode opt traits header file")
+###############################################################################################################
+
+set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l")          # <-- Modifying filename requires manual change.
+set(BISON_SPEC_FILENAME "alpha_parser_spec.y")          # <-- Modifying filename requires manual change.
+set(DIAGNOSTICS_SPEC_FILENAME "diagnostics_spec.yaml")  # <-- Modifying filename requires manual change.
+set(IR_OPCODE_SPEC_FILENAME "ir_opcode_spec.yaml")      # <-- Modifying filename requires manual change.
+
+# Create directory that hosts code from CODE-GENERATORS (e.g. {log_injector, diagnostic_generator})
+set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/${AUTOGEN_DIRNAME}" CACHE PATH "Path to the root directory for auto-generated components")
+
+##########################################--==>> TESTS <<==--###########################################
+set(WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/working")
+set(ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/error")
+set(GOLDEN_SYMBOL_TABLES_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_SYMBOL_TABLES")
+set(GOLDEN_IR_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_IR")
+set(GOLDEN_DIAGNOSTICS_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_DIAGNOSTICS")
+
 # Simple ANSI color helpers
 string(ASCII 27 Esc)
 
@@ -73,6 +108,8 @@ add_compile_options(
     -Wreorder
     -Wimplicit-fallthrough
 )
+
+add_compile_definitions(COMPILER_NAME="${COMPILER_NAME}")
 
 # Errors applied to all builds
 if (CMAKE_CXX_COMPILER STREQUAL CMAKE_CXX_COMPILER_CLANG)
@@ -186,39 +223,6 @@ function(dot_gen_applier [filename])
 
 endfunction()
 
-##########################################--==>> CONFIGURABLE <<==--###########################################
-set(ALPHA_DRIVER_EXECUTABLE alang.out CACHE STRING "Name of the main executable (e.g., the syntax analyzer)")
-
-set(AUTOGEN_DIRNAME "AUTOGEN" CACHE STRING "Name of the directory where auto-generated files are stored")
-
-set(FLEX_OUTPUT_FILENAME "alpha_scanner.gen.cpp" CACHE STRING "Filename of the Flex-generated C++ source file")
-set(FLEX_HEADER_FILENAME "alpha_scanner.gen.hpp" CACHE STRING "Filename of the Flex-generated header file")
-
-set(BISON_OUTPUT_FILENAME "alpha_parser.gen.cpp" CACHE STRING "Filename of the Bison-generated C++ source file")
-set(BISON_HEADER_FILENAME "alpha_parser.gen.hpp" CACHE STRING "Filename of the Bison-generated header file")
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/executables" CACHE PATH "Directory where compiled executables will be placed")
-
-set(IR_OPCODE_HEADER_FILENAME "ir_opcode.gen.hpp" CACHE STRING "Filename of the IR opcode header file")
-set(IR_OPCODE_SOURCE_FILENAME "ir_opcode.gen.cpp" CACHE STRING "Filename of the IR opcode source file")
-set(IR_OPCODE_INFO_TRAITS_HEADER_FILENAME "ir_opcode_info_traits.gen.hpp" CACHE STRING "Filename of the IR opcode info traits header file")
-set(IR_OPCODE_OPT_TRAITS_HEADER_FILENAME "ir_opcode_opt_traits.gen.hpp" CACHE STRING "Filename of the IR opcode opt traits header file")
-###############################################################################################################
-
-set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l")          # <-- Modifying filename requires manual change.
-set(BISON_SPEC_FILENAME "alpha_parser_spec.y")          # <-- Modifying filename requires manual change.
-set(DIAGNOSTICS_SPEC_FILENAME "diagnostics_spec.yaml")  # <-- Modifying filename requires manual change.
-set(IR_OPCODE_SPEC_FILENAME "ir_opcode_spec.yaml")      # <-- Modifying filename requires manual change.
-
-# Create directory that hosts code from CODE-GENERATORS (e.g. {log_injector, diagnostic_generator})
-set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/${AUTOGEN_DIRNAME}" CACHE PATH "Path to the root directory for auto-generated components")
-
-##########################################--==>> TESTS <<==--###########################################
-set(WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/working")
-set(ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/error")
-set(GOLDEN_SYMBOL_TABLES_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_SYMBOL_TABLES")
-set(GOLDEN_IR_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_IR")
-set(GOLDEN_DIAGNOSTICS_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_DIAGNOSTICS")
 
 function(make_dir_verbose dirname)
     file(MAKE_DIRECTORY ${dirname})
@@ -233,7 +237,7 @@ make_dir_verbose("${AUTOGEN_ROOT_DIR_PATH}")
 
 function(add_regression_check_target target_name do_memcheck)
     set(regression_args
-        "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${ALPHA_DRIVER_EXECUTABLE}"
+        "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${COMPILER_EXE_NAME}"
         "--golden-symbol-tables-dir" "${GOLDEN_SYMBOL_TABLES_DIR}"
         "--golden-ir-dir" "${GOLDEN_IR_DIR}"
         "--golden-diagnostics-dir" "${GOLDEN_DIAGNOSTICS_DIR}"
@@ -255,7 +259,7 @@ function(add_regression_check_target target_name do_memcheck)
         ${regression_args}
     )
 
-    add_dependencies(${target_name} ${ALPHA_DRIVER_EXECUTABLE})
+    add_dependencies(${target_name} ${COMPILER_EXE_NAME})
 endfunction()
 
 if (NOT HATE_PYTHON_MODE)

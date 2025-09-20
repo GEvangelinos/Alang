@@ -16,9 +16,9 @@ target_link_libraries(alpha_driver_api INTERFACE
 # === alpha_driver_impl: Implementation (compiled source) ===
 add_library(alpha_driver_impl STATIC
     src/alpha_driver.cpp
-    src/alpha_driver_exceptions.cpp
     src/translation_unit.cpp
     src/compilation_options.cpp
+    src/exception.cpp
 )
 target_include_directories(alpha_driver_impl PRIVATE
     "${GENERATED_INCLUDE_DIR}"
@@ -30,10 +30,10 @@ target_link_libraries(alpha_driver_impl PRIVATE
 )
 
 # === Executable ===
-add_executable("${ALPHA_DRIVER_EXECUTABLE}"
-    src/app_main.cpp
+add_executable("${COMPILER_EXE_NAME}"
+    src/main.cpp
 )
-target_link_libraries("${ALPHA_DRIVER_EXECUTABLE}" PRIVATE
+target_link_libraries("${COMPILER_EXE_NAME}" PRIVATE
     arguinator_api
     alpha_driver_api
 
@@ -52,9 +52,9 @@ add_custom_target(generate_parser_scanner ALL DEPENDS
     generate_parser
 )
 
-add_dependencies(${ALPHA_DRIVER_EXECUTABLE}
+add_dependencies(${COMPILER_EXE_NAME}
     generate_parser_scanner
 )
 
-target_compile_options(${ALPHA_DRIVER_EXECUTABLE} PRIVATE -flto)
-target_link_options(${ALPHA_DRIVER_EXECUTABLE} PRIVATE -flto)
+target_compile_options(${COMPILER_EXE_NAME} PRIVATE -flto)
+target_link_options(${COMPILER_EXE_NAME} PRIVATE -flto)

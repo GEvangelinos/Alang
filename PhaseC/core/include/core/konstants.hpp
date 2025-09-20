@@ -6,7 +6,7 @@
 
 namespace alpha
 {
-static constexpr u32 k_max_input_file_size = static_cast<u32>(-1) / 2;
+static constexpr u32 k_max_source_filesize = static_cast<u32>(-1) / 2;
 
 // ParseCtx's constants
 static constexpr u32 k_max_function_nesting = 256; // Function nesting sanity limit.

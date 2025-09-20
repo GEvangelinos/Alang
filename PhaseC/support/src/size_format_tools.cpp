@@ -12,7 +12,7 @@ static constexpr auto EB = 1ULL << 60;
 
 namespace alpha::support
 {
-std::string DataSize::to_string(const unsigned precision = 2) // Default precision is 2 floats
+std::string DataSize::to_string(const unsigned precision) // Default precision is 2 floats
 {
     return FMT::format("{0:.{1}f} {2}", this->size, precision, this->unit);
 }
