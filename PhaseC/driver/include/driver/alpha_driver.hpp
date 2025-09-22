@@ -1,17 +1,17 @@
-#include <filesystem>                      // for path
-#include <string>                          // for string
-#include "compilation_options.hpp"
+#ifndef ALPHA_DRIVER_HPP
+#define ALPHA_DRIVER_HPP
+
 #include "translation_unit.hpp"
-#include "diagnostics/diagnostic_engine.hpp"
+#include "settings/compiler_settings.hpp"
 
 namespace alpha
 {
-
 class Driver : private Immobile
 {
 public:
-    explicit Driver(const std::string &source_filepath, CompilationOptions::Values comp_options)
-        : tu(std::filesystem::path(source_filepath), std::move(comp_options)) {}
+    Driver(
+        const alpha::settings::ExprOpts &expr_opts,
+        const alpha::settings::ConfigData &config_data);
 
     ~Driver() = default;
 
@@ -29,7 +29,7 @@ public:
     bool ok() const noexcept;
 
 private:
-    // So far its only 1 TU, I made parsing system reentrant, to let multiple tu get compiled at once.
-    TranslationUnit tu;
+    std::list<TranslationUnit> translation_units_;
 };
 } // namespace alpha
+#endif // ALPHA_DRIVER_HPP

@@ -208,6 +208,7 @@ namespace alpha
 inline constexpr auto k_scanner_eof_null_padding = 2; // For 2 consecutive NULL bytes.
 
 PassManager::PassManager(
+    const alpha::settings::ExprOpts &expr_opts,
     TranslationUnitBuffer &tu_buffer,
     LocationTracker &lt,
     DiagnosticEngine &diagnostic_engine,
@@ -218,8 +219,11 @@ PassManager::PassManager(
       parse_ctx_(support::require_ptr(symbol_table)),
       lexer_ctx_(),
       semantic_system_(
-          ss_options_, &parse_ctx_, support::require_ptr(symbol_table),
-          diagnostic_engine_.reporter.get()) {}
+          expr_opts,
+          &parse_ctx_,
+          support::require_ptr(symbol_table),
+          diagnostic_engine_.reporter.get()
+      ) {}
 
 void
 PassManager::execute() { run_frontend(); }
@@ -228,9 +232,9 @@ void
 PassManager::run_frontend()
 {
     // The following are the possible return values yyparse can return (based on bison's manual).
-    constexpr auto successful_parsing = 0;
-    constexpr auto invalid_input = 1;
-    constexpr auto memory_exhaustion = 2;
+    [[maybe_unused]] constexpr auto successful_parsing = 0;
+    [[maybe_unused]] constexpr auto invalid_input = 1;
+    [[maybe_unused]] constexpr auto memory_exhaustion = 2;
 
     running_phase_ = Phase::FRONTEND;
     parser_retval_ = alpha_yyparse(
@@ -313,16 +317,22 @@ TranslationUnitBuffer::open_source(const std::filesystem::path &path)
 
 TranslationUnit::TranslationUnit(
     const std::filesystem::path &source_path,
-    CompilationOptions::Values comp_options)
+    const std::size_t max_errors,
+    const settings::ExprOpts &expr_opts)
     : source_path_(source_path),
-      compilation_options_(std::move(comp_options)),
-      diagnostic_engine_(create_diagnostic_engine_policy(), comp_options.max_errors),
+      expr_opts_(expr_opts),
+      diagnostic_engine_(create_diagnostic_engine_policy(), max_errors),
       translation_unit_buffer_(source_path, k_scanner_eof_null_padding),
       loc_tracker_(translation_unit_buffer_.size() - translation_unit_buffer_.null_padding),
       diagnostic_formatter_(source_path, loc_tracker_, translation_unit_buffer_.data()),
       symbol_table_(),
       pass_manager_(std::make_unique<PassManager>(
-          translation_unit_buffer_, loc_tracker_, diagnostic_engine_, &symbol_table_)) {}
+          expr_opts,
+          translation_unit_buffer_,
+          loc_tracker_,
+          diagnostic_engine_,
+          &symbol_table_
+      )) {}
 
 PassManager::ScannerHandle::ScannerHandle(TranslationUnitBuffer &tu_buffer)
 {

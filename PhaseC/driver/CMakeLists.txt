@@ -17,7 +17,6 @@ target_link_libraries(alpha_driver_api INTERFACE
 add_library(alpha_driver_impl STATIC
     src/alpha_driver.cpp
     src/translation_unit.cpp
-    src/compilation_options.cpp
     src/exception.cpp
 )
 target_include_directories(alpha_driver_impl PRIVATE
@@ -26,6 +25,7 @@ target_include_directories(alpha_driver_impl PRIVATE
 target_link_libraries(alpha_driver_impl PRIVATE
     alpha_driver_api
     alpha_core_api
+    alpha_settings_api
     arguinator_api
 )
 
@@ -36,6 +36,7 @@ add_executable("${COMPILER_EXE_NAME}"
 target_link_libraries("${COMPILER_EXE_NAME}" PRIVATE
     arguinator_api
     alpha_driver_api
+    alpha_settings_api
 
     arguinator_impl
     support_impl
@@ -44,6 +45,7 @@ target_link_libraries("${COMPILER_EXE_NAME}" PRIVATE
     alpha_diagnostics_impl
     alpha_parser_impl
     alpha_scanner_impl
+    alpha_settings_impl
 )
 
 # === Custom generation step (scanner + parser) ===

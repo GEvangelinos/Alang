@@ -208,7 +208,7 @@ void ensure_required_flags_present(const std::map<std::string, Flag> &flag_map)
 
 namespace arguinator
 {
-Parser::Parser(int argc, const char *const *argv, const std::string &description)
+Parser::Parser(const int argc, const char *const *const argv, const std::string &description)
     : argc_(argc), argv_(argv), description_(description)
 {
     /* We want to assert, because internally we convert to std::size_t, plus argc <= 0 makes no
@@ -240,8 +240,8 @@ void Parser::parse_flags_impl()
     std::size_t flag_index = 1; /* We begin from index 1 to skip name of program. */
     while (flag_index < argc_)
     {
-        std::string current_flag_name =
-                argv_[flag_index]; /* First argument must be a flag (--example-flag). */
+        /* First argument must be a flag (--example-flag). */
+        std::string current_flag_name = argv_[flag_index];
 
         assert_flag_format(current_flag_name);
         strip_flag_prefix(current_flag_name);

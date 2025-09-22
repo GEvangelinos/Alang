@@ -56,12 +56,22 @@ ExprFolder::try_fold_arithmetic_binary(
 {
     const auto fold_arith_op = [this, opc, result_loc](const auto l, const auto r) -> const Expr *
     {
+        const auto make_const_num_expr = [this, result_loc](const auto num) -> const Expr *
+        {
+            if constexpr (std::is_integral_v<decltype(num)>)
+                return expr_maker_->make_const_int_expr(result_loc, num);
+            else if constexpr (std::is_floating_point_v<decltype(num)>)
+                return expr_maker_->make_const_float_expr(result_loc, num);
+            else
+                static_assert(always_false_v<void>, "Unsupported numeric Alpha type");
+        };
+
         switch (opc)
         {
-        case ir::Opcode::ADD: return expr_maker_->make_const_float_expr(result_loc, l + r);
-        case ir::Opcode::SUB: return expr_maker_->make_const_float_expr(result_loc, l - r);
-        case ir::Opcode::MUL: return expr_maker_->make_const_float_expr(result_loc, l * r);
-        case ir::Opcode::DIV: return expr_maker_->make_const_float_expr(result_loc, l / r);
+        case ir::Opcode::ADD: return make_const_num_expr(l + r);
+        case ir::Opcode::SUB: return make_const_num_expr(l - r);
+        case ir::Opcode::MUL: return make_const_num_expr(l * r);
+        case ir::Opcode::DIV: return make_const_num_expr(l / r);
         case ir::Opcode::MOD:
             if constexpr (std::is_same_v<decltype(l), AlphaInt> && std::is_same_v<decltype(r), AlphaInt>) // NOLINT
                 return expr_maker_->make_const_int_expr(result_loc, l % r);
@@ -71,10 +81,7 @@ ExprFolder::try_fold_arithmetic_binary(
         }
     };
 
-    DEBUG_SMART_ASSERT(
-        !!lhs, !!rhs,
-        SemUtils::is_binary_arithmetic_opcode(opc)
-    );
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs, SemUtils::is_binary_arithmetic_opcode(opc));
     if (!ExprFolder::should_fold_arithmetic(lhs, rhs))
         return nullptr;
 
@@ -267,7 +274,7 @@ const Expr *
 ExprOptimizer::try_propagate_const(const Expr *const expr)
 {
     DEBUG_SMART_ASSERT(
-        !options_.constant_propagation &&
+        options_.constant_propagation &&
         "Constant propagation is OFF, shouldn't be called"
     );
     if (expr->type != Expr::Type::VARIABLE)
@@ -286,11 +293,7 @@ try_trim_add(
     const Expr *const rhs,
     const SourceLocation add_loc)
 {
-    DEBUG_SMART_ASSERT(
-        !!expr_maker, !!lhs, !!rhs,
-        !(lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
-        && "try_trim_add: both operands are const; should be folded by ExprFolder."
-    );
+    DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
     // 0 + x -> x and x + 0 -> x
     if (lhs->is_const_0()) return expr_maker->clone_with_updated_location(add_loc, rhs);
     if (rhs->is_const_0()) return expr_maker->clone_with_updated_location(add_loc, lhs);
@@ -304,11 +307,7 @@ try_trim_sub(
     const Expr *const rhs,
     const SourceLocation sub_loc)
 {
-    DEBUG_SMART_ASSERT(
-        !!expr_maker, !!lhs, !!rhs,
-        !(lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
-        && "try_trim_add: both operands are const; should be folded by ExprFolder."
-    );
+    DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
     // x - 0 -> x
     if (rhs->is_const_0()) return expr_maker->clone_with_updated_location(sub_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
@@ -321,11 +320,7 @@ try_trim_mul(
     const Expr *const rhs,
     const SourceLocation mul_loc)
 {
-    DEBUG_SMART_ASSERT(
-        !!expr_maker, !!lhs, !!rhs,
-        !(lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
-        && "try_trim_add: both operands are const; should be folded by ExprFolder."
-    );
+    DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
     // x * 0 -> 0 and 0 * x -> 0
     if (lhs->is_const_0() || rhs->is_const_0())
         return expr_maker->make_const_int_expr(mul_loc, 0);
@@ -343,11 +338,7 @@ try_trim_div(
     const Expr *const rhs,
     const SourceLocation div_loc)
 {
-    DEBUG_SMART_ASSERT(
-        !!expr_maker, !!lhs, !!rhs,
-        !(lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
-        && "try_trim_add: both operands are const; should be folded by ExprFolder."
-    );
+    DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
     if (rhs->is_const_1()) return expr_maker->clone_with_updated_location(div_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
 }
@@ -355,15 +346,11 @@ try_trim_div(
 const Expr *
 try_trim_mod(
     ExprMaker *const expr_maker,
-    const Expr *const lhs,
+    [[maybe_unused]] const Expr *const lhs,
     const Expr *const rhs,
     const SourceLocation mod_loc)
 {
-    DEBUG_SMART_ASSERT(
-        !!expr_maker, !!lhs, !!rhs,
-        !(lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
-        && "try_trim_add: both operands are const; should be folded by ExprFolder."
-    );
+    DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
     // x % 1 -> 0
     if (rhs->is_const_1()) return expr_maker->make_const_int_expr(mod_loc, 0);
     return nullptr; // Trimming failed (most common scenario)

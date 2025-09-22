@@ -1,12 +1,14 @@
 #include "L1_driver/semantic_system.hpp"
 
+#include <set>
+
 #include "internal_typedefs.hpp"
 #include "core/konstants.hpp"
 
 namespace alpha
 {
 SemanticSystem::SemanticSystem(
-    const Options &options,
+    const settings::ExprOpts &opts,
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
     DiagnosticReporter *const dr)
@@ -20,15 +22,15 @@ SemanticSystem::SemanticSystem(
       // Private components, used by public submodules.
       quad_handler_(std::make_unique<QuadHandler>()),
       expr_optimizer_(std::make_unique<ExprOptimizer>(
-          get_expr_optimizer_options(options),
+          get_expr_optimizer_options(opts),
           expr_maker_.get()
       )),
       ss_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
       aggregate_builder(create_semantic_system_services()),
 
       // public (through call() dispatcher) servicers, used by users of semantic driver.
-      assign_builder(get_assign_builder_options(options), create_semantic_system_services()),
-      basic_builder(get_basic_builder_options(options), create_semantic_system_services()),
+      assign_builder(get_assign_builder_options(opts), create_semantic_system_services()),
+      basic_builder(get_basic_builder_options(opts), create_semantic_system_services()),
       block_manager(create_semantic_system_services()),
       call_builder(create_semantic_system_services()),
       const_builder(create_semantic_system_services()),
@@ -56,29 +58,29 @@ SemanticSystem::create_semantic_system_services()
 }
 
 AssignBuilder::Options
-SemanticSystem::get_assign_builder_options(const Options &options)
+SemanticSystem::get_assign_builder_options(const settings::ExprOpts &opts)
 {
     return {
         // constant propagation requires recording of constants inside Expr(essions)
-        .record_constant_variables = options.propagate_constants
+        .record_constant_variables = opts.opt_propagate_const_vars
     };
 }
 
 BasicBuilder::Options
-SemanticSystem::get_basic_builder_options(const Options &options)
+SemanticSystem::get_basic_builder_options(const settings::ExprOpts &opts)
 {
     return {
-        .fold_static_bools = options.expr_folding
+        .fold_static_bools = opts.opt_fold_const_expr
     };
 }
 
 ExprOptimizer::Options
-SemanticSystem::get_expr_optimizer_options(const Options &options)
+SemanticSystem::get_expr_optimizer_options(const settings::ExprOpts&opts)
 {
     return {
-        .constant_propagation = options.propagate_constants,
-        .expr_folding = options.expr_folding,
-        .expr_trimming = options.expr_trimming,
+        .constant_propagation = opts.opt_propagate_const_vars,
+        .expr_folding = opts.opt_fold_const_expr,
+        .expr_trimming = opts.opt_trim_expr,
     };
 }
 

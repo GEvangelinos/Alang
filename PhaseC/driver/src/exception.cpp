@@ -61,4 +61,12 @@ CLIOptionRangeError::CLIOptionRangeError(
         "Option '--{}' with value '{}' is out of range for {}.",
         flag_name, value, type_name
     )) {}
+
+CLIOptionValueError::CLIOptionValueError(
+    const std::string_view flag_name,
+    const std::string_view value)
+    : DriverError(FMT::format(
+        "Option '--{}' with value '{}' is invalid.",
+        flag_name, value
+    )) {}
 } // namespace alpha::exception

@@ -23,14 +23,14 @@
 | `patch_`      | Resolve recorded labels to the current position. | `void` | ✅ | Builders / managers |
 
 **Project examples:**  
-- `basic_builder.build_arithmetic`, `basic_builder.build_relational`, `basic_builder.build_uminus`  
-- `assign_builder.build_assignment`, `build_pre_inc`, `build_post_dec`  
-- `table_access_builder.build_member_access`, `build_index_access`  
-- `aggregate_builder.build_table_list_consuming`, `build_expr_pair`  
-- `call_builder.update_method_call_draft`, `build_method_call_consuming`  
-- `function_builder.update_function_draft`, `collect_function_parameter`, `build_program_function_entry/exit`  
+- `basic_MODEer.build_arithmetic`, `basic_MODEer.build_relational`, `basic_MODEer.build_uminus`  
+- `assign_MODEer.build_assignment`, `build_pre_inc`, `build_post_dec`  
+- `table_access_MODEer.build_member_access`, `build_index_access`  
+- `aggregate_MODEer.build_table_list_consuming`, `build_expr_pair`  
+- `call_MODEer.update_method_call_draft`, `build_method_call_consuming`  
+- `function_MODEer.update_function_draft`, `collect_function_parameter`, `build_program_function_entry/exit`  
 - `loop_manager.process_break`, `process_continue`  
-- `basic_builder.mark_short_circuit_jump_point`
+- `basic_MODEer.mark_short_circuit_jump_point`
 
 ---
 
@@ -60,7 +60,7 @@
 - Grammar actions **only** call dispatcher-visible functions declared with `DISPATCH_SLAVE_METHOD_CALL`.  
 - Internal helpers stay `private` and use `handle_`/`validate_`/`try_optimize_` prefixes.  
 - Use declarative, readable calls from grammar, e.g.:  
-  `ss.call<"basic_builder.build_arithmetic">(Op::ADD, $lhs, $rhs, @out);`
+  `ss.call<"basic_MODEer.build_arithmetic">(Op::ADD, $lhs, $rhs, @out);`
 
 **Boolean contexts:** Grammar may remain permissive (`expr` on LHS of `=`); semantic builders perform lvalue checks and emit precise diagnostics.
 

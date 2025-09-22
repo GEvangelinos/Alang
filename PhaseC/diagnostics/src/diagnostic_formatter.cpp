@@ -198,10 +198,12 @@ DiagnosticFormatter::build_underline(const Issue &issue, const u32 line_no) cons
 std::vector<std::string>
 DiagnosticFormatter::build_suggestion_lines(const Suggestion &suggestion) const
 {
-    const u32 line_no = loc_tracker_.find_last_line(suggestion.insert_after);
-    const u32 line_start = loc_tracker_.find_index_of_line(line_no);
+    DEBUG(
+        const u32 line_no = loc_tracker_.find_last_line(suggestion.insert_after);
+        const u32 line_start = loc_tracker_.find_index_of_line(line_no);
 
-    DEBUG_SMART_ASSERT(suggestion.insert_after.last_index >= line_start);
+        DEBUG_SMART_ASSERT(suggestion.insert_after.last_index >= line_start);
+    )
 
     // How far into the line the suggestion should be indented,
     // so that first character of each line is under suggested source location.
@@ -268,7 +270,8 @@ DiagnosticFormatter::format_issue_line(
 
     const std::string codeline = build_codeline(line_no);
     const std::string underline = build_underline(issue, line_no);
-    if (support::is_blank_str(codeline) && support::is_blank_str(underline) && !issue.suggestion.has_value())
+    if (support::is_blank_str(codeline) && support::is_blank_str(underline) && !issue.suggestion.
+        has_value())
         return;
 
     u32 suggestion_line_no = 0;

@@ -201,7 +201,6 @@ private:
     };
 
     const ParseCtx *const host_;
-
     VectorStack<TempCtxFrame> temp_ctx_frame_stack_;
 };
 

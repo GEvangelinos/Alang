@@ -13,13 +13,15 @@ extern bool g_show_parser_trace;
 #else
 static void display_trace(const std::string &lhs, const std::string &rhs)
 {
-        // std::cout << COLOR_ASCII_BOLD_GREEN
-        //           << std::setw(20)
-        //           << lhs
-        //           << SGR_RESET
-        //           << " ⟶ "
-        //           << rhs
-        //           << std::endl;
+    if (!g_show_parser_trace)
+        return;
+    std::cout << COLOR_ASCII_BOLD_GREEN
+              << std::setw(20)
+              << lhs
+              << SGR_RESET
+              << " ⟶ "
+              << rhs
+              << std::endl;
 }
 #endif // OPTIMIZED_MODE
 #endif // ALPHA_TRACE_LOGGER_HPP

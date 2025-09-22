@@ -4,10 +4,10 @@
 #include <memory>
 #include <scanner/scanner_context.hpp>
 
-#include "compilation_options.hpp"
 #include "core/basics.hpp"
 #include "L1_driver/semantic_system.hpp"
 #include "diagnostics/diagnostic_formatter.hpp"
+#include "settings/compiler_settings.hpp"
 
 // Forward declaration instead of including the <parser/alpha_parser.gen.hpp> header
 typedef void *yyscan_t;
@@ -41,6 +41,7 @@ class PassManager : private Immobile
 {
 public:
     PassManager(
+        const settings::ExprOpts& expr_opts,
         TranslationUnitBuffer &tu_buffer,
         LocationTracker &lt,
         DiagnosticEngine &diagnostic_engine,
@@ -69,7 +70,6 @@ private:
     };
 
     Phase running_phase_ = Phase::FRONTEND;
-    SemanticSystem::Options ss_options_ = {false, false, false, false};
 
     LocationTracker &lt_;
     DiagnosticEngine &diagnostic_engine_;
@@ -87,7 +87,9 @@ class TranslationUnit
 {
 public:
     TranslationUnit(
-        const std::filesystem::path &source_path, CompilationOptions::Values comp_options);
+        const std::filesystem::path &source_path,
+        std::size_t max_errors,
+        const alpha::settings::ExprOpts &expr_opts);
 
     ~TranslationUnit() = default;
 
@@ -104,7 +106,7 @@ public:
 
 private:
     const std::filesystem::path source_path_;
-    const CompilationOptions::Values compilation_options_;
+    const alpha::settings::ExprOpts expr_opts_;
     DiagnosticEngine diagnostic_engine_;
     TranslationUnitBuffer translation_unit_buffer_;
     LocationTracker loc_tracker_;

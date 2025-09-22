@@ -111,8 +111,7 @@ FunctionBuilder::FunctionBuilder(const SemanticSystemServices &ss_services)
     : DISPATCH_TARGET(ss_services) {}
 
 FunctionBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
-    : SemanticSubsystem(ss_services),
-      function_draft_(std::string()) {}
+    : SemanticSubsystem(ss_services) {}
 
 TableAccessBuilder::TableAccessBuilder(const SemanticSystemServices &ss_services)
     : DISPATCH_TARGET(ss_services) {}
@@ -230,6 +229,8 @@ AggregateBuilder::Restricted::initiate_table_literal(const SourceLocation table_
     quad_handler_->emit_next(
         ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
     draft_.table_literal_stack.emplace(new_table_expr);
+    #else
+    (void) table_list_loc;
     #endif
 }
 
@@ -405,9 +406,9 @@ AssignBuilder::Restricted::validate_assignment(
 bool
 AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const Expr *const rvalue)
 {
-    DEBUG_SMART_ASSERT(!!lvalue, !!rvalue);
     DEBUG_SMART_ASSERT(
-        !options_.record_constant_variables &&
+        !!lvalue, !!rvalue,
+        options_.record_constant_variables &&
         "Recording values of constant variables is OFF, shouldn't be called"
     );
     if (lvalue->type != Expr::Type::VARIABLE)
@@ -482,10 +483,11 @@ AssignBuilder::Restricted::build_inc_dec(const Expr *const expr, const SourceLoc
     else if constexpr (op_variant == OpVariant::POST)
         return handle_post_inc_dec<Policy>(expr, result_loc);
     else
-        static_assert([]() { return false; }(), "build_inc_dec(): Unknown OpVariant");
+        static_assert(always_false_v<void>, "build_inc_dec(): Unknown OpVariant");
 }
 
 template<typename Policy>
+
 const Expr *
 AssignBuilder::Restricted::handle_pre_inc_dec(
     const Expr *const expr,
@@ -500,7 +502,8 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(expr);
         const Expr *const result = ss_bridge_->materialize_if_table_item(ti_lvalue); // EMITS!
         qh->emit_next(Policy::opc, result, result, &k_static_int_1_expr, result_loc);
-        qh->emit_next(ir::Opcode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result, result_loc);
+        qh->emit_next(ir::Opcode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result,
+                      result_loc);
         return DEBUG_REQUIRE_PTR(result);
     }
     qh->emit_next(Policy::opc, expr, expr, &k_static_int_1_expr, result_loc);
@@ -513,9 +516,13 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
     return DEBUG_REQUIRE_PTR(expr);
 }
 
-template<typename Policy>
+template
+<
+    typename Policy>
+
 const Expr *
-AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue, const SourceLocation result_loc)
+AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue,
+                                               const SourceLocation result_loc)
 {
     static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
     auto *const qh = quad_handler_; // Short alias for readability.
@@ -561,7 +568,9 @@ BasicBuilder::Restricted::build_uminus(
 
     if (!validate_arithmetic_expr(ir::Opcode::UMINUS, expr, OperandSide::UNARY))
         goto skip_opt;
-    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::UMINUS>(result_loc, expr))
+
+    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::UMINUS>(
+        result_loc, expr))
         return optimized;
 
 skip_opt:
@@ -591,7 +600,6 @@ BasicBuilder::Restricted::build_arithmetic(
     // Warn on CT div-by-zero, skip folding; VM must still handle division-by-zero at runtime.
     if (!validate_possible_division(opc, rhs, result_loc))
         goto skip_opt;
-
     if (const auto optimized = this->try_optimize_arithmetic_expr(opc, lhs, rhs, result_loc))
         return optimized;
 
@@ -637,7 +645,8 @@ skip_opt:
 }
 
 const Expr *
-BasicBuilder::Restricted::build_logical_not(const Expr *const expr, const SourceLocation result_loc)
+BasicBuilder::Restricted::build_logical_not(const Expr *expr,
+                                            const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
     DEBUG_SMART_ASSERT(expr->is_bool_or_const_bool());
@@ -656,14 +665,15 @@ BasicBuilder::Restricted::build_logical_not(const Expr *const expr, const Source
 
 const Expr *
 BasicBuilder::Restricted::build_logical_and(
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr *lhs,
+    const Expr *rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
     DEBUG_SMART_ASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
 
-    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::AND>(result_loc, lhs, rhs))
+    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::AND>(
+        result_loc, lhs, rhs))
         return optimized;
 
     reset_temps_if_temp_operand(lhs, rhs);
@@ -679,14 +689,18 @@ BasicBuilder::Restricted::build_logical_or(
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
     DEBUG_SMART_ASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
 
-    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(result_loc, lhs, rhs))
+    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(
+        result_loc, lhs, rhs))
         return optimized;
 
     reset_temps_if_temp_operand(lhs, rhs);
     return build_short_circuit_bool_expr<OrShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
-template<typename Policy>
+template
+<
+    typename Policy>
+
 const Expr *
 BasicBuilder::Restricted::build_short_circuit_bool_expr(
     const Expr *const lhs,
@@ -699,7 +713,8 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
         "Unknown backpatching policy"
     );
 
-    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
+    DEBUG_SMART_ASSERT(
+        lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
     const BoolExpr *const lhs_bool = static_cast<const BoolExpr *>(lhs);
     const BoolExpr *const rhs_bool = static_cast<const BoolExpr *>(rhs);
     const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
@@ -784,7 +799,8 @@ BasicBuilder::Restricted::validate_relational_expr(
     // If here relational operator is:  < <= > >=
     if (expr->is_arithmetic_convertible())
         return true;
-    dr_->report_nonarith_rel_op_operand(op_side, SemUtils::relop_str(opc), expr->type, expr->loc);
+    dr_->report_nonarith_rel_op_operand(op_side, SemUtils::relop_str(opc), expr->type,
+                                        expr->loc);
     return false;
 }
 
@@ -805,40 +821,46 @@ BasicBuilder::Restricted::validate_possible_division(
 const Expr *
 BasicBuilder::Restricted::try_optimize_arithmetic_expr(
     const ir::Opcode opc,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr *&lhs,
+    const Expr *&rhs,
     const SourceLocation result_loc)
 {
-    using Op = ir::Opcode;
+    #define HANDLE_ARITHMETIC(OPC) \
+        case ir::Opcode::OPC:  return expr_optimizer_->try_optimize<ir::Opcode::OPC>(result_loc, lhs, rhs)
     switch (opc)
     {
-    case Op::ADD: return expr_optimizer_->try_optimize<Op::ADD>(result_loc, lhs, rhs);
-    case Op::SUB: return expr_optimizer_->try_optimize<Op::SUB>(result_loc, lhs, rhs);
-    case Op::MUL: return expr_optimizer_->try_optimize<Op::MUL>(result_loc, lhs, rhs);
-    case Op::DIV: return expr_optimizer_->try_optimize<Op::DIV>(result_loc, lhs, rhs);
-    case Op::MOD: return expr_optimizer_->try_optimize<Op::MOD>(result_loc, lhs, rhs);
-    default: [[unlikely]] UNREACHABLE(FMT::format("Unexpected opcode: {}", static_cast<int>(opc)));
+    HANDLE_ARITHMETIC(ADD);
+    HANDLE_ARITHMETIC(SUB);
+    HANDLE_ARITHMETIC(MUL);
+    HANDLE_ARITHMETIC(DIV);
+    HANDLE_ARITHMETIC(MOD);
+    default: [[unlikely]] UNREACHABLE(
+            FMT::format("Unexpected opcode: {}", static_cast<int>(opc)));
     }
+    #undef  HANDLE_ARITHMETIC
 }
 
 const Expr *
 BasicBuilder::Restricted::try_optimize_relational_expr(
     const ir::Opcode opc,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr *&lhs,
+    const Expr *&rhs,
     const SourceLocation result_loc)
 {
-    using Op = ir::Opcode;
+    #define HANDLE_RELATIONAL(OPC) \
+        case ir::Opcode::OPC:  return expr_optimizer_->try_optimize<ir::Opcode::OPC>(result_loc, lhs, rhs)
     switch (opc)
     {
-    case Op::IF_EQ: return expr_optimizer_->try_optimize<Op::IF_EQ>(result_loc, lhs, rhs);
-    case Op::IF_NEQ: return expr_optimizer_->try_optimize<Op::IF_NEQ>(result_loc, lhs, rhs);
-    case Op::IF_LT: return expr_optimizer_->try_optimize<Op::IF_LT>(result_loc, lhs, rhs);
-    case Op::IF_LTE: return expr_optimizer_->try_optimize<Op::IF_LTE>(result_loc, lhs, rhs);
-    case Op::IF_GT: return expr_optimizer_->try_optimize<Op::IF_GT>(result_loc, lhs, rhs);
-    case Op::IF_GTE: return expr_optimizer_->try_optimize<Op::IF_GTE>(result_loc, lhs, rhs);
-    default: [[unlikely]] UNREACHABLE(FMT::format("Unexpected opcode: {}", static_cast<int>(opc)));
+    HANDLE_RELATIONAL(IF_EQ);
+    HANDLE_RELATIONAL(IF_NEQ);
+    HANDLE_RELATIONAL(IF_LT);
+    HANDLE_RELATIONAL(IF_LTE);
+    HANDLE_RELATIONAL(IF_GT);
+    HANDLE_RELATIONAL(IF_GTE);
+    default: [[unlikely]] UNREACHABLE(
+            FMT::format("Unexpected opcode: {}", static_cast<int>(opc)));
     }
+    #undef  HANDLE_RELATIONAL
 }
 
 void
@@ -899,7 +921,8 @@ CallBuilder::Restricted::build_call_consuming(
 
     quad_handler_->emit_next(ir::Opcode::CALL, nullptr, func_expr, nullptr, call_loc);
     reset_temps_if_temp_operand(func_expr);
-    const Expr *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
+    const Expr *getretval_expr = expr_maker_->make_variable_expr(
+        call_loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
 
     CallBuilder::Restricted::delete_expr_list(arg_list);
@@ -924,7 +947,8 @@ CallBuilder::Restricted::build_method_call_consuming(
 
 const Expr *
 CallBuilder::Restricted::build_iife_call_consuming(
-    const FuncSymbol *const func_symbol, ExprList *arg_list, const SourceLocation call_loc)
+    const FuncSymbol *const func_symbol, ExprList *arg_list,
+    const SourceLocation call_loc)
 {
     DEBUG_SMART_ASSERT(!!func_symbol);
     const auto *const prog_func_expr = expr_maker_->make_prog_func_expr(call_loc, func_symbol);
@@ -958,7 +982,8 @@ ConstBuilder::Restricted::build_float_expr(const AlphaFloat value, const SourceL
 }
 
 const Expr *
-ConstBuilder::Restricted::build_string_expr(const char *const value, const SourceLocation loc)
+ConstBuilder::Restricted::build_string_expr(const char *const value,
+                                            const SourceLocation loc)
 {
     return expr_maker_->make_const_string_expr(loc, value);
 }
@@ -1077,11 +1102,14 @@ FunctionBuilder::Restricted::forward_program_function(
 /// or we’ll end up polluting the original function’s frame with
 /// local_variable_count from the redefinition. TODO: DO WE POLLUTE CURRENTLY?
 const FuncSymbol *
-FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation func_signature_loc)
+FunctionBuilder::Restricted::build_program_function_entry(
+    const SourceLocation func_signature_loc)
 {
-    const bool validated_funcname = validate_funcdef_name(function_draft_.id, func_signature_loc);
+    const bool validated_funcname = validate_funcdef_name(
+        function_draft_.id, func_signature_loc);
     const u32 skip_func_jump_label = quad_handler_->next_quad_label();
-    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_signature_loc);
+    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr,
+                                  func_signature_loc);
     const FuncSymbol *func_symbol = nullptr;
     if (validated_funcname)
     {
@@ -1101,19 +1129,23 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation f
             func_signature_loc
         );
     }
-    DEBUG_SMART_ASSERT(support::logical_xnor(validated_funcname, !!func_symbol)); // Sanity check
+    DEBUG_SMART_ASSERT(support::logical_xnor(validated_funcname, !!func_symbol));
+    // Sanity check
 
     parse_ctx_->func_ctx_handler.enter_function(
         function_draft_.id, func_signature_loc, func_symbol, skip_func_jump_label);
     register_function_parameters();
-    function_draft_.reset(); // Mandatory to support nested functions in the upcoming func-block.
-    parse_ctx_->space_handler.enter_space(); // New var space -- must be after param registration.
+    function_draft_.reset();
+    // Mandatory to support nested functions in the upcoming func-block.
+    parse_ctx_->space_handler.enter_space();
+    // New var space -- must be after param registration.
 
     return func_symbol;
 }
 
 const FuncSymbol *
-FunctionBuilder::Restricted::build_program_function_exit(const BlockSourceLocation block_loc)
+FunctionBuilder::Restricted::build_program_function_exit(
+    const BlockSourceLocation block_loc)
 {
     quad_handler_->patch_list(
         parse_ctx_->func_ctx_handler.return_list(), quad_handler_->next_quad_label());
@@ -1164,6 +1196,7 @@ TableAccessBuilder::Restricted::build_subscript_access(
     const Expr *const materialized_lvalue = ss_bridge_->materialize_if_table_item(base);
     const Expr *const materialized_index = ss_bridge_->materialize_if_table_item(subscript);
     ss_bridge_->finalize_bool_expr(materialized_index);
-    return expr_maker_->make_table_item_expr(access_loc, materialized_lvalue, materialized_index);
+    return expr_maker_->make_table_item_expr(access_loc, materialized_lvalue,
+                                             materialized_index);
 }
 } // namespace alpha

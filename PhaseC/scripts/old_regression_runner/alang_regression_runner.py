@@ -1,5 +1,5 @@
 """
-alpha_regression_runner.py
+alang_regression_runner.py
 
 Runs regression .tests for the Alpha compiler by:
 - Executing .asc test files (both working and error cases)
@@ -155,15 +155,15 @@ def validate_diagnostics(golden_diagnostic_dir: Path, asc_filepath: Path) -> int
 def run_compiler(alpha_compiler_path: Path, asc_filepath: Path, expect_errors: bool) -> int:
     alang_process_args = [
         str(alpha_compiler_path),
-        "--export-symbol-table-without-temps",
-        "--export-ir",
-        "--export-diagnostics",
-        "--no-show-diagnostics",
+        "--export_symbol_table_without_temps",
+        "--export_ir",
+        "--export_diagnostics",
+        "--no_show_diagnostics",
         "--source",
         asc_filepath,
     ]
     if expect_errors:
-        alang_process_args.append("--expect-errors")
+        alang_process_args.append("--expect_errors")
     completed_process = subprocess.run(alang_process_args)
     return completed_process.returncode
 
@@ -180,22 +180,22 @@ def run_valgrind_tests(alpha_compiler_path: Path, asc_filepath: Path, expect_err
     ]
     ac_args = [
         str(alpha_compiler_path),
-        "--export-symbol-table-without-temps",
-        "--export-ir",
-        "--export-diagnostics",
-        "--show-symbol-table",
-        "--no-show-diagnostics",
-        "--show-ir",
-        "--show-parser-trace",
+        "--export_symbol_table_without_temps",
+        "--export_ir",
+        "--export_diagnostics",
+        "--show_symbol_table",
+        "--no_show_diagnostics",
+        "--show_ir",
+        "--show_parser_trace",
         "--source",
         asc_filepath,
     ]
 
     if expect_errors:
-        ac_args.append("--expect-errors")
+        ac_args.append("--expect_errors")
 
     completed_process = subprocess.run(
-        valgrind_args + ac_args, stdout=subprocess.DEVNULL
+        valgrind_args + ac_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     )
 
     return completed_process.returncode
@@ -313,10 +313,9 @@ def delete_export_dir(export_dir: Path) -> None:
 
 
 def cleanup():
-    # TODO uncomment!
     # delete_export_dir(Path(os.path.join(os.getcwd(), SYMBOL_TABLES_DIR)))
     # delete_export_dir(Path(os.path.join(os.getcwd(), IR_DIR)))
-    # delete_export_dir(Path(os.path.join(os.getcwd(), COMPILE_ERRORS_DIR)))
+    # delete_export_dir(Path(os.path.join(os.getcwd(), DIAGNOSTICS_DIR)))
     pass
 
 

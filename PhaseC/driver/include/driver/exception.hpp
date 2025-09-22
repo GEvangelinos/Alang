@@ -69,6 +69,12 @@ public:
         std::string_view flag_name, std::string_view value, std::string_view type_name);
 };
 
+class CLIOptionValueError final : public DriverError
+{
+public:
+    CLIOptionValueError(std::string_view flag_name, std::string_view value);
+};
+
 class DiagnosticError {};
 
 class DiagnosticFatalError final : DiagnosticError

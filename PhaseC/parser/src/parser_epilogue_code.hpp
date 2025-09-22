@@ -49,8 +49,10 @@ determine_suggested_token_based_on_parsing_heuristics(
     const LexerCtx &lexer_ctx,
     const Info &info)
 {
-    DEBUG_SMART_ASSERT(info.unexpected_token != YYSYMBOL_YYEMPTY &&
-        "Should not be called without unexpected symbol");
+    DEBUG_SMART_ASSERT(
+        info.unexpected_token != YYSYMBOL_YYEMPTY &&
+        "Should not be called without unexpected symbol"
+    );
 
     if (!lexer_ctx.second_last_token_info().has_value())
         return YYSYMBOL_YYEMPTY;
@@ -83,6 +85,7 @@ determine_suggested_token_based_on_parsing_heuristics(
     if (has_expected(info, YYSYMBOL_SEMICOLON) &&
         slast_token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
         slast_token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE) { return YYSYMBOL_SEMICOLON; }
+    return YYSYMBOL_YYEMPTY;
 }
 
 [[nodiscard]] bool
@@ -214,9 +217,10 @@ collect_expected_tokens(const yypcontext_t *const yyctx)
         return {};
 
     std::vector<yysymbol_kind_t> result(count);
-    unsigned int filled = yypcontext_expected_tokens_or_throw(yyctx, result.data(), count);
-    DEBUG_SMART_ASSERT(filled == count && filled == result.size());
 
+    [[maybe_unused]] unsigned int filled = // Only used in DEBUG
+        yypcontext_expected_tokens_or_throw(yyctx, result.data(), count);
+    DEBUG_SMART_ASSERT(filled == count && filled == result.size());
     return result;
 }
 
@@ -308,7 +312,6 @@ static void report_unexpected_eof(
     const Info &info)
 {
     DEBUG_SMART_ASSERT(info.unexpected_token == YYSYMBOL_YYEOF);
-
     const std::optional<TokenInfo> last_token_info_opt = lexer_ctx.last_token_info();
     std::optional<Suggestion> suggestion;
     if (last_token_info_opt.has_value())
@@ -428,7 +431,7 @@ report_many_expected_diagnostic(
     }
 
     const yysymbol_kind_t suggested_symbol =
-            determine_suggested_token_based_on_parsing_heuristics(ss, loc_tracker, lexer_ctx, info);
+        determine_suggested_token_based_on_parsing_heuristics(ss, loc_tracker, lexer_ctx, info);
 
     if (suggested_symbol != YYSYMBOL_YYEMPTY)
     {

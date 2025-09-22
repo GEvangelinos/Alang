@@ -123,7 +123,11 @@ target_include_directories(alpha_parser_api INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
     "${CMAKE_CURRENT_SOURCE_DIR}/include/parser"
 )
-target_link_libraries(alpha_parser_api INTERFACE support_api)
+target_link_libraries(alpha_parser_api INTERFACE
+    support_api
+    alpha_settings_api
+)
+
 #TODO short in alphabetical order! (like in directory explorer tab)
 add_library(alpha_parser_impl STATIC
     ${ALPHA_PARSER_OUTPUT_FILEPATH} # <- Generated
@@ -141,6 +145,11 @@ add_library(alpha_parser_impl STATIC
     src/L3_ir_infra/expr_maker.cpp
     invariants/ir_opcode_static_invariants.cpp
 )
+
+# To silence false positive of Bison's generated code.
+set_source_files_properties(${ALPHA_PARSER_OUTPUT_FILEPATH} PROPERTIES COMPILE_OPTIONS -Wno-free-nonheap-object)
+set_source_files_properties(${ALPHA_PARSER_OUTPUT_FILEPATH} PROPERTIES COMPILE_OPTIONS -Wno-unused-but-set-variable)
+
 target_include_directories(alpha_parser_impl PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     "${GENERATED_INCLUDE_COMPONENT_DIR}"  # For Bison-generated .cpp to find its corresponding header

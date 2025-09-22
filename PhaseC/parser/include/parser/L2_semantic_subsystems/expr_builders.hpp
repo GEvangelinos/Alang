@@ -235,9 +235,9 @@ private:
         // Only arithmetic and relational builders take ir::Opcode as a runtime arg,
         // since they share logic with the opcode being the only varying part.
         [[nodiscard]] const Expr *try_optimize_arithmetic_expr(
-            ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+            ir::Opcode opc, const Expr *&lhs, const Expr *&rhs, SourceLocation result_loc);
         [[nodiscard]] const Expr *try_optimize_relational_expr(
-            ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+            ir::Opcode opc, const Expr *&lhs, const Expr *&rhs, SourceLocation result_loc);
 
         void warn_if_lossy_conversion_int_to_float(AlphaInt value, SourceLocation conversion_loc);
     };
@@ -373,7 +373,8 @@ private:
         void collect_function_parameter(const std::string &id, SourceLocation id_loc);
         [[nodiscard]] const Expr *forward_program_function(
             const FuncSymbol *func_symbol, SourceLocation result_loc);
-        [[nodiscard]] const FuncSymbol *build_program_function_entry(SourceLocation func_signature_loc);
+        [[nodiscard]] const FuncSymbol *build_program_function_entry(
+            SourceLocation func_signature_loc);
         [[nodiscard]] const FuncSymbol *build_program_function_exit(BlockSourceLocation block_loc);
 
         void register_function_parameters();

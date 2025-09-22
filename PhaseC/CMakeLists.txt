@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
 set(COMPILER_NAME "alang" CACHE STRING "Name of the main compiler")
-set(COMPILER_EXE_NAME "${COMPILER_NAME}" CACHE STRING "Name of the main compiler")
+set(COMPILER_EXE_NAME ${COMPILER_NAME} CACHE STRING "Name of the produced executable")
 
 set(AUTOGEN_DIRNAME "AUTOGEN" CACHE STRING "Name of the directory where auto-generated files are stored")
 
@@ -255,7 +255,7 @@ function(add_regression_check_target target_name do_memcheck)
     add_custom_target(${target_name}
         COMMAND "${Python3_EXECUTABLE}"
         "-B"
-        "${CMAKE_SOURCE_DIR}/scripts/alpha_regression_runner.py"
+        "${CMAKE_SOURCE_DIR}/scripts/old_regression_runner/alang_regression_runner.py"
         ${regression_args}
     )
 
@@ -264,8 +264,8 @@ endfunction()
 
 if (NOT HATE_PYTHON_MODE)
     if (Python3_FOUND)
-        add_regression_check_target(regression_check OFF)
-        add_regression_check_target(regression_check_full ON)
+        add_regression_check_target(regression_check_old OFF)
+        add_regression_check_target(regression_check_old_full ON)
     else ()
         message(WARNING "Regression check targets not available, as `Python3` was not found.")
     endif ()
@@ -287,6 +287,7 @@ add_subdirectory(diagnostics)
 add_subdirectory(parser)
 add_subdirectory(scanner)
 add_subdirectory(driver)
+add_subdirectory(settings)
 
 # === Utilities ===
 add_subdirectory(arguinator)

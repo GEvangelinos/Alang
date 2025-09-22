@@ -24,11 +24,11 @@
 
 constexpr const char *base_filename(const char *path)
 {
-        const char *last_slash = path;
-        for (const char *p = path; *p != '\0'; ++p)
-                if (*p == '/' || *p == '\\')
-                        last_slash = p + 1;
-        return last_slash;
+    const char *last_slash = path;
+    for (const char *p = path; *p != '\0'; ++p)
+        if (*p == '/' || *p == '\\')
+            last_slash = p + 1;
+    return last_slash;
 }
 
 extern "C"
@@ -39,26 +39,32 @@ extern "C"
 #define __FILENAME__ base_filename(__FILE__)
 #endif /* __FILENAME__ */
 
+#ifdef __cplusplus
+[[maybe_unused]]
+#endif
 static int _get_nth_comma_position(const char *string, const int target_comma_count)
 {
-        int string_index = 0;
-        int found_commas = 0;
-        for(; (string)[string_index] != '\0'; string_index++)
-        {
-                if(string[string_index] == ',')
-                        found_commas++;
-                if(found_commas == (target_comma_count))
-                        break;
-        }
-        return (found_commas == target_comma_count) ? string_index : 0;
+    int string_index = 0;
+    int found_commas = 0;
+    for (; (string)[string_index] != '\0'; string_index++)
+    {
+        if (string[string_index] == ',')
+            found_commas++;
+        if (found_commas == (target_comma_count))
+            break;
+    }
+    return (found_commas == target_comma_count) ? string_index : 0;
 }
 
+#ifdef __cplusplus
+[[maybe_unused]]
+#endif
 static int _get_leading_spaces(const char *_string)
 {
-        int offset = 0;
-        while(((char *)(_string))[offset] == ' ')
-                offset++;
-        return offset;
+    int offset = 0;
+    while (((char *) (_string))[offset] == ' ')
+        offset++;
+    return offset;
 }
 
 #if defined(__cplusplus) && __cplusplus >= 202002L

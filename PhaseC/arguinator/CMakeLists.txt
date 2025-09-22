@@ -2,7 +2,7 @@
 add_library(arguinator_api INTERFACE)
 
 target_include_directories(arguinator_api INTERFACE
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
 # === arguinator_impl: Implementation ===

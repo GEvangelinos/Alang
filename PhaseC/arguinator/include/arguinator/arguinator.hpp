@@ -36,7 +36,7 @@ private:
 
     void parse_flags_impl();
     [[nodiscard]] std::string generate_help_text() const;
-    void display_help_page();
+    [[noreturn]] void display_help_page();
 }; /* class Parser */
 
 class Flag

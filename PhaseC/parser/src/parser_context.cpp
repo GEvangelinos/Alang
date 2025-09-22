@@ -20,7 +20,7 @@ SpaceHandler::~SpaceHandler()
 }
 
 ScopeHandler::ScopeHandler(const ParseCtx *host)
-    : host_(host)
+    : host_(support::require_ptr(host))
 {
     DEBUG_SMART_ASSERT(
         scope_ == k_global_scope &&
@@ -151,7 +151,7 @@ FunctionCtxHandler::exit_function() noexcept
 }
 
 TempCtxHandler::TempCtxHandler(const ParseCtx *const host)
-    : host_(host) { push_temp_ctx_frame(); }
+    : host_(support::require_ptr(host)) { push_temp_ctx_frame(); }
 
 TempCtxHandler::~TempCtxHandler()
 {

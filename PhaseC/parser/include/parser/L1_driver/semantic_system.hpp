@@ -27,6 +27,7 @@
 
 #include <core/fixed_string.hpp>
 #include <L1_driver/semantic_system_dispatcher_dsl.hpp>
+
 #include "core/basics.hpp"
 #include "L2_semantic_subsystems/block_manager.hpp"
 #include "L3_ir_infra/expr_maker.hpp"
@@ -37,6 +38,7 @@
 #include "parser/L2_semantic_subsystems/control_flow_managers.hpp"
 #include "parser/L2_semantic_subsystems/expr_builders.hpp"
 #include "parser/L2_semantic_subsystems/lvalue_resolver.hpp"
+#include "settings/compiler_settings.hpp"
 
 namespace alpha
 {
@@ -48,16 +50,8 @@ class SemanticSystem : private Immobile
     friend class SemanticSystemBridge;
 
 public: // More public stuff at the end (check it out)
-    struct Options
-    {
-        const bool expr_folding;
-        const bool expr_trimming;
-        const bool propagate_constants;
-        const bool propagate_const_return;
-    };
-
     SemanticSystem(
-        const Options &options,
+        const settings::ExprOpts &opts,
         ParseCtx *parse_ctx,
         SymbolTable *symbol_table,
         DiagnosticReporter *dr);
@@ -120,9 +114,12 @@ private:
 
     [[nodiscard]] SemanticSystemServices create_semantic_system_services();
 
-    [[nodiscard]] static AssignBuilder::Options get_assign_builder_options(const Options &options);
-    [[nodiscard]] static BasicBuilder::Options get_basic_builder_options(const Options &options);
-    [[nodiscard]] static ExprOptimizer::Options get_expr_optimizer_options(const Options &options);
+    [[nodiscard]] static AssignBuilder::Options get_assign_builder_options(
+        const settings::ExprOpts &opts);
+    [[nodiscard]] static BasicBuilder::Options get_basic_builder_options(
+        const settings::ExprOpts &opts);
+    [[nodiscard]] static ExprOptimizer::Options get_expr_optimizer_options(
+        const settings::ExprOpts &opts);
 
 public:
     // Gateway lets PassManager mark hard errors, but not clear them;

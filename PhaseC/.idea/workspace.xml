@@ -31,6 +31,7 @@
       <config projectName="Alpha" targetName="support_impl" />
       <config projectName="Alpha" targetName="alpha_core_impl" />
       <config projectName="Alpha" targetName="regression_check" />
+      <config projectName="Alpha" targetName="alpha_settings_impl" />
       <config projectName="Alpha" targetName="alpha_diagnostics_impl" />
       <config projectName="Alpha" targetName="generate_parser" />
       <config projectName="Alpha" targetName="arguinator_impl" />
@@ -46,26 +47,281 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/driver/include/driver/exception.hpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/driver/src/main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Anonymous.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Block.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Circle.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error0.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error1.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error10.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error11.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error12.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error2.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error3.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error4.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error5.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error6.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error7.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error8.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Error9.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_GlobalAndLocal.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Grammar.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_MyError0.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_MyError1.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Random.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_ShadowedNameOffunctions.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Simple.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_Tree.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_backpatch0.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_backpatch1.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_backpatch2.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_backpatch3.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_100.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_101.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_102.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_103.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_104.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_105.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_106.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_107.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_108.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_109.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_110.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_111.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_112.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_113.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_114.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_115.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_200.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_201.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_202.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_203.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_204.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_205.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_206.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_207.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_208.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_mine_209.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_assignments_complex.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_assignments_objects.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_assignments_simple.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_basic_expr.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_calls.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_const_maths.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_flow_control.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_flow_control_error.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_funcdecl.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_if_else.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_object_creation_expr.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_relational.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/GOLD_p3t_var_maths.asc.diag.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_Anonymous.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_Block.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_Circle.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_GlobalAndLocal.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_Grammar.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_Random.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_ShadowedNameOffunctions.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_Simple.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_Tree.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_backpatch0.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_backpatch1.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_backpatch2.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_backpatch3.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_100.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_101.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_102.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_103.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_104.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_105.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_106.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_107.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_108.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_109.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_110.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_111.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_112.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_113.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_114.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_mine_115.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_assignments_complex.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_assignments_objects.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_assignments_simple.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_basic_expr.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_calls.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_const_maths.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_flow_control.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_funcdecl.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_if_else.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_object_creation_expr.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_relational.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_IR/GOLD_p3t_var_maths.asc.ir.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Anonymous.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Block.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Circle.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error0.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error1.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error10.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error11.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error12.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error2.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error3.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error4.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error5.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error6.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error7.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error8.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Error9.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_GlobalAndLocal.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Grammar.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_MyError0.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_MyError1.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Random.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_ShadowedNameOffunctions.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Simple.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_Tree.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_backpatch0.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_backpatch1.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_backpatch2.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_backpatch3.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_100.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_101.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_102.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_103.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_104.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_105.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_106.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_107.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_108.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_109.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_110.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_111.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_112.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_113.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_114.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_115.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_200.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_201.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_202.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_203.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_204.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_205.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_206.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_mine_207.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_assignments_complex.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_assignments_objects.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_assignments_simple.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_basic_expr.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_calls.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_const_maths.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_flow_control.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_funcdecl.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_if_else.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_object_creation_expr.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_relational.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/GOLD_p3t_var_maths.asc.st.csv" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error0.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error1.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error10.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error11.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error12.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error2.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error3.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error4.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error5.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error6.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error7.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error8.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/Error9.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/MyError0.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/MyError1.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/mine_200.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/mine_201.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/mine_202.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/mine_203.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/mine_204.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/mine_205.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/mine_206.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/mine_207.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/mine_208.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/mine_209.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/error/p3t_flow_control_error.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/test.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/test.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/Anonymous.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/Block.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/Circle.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/GlobalAndLocal.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/Grammar.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/Random.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/ShadowedNameOffunctions.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/Simple.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/Tree.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/backpatch0.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/backpatch1.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/backpatch2.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/backpatch3.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_100.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_101.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_102.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_103.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_104.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_105.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_106.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_107.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_108.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_109.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_110.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_111.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_112.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_113.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_114.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/mine_115.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_assignments_complex.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_assignments_objects.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_assignments_simple.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_basic_expr.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_calls.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_const_maths.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_flow_control.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_funcdecl.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_if_else.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_object_creation_expr.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_relational.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/working/p3t_var_maths.asc" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/arguinator/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/arguinator/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/arguinator/include/arguinator/arguinator.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/arguinator/include/arguinator/arguinator.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/arguinator/src/arguinator.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/arguinator/src/arguinator.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/konstants.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/konstants.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/src/diagnostic_formatter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/diagnostic_formatter.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/naming_conventions.md" beforeDir="false" afterPath="$PROJECT_DIR$/docs/naming_conventions.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/driver/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/driver/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver_exceptions.hpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/compilation_options.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/compilation_options.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/driver_error.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/compilation_options.hpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/exception.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/exception.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/alpha_driver_exceptions.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/app_main.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/compilation_options.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/compilation_options.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/compilation_options.cpp" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/exception.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/exception.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/driver/src/translation_unit.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/alpha_regression_runner.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/alpha_regression_runner.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_optimizer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_optimizer.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/trace_logger.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/trace_logger.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L3_ir_infra/expr_optimizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L3_ir_infra/expr_optimizer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/parser_context.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_context.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/_colours.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/old_regression_runner/_colours.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/alpha_regression_runner.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/support/include/support/size_format_tools.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/support/include/support/size_format_tools.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/support/src/size_format_tools.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/support/src/size_format_tools.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/support/include/support/smart_assert.h" beforeDir="false" afterPath="$PROJECT_DIR$/support/include/support/smart_assert.h" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -75,11 +331,12 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug_CYA" />
+  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:CYA" />
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
         <option value="Python Script" />
+        <option value="CMakeLists.txt" />
       </list>
     </option>
   </component>
@@ -140,12 +397,253 @@
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_managers.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_optimizer.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/parser/include/parser/parser_context.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/parser/src/L3_ir_infra/expr_optimizer.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="mock:///home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/settings/include/settings/compiler_settings.hpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://compiler_settings.hpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://compiler_settings.hpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://compiler_settings.hpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://compiler_settings.hpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://compiler_settings.hpp" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
@@ -206,11 +704,11 @@
       <recent name="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/core/include/core" />
-      <recent name="$PROJECT_DIR$/utils/include/utils" />
-      <recent name="$PROJECT_DIR$/utils/src" />
-      <recent name="$PROJECT_DIR$/parser/include/parser" />
-      <recent name="$PROJECT_DIR$/.tests/working" />
+      <recent name="$PROJECT_DIR$/.tests/working/MODE_CYA_OPT_NONE" />
+      <recent name="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/MODE_CYA_OPT_NONE" />
+      <recent name="$PROJECT_DIR$/.tests/GOLDEN_IR/MODE_CYA_OPT_NONE" />
+      <recent name="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS/MODE_CYA_OPT_NONE" />
+      <recent name="$PROJECT_DIR$/.tests/error/MODE_CYA_OPT_NONE" />
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.alang">
@@ -219,7 +717,7 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="alang" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--source ./build/executables/alang" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang" CONFIG_NAME="Debug_CYA" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang">
+    <configuration name="alang" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--expect_errors --source ./.tests/error/mine_202.asc --show_ir" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang" CONFIG_NAME="Debug_CYA" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -260,6 +758,11 @@
       </method>
     </configuration>
     <configuration name="alpha_scanner_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_scanner_impl" CONFIG_NAME="Debug_CYA">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="alpha_settings_impl" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alpha_settings_impl" CONFIG_NAME="Debug_CYA">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -316,6 +819,7 @@
       <method v="2" />
     </configuration>
     <list>
+      <item itemvalue="CMake Application.alang.out" />
       <item itemvalue="CMake Application.alang" />
       <item itemvalue="CMake Application.alpha_core_impl" />
       <item itemvalue="CMake Application.alpha_diagnostics_impl" />
@@ -327,6 +831,7 @@
       <item itemvalue="CMake Application.generate_parser" />
       <item itemvalue="CMake Application.generate_parser_scanner" />
       <item itemvalue="CMake Application.generate_scanner" />
+      <item itemvalue="CMake Application.alpha_settings_impl" />
       <item itemvalue="CMake Application.support_impl" />
       <item itemvalue="CMake Application.regression_check" />
       <item itemvalue="CMake Application.regression_check_full" />
@@ -381,7 +886,7 @@
       <workItem from="1757979868934" duration="8815000" />
       <workItem from="1758040148494" duration="62000" />
       <workItem from="1758040345514" duration="14865000" />
-      <workItem from="1758370588952" duration="25546000" />
+      <workItem from="1758370588952" duration="94590000" />
     </task>
     <servers />
   </component>
@@ -396,15 +901,50 @@
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp</url>
-          <line>489</line>
-          <option name="timeStamp" value="170" />
+        <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/src/L3_ir_infra/expr_optimizer.cpp</url>
+          <line>289</line>
+          <option name="timeStamp" value="172" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/driver/src/main.cpp</url>
-          <line>51</line>
-          <option name="timeStamp" value="171" />
+        <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/src/L3_ir_infra/expr_optimizer.cpp</url>
+          <line>295</line>
+          <option name="timeStamp" value="173" />
+        </line-breakpoint>
+        <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/include/parser/ir_expr.hpp</url>
+          <line>301</line>
+          <option name="timeStamp" value="174" />
+        </line-breakpoint>
+        <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp</url>
+          <line>406</line>
+          <option name="timeStamp" value="175" />
+        </line-breakpoint>
+        <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/src/L3_ir_infra/expr_optimizer.cpp</url>
+          <line>273</line>
+          <option name="timeStamp" value="176" />
+        </line-breakpoint>
+        <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp</url>
+          <line>427</line>
+          <option name="timeStamp" value="177" />
+        </line-breakpoint>
+        <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/include/parser/L3_ir_infra/expr_optimizer.hpp</url>
+          <line>120</line>
+          <option name="timeStamp" value="178" />
+        </line-breakpoint>
+        <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp</url>
+          <line>406</line>
+          <option name="timeStamp" value="182" />
+        </line-breakpoint>
+        <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp</url>
+          <line>548</line>
+          <option name="timeStamp" value="183" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

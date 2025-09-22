@@ -8,6 +8,8 @@
 #include "parser/ir_opcode.gen.hpp"
 #include <parser/ir_opcode_opt_traits.gen.hpp>
 
+#include "support/dependent_false.hpp"
+
 namespace alpha
 {
 class ExprFolder : private Immobile
@@ -69,7 +71,9 @@ public:
     ExprOptimizer(ExprOptimizer::Options &&options, ExprMaker *expr_maker);
 
     template<ir::Opcode opc, typename... Exprs>
-    [[nodiscard]] const Expr *try_optimize(SourceLocation result_loc, Exprs... exprs);
+    [[nodiscard]] const Expr *try_optimize_pure(SourceLocation result_loc, Exprs... exprs);
+    template<ir::Opcode opc, typename... Exprs>
+    [[nodiscard]] const Expr *try_optimize(SourceLocation result_loc, Exprs &... exprs);
 
 private:
     const Options options_;
@@ -77,7 +81,6 @@ private:
     ExprTrimmer expr_trimmer_;
 
     [[nodiscard]] const Expr *try_propagate_const(const Expr *expr);
-
     template<ir::Opcode opc, typename... Exprs>
     [[nodiscard]] const Expr *try_fold_optimize(SourceLocation result_loc, const Exprs &... exprs);
     template<ir::Opcode opc, typename... Exprs>
@@ -85,10 +88,7 @@ private:
 };
 
 inline bool
-ExprFolder::should_fold_arithmetic(const Expr *const expr)
-{
-    return expr->is_const_arithmetic();
-}
+ExprFolder::should_fold_arithmetic(const Expr *const expr) { return expr->is_const_arithmetic(); }
 
 inline bool
 ExprFolder::should_fold_arithmetic(const Expr *const lhs, const Expr *const rhs)
@@ -118,13 +118,11 @@ ExprFolder::should_fold_logical(const Expr *lhs, const Expr *rhs)
 }
 
 template<ir::Opcode opc, typename... Exprs>
-const Expr *ExprOptimizer::try_optimize(const SourceLocation result_loc, Exprs... exprs)
+const Expr *ExprOptimizer::try_optimize_pure(const SourceLocation result_loc, Exprs... exprs)
 {
     static_assert((std::is_same_v<Exprs, const Expr *> && ...), "All args must be `const Expr *`");
     static_assert(sizeof...(exprs) > 0, "Received 0 `const Expr *` args");
 
-    if (options_.constant_propagation) [[likely]]
-            ((exprs = try_propagate_const(exprs)), ...);
     if constexpr (ir::opt_traits::is_foldable(opc))
         if (options_.expr_folding) [[likely]] // Optimize for optimized builds
         if (const Expr *folded = try_fold_optimize<opc>(result_loc, exprs...))
@@ -137,6 +135,14 @@ const Expr *ExprOptimizer::try_optimize(const SourceLocation result_loc, Exprs..
 }
 
 template<ir::Opcode opc, typename... Exprs>
+const Expr *ExprOptimizer::try_optimize(const SourceLocation result_loc, Exprs &... exprs)
+{
+    if (options_.constant_propagation) [[likely]] // We optimize for fully optimized setups.
+        ((exprs = try_propagate_const(exprs)), ...);
+    return try_optimize_pure<opc>(result_loc, exprs...);
+}
+
+template<ir::Opcode opc, typename... Exprs>
 const Expr *
 ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &... exprs)
 {
@@ -144,7 +150,7 @@ ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &.
     static_assert(ir::opt_traits::is_foldable(opc), "`folding` not supported for this Opcode");
     static_assert(sizeof...(exprs) == ir::info_traits::opt_operands(opc),
                   "exprs-opt_operands mismatch");
-    DEBUG_SMART_ASSERT(!options_.expr_folding && "Expr folding is OFF, shouldn't be called");
+    DEBUG_SMART_ASSERT(options_.expr_folding && "Expr folding is OFF, shouldn't be called");
 
     auto expr_tuple = std::forward_as_tuple(exprs...);
     if constexpr (ir::info_traits::opt_operands(opc) == 1)
@@ -155,8 +161,8 @@ ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &.
         else if constexpr (opc == ir::Opcode::NOT)
             return expr_folder_.try_fold_logical_not(unary_expr, result_loc);
         else
-            static_assert([]() { return false; }(),
-                          "try_fold_optimize: not sure how to optimize this unary ir::Opcode");
+            static_assert(always_false_v<void>,
+                "try_fold_optimize: not sure how to optimize this unary ir::Opcode");
     }
     else if constexpr (ir::info_traits::opt_operands(opc) == 2)
     {
@@ -175,9 +181,7 @@ ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &.
         else if constexpr (opc == ir::Opcode::IF_LT || opc == ir::Opcode::IF_LTE ||
                            opc == ir::Opcode::IF_GT || opc == ir::Opcode::IF_GTE)
             return expr_folder_.try_fold_relational_numeric(opc, lhs, rhs, result_loc);
-        else
-            static_assert([]() { return false; }(),
-                          "try_fold_optimize: not sure how to optimize binary ir::Opcode");
+        else static_assert(always_false_v<void>, "Unsupported opcode in try_fold_optimize");
     }
     else static_assert([] { return false; }(), "foldable ir::Opcode not handled.");
 }
@@ -190,7 +194,7 @@ ExprOptimizer::try_trim_optimize(const SourceLocation result_loc, const Exprs &.
     static_assert(ir::opt_traits::is_trimmable(opc), "`trimming` not supported for this Opcode");
     static_assert(sizeof...(exprs) == ir::info_traits::opt_operands(opc),
                   "Expr* argument count does not match Opcode's expected opt_operand count");
-    DEBUG_SMART_ASSERT(!options_.expr_trimming && "Expr trimming is OFF, shouldn't be called");
+    DEBUG_SMART_ASSERT(options_.expr_trimming && "Expr trimming is OFF, shouldn't be called");
 
     if constexpr (ir::info_traits::opt_operands(opc) == 2)
     {

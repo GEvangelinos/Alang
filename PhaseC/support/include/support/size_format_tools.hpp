@@ -11,7 +11,7 @@ struct DataSize
     const double size;
     const char *unit;
 
-    [[nodisard]] std::string to_string(unsigned precision = 2);
+    [[nodiscard]] std::string to_string(unsigned precision = 2);
 };
 
 [[nodiscard]] DataSize format_bitsize(std::size_t bytesize) noexcept;
