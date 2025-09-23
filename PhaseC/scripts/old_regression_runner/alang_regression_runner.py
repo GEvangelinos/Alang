@@ -19,7 +19,6 @@ import os
 import shutil
 import subprocess
 import csv
-import sys
 from pathlib import Path
 from _colours import *
 from concurrent.futures import ThreadPoolExecutor
@@ -264,7 +263,6 @@ def print_progress_bar(completed: int, total: int, bar_width: int = 40):
 
 def run_working_test_files(args, working_testfile_paths):
     global tests_completed
-    global total_tests
     working_testfile_paths.sort()
     print_progress_bar(tests_completed, total_tests)
     with ThreadPoolExecutor(max_workers=CPUS_TO_USE) as pool:
@@ -286,7 +284,6 @@ def run_working_test_files(args, working_testfile_paths):
 
 def run_error_test_files(args, error_testfile_paths):
     global tests_completed
-    global total_tests
     error_testfile_paths.sort()
     print_progress_bar(tests_completed, total_tests)
     with ThreadPoolExecutor(max_workers=CPUS_TO_USE) as pool:
