@@ -21,7 +21,6 @@ class TestfileExecutor:
     run_valgrind = False
     _valgrind_error_exitcode = 1
 
-
     def __init__(self, testfile: Testfile):
         self.testfile: Testfile = testfile
         self.test_dirpath = Path(TestfileExecutor.workdir_path) / Path(testfile.name).stem
@@ -49,25 +48,35 @@ class TestfileExecutor:
         return "".join(self._status_line)
 
     def prepare_test_dir(self):
-        if not os.path.exists(self.test_dirpath):
-            os.makedirs(self.test_dirpath, exist_ok=True)
+        # Usually test dirs exist from old runs, so we delete dir and its contents and remake.
+        if os.path.exists(self.test_dirpath):
+            shutil.rmtree(self.test_dirpath)
+        os.makedirs(self.test_dirpath, exist_ok=True)
 
     def prepare_test_samples(self):
         with open(self.testfile.name, 'w') as fout:
             fout.write("\n".join(self.testfile.source_section))
+        with open(self.gold_diagnostics_filename, 'w') as fout:
+            fout.write("\n".join(self.testfile.gold_diagnostic_section))
+
+        if self.testfile.error_mode:
+            return
+
         with open(self.gold_ir_filename, 'w') as fout:
             fout.write("\n".join(self.testfile.gold_ir_section))
         with open(self.gold_symbol_table_filename, 'w') as fout:
             fout.write("\n".join(self.testfile.gold_symbol_table_section))
-        with open(self.gold_diagnostics_filename, 'w') as fout:
-            fout.write("\n".join(self.testfile.gold_diagnostic_section))
 
     def execute_run_line(self) -> int:
-        completed_subprocess = subprocess.run(shlex.split(self.testfile.run_line))
-        self._status_line.append(f"--Testing working: {self.testfile.name:<30} ")
+        completed_subprocess = subprocess.run(
+            shlex.split(self.testfile.run_line),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        self._status_line.append(f"--Testing: {self.testfile.name:<50} ")
         if completed_subprocess.returncode != _EXIT_SUCCESS_RETURNCODE:
             self._status_line.append(
-                f"{COLOR_RED}Failure, working test produced errors.{SGR_RESET}")
+                f"{COLOR_RED}Failure, test produced errors.{SGR_RESET}")
         return completed_subprocess.returncode
 
     def flatten_exports(self):
@@ -136,22 +145,28 @@ class TestfileExecutor:
 
     def validate_testfile(self):
         os.chdir(self.test_dirpath)
-        assert os.path.exists(self.gold_ir_filename)
-        assert os.path.exists(self.gold_symbol_table_filename)
+
         assert os.path.exists(self.gold_diagnostics_filename)
-        assert os.path.exists(self.out_ir_filename)
-        assert os.path.exists(self.out_symbol_table_filename)
         assert os.path.exists(self.out_diagnostics_filename)
+        if not self.testfile.error_mode:
+            assert os.path.exists(self.gold_ir_filename)
+            assert os.path.exists(self.gold_symbol_table_filename)
+            assert os.path.exists(self.out_ir_filename)
+            assert os.path.exists(self.out_symbol_table_filename)
 
         td = self.test_dirpath
 
-        ret, msg = TestfileExecutor.cmp_csv(
-            td / self.gold_ir_filename, td / self.out_ir_filename)
-        self._status_line.append(TestfileExecutor.pretty_status(f"Ir:" + msg, ret))
+        if not self.testfile.error_mode:
+            ret, msg = TestfileExecutor.cmp_csv(
+                td / self.gold_ir_filename, td / self.out_ir_filename)
+            self._status_line.append(TestfileExecutor.pretty_status(f"Ir:" + msg, ret))
 
-        ret, msg = TestfileExecutor.cmp_csv(
-            td / self.gold_symbol_table_filename, td / self.out_symbol_table_filename)
-        self._status_line.append(TestfileExecutor.pretty_status(f"Symtable:" + msg, ret))
+            ret, msg = TestfileExecutor.cmp_csv(
+                td / self.gold_symbol_table_filename, td / self.out_symbol_table_filename)
+            self._status_line.append(TestfileExecutor.pretty_status(f"Symtable:" + msg, ret))
+        else:
+            # extra 28 spaces to align "Diagnostics:"  field with working tests
+            self._status_line.append(' ' * 26)
 
         ret, msg = TestfileExecutor.cmp_csv(
             td / self.gold_diagnostics_filename, td / self.out_diagnostics_filename)
@@ -178,5 +193,3 @@ class TestfileExecutor:
         )
 
         return completed_process.returncode
-
-

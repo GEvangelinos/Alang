@@ -8,6 +8,7 @@
 #include "parser/ir_opcode.gen.hpp"
 #include <parser/ir_opcode_opt_traits.gen.hpp>
 
+#include "settings/compiler_settings.hpp"
 #include "support/dependent_false.hpp"
 
 namespace alpha
@@ -51,7 +52,7 @@ public:
         ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
     [[nodiscard]] const Expr *try_trim_relational_equality(
         ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
-    [[nodiscard]] const Expr *try_trim_logical(
+    [[nodiscard]] const Expr *try_trim_binary_logical(
         ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
 
 private:
@@ -61,26 +62,20 @@ private:
 class ExprOptimizer : private Immobile
 {
 public:
-    struct Options
-    {
-        const bool constant_propagation;
-        const bool expr_folding;
-        const bool expr_trimming;
-    };
+    ExprOptimizer(const settings::ExprOpts &expr_opts, ExprMaker *expr_maker);
 
-    ExprOptimizer(ExprOptimizer::Options &&options, ExprMaker *expr_maker);
+    [[nodiscard]] const Expr *try_propagate_const(const Expr *expr);
 
-    template<ir::Opcode opc, typename... Exprs>
-    [[nodiscard]] const Expr *try_optimize_pure(SourceLocation result_loc, Exprs... exprs);
     template<ir::Opcode opc, typename... Exprs>
     [[nodiscard]] const Expr *try_optimize(SourceLocation result_loc, Exprs &... exprs);
 
 private:
-    const Options options_;
+    const settings::ExprOpts expr_opts_;
+    ExprMaker *const expr_maker_;
+
     ExprFolder expr_folder_;
     ExprTrimmer expr_trimmer_;
 
-    [[nodiscard]] const Expr *try_propagate_const(const Expr *expr);
     template<ir::Opcode opc, typename... Exprs>
     [[nodiscard]] const Expr *try_fold_optimize(SourceLocation result_loc, const Exprs &... exprs);
     template<ir::Opcode opc, typename... Exprs>
@@ -118,28 +113,22 @@ ExprFolder::should_fold_logical(const Expr *lhs, const Expr *rhs)
 }
 
 template<ir::Opcode opc, typename... Exprs>
-const Expr *ExprOptimizer::try_optimize_pure(const SourceLocation result_loc, Exprs... exprs)
+const Expr *ExprOptimizer::try_optimize(const SourceLocation result_loc, Exprs &... exprs)
 {
     static_assert((std::is_same_v<Exprs, const Expr *> && ...), "All args must be `const Expr *`");
     static_assert(sizeof...(exprs) > 0, "Received 0 `const Expr *` args");
 
+    ((exprs = try_propagate_const(exprs)), ...);
+
     if constexpr (ir::opt_traits::is_foldable(opc))
-        if (options_.expr_folding) [[likely]] // Optimize for optimized builds
+        if (expr_opts_.opt_const_eval) [[likely]]  // We optimize for fully optimized setups.
         if (const Expr *folded = try_fold_optimize<opc>(result_loc, exprs...))
             return folded;
     if constexpr (ir::opt_traits::is_trimmable(opc))
-        if (options_.expr_trimming) [[likely]] // Optimize for optimized builds
+        if (expr_opts_.opt_const_eval) [[likely]]  // We optimize for fully optimized setups.
         if (const Expr *trimmed = try_trim_optimize<opc>(result_loc, exprs...))
             return trimmed;
     return nullptr;
-}
-
-template<ir::Opcode opc, typename... Exprs>
-const Expr *ExprOptimizer::try_optimize(const SourceLocation result_loc, Exprs &... exprs)
-{
-    if (options_.constant_propagation) [[likely]] // We optimize for fully optimized setups.
-        ((exprs = try_propagate_const(exprs)), ...);
-    return try_optimize_pure<opc>(result_loc, exprs...);
 }
 
 template<ir::Opcode opc, typename... Exprs>
@@ -150,7 +139,7 @@ ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &.
     static_assert(ir::opt_traits::is_foldable(opc), "`folding` not supported for this Opcode");
     static_assert(sizeof...(exprs) == ir::info_traits::opt_operands(opc),
                   "exprs-opt_operands mismatch");
-    DEBUG_SMART_ASSERT(options_.expr_folding && "Expr folding is OFF, shouldn't be called");
+    DEBUG_SMART_ASSERT(expr_opts_.opt_const_eval && "Expr folding is OFF, shouldn't be called");
 
     auto expr_tuple = std::forward_as_tuple(exprs...);
     if constexpr (ir::info_traits::opt_operands(opc) == 1)
@@ -162,7 +151,7 @@ ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &.
             return expr_folder_.try_fold_logical_not(unary_expr, result_loc);
         else
             static_assert(always_false_v<void>,
-                "try_fold_optimize: not sure how to optimize this unary ir::Opcode");
+                          "try_fold_optimize: not sure how to optimize this unary ir::Opcode");
     }
     else if constexpr (ir::info_traits::opt_operands(opc) == 2)
     {
@@ -194,7 +183,7 @@ ExprOptimizer::try_trim_optimize(const SourceLocation result_loc, const Exprs &.
     static_assert(ir::opt_traits::is_trimmable(opc), "`trimming` not supported for this Opcode");
     static_assert(sizeof...(exprs) == ir::info_traits::opt_operands(opc),
                   "Expr* argument count does not match Opcode's expected opt_operand count");
-    DEBUG_SMART_ASSERT(options_.expr_trimming && "Expr trimming is OFF, shouldn't be called");
+    DEBUG_SMART_ASSERT(expr_opts_.opt_const_eval && "Expr trimming is OFF, shouldn't be called");
 
     if constexpr (ir::info_traits::opt_operands(opc) == 2)
     {
@@ -205,10 +194,12 @@ ExprOptimizer::try_trim_optimize(const SourceLocation result_loc, const Exprs &.
 
         if constexpr (opc == ir::Opcode::ASSIGN)
             return lhs == rhs ? lhs : nullptr; // expr = expr -> delete self-assignment (useless).
-        if constexpr (opc == ir::Opcode::IF_EQ || opc == ir::Opcode::IF_NEQ)
-            return expr_trimmer_.try_trim_relational_equality(opc, lhs, rhs, result_loc);
         else if constexpr (SemUtils::is_binary_arithmetic_opcode(opc))
             return expr_trimmer_.try_trim_binary_arithmetic(opc, lhs, rhs, result_loc);
+        else if constexpr (SemUtils::is_relational_equality_iropcode(opc))
+            return expr_trimmer_.try_trim_relational_equality(opc, lhs, rhs, result_loc);
+        else if constexpr (SemUtils::is_binary_logical_iropcode(opc))
+            return expr_trimmer_.try_trim_binary_logical(opc, lhs, rhs, result_loc);
         else
             return nullptr; // We don't have any trim optimizations yet.
     }

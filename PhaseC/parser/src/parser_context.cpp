@@ -45,7 +45,18 @@ CallContextHandler::~CallContextHandler()
 {
     DEBUG(
         if (host_->hard_error_occurred.raised()) return;
-        DEBUG_SMART_ASSERT(call_nesting_count_ == 0);
+        DEBUG_SMART_ASSERT(call_nesting_depth_ == 0);
+    )
+}
+
+AggregateCtxHandler::AggregateCtxHandler(ParseCtx *const host)
+    : host_(support::require_ptr(host)) {}
+
+AggregateCtxHandler::~AggregateCtxHandler()
+{
+    DEBUG(
+        if (host_->hard_error_occurred.raised()) return;
+        DEBUG_SMART_ASSERT(dict_entry_nesting_depth_ == 0);
     )
 }
 
@@ -185,11 +196,11 @@ std::optional<TempCtxHandler::CriticalRegion>
 TempCtxHandler::current_critical_region() const
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    const TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
+    const TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
 
-    if (current_frame.critical_region_stack.empty())
+    if (curr_frame.critical_region_stack.empty())
         return std::nullopt;
-    return current_frame.critical_region_stack.top();
+    return curr_frame.critical_region_stack.top();
 }
 
 void
@@ -210,46 +221,44 @@ void
 TempCtxHandler::reset_to_checkpoint()
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
-    current_frame.temp_counter_ = current_frame.checkpoints_.empty()
-                                  ? 0
-                                  : current_frame.checkpoints_.back();
+    TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
+    curr_frame.temp_counter_ = curr_frame.checkpoints_.empty() ? 0 : curr_frame.checkpoints_.back();
 }
 
 void
 TempCtxHandler::push_checkpoint()
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
-    current_frame.checkpoints_.push_back(current_frame.temp_counter_);
+    TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
+    curr_frame.checkpoints_.push_back(curr_frame.temp_counter_);
 }
 
 void
 TempCtxHandler::pop_checkpoint()
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
-    DEBUG_SMART_ASSERT(!current_frame.checkpoints_.empty());
-    current_frame.checkpoints_.pop_back();
+    TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
+    DEBUG_SMART_ASSERT(!curr_frame.checkpoints_.empty());
+    curr_frame.checkpoints_.pop_back();
 }
 
 void
 TempCtxHandler::push_checkpoint_barrier()
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
-    current_frame.checkpoint_barriers_.push(current_frame.checkpoints_.size());
+    TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
+    curr_frame.checkpoint_barriers_.push(curr_frame.checkpoints_.size());
 }
 
 void
 TempCtxHandler::pop_checkpoint_barrier()
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    TempCtxFrame &current_frame = temp_ctx_frame_stack_.top();
-    DEBUG_SMART_ASSERT(!current_frame.checkpoint_barriers_.empty());
-    while (current_frame.checkpoints_.size() > current_frame.checkpoint_barriers_.top())
+    TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
+    DEBUG_SMART_ASSERT(!curr_frame.checkpoint_barriers_.empty());
+    while (curr_frame.checkpoints_.size() > curr_frame.checkpoint_barriers_.top())
         pop_checkpoint();
-    current_frame.checkpoint_barriers_.pop();
+    curr_frame.checkpoint_barriers_.pop();
     reset_to_checkpoint();
 }
 
@@ -263,6 +272,7 @@ TempCtxHandler::new_name()
 ParseCtx::ParseCtx(SymbolTable *const symbol_table)
     : space_handler(this),
       scope_handler(this),
+      aggregate_ctx_handler(this),
       call_ctx_handler(this),
       func_ctx_handler(this),
       temp_ctx_handler(this),
@@ -278,9 +288,9 @@ ParseCtx::new_temp()
     if (!symbol)
     {
         const VarSymbol::Type var_type =
-                scope_handler.scope() == k_global_scope
-                ? VarSymbol::Type::GLOBAL_VARIABLE
-                : VarSymbol::Type::LOCAL_VARIABLE;
+            scope_handler.scope() == k_global_scope
+            ? VarSymbol::Type::GLOBAL_VARIABLE
+            : VarSymbol::Type::LOCAL_VARIABLE;
 
         symbol = symbol_table_->insert_variable(
             temp_name,

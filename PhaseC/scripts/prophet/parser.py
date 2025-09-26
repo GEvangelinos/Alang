@@ -39,8 +39,9 @@ class TestfileParser:
         testfile = Testfile(self.testfile_path.name)
         testfile.set_run_line(self.find_run_line(), self.driver_path)
         testfile.set_source_code_section(self.find_source_section())
-        testfile.set_gold_ir_section(self.find_gold_ir_section())
-        testfile.set_gold_symbol_table_section(self.find_gold_symbol_table_section())
+        if not testfile.error_mode:
+            testfile.set_gold_ir_section(self.find_gold_ir_section())
+            testfile.set_gold_symbol_table_section(self.find_gold_symbol_table_section())
         testfile.set_gold_diagnostic_section(self.find_gold_diagnostic_section())
         return testfile
 

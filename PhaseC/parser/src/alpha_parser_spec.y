@@ -389,10 +389,15 @@ expr_list:
 
 dict_entry:
   LEFT_BRACE
+  { ss.call<"aggregate_builder.begin_dict_entry">(); }
   expr[key]
   COLON
   expr[value]
-  RIGHT_BRACE { $dict_entry = ss.call<"aggregate_builder.build_expr_pair">($key, $value); }
+  RIGHT_BRACE
+  {
+    $dict_entry = ss.call<"aggregate_builder.build_dict_entry">($key, $value);
+    ss.call<"aggregate_builder.end_dict_entry">();
+  }
 ;
 
 dict_list[out]:

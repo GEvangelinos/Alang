@@ -35,7 +35,7 @@
 #include "L3_ir_infra/quad_handler.hpp"
 #include "parser/parser_context.hpp"
 #include "parser/symbol_table.hpp"
-#include "parser/L2_semantic_subsystems/control_flow_managers.hpp"
+#include "parser/L2_semantic_subsystems/control_flow_manager.hpp"
 #include "parser/L2_semantic_subsystems/expr_builders.hpp"
 #include "parser/L2_semantic_subsystems/lvalue_resolver.hpp"
 #include "settings/compiler_settings.hpp"
@@ -117,8 +117,6 @@ private:
     [[nodiscard]] static AssignBuilder::Options get_assign_builder_options(
         const settings::ExprOpts &opts);
     [[nodiscard]] static BasicBuilder::Options get_basic_builder_options(
-        const settings::ExprOpts &opts);
-    [[nodiscard]] static ExprOptimizer::Options get_expr_optimizer_options(
         const settings::ExprOpts &opts);
 
 public:

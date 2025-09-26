@@ -63,7 +63,6 @@ IROPCODE_LIST:
     arg1: REQUIRED
     arg2: NONE
     opt_operands: 2
-    optimizations: [ trimmable ]
 
   UMINUS: # ✔
     result: REQUIRED
@@ -117,13 +116,13 @@ IROPCODE_LIST:
     is_non_emittable: true
     is_non_executable: true
     opt_operands: 2
-    optimizations: [ foldable ]
+    optimizations: [ foldable, trimmable ]
 
   OR: # ✔
     is_non_emittable: true
     is_non_executable: true
     opt_operands: 2
-    optimizations: [ foldable ]
+    optimizations: [ foldable, trimmable ]
 
   IF_EQ: # ✔
     result: NONE

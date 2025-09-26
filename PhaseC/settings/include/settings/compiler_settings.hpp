@@ -22,9 +22,8 @@
 
 // (REQUIRED, ARITY, NAME, HELP_MSG)
 #define EXPR_OPT_SETTINGS(X) \
-    X(false, 0, opt_fold_const_expr,      "Fold constant expressions in IR (e.g. `x = 1+2;` -> `x = 3;`).") \
-    X(false, 0, opt_trim_expr,            "Trim redundant operations in IR (e.g. `x = var+0;` -> `x = var;`).")\
-    X(false, 0, opt_propagate_const_vars, "Propagate constant variables in IR (e.g. `x = 5; y = x + 3` -> `y = 5 + 3`).")
+    X(false, 0, opt_const_eval,           "Fold constant expressions in IR (e.g. `x = 1+2;` -> `x = 3;`) and trim redundant operations in IR (e.g. `x = var+0;` -> `x = var;`).")\
+    X(false, 0, opt_const_propagation,    "Propagate constant variables in IR (e.g. `x = 5; y = x + 3` -> `y = 5 + 3`).")
 // X(false, 0, propagate_const_retvals, "TBI")\
 // X(false, 0, remove_dead_branches, "TBI")\
 // X(false, 0, remove_unused_vars, "TBI")\

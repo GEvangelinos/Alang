@@ -137,7 +137,7 @@ add_library(alpha_parser_impl STATIC
     src/L1_driver/semantic_system.cpp
     src/L1_driver/semantic_system_support.cpp
     src/L2_builders/lvalue_resolver.cpp
-    src/L2_builders/control_flow_managers.cpp
+    src/L2_builders/control_flow_manager.cpp
     src/L2_builders/expr_builders.cpp
     src/L2_builders/semantic_subsystem.cpp
     src/L2_builders/block_manager.cpp

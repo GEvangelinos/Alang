@@ -64,13 +64,28 @@ public:
     explicit CallContextHandler(ParseCtx *host);
     ~CallContextHandler();
 
-    void enter_call();
-    void exit_call();
-    bool is_in_call() const noexcept { return call_nesting_count_ > 0; }
+    void enter_call() noexcept;
+    void exit_call() noexcept;
+    [[nodiscard]] bool is_in_call() const noexcept { return call_nesting_depth_ > 0; }
 
 private:
     ParseCtx *const host_;
-    u32 call_nesting_count_ = 0;
+    u32 call_nesting_depth_ = 0;
+};
+
+class AggregateCtxHandler : private Immobile
+{
+public:
+    explicit AggregateCtxHandler(ParseCtx *host);
+    ~AggregateCtxHandler();
+
+    void enter_dict_entry() noexcept;
+    void exit_dict_entry() noexcept;
+    [[nodiscard]] bool is_in_dict_entry() const noexcept { return dict_entry_nesting_depth_; }
+
+private:
+    ParseCtx *const host_;
+    u32 dict_entry_nesting_depth_ = 0;
 };
 
 class FunctionCtxHandler : private Immobile
@@ -209,6 +224,7 @@ class ParseCtx : private Immobile
 public:
     SpaceHandler space_handler;
     ScopeHandler scope_handler;
+    AggregateCtxHandler aggregate_ctx_handler;
     CallContextHandler call_ctx_handler;
     FunctionCtxHandler func_ctx_handler;
     AnonymousGenerator anonymous_generator;
@@ -293,17 +309,31 @@ ScopeHandler::exit_scope() noexcept
 }
 
 inline void
-CallContextHandler::enter_call()
+CallContextHandler::enter_call() noexcept
 {
-    DEBUG_SMART_ASSERT(call_nesting_count_< k_max_call_nesting && "A safe small sanity limit");
-    ++call_nesting_count_;
+    DEBUG_SMART_ASSERT(call_nesting_depth_< k_max_call_nesting && "A safe small sanity limit");
+    ++call_nesting_depth_;
 }
 
 inline void
-CallContextHandler::exit_call()
+CallContextHandler::exit_call() noexcept
 {
-    DEBUG_SMART_ASSERT(call_nesting_count_ > 0);
-    --call_nesting_count_;
+    DEBUG_SMART_ASSERT(call_nesting_depth_ > 0);
+    --call_nesting_depth_;
+}
+
+inline void
+AggregateCtxHandler::enter_dict_entry() noexcept
+{
+    DEBUG_SMART_ASSERT(dict_entry_nesting_depth_< k_max_dict_nesting && "A safe small sanity limit");
+    ++dict_entry_nesting_depth_;
+}
+
+inline void
+AggregateCtxHandler::exit_dict_entry() noexcept
+{
+    DEBUG_SMART_ASSERT(dict_entry_nesting_depth_ > 0);
+    --dict_entry_nesting_depth_;
 }
 
 inline u32

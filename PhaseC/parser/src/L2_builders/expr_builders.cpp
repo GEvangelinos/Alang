@@ -125,13 +125,16 @@ AggregateBuilder::Restricted::extend_expr_list(
     const Expr *const next)
 {
     DEBUG_SMART_ASSERT(!!elist, !!next);
-    const Expr *const materialized_next_expr = ss_bridge_->materialize_if_table_item(next);
-    ss_bridge_->finalize_bool_expr(materialized_next_expr);
+
+    const Expr *expr = ss_bridge_->materialize_if_table_item(next);
+    ss_bridge_->finalize_bool_expr(expr);
+    expr = expr_optimizer_->try_propagate_const(expr);
+
     #ifndef CYA_MODE
+    const auto region = parse_ctx_->temp_ctx_handler.current_critical_region();
     if (!draft_.table_literal_stack.empty() &&
-        parse_ctx_->temp_ctx_handler.current_critical_region().has_value() &&
-        parse_ctx_->temp_ctx_handler.current_critical_region().value() ==
-        TempCtxHandler::CriticalRegion::TABLE)
+        region.has_value() &&
+        region.value() == TempCtxHandler::CriticalRegion::TABLE)
     {
         auto &top_elist_ctx = draft_.table_literal_stack.top();
         const Expr *const index_expr = expr_maker_->make_const_int_expr(
@@ -142,26 +145,39 @@ AggregateBuilder::Restricted::extend_expr_list(
             ir::Opcode::TABLESETELEM,
             top_elist_ctx.current_table_expr,
             index_expr,
-            materialized_next_expr,
-            materialized_next_expr->loc
+            expr,
+            expr->loc
         );
         parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     }
-    else if (parse_ctx_->temp_ctx_handler.current_critical_region().has_value() &&
-             parse_ctx_->temp_ctx_handler.current_critical_region().value() ==
-             TempCtxHandler::CriticalRegion::FORLOOP_CLAUSE)
-    {
+    else if (region.has_value() && region.value() == TempCtxHandler::CriticalRegion::FORLOOP_CLAUSE)
         parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
-    }
     #endif
-    elist->push_back(materialized_next_expr);
+
+    elist->push_back(expr);
     return elist;
+}
+
+const ExprPair *
+AggregateBuilder::Restricted::build_dict_entry(const Expr *key, const Expr *val)
+{
+    DEBUG_SMART_ASSERT(!!key, !!val);
+
+    key = expr_optimizer_->try_propagate_const(key);
+    val = expr_optimizer_->try_propagate_const(val);
+    key = ss_bridge_->materialize_if_table_item(key);
+    val = ss_bridge_->materialize_if_table_item(val);
+    ss_bridge_->finalize_bool_expr(key);
+    ss_bridge_->finalize_bool_expr(val);
+
+    // TODO: can you make this `new const` ? Can you delete ptr afterwards?
+    // Without const_cast() checks when at end of project
+    return new ExprPair(key, val);
 }
 
 DictList *
 AggregateBuilder::Restricted::extend_dict_list(
     DictList *const dlist,
-
     const ExprPair *const next_pair
 )
 {
@@ -169,23 +185,22 @@ AggregateBuilder::Restricted::extend_dict_list(
     #ifndef CYA_MODE
     if (!draft_.table_literal_stack.empty())
     {
-        const auto [key, value] = *next_pair;
-        const SourceLocation pair_loc = merge(key->loc, value->loc);
+        const auto [key, val] = *next_pair;
+        const SourceLocation pair_loc = merge(key->loc, val->loc);
         quad_handler_->emit_next(
             ir::Opcode::TABLESETELEM,
             draft_.table_literal_stack.top().current_table_expr,
             key,
-            value,
+            val,
             pair_loc
         );
-        reset_temps_if_temp_operand(key, value);
+        reset_temps_if_temp_operand(key, val);
     }
     #endif
     dlist->push_back(next_pair);
     return dlist;
 }
 
-// Passed by reference to nullify after deletion -- avoids leaving a dangling pointer.
 void
 AggregateBuilder::Restricted::delete_dict_list(DictList *dlist)
 {
@@ -224,8 +239,8 @@ AggregateBuilder::Restricted::initiate_table_literal(const SourceLocation table_
 {
     #ifndef CYA_MODE
     const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
-    parse_ctx_->temp_ctx_handler.push_checkpoint();
     parse_ctx_->temp_ctx_handler.enter_critical_region(TempCtxHandler::CriticalRegion::TABLE);
+    parse_ctx_->temp_ctx_handler.push_checkpoint();
     quad_handler_->emit_next(
         ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
     draft_.table_literal_stack.emplace(new_table_expr);
@@ -255,6 +270,8 @@ const Expr *AggregateBuilder::Restricted::extract_table_literal_consuming_impl(
     ListT *list,
     void (*deleter)(ListT *))
 {
+    static_assert(std::is_same_v<ListT, ExprList> || std::is_same_v<ListT, DictList>);
+
     DEBUG_SMART_ASSERT(!draft_.table_literal_stack.empty());
 
     const Expr *const retval = draft_.table_literal_stack.top().current_table_expr;
@@ -371,9 +388,17 @@ AssignBuilder::Restricted::build_post_dec(const Expr *const expr, const SourceLo
 }
 
 bool
-AssignBuilder::Restricted::is_direct_target_expr(const Expr *expr)
+AssignBuilder::Restricted::is_direct_target_expr(const Expr *expr) noexcept
 {
     return expr->type != Expr::Type::TABLE_ITEM;
+}
+
+bool
+AssignBuilder::Restricted::assignment_requires_temp() const
+{
+    return FORCE_ASSIGNMENT_TEMPS ||
+           parse_ctx_->call_ctx_handler.is_in_call() ||
+           parse_ctx_->aggregate_ctx_handler.is_in_dict_entry();
 }
 
 bool
@@ -426,19 +451,25 @@ AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const
 
 inline const Expr *
 AssignBuilder::Restricted::handle_direct_assignment(
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr *lhs,
+    const Expr *rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+
+    rhs = expr_optimizer_->try_propagate_const(rhs);
+
+    // Return rhs, instead of lhs has 2 benefits:
+    // 1) Removes the need from const extraction.
+    // 2) Exprs like: <<x = [{c=10 : c= 5}];>> no longer required yielding temp var.
     if (options_.record_constant_variables)
         if (try_record_const_expr(lhs, rhs))
-            return lhs; // Now lvalue's symbol carries rvalue.
+            return rhs;
 
     quad_handler_->emit_next(ir::Opcode::ASSIGN, lhs, rhs, nullptr, result_loc);
 
-    // In calls, force each (x=val) to yield its arg value; avoid C’s unspecified arg order
-    if (FORCE_ASSIGNMENT_TEMPS || parse_ctx_->call_ctx_handler.is_in_call())
+    // In certain contexts, force each (x=val) to yield its arg value; avoid C’s unspecified arg order
+    if (assignment_requires_temp())
     {
         const Expr *const temp = expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());
         quad_handler_->emit_next(ir::Opcode::ASSIGN, temp, lhs, nullptr, result_loc);
@@ -507,7 +538,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
         return DEBUG_REQUIRE_PTR(result);
     }
     qh->emit_next(Policy::opc, expr, expr, &k_static_int_1_expr, result_loc);
-    if (FORCE_ASSIGNMENT_TEMPS || parse_ctx_->call_ctx_handler.is_in_call())
+    if (assignment_requires_temp())
     {
         const Expr *const result = expr_maker_->make_arithmetic_expr(result_loc);
         qh->emit_next(ir::Opcode::ASSIGN, result, expr, nullptr, result_loc);
@@ -548,6 +579,7 @@ const Expr *
 BasicBuilder::Restricted::prepare_logical_operand_expr(const Expr *expr)
 {
     expr = ss_bridge_->materialize_if_table_item(expr);
+    expr = expr_optimizer_->try_propagate_const(expr);
     return normalize_to_bool_expr(expr);
 }
 
@@ -569,8 +601,7 @@ BasicBuilder::Restricted::build_uminus(
     if (!validate_arithmetic_expr(ir::Opcode::UMINUS, expr, OperandSide::UNARY))
         goto skip_opt;
 
-    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::UMINUS>(
-        result_loc, expr))
+    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::UMINUS>(result_loc, expr))
         return optimized;
 
 skip_opt:
@@ -636,6 +667,10 @@ BasicBuilder::Restricted::build_relational(
         return optimized;
 
 skip_opt:
+    // TODO: Should we reset here? In lectures it wasn't recommend the reset temps in relationals.
+    // Why? Test it out... You already reset temps in many more place... I can't think of a reason why
+    // it would hurt anything...
+    reset_temps_if_temp_operand(lhs, rhs);
     const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
     result_expr->true_list.push_back(quad_handler_->next_quad_label());
     quad_handler_->emit_labelless(opc, nullptr, lhs, rhs, result_loc);
@@ -672,8 +707,7 @@ BasicBuilder::Restricted::build_logical_and(
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
     DEBUG_SMART_ASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
 
-    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::AND>(
-        result_loc, lhs, rhs))
+    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::AND>(result_loc, lhs, rhs))
         return optimized;
 
     reset_temps_if_temp_operand(lhs, rhs);
@@ -689,18 +723,14 @@ BasicBuilder::Restricted::build_logical_or(
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
     DEBUG_SMART_ASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
 
-    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(
-        result_loc, lhs, rhs))
+    if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(result_loc, lhs, rhs))
         return optimized;
 
     reset_temps_if_temp_operand(lhs, rhs);
     return build_short_circuit_bool_expr<OrShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
-template
-<
-    typename Policy>
-
+template<typename Policy>
 const Expr *
 BasicBuilder::Restricted::build_short_circuit_bool_expr(
     const Expr *const lhs,
@@ -713,8 +743,7 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
         "Unknown backpatching policy"
     );
 
-    DEBUG_SMART_ASSERT(
-        lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
+    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
     const BoolExpr *const lhs_bool = static_cast<const BoolExpr *>(lhs);
     const BoolExpr *const rhs_bool = static_cast<const BoolExpr *>(rhs);
     const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
@@ -781,7 +810,8 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
         dr_->report_nonarith_uminus_operand(expr->type, expr->loc);
     else
         throw std::logic_error(ATTACH_CONTEXT(
-            "Expected arithmetic ir::Opcode (bin arith or uminus)"));
+            "Expected arithmetic ir::Opcode (bin arith or uminus)"
+        ));
     return false;
 }
 
@@ -799,8 +829,7 @@ BasicBuilder::Restricted::validate_relational_expr(
     // If here relational operator is:  < <= > >=
     if (expr->is_arithmetic_convertible())
         return true;
-    dr_->report_nonarith_rel_op_operand(op_side, SemUtils::relop_str(opc), expr->type,
-                                        expr->loc);
+    dr_->report_nonarith_rel_op_operand(op_side, SemUtils::relop_str(opc), expr->type, expr->loc);
     return false;
 }
 
@@ -857,8 +886,7 @@ BasicBuilder::Restricted::try_optimize_relational_expr(
     HANDLE_RELATIONAL(IF_LTE);
     HANDLE_RELATIONAL(IF_GT);
     HANDLE_RELATIONAL(IF_GTE);
-    default: [[unlikely]] UNREACHABLE(
-            FMT::format("Unexpected opcode: {}", static_cast<int>(opc)));
+    default: [[unlikely]] UNREACHABLE(FMT::format("Unexpected opcode: {}", static_cast<int>(opc)));
     }
     #undef  HANDLE_RELATIONAL
 }
@@ -921,8 +949,7 @@ CallBuilder::Restricted::build_call_consuming(
 
     quad_handler_->emit_next(ir::Opcode::CALL, nullptr, func_expr, nullptr, call_loc);
     reset_temps_if_temp_operand(func_expr);
-    const Expr *getretval_expr = expr_maker_->make_variable_expr(
-        call_loc, parse_ctx_->new_temp());
+    const Expr *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
 
     CallBuilder::Restricted::delete_expr_list(arg_list);
@@ -1105,8 +1132,7 @@ const FuncSymbol *
 FunctionBuilder::Restricted::build_program_function_entry(
     const SourceLocation func_signature_loc)
 {
-    const bool validated_funcname = validate_funcdef_name(
-        function_draft_.id, func_signature_loc);
+    const bool validated_funcname = validate_funcdef_name(function_draft_.id, func_signature_loc);
     const u32 skip_func_jump_label = quad_handler_->next_quad_label();
     quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr,
                                   func_signature_loc);
@@ -1196,7 +1222,6 @@ TableAccessBuilder::Restricted::build_subscript_access(
     const Expr *const materialized_lvalue = ss_bridge_->materialize_if_table_item(base);
     const Expr *const materialized_index = ss_bridge_->materialize_if_table_item(subscript);
     ss_bridge_->finalize_bool_expr(materialized_index);
-    return expr_maker_->make_table_item_expr(access_loc, materialized_lvalue,
-                                             materialized_index);
+    return expr_maker_->make_table_item_expr(access_loc, materialized_lvalue, materialized_index);
 }
 } // namespace alpha

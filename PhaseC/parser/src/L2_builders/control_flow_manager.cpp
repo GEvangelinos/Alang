@@ -1,4 +1,4 @@
-#include "L2_semantic_subsystems/control_flow_managers.hpp"
+#include "L2_semantic_subsystems/control_flow_manager.hpp"
 
 namespace alpha
 {
@@ -39,7 +39,10 @@ ControlFlowManager::Restricted::manage_ifbranch_entry(
     // Thus, we reset temps at end of ifbranch entry (ifbranch clause)
     #ifdef CYA_MODE
     parse_ctx_->temp_ctx_handler.reset_current_frame();
+    #else
+    parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     #endif
+
 }
 
 void
@@ -134,6 +137,8 @@ ControlFlowManager::Restricted::manage_whileloop_condition(
     // Thus, we reset temps at end of while clause (whileloop condition)
     #ifdef CYA_MODE
     parse_ctx_->temp_ctx_handler.reset_current_frame();
+    #else
+    parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     #endif
 }
 
@@ -300,13 +305,15 @@ ControlFlowManager::Restricted::exit_forloop_clause()
         TempCtxHandler::CriticalRegion::FORLOOP_CLAUSE
     );
 
+    parse_ctx_->temp_ctx_handler.exit_critical_region();
+
     // In CYA_MODE we don't do complex temp reuse,
     // so we cant rely on, temp reuse in each for-loop stage.
     // Thus, we reset temps at end of forloop clause
     #ifdef CYA_MODE
     parse_ctx_->temp_ctx_handler.reset_current_frame();
     #else
-    parse_ctx_->temp_ctx_handler.exit_critical_region();
+    parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     #endif
 }
 

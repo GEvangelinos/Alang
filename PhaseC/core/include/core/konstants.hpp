@@ -11,6 +11,7 @@ static constexpr u32 k_max_source_filesize = static_cast<u32>(-1) / 2;
 // ParseCtx's constants
 static constexpr u32 k_max_function_nesting = 256; // Function nesting sanity limit.
 static constexpr u32 k_max_call_nesting = 256;     // Function call nesting sanity limit.
+static constexpr u32 k_max_dict_nesting = 256;     // Dict nesting sanity limit.
 static constexpr u32 k_max_loop_nesting = 256;     // Loop nesting sanity limit.
 static constexpr u32 k_max_scope = 1024;           // Block nesting sanity limit.
 

@@ -51,7 +51,9 @@ private:
         static void consume_expr_list(ExprList *elist) { delete_expr_list(elist); }
 
         // Dict related (candidate for submodule)
-        [[nodiscard]] const ExprPair *build_expr_pair(const Expr *first, const Expr *second);
+        void begin_dict_entry();
+        void end_dict_entry();
+        [[nodiscard]] const ExprPair *build_dict_entry(const Expr *key, const Expr *val);
         [[nodiscard]] static DictList *build_dict_list();
         [[nodiscard]] DictList *build_dict_list(const ExprPair *head_pair);
         [[nodiscard]] DictList *extend_dict_list(DictList *dlist, const ExprPair *next_pair);
@@ -81,7 +83,9 @@ private:
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(mark_temp_checkpoint);
     DISPATCH_SLAVE_METHOD_CALL(build_expr_list);
-    DISPATCH_SLAVE_METHOD_CALL(build_expr_pair);
+    DISPATCH_SLAVE_METHOD_CALL(begin_dict_entry);
+    DISPATCH_SLAVE_METHOD_CALL(end_dict_entry);
+    DISPATCH_SLAVE_METHOD_CALL(build_dict_entry);
     DISPATCH_SLAVE_METHOD_CALL(build_dict_list);
     DISPATCH_SLAVE_METHOD_CALL(extend_expr_list);
     DISPATCH_SLAVE_METHOD_CALL(extend_dict_list);
@@ -139,7 +143,8 @@ private:
         [[nodiscard]] const Expr *build_pre_dec(const Expr *expr, SourceLocation result_loc);
         [[nodiscard]] const Expr *build_post_dec(const Expr *expr, SourceLocation result_loc);
 
-        [[nodiscard]] static bool is_direct_target_expr(const Expr *expr);
+        [[nodiscard]] static bool is_direct_target_expr(const Expr *expr) noexcept;
+        [[nodiscard]] bool assignment_requires_temp() const;
         [[nodiscard]] bool validate_assignment(const Expr *lhs, SourceLocation assign_loc);
         [[nodiscard]] bool try_record_const_expr(const Expr *lvalue, const Expr *rvalue);
         [[nodiscard]] const Expr *handle_direct_assignment(
@@ -454,19 +459,17 @@ AggregateBuilder::Restricted::delete_expr_list(ExprList *elist)
     delete elist;
 }
 
-inline const ExprPair *
-AggregateBuilder::Restricted::build_expr_pair(const Expr *const first, const Expr *const second)
+
+inline void
+AggregateBuilder::Restricted::begin_dict_entry()
 {
-    DEBUG_SMART_ASSERT(!!first, !!second);
+    parse_ctx_->aggregate_ctx_handler.enter_dict_entry();
+}
 
-    const Expr *const materialized_first = ss_bridge_->materialize_if_table_item(first);
-    const Expr *const materialized_second = ss_bridge_->materialize_if_table_item(second);
-    ss_bridge_->finalize_bool_expr(materialized_first);
-    ss_bridge_->finalize_bool_expr(materialized_second);
-
-    // TODO: can you make this `new const` ? Can you delete ptr afterwards?
-    // Without const_cast() checks when at end of project
-    return new ExprPair(materialized_first, materialized_second);
+inline void
+AggregateBuilder::Restricted::end_dict_entry()
+{
+    parse_ctx_->aggregate_ctx_handler.exit_dict_entry();
 }
 
 inline DictList *

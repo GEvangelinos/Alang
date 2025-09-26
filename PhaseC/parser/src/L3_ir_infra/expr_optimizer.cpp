@@ -17,8 +17,9 @@ try_trim_div(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLoca
 [[nodiscard]] static const Expr *
 try_trim_mod(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLocation mod_loc);
 
-ExprOptimizer::ExprOptimizer(ExprOptimizer::Options &&options, ExprMaker *const expr_maker)
-    : options_(std::move(options)),
+ExprOptimizer::ExprOptimizer(const settings::ExprOpts &expr_opts, ExprMaker *const expr_maker)
+    : expr_opts_(expr_opts),
+      expr_maker_(support::require_ptr(expr_maker)),
       expr_folder_(support::require_ptr(expr_maker)),
       expr_trimmer_(support::require_ptr(expr_maker)) {}
 
@@ -162,8 +163,6 @@ ExprFolder::try_fold_logical_or(
     if (!ExprFolder::should_fold_logical(lhs, rhs))
         return nullptr;
 
-    if (lhs->is_const_true() || rhs->is_const_true())
-        return expr_maker_->make_const_bool_expr(result_loc, true);
     if (lhs->is_const_false() && rhs->is_const_false())
         return expr_maker_->make_const_bool_expr(result_loc, false);
     throw std::logic_error(ATTACH_CONTEXT(
@@ -180,8 +179,6 @@ ExprFolder::try_fold_logical_and(
     if (!ExprFolder::should_fold_logical(lhs, rhs))
         return nullptr;
 
-    if (lhs->is_const_false() || rhs->is_const_false())
-        return expr_maker_->make_const_bool_expr(result_loc, false);
     if (lhs->is_const_true() && rhs->is_const_true())
         return expr_maker_->make_const_bool_expr(result_loc, true);
     throw std::logic_error(ATTACH_CONTEXT(
@@ -247,7 +244,7 @@ ExprTrimmer::try_trim_relational_equality(
 }
 
 const Expr *
-ExprTrimmer::try_trim_logical(
+ExprTrimmer::try_trim_binary_logical(
     const ir::Opcode opc,
     const Expr *const lhs,
     const Expr *const rhs,
@@ -259,6 +256,8 @@ ExprTrimmer::try_trim_logical(
             return expr_maker_->clone_with_updated_location(result_loc, rhs);
         if (rhs->is_const_false()) // var OR false = var
             return expr_maker_->clone_with_updated_location(result_loc, lhs);
+        if (lhs->is_const_true() || rhs->is_const_true())
+            return expr_maker_->make_const_bool_expr(result_loc, true);
     }
     if (opc == ir::Opcode::AND)
     {
@@ -266,6 +265,8 @@ ExprTrimmer::try_trim_logical(
             return expr_maker_->clone_with_updated_location(result_loc, rhs);
         if (rhs->is_const_true()) // var AND true = var
             return expr_maker_->clone_with_updated_location(result_loc, lhs);
+        if (lhs->is_const_false() || rhs->is_const_false())
+            return expr_maker_->make_const_bool_expr(result_loc, false);
     }
     return nullptr;
 }
@@ -273,17 +274,17 @@ ExprTrimmer::try_trim_logical(
 const Expr *
 ExprOptimizer::try_propagate_const(const Expr *const expr)
 {
-    DEBUG_SMART_ASSERT(
-        options_.constant_propagation &&
-        "Constant propagation is OFF, shouldn't be called"
-    );
+    if (!expr_opts_.opt_const_propagation) [[unlikely]] // We optimize for fully optimized setups.
+        return expr;
     if (expr->type != Expr::Type::VARIABLE)
         return expr;
     const VarSymbol *const var_symbol = static_cast<const VariableExpr *>(expr)->var_symbol;
     DEBUG_SMART_ASSERT(!!var_symbol); // All VariableExpr must be tied to a Variable(Symbol);
     if (!var_symbol->has_const_value())
         return expr;
-    return var_symbol->get_const_expr();
+
+    // We need to update the location cause the point of use is different from point of const decl.
+    return expr_maker_->clone_with_updated_location(expr->loc, var_symbol->get_const_expr());
 }
 
 const Expr *

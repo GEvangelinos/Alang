@@ -21,10 +21,7 @@ SemanticSystem::SemanticSystem(
 
       // Private components, used by public submodules.
       quad_handler_(std::make_unique<QuadHandler>()),
-      expr_optimizer_(std::make_unique<ExprOptimizer>(
-          get_expr_optimizer_options(opts),
-          expr_maker_.get()
-      )),
+      expr_optimizer_(std::make_unique<ExprOptimizer>(opts, expr_maker_.get())),
       ss_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
       aggregate_builder(create_semantic_system_services()),
 
@@ -62,7 +59,7 @@ SemanticSystem::get_assign_builder_options(const settings::ExprOpts &opts)
 {
     return {
         // constant propagation requires recording of constants inside Expr(essions)
-        .record_constant_variables = opts.opt_propagate_const_vars
+        .record_constant_variables = opts.opt_const_propagation
     };
 }
 
@@ -70,17 +67,7 @@ BasicBuilder::Options
 SemanticSystem::get_basic_builder_options(const settings::ExprOpts &opts)
 {
     return {
-        .fold_static_bools = opts.opt_fold_const_expr
-    };
-}
-
-ExprOptimizer::Options
-SemanticSystem::get_expr_optimizer_options(const settings::ExprOpts&opts)
-{
-    return {
-        .constant_propagation = opts.opt_propagate_const_vars,
-        .expr_folding = opts.opt_fold_const_expr,
-        .expr_trimming = opts.opt_trim_expr,
+        .fold_static_bools = opts.opt_const_eval
     };
 }
 
