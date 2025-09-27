@@ -352,22 +352,26 @@ method_call_id:
   METHOD_CALL ID { ss.call<"call_builder.update_method_call_draft">($ID, @ID); }
 ;
 
-arg_list:
-  LEFT_PAREN expr_list RIGHT_PAREN { $arg_list = $expr_list; }
+begin_arg_list:
+  LEFT_PAREN  { ss.call<"call_builder.stage_call_space">(); }
 ;
 
-init_call:
-  { ss.call<"call_builder.stage_call_space">(); }
+end_arg_list:
+  RIGHT_PAREN { ss.call<"call_builder.retire_call_space">(); }
+;
+
+arg_list:
+  begin_arg_list expr_list end_arg_list { $arg_list = $expr_list; }
 ;
 
 call[invocation]:
-  call[callable] init_call arg_list
+  call[callable] arg_list
   { $invocation = ss.call<"call_builder.build_call_consuming">($callable, $arg_list, @invocation); }
-| lvalue init_call arg_list
+| lvalue arg_list
   { $invocation = ss.call<"call_builder.build_call_consuming">($lvalue, $arg_list, @invocation); }
-| lvalue method_call_id init_call arg_list
+| lvalue method_call_id arg_list
   { $invocation = ss.call<"call_builder.build_method_call_consuming">($lvalue, $arg_list, @invocation); }
-| LEFT_PAREN func_def RIGHT_PAREN init_call arg_list
+| LEFT_PAREN func_def RIGHT_PAREN arg_list
   { $invocation = ss.call<"call_builder.build_iife_call_consuming">($func_def, $arg_list, @arg_list); }
 ;
 

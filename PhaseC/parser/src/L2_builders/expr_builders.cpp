@@ -119,6 +119,7 @@ TableAccessBuilder::TableAccessBuilder(const SemanticSystemServices &ss_services
 TableAccessBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
 
+#ifdef CYA_MODE
 ExprList *
 AggregateBuilder::Restricted::extend_expr_list(
     ExprList *const elist,
@@ -129,34 +130,75 @@ AggregateBuilder::Restricted::extend_expr_list(
     const Expr *expr = ss_bridge_->materialize_if_table_item(next);
     ss_bridge_->finalize_bool_expr(expr);
     expr = expr_optimizer_->try_propagate_const(expr);
-
-    #ifndef CYA_MODE
-    const auto region = parse_ctx_->temp_ctx_handler.region();
-    if (!draft_.table_literal_stack.empty() &&
-        region.has_value() &&
-        region.value() == TempCtxHandler::Region::TABLE)
-    {
-        auto &top_elist_ctx = draft_.table_literal_stack.top();
-        const Expr *const index_expr = expr_maker_->make_const_int_expr(
-            next->loc,
-            top_elist_ctx.current_list_index++
-        );
-        quad_handler_->emit_next(
-            ir::Opcode::TABLESETELEM,
-            top_elist_ctx.current_table_expr,
-            index_expr,
-            expr,
-            expr->loc
-        );
-        parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
-    }
-    else if (region.has_value() && region.value() == TempCtxHandler::Region::FORLOOP_CLAUSE)
-        parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
-    #endif
-
     elist->push_back(expr);
     return elist;
 }
+#else // CYA_MODE NOT DEFINED
+void
+AggregateBuilder::Restricted::commit_table_element(const Expr *table_elem)
+{
+    DEBUG_SMART_ASSERT(!!table_elem);
+
+    table_elem = ss_bridge_->materialize_if_table_item(table_elem);
+    ss_bridge_->finalize_bool_expr(table_elem);
+    table_elem = expr_optimizer_->try_propagate_const(table_elem);
+
+    DEBUG_SMART_ASSERT(!draft_.table_literal_stack.empty());
+    auto &top_table = draft_.table_literal_stack.top();
+
+    const Expr *const index_expr = expr_maker_->make_const_int_expr(
+        table_elem->loc,
+        top_table.list_index++
+    );
+    quad_handler_->emit_next(
+        ir::Opcode::TABLESETELEM,
+        top_table.host_expr,
+        index_expr,
+        table_elem,
+        table_elem->loc
+    );
+}
+#endif // CYA_MODE
+
+// TODO: REMOVE when done referencing
+// ExprList *
+// AggregateBuilder::Restricted::extend_expr_list(
+//     ExprList *const elist,
+//     const Expr *const next)
+// {
+//     DEBUG_SMART_ASSERT(!!elist, !!next);
+//
+//     const Expr *expr = ss_bridge_->materialize_if_table_item(next);
+//     ss_bridge_->finalize_bool_expr(expr);
+//     expr = expr_optimizer_->try_propagate_const(expr);
+//
+//     #ifndef CYA_MODE
+//     const auto region = parse_ctx_->temp_ctx_handler.region();
+//     if (!draft_.table_literal_stack.empty() &&
+//         region.has_value() &&
+//         region.value() == TempCtxHandler::Region::TABLE)
+//     {
+//         auto &top_elist_ctx = draft_.table_literal_stack.top();
+//         const Expr *const index_expr = expr_maker_->make_const_int_expr(
+//             next->loc,
+//             top_elist_ctx.current_list_index++
+//         );
+//         quad_handler_->emit_next(
+//             ir::Opcode::TABLESETELEM,
+//             top_elist_ctx.current_table_expr,
+//             index_expr,
+//             expr,
+//             expr->loc
+//         );
+//         parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
+//     }
+//     else if (region.has_value() && region.value() == TempCtxHandler::Region::FORLOOP_CLAUSE)
+//         parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
+//     #endif
+//
+//     elist->push_back(expr);
+//     return elist;
+// }
 
 const ExprPair *
 AggregateBuilder::Restricted::build_dict_entry(const Expr *key, const Expr *val)
@@ -189,7 +231,7 @@ AggregateBuilder::Restricted::extend_dict_list(
         const SourceLocation pair_loc = merge(key->loc, val->loc);
         quad_handler_->emit_next(
             ir::Opcode::TABLESETELEM,
-            draft_.table_literal_stack.top().current_table_expr,
+            draft_.table_literal_stack.top().host_expr,
             key,
             val,
             pair_loc
@@ -211,30 +253,10 @@ AggregateBuilder::Restricted::delete_dict_list(DictList *dlist)
 }
 
 void
-CallBuilder::Restricted::stage_call_space()
-{
-    #ifndef CYA_MODE
-    parse_ctx_->temp_ctx_handler.enter_region(TempCtxHandler::Region::CALL);
-    parse_ctx_->temp_ctx_handler.push_checkpoint_barrier();
-    #endif
-    parse_ctx_->call_ctx_handler.enter_call();
-}
+CallBuilder::Restricted::stage_call_space() { parse_ctx_->call_ctx_handler.enter_call(); }
 
-/// @warning Must be invoked after all expressions involved in the call
-/// (arguments and callee) have been emitted, but before creating
-/// the expression for `getretval`.
 void
-CallBuilder::Restricted::retire_call_space()
-{
-    parse_ctx_->call_ctx_handler.exit_call();
-    #ifndef CYA_MODE
-    auto &tch = parse_ctx_->temp_ctx_handler;
-    tch.pop_checkpoint_barrier();
-    DEBUG_SMART_ASSERT(tch.region().has_value());
-    DEBUG_SMART_ASSERT(tch.region().value()==TempCtxHandler::Region::CALL);
-    tch.exit_region();
-    #endif
-}
+CallBuilder::Restricted::retire_call_space() { parse_ctx_->call_ctx_handler.exit_call(); }
 
 void
 AggregateBuilder::Restricted::initiate_table_literal(const SourceLocation table_list_loc)
@@ -260,7 +282,7 @@ const Expr *AggregateBuilder::Restricted::extract_table_literal_consuming(ExprLi
 const Expr *AggregateBuilder::Restricted::extract_table_literal_consuming(DictList *dlist)
 {
     DEBUG_SMART_ASSERT(
-        draft_.table_literal_stack.top().current_list_index == 0 &&
+        draft_.table_literal_stack.top().list_index == 0 &&
         "In dictionary construction list_index should be not used, it should remain 0"
     );
     return extract_table_literal_consuming_impl(
@@ -276,7 +298,7 @@ const Expr *AggregateBuilder::Restricted::extract_table_literal_consuming_impl(
 
     DEBUG_SMART_ASSERT(!draft_.table_literal_stack.empty());
 
-    const Expr *const retval = draft_.table_literal_stack.top().current_table_expr;
+    const Expr *const retval = draft_.table_literal_stack.top().host_expr;
     draft_.table_literal_stack.pop();
     parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     parse_ctx_->temp_ctx_handler.pop_checkpoint();

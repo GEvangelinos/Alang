@@ -118,8 +118,9 @@ private:
         const settings::ExprOpts &opts);
     [[nodiscard]] static BasicBuilder::Options get_basic_builder_options(
         const settings::ExprOpts &opts);
-
 public:
+    class ElistHandler;
+
     // Gateway lets PassManager mark hard errors, but not clear them;
     // recovery hooks via call() dispatch can still reset, so it’s not bulletproof.
     // Gateway also provides access to the generated quads.
@@ -128,8 +129,17 @@ public:
     // Used to give access to specific queries to Bison's custom syntax error handler
     class ParserContextView;
 
+    ElistHandler &elist_handler;
+
     std::unique_ptr<Gateway> gateway;
     std::unique_ptr<ParserContextView> parser_context_view;
+};
+
+class SemanticSystem::ElistHandler : private Immobile
+{
+    [[nodiscard]] static ExprList *build();
+    [[nodiscard]] ExprList *build(const Expr* head_expr);
+    [[nodiscard]] ExprList *extend(ExprList *elist, const Expr *next);
 };
 
 class SemanticSystem::ParserContextView

@@ -26,11 +26,11 @@ private:
     private:
         struct TableLiteralCtx
         {
-            std::size_t current_list_index = 0; // Only used for ExprList. NOT DictList!
-            const NewTableExpr *const current_table_expr;
+            std::size_t list_index = 0; // Only used for ExprList. NOT DictList!
+            const NewTableExpr *const host_expr;
 
             explicit TableLiteralCtx(const NewTableExpr *const new_table_expr)
-                : current_table_expr(new_table_expr) {}
+                : host_expr(new_table_expr) {}
         };
 
         struct
@@ -46,7 +46,11 @@ private:
         void mark_temp_checkpoint();
         [[nodiscard]] static ExprList *build_expr_list();
         [[nodiscard]] ExprList *build_expr_list(const Expr *head_expr);
+        #ifdef CYA_MODE
         [[nodiscard]] ExprList *extend_expr_list(ExprList *elist, const Expr *next);
+        #else
+        void commit_table_element(const Expr *table_elem);
+        #endif
         static void delete_expr_list(ExprList *elist);
         static void consume_expr_list(ExprList *elist) { delete_expr_list(elist); }
 
@@ -61,14 +65,15 @@ private:
         static void consume_dict_list(DictList *dlist) { delete_dict_list(dlist); }
 
         void initiate_table_literal(SourceLocation table_list_loc);
-        [[nodiscard]] const Expr *extract_table_literal_consuming(ExprList *elist);
-        [[nodiscard]] const Expr *extract_table_literal_consuming(DictList *dlist);
 
         #ifdef CYA_MODE
         [[nodiscard]] const Expr *build_table_list_consuming(
             ExprList *elist, SourceLocation table_list_loc);
         [[nodiscard]] const Expr *build_table_dict_consuming(
             DictList *dlist, SourceLocation table_dict_loc);
+        #else
+        [[nodiscard]] const Expr *extract_table_literal_consuming(ExprList *elist);
+        [[nodiscard]] const Expr *extract_table_literal_consuming(DictList *dlist);
         #endif
 
         template<typename ListT>
@@ -87,15 +92,20 @@ private:
     DISPATCH_SLAVE_METHOD_CALL(end_dict_entry);
     DISPATCH_SLAVE_METHOD_CALL(build_dict_entry);
     DISPATCH_SLAVE_METHOD_CALL(build_dict_list);
+    #ifdef CYA_MODE
     DISPATCH_SLAVE_METHOD_CALL(extend_expr_list);
+    #else
+    DISPATCH_SLAVE_METHOD_CALL(commit_table_element);
+    #endif
     DISPATCH_SLAVE_METHOD_CALL(extend_dict_list);
     DISPATCH_SLAVE_METHOD_CALL(consume_expr_list);
     DISPATCH_SLAVE_METHOD_CALL(consume_dict_list);
     DISPATCH_SLAVE_METHOD_CALL(initiate_table_literal);
-    DISPATCH_SLAVE_METHOD_CALL(extract_table_literal_consuming);
     #ifdef CYA_MODE
     DISPATCH_SLAVE_METHOD_CALL(build_table_list_consuming);
     DISPATCH_SLAVE_METHOD_CALL(build_table_dict_consuming);
+    #else
+    DISPATCH_SLAVE_METHOD_CALL(extract_table_literal_consuming);
     #endif
     DISPATCH_DEFINE_HANDLER_END();
 };
@@ -284,10 +294,11 @@ private:
 
         void update_method_call_draft(const char *id, SourceLocation id_loc);
 
-        // The following two functions are a symetric pair. Sadly my design starts to show weaknesses
-        // And prepared is called in bison.. and thus its DISPATCHED... while clear is called in build_call_consuming
         void stage_call_space();
         void retire_call_space();
+        #ifndef CYa_MODE
+        void commit_call_argument(const Expr* call_arg);
+        #endif
 
         [[nodiscard]] const Expr *build_call_consuming(
             const Expr *callable_lvalue, ExprList *arg_list, SourceLocation call_loc,
@@ -450,7 +461,7 @@ inline ExprList *
 AggregateBuilder::Restricted::build_expr_list(const Expr *const head_expr)
 {
     DEBUG_SMART_ASSERT(!!head_expr);
-    return extend_expr_list(build_expr_list(), head_expr);
+    return commit_table_elem(build_expr_list(), head_expr);
 }
 
 inline void

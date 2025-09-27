@@ -1054,3 +1054,44 @@ and keyword with blue, maybe operators too.. or different color
 212) why do we emit both return and jump when we use return keyword?
 if reutrn doesnt just.. then in retuns with no expr, return  should not be ommitted.
 except if we say return can also jump.. but thewe dont need the explicit jump.
+
+213) Remove useless IR.. for example.. when you call a function and dont use its retval..
+
+remove the getretval instruction.. (either if tempvar is overwritten before used as RVALUE)
+(or IR ends)
+
+same for tablegetelem when you set an element on a table..
+
+if not used.. remove it...
+
+
+put these opts under --remove-dead-ir or something like that
+
+214)
+In constfold although a,b,c are knows we dont pass directly in table...
+Maybe add an access const_var function so when ever you access a variable at any point..
+you pass it through that filter function (in const fold opt mode)
+quad#      opcode          result               arg1                 arg2                 label      line
+---------------------------------------------------------------------------------------------------------------
+1          tablecreate     $0                                                             -          2
+2          assign          a                    1                                         -          2
+3          tablesetelem    $0                   0                    a                    -          2
+4          assign          b                    2                                         -          2
+5          tablesetelem    $0                   1                    b                    -          2
+6          assign          c                    3                                         -          2
+7          tablesetelem    $0                   2                    c                    -          2
+8          assign          d                    $0                                        -          2
+
+215)
+
+input: object = [];
+
+// 121,tablecreate,$0,NA,NA,NA,71,71
+// 122,assign,object,$0,NA,NA,71,71
+
+
+could be
+
+// 121,tablecreate,object,NA,NA,NA,71,71
+
+216) YOu can remove useless getrevals in calls if user never uses the result
