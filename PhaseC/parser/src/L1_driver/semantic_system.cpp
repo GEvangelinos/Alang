@@ -114,7 +114,7 @@ bool SemanticSystem::ParserContextView::is_in_call_arg_list() const noexcept
 
 bool SemanticSystem::ParserContextView::is_in_forloop_clause() const noexcept
 {
-    return host_->parse_ctx_->temp_ctx_handler.current_critical_region() ==
-           TempCtxHandler::CriticalRegion::FORLOOP_CLAUSE;
+    return host_->parse_ctx_->temp_ctx_handler.region() ==
+           TempCtxHandler::Region::FORLOOP_CLAUSE;
 }
 } // namespace alpha

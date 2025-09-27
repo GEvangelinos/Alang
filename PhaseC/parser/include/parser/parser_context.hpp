@@ -184,18 +184,19 @@ private:
 class TempCtxHandler
 {
 public:
-    enum class CriticalRegion { CALL, TABLE, FORLOOP_CLAUSE };
+    enum class Region { CALL, TABLE, FORLOOP_CLAUSE };
 
     explicit TempCtxHandler(const ParseCtx *host);
     ~TempCtxHandler();
 
-    void push_temp_ctx_frame();
-    void pop_temp_ctx_frame();
-    void reset_current_frame();
+    void push_temp_ctx_frame(); // CREATES EVERYTHING
+    void pop_temp_ctx_frame();  // FUCKS EVERYTHING
+    void reset_current_frame(); // CREATE AND FUCKS.
 
-    std::optional<CriticalRegion> current_critical_region() const;
-    void enter_critical_region(CriticalRegion region_to_enter);
-    void exit_critical_region();
+    std::optional<Region> region() const; // OKAY its CONST METHOD
+    void enter_region(Region region_to_enter);
+    // ONLY changes critical region (vector of enums)
+    void exit_region(); // ONLY changes critical region (vector of enums)
 
     void push_checkpoint();
     void pop_checkpoint();
@@ -210,7 +211,7 @@ private:
     struct TempCtxFrame
     {
         u32 temp_counter_ = 0;
-        VectorStack<CriticalRegion> critical_region_stack;
+        VectorStack<Region> critical_region_stack;
         std::vector<u32> checkpoints_;
         VectorStack<u32> checkpoint_barriers_;
     };
@@ -325,7 +326,8 @@ CallContextHandler::exit_call() noexcept
 inline void
 AggregateCtxHandler::enter_dict_entry() noexcept
 {
-    DEBUG_SMART_ASSERT(dict_entry_nesting_depth_< k_max_dict_nesting && "A safe small sanity limit");
+    DEBUG_SMART_ASSERT(dict_entry_nesting_depth_< k_max_dict_nesting && "A safe small sanity limit")
+    ;
     ++dict_entry_nesting_depth_;
 }
 

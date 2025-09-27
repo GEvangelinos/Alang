@@ -131,10 +131,10 @@ AggregateBuilder::Restricted::extend_expr_list(
     expr = expr_optimizer_->try_propagate_const(expr);
 
     #ifndef CYA_MODE
-    const auto region = parse_ctx_->temp_ctx_handler.current_critical_region();
+    const auto region = parse_ctx_->temp_ctx_handler.region();
     if (!draft_.table_literal_stack.empty() &&
         region.has_value() &&
-        region.value() == TempCtxHandler::CriticalRegion::TABLE)
+        region.value() == TempCtxHandler::Region::TABLE)
     {
         auto &top_elist_ctx = draft_.table_literal_stack.top();
         const Expr *const index_expr = expr_maker_->make_const_int_expr(
@@ -150,7 +150,7 @@ AggregateBuilder::Restricted::extend_expr_list(
         );
         parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     }
-    else if (region.has_value() && region.value() == TempCtxHandler::CriticalRegion::FORLOOP_CLAUSE)
+    else if (region.has_value() && region.value() == TempCtxHandler::Region::FORLOOP_CLAUSE)
         parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     #endif
 
@@ -211,26 +211,28 @@ AggregateBuilder::Restricted::delete_dict_list(DictList *dlist)
 }
 
 void
-CallBuilder::Restricted::begin_call()
+CallBuilder::Restricted::stage_call_space()
 {
     #ifndef CYA_MODE
-    parse_ctx_->temp_ctx_handler.enter_critical_region(TempCtxHandler::CriticalRegion::CALL);
+    parse_ctx_->temp_ctx_handler.enter_region(TempCtxHandler::Region::CALL);
     parse_ctx_->temp_ctx_handler.push_checkpoint_barrier();
     #endif
     parse_ctx_->call_ctx_handler.enter_call();
 }
 
+/// @warning Must be invoked after all expressions involved in the call
+/// (arguments and callee) have been emitted, but before creating
+/// the expression for `getretval`.
 void
-CallBuilder::Restricted::end_call()
+CallBuilder::Restricted::retire_call_space()
 {
     parse_ctx_->call_ctx_handler.exit_call();
     #ifndef CYA_MODE
-    parse_ctx_->temp_ctx_handler.pop_checkpoint_barrier();
-    DEBUG_SMART_ASSERT(parse_ctx_->temp_ctx_handler.current_critical_region().has_value());
-    DEBUG_SMART_ASSERT(
-        parse_ctx_->temp_ctx_handler.current_critical_region().value()== TempCtxHandler::
-        CriticalRegion::CALL);
-    parse_ctx_->temp_ctx_handler.exit_critical_region();
+    auto &tch = parse_ctx_->temp_ctx_handler;
+    tch.pop_checkpoint_barrier();
+    DEBUG_SMART_ASSERT(tch.region().has_value());
+    DEBUG_SMART_ASSERT(tch.region().value()==TempCtxHandler::Region::CALL);
+    tch.exit_region();
     #endif
 }
 
@@ -239,7 +241,7 @@ AggregateBuilder::Restricted::initiate_table_literal(const SourceLocation table_
 {
     #ifndef CYA_MODE
     const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
-    parse_ctx_->temp_ctx_handler.enter_critical_region(TempCtxHandler::CriticalRegion::TABLE);
+    parse_ctx_->temp_ctx_handler.enter_region(TempCtxHandler::Region::TABLE);
     parse_ctx_->temp_ctx_handler.push_checkpoint();
     quad_handler_->emit_next(
         ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
@@ -279,12 +281,12 @@ const Expr *AggregateBuilder::Restricted::extract_table_literal_consuming_impl(
     parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     parse_ctx_->temp_ctx_handler.pop_checkpoint();
 
-    DEBUG_SMART_ASSERT(parse_ctx_->temp_ctx_handler.current_critical_region().has_value());
+    DEBUG_SMART_ASSERT(parse_ctx_->temp_ctx_handler.region().has_value());
     DEBUG_SMART_ASSERT(
-        parse_ctx_->temp_ctx_handler.current_critical_region().value() ==
-        TempCtxHandler::CriticalRegion::TABLE
+        parse_ctx_->temp_ctx_handler.region().value() ==
+        TempCtxHandler::Region::TABLE
     );
-    parse_ctx_->temp_ctx_handler.exit_critical_region();
+    parse_ctx_->temp_ctx_handler.exit_region();
 
     deleter(list);
     return retval;
@@ -916,8 +918,10 @@ CallBuilder::Restricted::check_for_argument_mismatch(
     const SourceLocation call_loc
 )
 {
+    // If not a program function, we can't know expected arguments. As we can make a call with any lvalue.
     if (callable_lvalue->type != Expr::Type::PROGRAM_FUNCTION)
         return;
+
     const auto func_symbol = static_cast<const ProgFuncExpr *>(callable_lvalue)->func_symbol;
     if (func_symbol->parameter_list.size() == param_list->size())
         return;
@@ -940,15 +944,19 @@ CallBuilder::Restricted::build_call_consuming(
     DEBUG_SMART_ASSERT(!!callable_lvalue, !!arg_list);
 
     check_for_argument_mismatch(callable_lvalue, arg_list, call_loc);
-    const Expr *func_expr = ss_bridge_->materialize_if_table_item(callable_lvalue);
+
+    reset_temps_if_temp_operand(callable_lvalue);
+    const Expr *callee = ss_bridge_->materialize_if_table_item(callable_lvalue);
+
+    // At this point we have everything required to make a call, so we can retire call space.
+    retire_call_space();
 
     for (auto it = arg_list->crbegin(); it != arg_list->crend(); ++it)
         quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, *it, nullptr, (*it)->loc);
     if (method)
         quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, method, nullptr, method->loc);
+    quad_handler_->emit_next(ir::Opcode::CALL, nullptr, callee, nullptr, call_loc);
 
-    quad_handler_->emit_next(ir::Opcode::CALL, nullptr, func_expr, nullptr, call_loc);
-    reset_temps_if_temp_operand(func_expr);
     const Expr *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
     quad_handler_->emit_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
 
@@ -964,11 +972,12 @@ CallBuilder::Restricted::build_method_call_consuming(
     const Expr *const lvalue_copy = lvalue;
 
     const Expr *const method_index = expr_maker_->make_const_string_expr(
-        method_call_draft_.id_loc, method_call_draft_.id.c_str());
-    const Expr *const hosting_var = expr_maker_->make_table_item_expr(
-        call_loc, lvalue, method_index);
+        method_call_draft_.id_loc,
+        method_call_draft_.id.c_str()
+    );
+    const Expr *const host_var = expr_maker_->make_table_item_expr(call_loc, lvalue, method_index);
 
-    lvalue = ss_bridge_->materialize_if_table_item(hosting_var);
+    lvalue = ss_bridge_->materialize_if_table_item(host_var);
     return build_call_consuming(lvalue, arg_list, call_loc, DEBUG_REQUIRE_PTR(lvalue_copy));
 }
 

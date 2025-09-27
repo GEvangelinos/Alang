@@ -42,7 +42,6 @@ ControlFlowManager::Restricted::manage_ifbranch_entry(
     #else
     parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
     #endif
-
 }
 
 void
@@ -290,30 +289,28 @@ ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_lo
 void
 ControlFlowManager::Restricted::enter_forloop_clause()
 {
-    parse_ctx_->temp_ctx_handler.enter_critical_region(
-        TempCtxHandler::CriticalRegion::FORLOOP_CLAUSE);
-    parse_ctx_->temp_ctx_handler.push_checkpoint();
+    auto &tch = parse_ctx_->temp_ctx_handler; // Short alias to improve readability.
+    tch.enter_region(TempCtxHandler::Region::FORLOOP_CLAUSE);
+    tch.push_checkpoint();
 }
 
 void
 ControlFlowManager::Restricted::exit_forloop_clause()
 {
-    parse_ctx_->temp_ctx_handler.pop_checkpoint();
-    DEBUG_SMART_ASSERT(parse_ctx_->temp_ctx_handler.current_critical_region().has_value());
-    DEBUG_SMART_ASSERT(
-        parse_ctx_->temp_ctx_handler.current_critical_region().value() ==
-        TempCtxHandler::CriticalRegion::FORLOOP_CLAUSE
-    );
+    auto &tch = parse_ctx_->temp_ctx_handler; // Short alias to improve readability.
+    tch.pop_checkpoint();
+    DEBUG_SMART_ASSERT(tch.region().has_value());
+    DEBUG_SMART_ASSERT(tch.region().value() == TempCtxHandler::Region::FORLOOP_CLAUSE);
 
-    parse_ctx_->temp_ctx_handler.exit_critical_region();
+    parse_ctx_->temp_ctx_handler.exit_region();
 
     // In CYA_MODE we don't do complex temp reuse,
     // so we cant rely on, temp reuse in each for-loop stage.
     // Thus, we reset temps at end of forloop clause
     #ifdef CYA_MODE
-    parse_ctx_->temp_ctx_handler.reset_current_frame();
+    tch.reset_current_frame();
     #else
-    parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
+    tch.reset_to_checkpoint();
     #endif
 }
 
@@ -366,7 +363,7 @@ ControlFlowManager::Restricted::mark_upcoming_forloop_sites()
     DEBUG_SMART_ASSERT(!build_ctx_.for_loop_frames.empty());
     using FLS = ForLoopSite;
 
-    auto &flf = build_ctx_.for_loop_frames.top();
+    auto &flf = build_ctx_.for_loop_frames.top(); // Short alias to improve readability.
 
     // clang-format off
     switch (const LabelID next_jump_label = quad_handler_->next_quad_label(); flf.next_patch_point)

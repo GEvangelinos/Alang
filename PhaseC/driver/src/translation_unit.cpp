@@ -16,11 +16,18 @@ inline constexpr auto k_reescaped_warning_banner =
         "Special characters are escaped; Ex.: \"\\n\" prints literally (not a newline) to keep the table aligned.\n"
         SGR_RESET;
 
+// Note: The following stirng contains Greek characters.
+// I dont remember what going on with unicode and C++
+// but in case it causes any problems just remove the Greek part
+// It is just a reference to a lecture.
 inline constexpr auto k_temp_reuse_warning_banner =
         WARNING_BANNER_PREFIX
         "Temporaries are context-local. Each function starts with a fresh temp frame (counter reset to zero).\n"
         "           Nested function definitions or functions assigned to tables/variables therefore allocate temps from a\n"
-        "           clean slate. When the function definition ends, the previous temp counter is restored.\n"
+        "           clean slate. When the function definition ends, the previous temp counter is restored. (Lecture 9 Slide 40)\n"
+        "           >>> Οι κρυφές μεταβλητές είναι κανονικές μεταβλητές και η δημιουργία\n"
+        "           >>> τους απαιτεί δημιουργία νέου συμβόλου στον πίνακα συμβόλων, ενώ\n"
+        "           >>> απενεργοποιούνται κανονικά εκτός της εμβέλειας δήλωσής τους\n"
         SGR_RESET;
 
 inline constexpr auto k_cya_mode_off_warning_banner =

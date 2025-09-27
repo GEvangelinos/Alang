@@ -192,8 +192,8 @@ TempCtxHandler::reset_current_frame()
     push_temp_ctx_frame();
 }
 
-std::optional<TempCtxHandler::CriticalRegion>
-TempCtxHandler::current_critical_region() const
+std::optional<TempCtxHandler::Region>
+TempCtxHandler::region() const
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
     const TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
@@ -204,14 +204,14 @@ TempCtxHandler::current_critical_region() const
 }
 
 void
-TempCtxHandler::enter_critical_region(const TempCtxHandler::CriticalRegion region_to_enter)
+TempCtxHandler::enter_region(const TempCtxHandler::Region region_to_enter)
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
     temp_ctx_frame_stack_.top().critical_region_stack.push(region_to_enter);
 }
 
 void
-TempCtxHandler::exit_critical_region()
+TempCtxHandler::exit_region()
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
     temp_ctx_frame_stack_.top().critical_region_stack.pop();

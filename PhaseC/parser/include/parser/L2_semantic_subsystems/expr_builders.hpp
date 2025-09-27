@@ -284,8 +284,10 @@ private:
 
         void update_method_call_draft(const char *id, SourceLocation id_loc);
 
-        void begin_call();
-        void end_call();
+        // The following two functions are a symetric pair. Sadly my design starts to show weaknesses
+        // And prepared is called in bison.. and thus its DISPATCHED... while clear is called in build_call_consuming
+        void stage_call_space();
+        void retire_call_space();
 
         [[nodiscard]] const Expr *build_call_consuming(
             const Expr *callable_lvalue, ExprList *arg_list, SourceLocation call_loc,
@@ -307,8 +309,7 @@ private:
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(update_method_call_draft);
-    DISPATCH_SLAVE_METHOD_CALL(begin_call);
-    DISPATCH_SLAVE_METHOD_CALL(end_call);
+    DISPATCH_SLAVE_METHOD_CALL(stage_call_space);
     DISPATCH_SLAVE_METHOD_CALL(build_call_consuming);
     DISPATCH_SLAVE_METHOD_CALL(build_iife_call_consuming);
     DISPATCH_SLAVE_METHOD_CALL(build_method_call_consuming);
