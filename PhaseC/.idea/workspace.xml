@@ -48,19 +48,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_group_call_norm_v21__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_group_call_norm_v21__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_group_call_norm_v26__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_group_call_norm_v26__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_group_call_norm_v27__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_group_call_norm_v27__OPT=NONE.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/.test.asc.swp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/test.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/test.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/basics.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/basics.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/parser_context.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_context.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -83,6 +73,40 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -792,7 +816,7 @@
       <workItem from="1758622947050" duration="8794000" />
       <workItem from="1758662529901" duration="35784000" />
       <workItem from="1758820088022" duration="57803000" />
-      <workItem from="1758964500480" duration="88250000" />
+      <workItem from="1758964500480" duration="92776000" />
     </task>
     <servers />
   </component>
