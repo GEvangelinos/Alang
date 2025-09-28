@@ -30,6 +30,7 @@ SemanticSubsystem::reset_temps_if_temp_operand(const Expr *const unary)
     // Rvalue operands don't persist, so temp names can be safely reused.
     if (unary->has_temp_symbol())
         parse_ctx_->temp_ctx_handler.reset_temp_counter_to_last_checkpoint();
+
 }
 
 inline void

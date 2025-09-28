@@ -746,6 +746,8 @@ CallBuilder::Restricted::build_call_consuming(
     auto &call_args = draft_.call_info_stack.top().arguments;
     check_for_argument_mismatch(callable_lvalue, call_args, call_loc);
 
+    // TODO: do we need to reset if callable_lvalue is temp?
+
     while (!call_args.empty())
     {
         const Expr *const arg = call_args.top();
@@ -762,8 +764,9 @@ CallBuilder::Restricted::build_call_consuming(
     // At these point we have used everything required to make a call.
     finalize_call();
 
-    const Expr *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
-    parse_ctx_->temp_ctx_handler.set_checkpoint();
+    const auto *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
+    // parse_ctx_->temp_ctx_handler.set_checkpoint();
+
     quad_handler_->emit_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
 
     return getretval_expr;
@@ -1066,6 +1069,7 @@ TableAccessBuilder::Restricted::build_subscript_access(
 void
 TableBuilder::Restricted::init_table_literal()
 {
+
     parse_ctx_->temp_ctx_handler.enter_region(TempCtxHandler::Region::TABLE);
 
     const NewTableExpr *const new_table = expr_maker_->make_new_table_expr(k_no_loc);

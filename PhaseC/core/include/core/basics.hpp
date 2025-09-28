@@ -198,8 +198,10 @@ class OnceFlag : private Immobile
 public:
     OnceFlag() = default;
 
-    [[nodiscard]] bool raised() const noexcept { return once_flag.is_assigned(); }
-    void raise() { if (!raised()) once_flag.set(true); }
+    [[nodiscard]] bool is_raised() const noexcept { return once_flag.is_assigned(); }
+    void raise() { if (!is_raised()) once_flag.set(true); }
+
+    operator bool() { return is_raised(); }
 
 private:
     Once<bool> once_flag;

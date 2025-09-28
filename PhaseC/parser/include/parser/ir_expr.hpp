@@ -78,7 +78,7 @@ protected:
         : loc(loc), type(type), rvalue_casted() {}
 
 private:
-    mutable Once<bool> rvalue_casted;
+    mutable OnceFlag rvalue_casted;
 };
 
 const char *to_string(Expr::Type type) noexcept; // We keep outside of Expr, so ADL finds it.
@@ -233,10 +233,10 @@ struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
 };
 
 inline void
-Expr::rvalue_cast() const { rvalue_casted.set(true); }
+Expr::rvalue_cast() const { rvalue_casted.raise(); }
 
 inline bool
-Expr::is_rvalue_casted() const noexcept { return rvalue_casted.is_assigned(); }
+Expr::is_rvalue_casted() const noexcept { return rvalue_casted.is_raised(); }
 
 inline bool
 Expr::is_arithmetic_convertible() const noexcept

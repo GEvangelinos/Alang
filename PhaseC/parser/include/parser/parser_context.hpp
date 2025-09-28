@@ -184,7 +184,7 @@ private:
 class TempCtxHandler
 {
 public:
-    enum class Region : u8 { CALL, TABLE, FORLOOP_CLAUSE };
+    enum class Region : u8 { NONE, CALL, TABLE, FORLOOP_CLAUSE };
 
     explicit TempCtxHandler(const ParseCtx *host);
     ~TempCtxHandler();
@@ -197,7 +197,9 @@ public:
     std::optional<Region> region() const;
 
     void set_checkpoint();
-    void consume_checkpoint_and_reset();
+
+    // TODO: maybe useless (or even bad) function
+    void dec_temp_counter();
 
     void reset_temp_ctx_frame();
     void reset_temp_counter_to_last_checkpoint();
@@ -207,10 +209,20 @@ public:
 private:
     struct TempCtxFrame
     {
+        TempCtxFrame()
+        {
+            regions.push_back(RegionInfo{
+                .region = Region::NONE,
+                .temp_counter_on_entering = 0,
+                .checkpoints = {}
+            });
+        }
+
         struct RegionInfo
         {
+            const Region region;
+            const u32 temp_counter_on_entering;
             std::vector<u32> checkpoints;
-            Region region;
         };
 
         u32 temp_counter = 0;
@@ -494,6 +506,6 @@ AnonymousGenerator::new_anonymous()
 }
 
 inline bool
-ParseCtx::hard_error_occurred() const noexcept { return hard_error_occurred_.raised(); }
+ParseCtx::hard_error_occurred() const noexcept { return hard_error_occurred_.is_raised(); }
 } // namespace alpha
 #endif // PARSER_CONTEXT_HPP

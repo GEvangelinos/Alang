@@ -189,7 +189,11 @@ TempCtxHandler::enter_region(const Region region_to_enter)
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
     temp_ctx_frame_stack_.top().regions.push_back(
-        TempCtxFrame::RegionInfo{.checkpoints = {}, .region = region_to_enter}
+        TempCtxFrame::RegionInfo{
+            .region = region_to_enter,
+            .temp_counter_on_entering = temp_ctx_frame_stack_.top().temp_counter,
+            .checkpoints = {},
+        }
     );
 }
 
@@ -203,6 +207,7 @@ TempCtxHandler::exit_region(DEBUG(const Region region_to_exit))
     auto &regions = temp_ctx_frame_stack_.top().regions;
 
     DEBUG_SMART_ASSERT(!regions.empty());
+
     // TODO: POLISH CODE is SHIT
     std::optional<u32> keep_alive_checkpoint = std::nullopt;
     if (regions.size() >= 2)
@@ -213,16 +218,21 @@ TempCtxHandler::exit_region(DEBUG(const Region region_to_exit))
         {
             DEBUG_SMART_ASSERT(
                 !regions[regions.size()-1].checkpoints.empty() &&
-                "TABLE pushes checkpoint atleast on table expr"
+                "TABLE pushes checkpoint at-least on table expr"
             );
             keep_alive_checkpoint = regions[regions.size() - 1].checkpoints.front();
         }
     }
+    const auto temp_counter_on_entering = regions.back().temp_counter_on_entering;
     regions.pop_back();
 
     if (keep_alive_checkpoint.has_value())
+    {
         regions[regions.size() - 1].checkpoints.push_back(keep_alive_checkpoint.value());
-    reset_temp_counter_to_last_checkpoint();
+        reset_temp_counter_to_last_checkpoint();
+    }
+    else
+        temp_ctx_frame_stack_.top().temp_counter = temp_counter_on_entering;
 }
 
 std::optional<TempCtxHandler::Region>
@@ -243,64 +253,17 @@ TempCtxHandler::set_checkpoint()
 
     auto &top_frame = temp_ctx_frame_stack_.top();
 
-    // TODO: uncomment debug remove the if branch
-    //DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.top().regions.empty());
-    if (temp_ctx_frame_stack_.top().regions.empty())
-        return;
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.top().regions.empty());
 
     top_frame.regions.back().checkpoints.push_back(top_frame.temp_counter);
 }
 
 void
-TempCtxHandler::consume_checkpoint_and_reset()
+TempCtxHandler::dec_temp_counter()
 {
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-
-    auto & top_frame = temp_ctx_frame_stack_.top();
-
-    // Remove 1 checkpoint and reset to last == reset to prev checkpoint and consume
-    top_frame.regions.back().checkpoints.pop_back();
-    reset_temp_counter_to_last_checkpoint();
+    DEBUG_SMART_ASSERT(temp_ctx_frame_stack_.empty() && "There should b atleast global frame");
+    --temp_ctx_frame_stack_.top().temp_counter;
 }
-
-// void
-// TempCtxHandler::consume_checkpoint_and_reset()
-// {
-//     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-//
-//     auto & top_frame = temp_ctx_frame_stack_.top();
-//
-//     if (top_frame.regions.empty())
-//     {
-//         top_frame.temp_counter = 0;
-//         return;
-//     }
-//
-//     if (top_frame.regions.back().checkpoints.empty())
-//     {
-//         std::size_t i = 0;
-//         while (true)
-//         {
-//             auto &regions = top_frame.regions;
-//             if (i >= regions.size())
-//                 break;
-//             if (regions[regions.size()-1 - i].checkpoints.empty())
-//                 ++i;
-//             else
-//             {
-//                 top_frame.temp_counter = regions[regions.size()-1 - i].checkpoints.back();
-//                 return;
-//             }
-//         }
-//         top_frame.temp_counter = 0;
-//     }
-//     else
-//     {
-//         // Remove 1 checkpoint and reset to last == reset to prev checkpoint and consume
-//         top_frame.regions.back().checkpoints.pop_back();
-//         reset_temp_counter_to_last_checkpoint();
-//     }
-// }
 
 void
 TempCtxHandler::reset_temp_ctx_frame()
@@ -314,26 +277,11 @@ void
 TempCtxHandler::reset_temp_counter_to_last_checkpoint()
 {
     // TODO fixup now code its just glued parts
-
-    // CHATGPT:
-    // Quick sanity test ideas
-
-// Frame with no regions → counter becomes 0.
-//
-// Regions present, all with empty checkpoint stacks → 0.
-//
-// Innermost region has checkpoints → picks its .back().
-//
-// Outer region has checkpoints, inner empty → finds outer.
-//
-// If you also need to pop the found checkpoint (not just read it), say so and I’ll tweak the routine to pop and restore atomically.
-
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty() && "Cnter lives in frames, nothing to reset");
     auto &top_frame = temp_ctx_frame_stack_.top();
+    DEBUG_SMART_ASSERT(!top_frame.regions.empty() && "There must be at-least be Region::NONE");
 
-    if (top_frame.regions.empty())
-        top_frame.temp_counter = 0;
-    else if (top_frame.regions.back().checkpoints.empty())
+    if (top_frame.regions.back().checkpoints.empty())
     {
         std::size_t i = 0;
         while (true)
@@ -341,11 +289,11 @@ TempCtxHandler::reset_temp_counter_to_last_checkpoint()
             auto &regions = top_frame.regions;
             if (i >= regions.size())
                 break;
-            if (regions[regions.size()-1 - i].checkpoints.empty())
+            if (regions[regions.size() - 1 - i].checkpoints.empty())
                 ++i;
             else
             {
-                top_frame.temp_counter = regions[regions.size()-1 - i].checkpoints.back();
+                top_frame.temp_counter = regions[regions.size() - 1 - i].checkpoints.back();
                 return;
             }
         }
