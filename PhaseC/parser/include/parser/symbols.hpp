@@ -98,7 +98,7 @@ class FuncSymbol final : public Symbol
 
 public:
     const u32 address;
-    const std::vector<Parameter> parameter_list; // TODO: change to vector (cache friendly...)
+    const std::vector<Parameter> parameter_list;
 
     // Declared mutable, as we backpatch it after the function’s complete definition.
     mutable Once<u32> stackframe_slot_count;

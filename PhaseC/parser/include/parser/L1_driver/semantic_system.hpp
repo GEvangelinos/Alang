@@ -63,7 +63,6 @@ public: // More public stuff at the end (check it out)
     [[nodiscard]] bool good() const noexcept { return ss_status_ == Status::OK; }
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
-    DISPATCH_MASTER_MODULE_CALL(aggregate_builder);
     DISPATCH_MASTER_MODULE_CALL(assign_builder);
     DISPATCH_MASTER_MODULE_CALL(basic_builder);
     DISPATCH_MASTER_MODULE_CALL(block_manager);
@@ -73,8 +72,10 @@ public: // More public stuff at the end (check it out)
     DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
     DISPATCH_MASTER_MODULE_CALL(function_builder);
     DISPATCH_MASTER_MODULE_CALL(table_access_builder);
+    DISPATCH_MASTER_MODULE_CALL(table_builder);
     DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
     DISPATCH_MASTER_METHOD_CALL(consume_stmt_expr);
+    DISPATCH_MASTER_METHOD_CALL(commit_expr_in_elist);
     DISPATCH_MASTER_METHOD_CALL(force_rvalue_cast);
     DISPATCH_DEFINE_HANDLER_END();
 
@@ -96,7 +97,6 @@ private:
     SemanticSystemBridge ss_bridge_;
 
     // -- Layer 2 subsystems -- No trailing underscores here, as these are directly used in dispatch mechanisms.
-    AggregateBuilder aggregate_builder;
     AssignBuilder assign_builder;
     BasicBuilder basic_builder;
     BlockManager block_manager;
@@ -106,10 +106,12 @@ private:
     LvalueResolver lvalue_resolver;
     FunctionBuilder function_builder;
     TableAccessBuilder table_access_builder;
+    TableBuilder table_builder;
 
     // -- Directly dispatchable  methods-- // TODO: maybe package inside a module?
     void reset_stmt_context() noexcept;
     void consume_stmt_expr(const Expr *expr);
+    void commit_expr_in_elist(const Expr* expr);
     [[nodiscard]] const Expr *force_rvalue_cast(const Expr *expr, SourceLocation cast_loc);
 
     [[nodiscard]] SemanticSystemServices create_semantic_system_services();
@@ -118,9 +120,8 @@ private:
         const settings::ExprOpts &opts);
     [[nodiscard]] static BasicBuilder::Options get_basic_builder_options(
         const settings::ExprOpts &opts);
-public:
-    class ElistHandler;
 
+public:
     // Gateway lets PassManager mark hard errors, but not clear them;
     // recovery hooks via call() dispatch can still reset, so it’s not bulletproof.
     // Gateway also provides access to the generated quads.
@@ -129,17 +130,8 @@ public:
     // Used to give access to specific queries to Bison's custom syntax error handler
     class ParserContextView;
 
-    ElistHandler &elist_handler;
-
     std::unique_ptr<Gateway> gateway;
     std::unique_ptr<ParserContextView> parser_context_view;
-};
-
-class SemanticSystem::ElistHandler : private Immobile
-{
-    [[nodiscard]] static ExprList *build();
-    [[nodiscard]] ExprList *build(const Expr* head_expr);
-    [[nodiscard]] ExprList *extend(ExprList *elist, const Expr *next);
 };
 
 class SemanticSystem::ParserContextView

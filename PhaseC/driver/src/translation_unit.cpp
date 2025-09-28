@@ -31,15 +31,11 @@ inline constexpr auto k_temp_reuse_warning_banner =
         SGR_RESET;
 
 inline constexpr auto k_cya_mode_off_warning_banner =
-#ifdef CYA_MODE
-        ""
-#else
         WARNING_BANNER_PREFIX
         "This executable was built with CYA_MODE disabled. As a result:\n"
         "           a) Aggressive reuse of temporary variables is enabled; table literals are handled differently.\n"
         "           b) Assignment temps are no longer created except when strictly required (e.g., inside function calls).\n"
         SGR_RESET
-#endif
 ;
 
 namespace
@@ -189,7 +185,7 @@ void print_ir(Stream &out, const std::vector<alpha::Quad> &quads, const alpha::L
                                      ? std::to_string(q.label)
                                      : alpha::k_not_available_pretty_marker;
 
-        const auto [first_line, last_line] = lt.find_lines(q.location);
+        const auto [first_line, last_line] = lt.find_lines(q.loc);
         std::string quad_line_str = first_line == last_line
                                     ? std::to_string(first_line)
                                     : FMT::format("{}-{}", first_line, last_line);
@@ -550,7 +546,7 @@ TranslationUnit::export_ir_impl() const
 
     auto write_ir_line = [&](const std::size_t quad_no, const Quad &q)
     {
-        const auto [first_line, last_line] = loc_tracker_.find_lines(q.location);
+        const auto [first_line, last_line] = loc_tracker_.find_lines(q.loc);
         std::string quad_label_str = alpha::ir::info_traits::is_branching(q.opcode)
                                      ? std::to_string(q.label)
                                      : alpha::k_not_available_marker;

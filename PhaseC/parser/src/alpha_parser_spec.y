@@ -79,9 +79,7 @@
     alpha::AlphaFloat const_float;
     const alpha::FuncSymbol *const_func_symbol_ptr;
     const alpha::Expr *const_expr_ptr;
-    alpha::ExprList *expr_list_ptr;
     const alpha::ExprPair *const_expr_pair_ptr;
-    alpha::DictList *dict_list_ptr;
 
     alpha::BlockSourceLocation block_location;
 }
@@ -99,12 +97,7 @@
 %type  <const_expr_ptr> table_literal
 %type  <const_expr_ptr> table_item
 
-%type  <expr_list_ptr> expr_list
-%type  <expr_list_ptr> cs_exprs
-%type  <expr_list_ptr> arg_list
-
 %type  <const_expr_pair_ptr> dict_entry
-%type  <dict_list_ptr> dict_list
 
 %type  <const_func_symbol_ptr> func_signature
 %type  <const_func_symbol_ptr> func_def
@@ -288,7 +281,7 @@ or_op:
 
 expr[out]:
   assign_expr { $out = $assign_expr; }
-| term       { $out = $term; }
+| term        { $out = $term; }
 | expr[lhs] PLUS  expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::ADD,    $lhs, $rhs, @out); }
 | expr[lhs] MINUS expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::SUB,    $lhs, $rhs, @out); }
 | expr[lhs] MUL   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::MUL,    $lhs, $rhs, @out); }
@@ -353,62 +346,61 @@ method_call_id:
 ;
 
 begin_arg_list:
-  LEFT_PAREN  { ss.call<"call_builder.stage_call_space">(); }
+  LEFT_PAREN  { ss.call<"call_builder.init_call">(); }
 ;
 
 end_arg_list:
-  RIGHT_PAREN { ss.call<"call_builder.retire_call_space">(); }
+  RIGHT_PAREN
 ;
 
 arg_list:
-  begin_arg_list expr_list end_arg_list { $arg_list = $expr_list; }
+  begin_arg_list expr_list end_arg_list
 ;
 
 call[invocation]:
   call[callable] arg_list
-  { $invocation = ss.call<"call_builder.build_call_consuming">($callable, $arg_list, @invocation); }
+  { $invocation = ss.call<"call_builder.build_call_consuming">($callable, @invocation); }
 | lvalue arg_list
-  { $invocation = ss.call<"call_builder.build_call_consuming">($lvalue, $arg_list, @invocation); }
-| lvalue method_call_id arg_list
-  { $invocation = ss.call<"call_builder.build_method_call_consuming">($lvalue, $arg_list, @invocation); }
+  { $invocation = ss.call<"call_builder.build_call_consuming">($lvalue, @invocation); }
+| lvalue[method_host] method_call_id arg_list
+  { $invocation = ss.call<"call_builder.build_method_call_consuming">($method_host, @invocation); }
 | LEFT_PAREN func_def RIGHT_PAREN arg_list
-  { $invocation = ss.call<"call_builder.build_iife_call_consuming">($func_def, $arg_list, @arg_list); }
+  { $invocation = ss.call<"call_builder.build_iife_call_consuming">($func_def, @arg_list); }
 ;
 
-cs_exprs[out]:
-  expr  { $out = ss.call<"aggregate_builder.build_expr_list">($expr); }
-| cs_exprs[prev]
-  COMMA { ss.call<"aggregate_builder.mark_temp_checkpoint">(); }
-  expr  { $out = ss.call<"aggregate_builder.extend_expr_list">($prev, $expr); }
+cs_exprs:
+  expr  { ss.call<"commit_expr_in_elist">($expr); }
+| cs_exprs
+  COMMA
+  expr  { ss.call<"commit_expr_in_elist">($expr); }
 ;
 
 expr_list:
-/* (void) */ { $expr_list = ss.call<"aggregate_builder.build_expr_list">(); }
-| cs_exprs    { $expr_list = $cs_exprs; }
+/* (void) */
+| cs_exprs
 ;
 
 dict_entry:
   LEFT_BRACE
-  { ss.call<"aggregate_builder.begin_dict_entry">(); }
+  { ss.call<"table_builder.begin_dict_entry">(); }
   expr[key]
   COLON
   expr[value]
   RIGHT_BRACE
   {
-    $dict_entry = ss.call<"aggregate_builder.build_dict_entry">($key, $value);
-    ss.call<"aggregate_builder.end_dict_entry">();
+    $dict_entry = ss.call<"table_builder.build_dict_entry">($key, $value);
+    ss.call<"table_builder.end_dict_entry">();
   }
 ;
 
-dict_list[out]:
+dict_list:
   dict_entry
-  { $out = ss.call<"aggregate_builder.build_dict_list">($dict_entry); }
-| dict_list[prev] COMMA dict_entry
-  { $out = ss.call<"aggregate_builder.extend_dict_list">($prev, $dict_entry); }
+| dict_list COMMA dict_entry
 ;
 
 table_literal_begin:
-  LEFT_BRACKET { ss.call<"aggregate_builder.initiate_table_literal">(@table_literal_begin); }
+  LEFT_BRACKET
+  { ss.call<"table_builder.init_table_literal">(); }
 ;
 
 table_literal_end:
@@ -417,22 +409,10 @@ table_literal_end:
 
 table_literal:
   table_literal_begin expr_list table_literal_end
-  {
-    #ifdef CYA_MODE
-    $table_literal = ss.call<"aggregate_builder.build_table_list_consuming">($expr_list, @table_literal);
-    #else
-    $table_literal = ss.call<"aggregate_builder.extract_table_literal_consuming">($expr_list);
-    #endif
-  }
+  { $table_literal = ss.call<"table_builder.finalize_table_literal">(@table_literal); }
 |
   table_literal_begin dict_list table_literal_end
-  {
-   #ifdef CYA_MODE
-   $table_literal = ss.call<"aggregate_builder.build_table_dict_consuming">($dict_list, @table_literal);
-   #else
-   $table_literal = ss.call<"aggregate_builder.extract_table_literal_consuming">($dict_list);
-   #endif
-  }
+  { $table_literal = ss.call<"table_builder.finalize_table_literal">(@table_literal); }
 ;
 
 block_begin:
@@ -522,7 +502,6 @@ for_clause:
   { ss.call<"control_flow_manager.enter_forloop_clause">(); }
   LEFT_PAREN
   expr_list[init_list]
-  { ss.call<"aggregate_builder.consume_expr_list">($init_list); }
   SEMICOLON
   { ss.call<"control_flow_manager.mark_forloop_condition_entry">(); }
   expr[condition]
@@ -532,7 +511,6 @@ for_clause:
   expr_list[update_list]
   {
     ss.call<"control_flow_manager.mark_forloop_update_list_exit">(@update_list);
-    ss.call<"aggregate_builder.consume_expr_list">($update_list);
   }
   RIGHT_PAREN
   { ss.call<"control_flow_manager.exit_forloop_clause">(); }

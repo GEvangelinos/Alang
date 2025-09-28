@@ -36,6 +36,8 @@
 
 #include <core/fixed_string.hpp>
 
+#include "support/dependent_false.hpp"
+
 #define NOP static_assert(true)
 #define CALL_STR call_string
 #define DISPATCH_TARGET restricted_
@@ -178,7 +180,7 @@ struct UnknownCallStr
 {
     // "\nUnknown call_str used in `call` dispatcher\n"
     // "(Look at the generated notes, to find the call_str that caused the error)"
-    static_assert([]() constexpr { return false; }(),
+    static_assert(always_false_v<void>,
                   R"(
 🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑
 🛑======== [ DISPATCH DSL FAILURE ] ========🛑

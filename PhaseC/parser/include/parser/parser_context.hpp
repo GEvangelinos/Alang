@@ -58,11 +58,11 @@ private:
     u32 scope_ = k_global_scope;
 };
 
-class CallContextHandler : private Immobile
+class CallCtxHandler : private Immobile
 {
 public:
-    explicit CallContextHandler(ParseCtx *host);
-    ~CallContextHandler();
+    explicit CallCtxHandler(ParseCtx *host);
+    ~CallCtxHandler();
 
     void enter_call() noexcept;
     void exit_call() noexcept;
@@ -73,11 +73,11 @@ private:
     u32 call_nesting_depth_ = 0;
 };
 
-class AggregateCtxHandler : private Immobile
+class TableCtxHandler : private Immobile
 {
 public:
-    explicit AggregateCtxHandler(ParseCtx *host);
-    ~AggregateCtxHandler();
+    explicit TableCtxHandler(ParseCtx *host);
+    ~TableCtxHandler();
 
     void enter_dict_entry() noexcept;
     void exit_dict_entry() noexcept;
@@ -184,36 +184,37 @@ private:
 class TempCtxHandler
 {
 public:
-    enum class Region { CALL, TABLE, FORLOOP_CLAUSE };
+    enum class Region : u8 { CALL, TABLE, FORLOOP_CLAUSE };
 
     explicit TempCtxHandler(const ParseCtx *host);
     ~TempCtxHandler();
 
-    void push_temp_ctx_frame(); // CREATES EVERYTHING
-    void pop_temp_ctx_frame();  // FUCKS EVERYTHING
-    void reset_current_frame(); // CREATE AND FUCKS.
+    void push_temp_ctx_frame();
+    void pop_temp_ctx_frame();
 
-    std::optional<Region> region() const; // OKAY its CONST METHOD
     void enter_region(Region region_to_enter);
-    // ONLY changes critical region (vector of enums)
-    void exit_region(); // ONLY changes critical region (vector of enums)
+    void exit_region(DEBUG(Region region_to_exit));
+    std::optional<Region> region() const;
 
-    void push_checkpoint();
-    void pop_checkpoint();
-    void reset_to_checkpoint();
+    void set_checkpoint();
+    void consume_checkpoint_and_reset();
 
-    void push_checkpoint_barrier();
-    void pop_checkpoint_barrier();
+    void reset_temp_ctx_frame();
+    void reset_temp_counter_to_last_checkpoint();
 
     [[nodiscard]] std::string new_name();
 
 private:
     struct TempCtxFrame
     {
-        u32 temp_counter_ = 0;
-        VectorStack<Region> critical_region_stack;
-        std::vector<u32> checkpoints_;
-        VectorStack<u32> checkpoint_barriers_;
+        struct RegionInfo
+        {
+            std::vector<u32> checkpoints;
+            Region region;
+        };
+
+        u32 temp_counter = 0;
+        std::vector<RegionInfo> regions;
     };
 
     const ParseCtx *const host_;
@@ -222,24 +223,26 @@ private:
 
 class ParseCtx : private Immobile
 {
+    friend class SemanticSystem;
+
 public:
     SpaceHandler space_handler;
     ScopeHandler scope_handler;
-    AggregateCtxHandler aggregate_ctx_handler;
-    CallContextHandler call_ctx_handler;
+    TableCtxHandler table_ctx_handler;
+    CallCtxHandler call_ctx_handler;
     FunctionCtxHandler func_ctx_handler;
     AnonymousGenerator anonymous_generator;
     TempCtxHandler temp_ctx_handler;
-
-    OnceFlag hard_error_occurred;
 
     explicit ParseCtx(SymbolTable *symbol_table);
     ~ParseCtx() = default;
 
     [[nodiscard]] const VarSymbol *new_temp();
+    [[nodiscard]] bool hard_error_occurred() const noexcept;
 
 private:
     SymbolTable *const symbol_table_;
+    OnceFlag hard_error_occurred_;
 };
 
 inline void
@@ -310,21 +313,21 @@ ScopeHandler::exit_scope() noexcept
 }
 
 inline void
-CallContextHandler::enter_call() noexcept
+CallCtxHandler::enter_call() noexcept
 {
     DEBUG_SMART_ASSERT(call_nesting_depth_< k_max_call_nesting && "A safe small sanity limit");
     ++call_nesting_depth_;
 }
 
 inline void
-CallContextHandler::exit_call() noexcept
+CallCtxHandler::exit_call() noexcept
 {
     DEBUG_SMART_ASSERT(call_nesting_depth_ > 0);
     --call_nesting_depth_;
 }
 
 inline void
-AggregateCtxHandler::enter_dict_entry() noexcept
+TableCtxHandler::enter_dict_entry() noexcept
 {
     DEBUG_SMART_ASSERT(dict_entry_nesting_depth_< k_max_dict_nesting && "A safe small sanity limit")
     ;
@@ -332,7 +335,7 @@ AggregateCtxHandler::enter_dict_entry() noexcept
 }
 
 inline void
-AggregateCtxHandler::exit_dict_entry() noexcept
+TableCtxHandler::exit_dict_entry() noexcept
 {
     DEBUG_SMART_ASSERT(dict_entry_nesting_depth_ > 0);
     --dict_entry_nesting_depth_;
@@ -489,5 +492,8 @@ AnonymousGenerator::new_anonymous()
 {
     return k_anonymous_prefix + std::to_string(anonymous_counter_++);
 }
+
+inline bool
+ParseCtx::hard_error_occurred() const noexcept { return hard_error_occurred_.raised(); }
 } // namespace alpha
 #endif // PARSER_CONTEXT_HPP

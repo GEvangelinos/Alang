@@ -143,6 +143,7 @@ add_library(alpha_parser_impl STATIC
     src/L2_builders/block_manager.cpp
     src/L3_ir_infra/expr_optimizer.cpp
     src/L3_ir_infra/expr_maker.cpp
+    src/L3_ir_infra/quad_handler.cpp
     invariants/ir_opcode_static_invariants.cpp
 )
 

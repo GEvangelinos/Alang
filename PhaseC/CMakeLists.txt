@@ -29,13 +29,6 @@ set(IR_OPCODE_SPEC_FILENAME "ir_opcode_spec.yaml")      # <-- Modifying filename
 set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/${AUTOGEN_DIRNAME}" CACHE PATH "Path to the root directory for auto-generated components")
 
 
-##########################################--==>> CYA-TESTS <<==--###########################################
-set(WORKING_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/working")
-set(ERROR_TESTS_DIR "${CMAKE_SOURCE_DIR}/.tests/error")
-set(GOLDEN_SYMBOL_TABLES_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_SYMBOL_TABLES")
-set(GOLDEN_IR_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_IR")
-set(GOLDEN_DIAGNOSTICS_DIR "${CMAKE_SOURCE_DIR}/.tests/GOLDEN_DIAGNOSTICS")
-
 ##########################################--==>> NORMAL-TESTS <<==--###########################################
 set(GOSPEL_DIR "${CMAKE_SOURCE_DIR}/.GOSPEL")
 set(WORK_DIR "REGRESSION_WORK_DIR")
@@ -179,11 +172,6 @@ if (DEBUG_MODE)
     add_compile_definitions(DEBUG_MODE)
 endif ()
 
-if (CYA_MODE)
-    message(WARNING "CMAKE: Configuring with `CYA_MODE` (Cover-Your-Ass Mode) ON")
-    add_compile_definitions(CYA_MODE)
-endif ()
-
 if (OPTIMIZED_MODE)
     add_compile_options(
         -O3
@@ -269,36 +257,7 @@ function(add_regression_check_target target_name do_memcheck)
     add_dependencies(${target_name} ${COMPILER_EXE_NAME})
 endfunction()
 
-function(add_regression_cya_test target_name do_memcheck)
-    log_info("Adding regression test for CYA_MODE")
-    set(regression_args
-        "--alpha-compiler" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${COMPILER_EXE_NAME}"
-        "--golden-symbol-tables-dir" "${GOLDEN_SYMBOL_TABLES_DIR}"
-        "--golden-ir-dir" "${GOLDEN_IR_DIR}"
-        "--golden-diagnostics-dir" "${GOLDEN_DIAGNOSTICS_DIR}"
-        "--working-dir" "${WORKING_TESTS_DIR}"
-        "--error-dir" "${ERROR_TESTS_DIR}"
-    )
-    if (do_memcheck)
-        if (VALGRIND_PATH)
-            list(APPEND regression_args "--memcheck")
-        else ()
-            message(WARNING "Memory check can not be performed as Valgrind not found!")
-        endif ()
-    endif ()
-
-    add_custom_target(${target_name}
-        COMMAND "${Python3_EXECUTABLE}"
-        "-B"
-        "${CMAKE_SOURCE_DIR}/scripts/old_regression_runner/alang_regression_runner.py"
-        ${regression_args}
-    )
-
-    add_dependencies(${target_name} ${COMPILER_EXE_NAME})
-endfunction()
-
 function(add_regression_test target_name do_memcheck)
-    log_info("Adding regression test for NON CYA_MODE")
     set(regression_args
         "--driver-path" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${COMPILER_EXE_NAME}"
         "--gospel-dir" "${GOSPEL_DIR}"
@@ -324,13 +283,8 @@ endfunction()
 
 if (NOT HATE_PYTHON_MODE)
     if (Python3_FOUND)
-        if (CYA_MODE)
-            add_regression_cya_test(regression_check OFF)
-            add_regression_cya_test(regression_check_full ON)
-        else ()
             add_regression_test(regression_check OFF)
             add_regression_test(regression_check_full ON)
-        endif ()
     else ()
         message(WARNING "Regression check targets not available, as `Python3` was not found.")
     endif ()

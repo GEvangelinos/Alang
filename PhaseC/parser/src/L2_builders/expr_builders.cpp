@@ -1,12 +1,8 @@
+#include "L2_semantic_subsystems/expr_builders.hpp"
+
 #include <L2_semantic_subsystems/expr_builders.hpp>
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 #include "parser/internal_typedefs.hpp"
-
-#ifdef CYA_MODE
-#define FORCE_ASSIGNMENT_TEMPS 1
-#else
-#define FORCE_ASSIGNMENT_TEMPS 0
-#endif
 
 namespace
 {
@@ -67,12 +63,6 @@ using namespace alpha;
 
 namespace alpha
 {
-AggregateBuilder::AggregateBuilder(const SemanticSystemServices &ss_services)
-    :DISPATCH_TARGET(ss_services) {}
-
-AggregateBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
-    : SemanticSubsystem(ss_services) {}
-
 AssignBuilder::AssignBuilder(
     AssignBuilder::Options &&options,
     const SemanticSystemServices &ss_services)
@@ -98,8 +88,15 @@ CallBuilder::CallBuilder(const SemanticSystemServices &ss_services)
     : DISPATCH_TARGET(ss_services) {}
 
 CallBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
-    : SemanticSubsystem(ss_services),
-      method_call_draft_(std::string(), k_no_loc) {}
+    : SemanticSubsystem(ss_services) {}
+
+CallBuilder::Restricted::CallInfo::CallInfo()
+    : method_info(std::nullopt),
+      arguments() {}
+
+CallBuilder::Restricted::CallInfo::CallInfo(MethodInfo method_info)
+    : method_info(method_info),
+      arguments() {}
 
 ConstBuilder::ConstBuilder(const SemanticSystemServices &ss_services)
     : DISPATCH_TARGET(ss_services) {}
@@ -119,255 +116,11 @@ TableAccessBuilder::TableAccessBuilder(const SemanticSystemServices &ss_services
 TableAccessBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
 
-#ifdef CYA_MODE
-ExprList *
-AggregateBuilder::Restricted::extend_expr_list(
-    ExprList *const elist,
-    const Expr *const next)
-{
-    DEBUG_SMART_ASSERT(!!elist, !!next);
+TableBuilder::TableBuilder(const SemanticSystemServices &ss_services)
+    :DISPATCH_TARGET(ss_services) {}
 
-    const Expr *expr = ss_bridge_->materialize_if_table_item(next);
-    ss_bridge_->finalize_bool_expr(expr);
-    expr = expr_optimizer_->try_propagate_const(expr);
-    elist->push_back(expr);
-    return elist;
-}
-#else // CYA_MODE NOT DEFINED
-void
-AggregateBuilder::Restricted::commit_table_element(const Expr *table_elem)
-{
-    DEBUG_SMART_ASSERT(!!table_elem);
-
-    table_elem = ss_bridge_->materialize_if_table_item(table_elem);
-    ss_bridge_->finalize_bool_expr(table_elem);
-    table_elem = expr_optimizer_->try_propagate_const(table_elem);
-
-    DEBUG_SMART_ASSERT(!draft_.table_literal_stack.empty());
-    auto &top_table = draft_.table_literal_stack.top();
-
-    const Expr *const index_expr = expr_maker_->make_const_int_expr(
-        table_elem->loc,
-        top_table.list_index++
-    );
-    quad_handler_->emit_next(
-        ir::Opcode::TABLESETELEM,
-        top_table.host_expr,
-        index_expr,
-        table_elem,
-        table_elem->loc
-    );
-}
-#endif // CYA_MODE
-
-// TODO: REMOVE when done referencing
-// ExprList *
-// AggregateBuilder::Restricted::extend_expr_list(
-//     ExprList *const elist,
-//     const Expr *const next)
-// {
-//     DEBUG_SMART_ASSERT(!!elist, !!next);
-//
-//     const Expr *expr = ss_bridge_->materialize_if_table_item(next);
-//     ss_bridge_->finalize_bool_expr(expr);
-//     expr = expr_optimizer_->try_propagate_const(expr);
-//
-//     #ifndef CYA_MODE
-//     const auto region = parse_ctx_->temp_ctx_handler.region();
-//     if (!draft_.table_literal_stack.empty() &&
-//         region.has_value() &&
-//         region.value() == TempCtxHandler::Region::TABLE)
-//     {
-//         auto &top_elist_ctx = draft_.table_literal_stack.top();
-//         const Expr *const index_expr = expr_maker_->make_const_int_expr(
-//             next->loc,
-//             top_elist_ctx.current_list_index++
-//         );
-//         quad_handler_->emit_next(
-//             ir::Opcode::TABLESETELEM,
-//             top_elist_ctx.current_table_expr,
-//             index_expr,
-//             expr,
-//             expr->loc
-//         );
-//         parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
-//     }
-//     else if (region.has_value() && region.value() == TempCtxHandler::Region::FORLOOP_CLAUSE)
-//         parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
-//     #endif
-//
-//     elist->push_back(expr);
-//     return elist;
-// }
-
-const ExprPair *
-AggregateBuilder::Restricted::build_dict_entry(const Expr *key, const Expr *val)
-{
-    DEBUG_SMART_ASSERT(!!key, !!val);
-
-    key = expr_optimizer_->try_propagate_const(key);
-    val = expr_optimizer_->try_propagate_const(val);
-    key = ss_bridge_->materialize_if_table_item(key);
-    val = ss_bridge_->materialize_if_table_item(val);
-    ss_bridge_->finalize_bool_expr(key);
-    ss_bridge_->finalize_bool_expr(val);
-
-    // TODO: can you make this `new const` ? Can you delete ptr afterwards?
-    // Without const_cast() checks when at end of project
-    return new ExprPair(key, val);
-}
-
-DictList *
-AggregateBuilder::Restricted::extend_dict_list(
-    DictList *const dlist,
-    const ExprPair *const next_pair
-)
-{
-    DEBUG_SMART_ASSERT(!!dlist, !!next_pair);
-    #ifndef CYA_MODE
-    if (!draft_.table_literal_stack.empty())
-    {
-        const auto [key, val] = *next_pair;
-        const SourceLocation pair_loc = merge(key->loc, val->loc);
-        quad_handler_->emit_next(
-            ir::Opcode::TABLESETELEM,
-            draft_.table_literal_stack.top().host_expr,
-            key,
-            val,
-            pair_loc
-        );
-        reset_temps_if_temp_operand(key, val);
-    }
-    #endif
-    dlist->push_back(next_pair);
-    return dlist;
-}
-
-void
-AggregateBuilder::Restricted::delete_dict_list(DictList *dlist)
-{
-    // Note: Do NOT delete the expressions in ExprPair -- those are handler by ExprMaker.
-    for (const ExprPair *pair: *dlist)
-        delete pair; // Shallow delete, it does NOT delete the expressions it's holding.
-    delete dlist;
-}
-
-void
-CallBuilder::Restricted::stage_call_space() { parse_ctx_->call_ctx_handler.enter_call(); }
-
-void
-CallBuilder::Restricted::retire_call_space() { parse_ctx_->call_ctx_handler.exit_call(); }
-
-void
-AggregateBuilder::Restricted::initiate_table_literal(const SourceLocation table_list_loc)
-{
-    #ifndef CYA_MODE
-    const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
-    parse_ctx_->temp_ctx_handler.enter_region(TempCtxHandler::Region::TABLE);
-    parse_ctx_->temp_ctx_handler.push_checkpoint();
-    quad_handler_->emit_next(
-        ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
-    draft_.table_literal_stack.emplace(new_table_expr);
-    #else
-    (void) table_list_loc;
-    #endif
-}
-
-const Expr *AggregateBuilder::Restricted::extract_table_literal_consuming(ExprList *elist)
-{
-    return extract_table_literal_consuming_impl(
-        elist, &AggregateBuilder::Restricted::delete_expr_list);
-}
-
-const Expr *AggregateBuilder::Restricted::extract_table_literal_consuming(DictList *dlist)
-{
-    DEBUG_SMART_ASSERT(
-        draft_.table_literal_stack.top().list_index == 0 &&
-        "In dictionary construction list_index should be not used, it should remain 0"
-    );
-    return extract_table_literal_consuming_impl(
-        dlist, &AggregateBuilder::Restricted::delete_dict_list);
-}
-
-template<typename ListT>
-const Expr *AggregateBuilder::Restricted::extract_table_literal_consuming_impl(
-    ListT *list,
-    void (*deleter)(ListT *))
-{
-    static_assert(std::is_same_v<ListT, ExprList> || std::is_same_v<ListT, DictList>);
-
-    DEBUG_SMART_ASSERT(!draft_.table_literal_stack.empty());
-
-    const Expr *const retval = draft_.table_literal_stack.top().host_expr;
-    draft_.table_literal_stack.pop();
-    parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
-    parse_ctx_->temp_ctx_handler.pop_checkpoint();
-
-    DEBUG_SMART_ASSERT(parse_ctx_->temp_ctx_handler.region().has_value());
-    DEBUG_SMART_ASSERT(
-        parse_ctx_->temp_ctx_handler.region().value() ==
-        TempCtxHandler::Region::TABLE
-    );
-    parse_ctx_->temp_ctx_handler.exit_region();
-
-    deleter(list);
-    return retval;
-}
-
-#ifdef CYA_MODE
-const Expr *
-AggregateBuilder::Restricted::build_table_list_consuming(
-    ExprList *elist,
-    const SourceLocation table_list_loc)
-{
-    DEBUG_SMART_ASSERT(!!elist);
-    auto *const qh = quad_handler_; // Short alias for readability.
-
-    const NewTableExpr *const new_table_expr = expr_maker_->make_new_table_expr(table_list_loc);
-    qh->emit_next(ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_list_loc);
-
-    // Emit exprlist's items.
-    u32 list_index = 0;
-    for (auto expr_it = elist->cbegin(); expr_it != elist->cend(); ++expr_it)
-    {
-        const Expr *const list_item = *expr_it;
-        const SourceLocation list_item_loc = list_item->loc;
-        const Expr *const idx_expr = expr_maker_->make_const_int_expr(list_item_loc, list_index++);
-        qh->emit_next(ir::Opcode::TABLESETELEM, new_table_expr, idx_expr, list_item, list_item_loc);
-    }
-
-    // Delete elist after use — it must not be used again
-    AggregateBuilder::Restricted::delete_expr_list(elist);
-
-    return new_table_expr;
-}
-
-const Expr *
-AggregateBuilder::Restricted::build_table_dict_consuming(
-    DictList *dlist,
-    const SourceLocation table_dict_loc)
-{
-    DEBUG_SMART_ASSERT(!!dlist);
-    auto *const qh = quad_handler_; // Short alias for readability.
-
-    const Expr *const new_table_expr = expr_maker_->make_new_table_expr(table_dict_loc);
-    qh->emit_next(ir::Opcode::TABLECREATE, new_table_expr, nullptr, nullptr, table_dict_loc);
-
-    // Emit dict's items.
-    for (auto it = dlist->cbegin(); it != dlist->cend(); ++it)
-    {
-        const Expr *const key = (*it)->first;
-        const Expr *const value = (*it)->second;
-        const SourceLocation pair_loc = merge(key->loc, value->loc);
-        qh->emit_next(ir::Opcode::TABLESETELEM, new_table_expr, key, value, pair_loc);
-    }
-
-    // Delete elist after use — it must not be used again
-    delete_dict_list(dlist);
-
-    return new_table_expr;
-}
-#endif
+TableBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
+    : SemanticSubsystem(ss_services) {}
 
 const Expr *
 AssignBuilder::Restricted::build_assignment(
@@ -420,9 +173,8 @@ AssignBuilder::Restricted::is_direct_target_expr(const Expr *expr) noexcept
 bool
 AssignBuilder::Restricted::assignment_requires_temp() const
 {
-    return FORCE_ASSIGNMENT_TEMPS ||
-           parse_ctx_->call_ctx_handler.is_in_call() ||
-           parse_ctx_->aggregate_ctx_handler.is_in_dict_entry();
+    return parse_ctx_->call_ctx_handler.is_in_call() ||
+           parse_ctx_->table_ctx_handler.is_in_dict_entry();
 }
 
 bool
@@ -557,8 +309,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(expr);
         const Expr *const result = ss_bridge_->materialize_if_table_item(ti_lvalue); // EMITS!
         qh->emit_next(Policy::opc, result, result, &k_static_int_1_expr, result_loc);
-        qh->emit_next(ir::Opcode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result,
-                      result_loc);
+        qh->emit_next(ir::Opcode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result, result_loc);
         return DEBUG_REQUIRE_PTR(result);
     }
     qh->emit_next(Policy::opc, expr, expr, &k_static_int_1_expr, result_loc);
@@ -582,7 +333,7 @@ AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue,
     static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
     auto *const qh = quad_handler_; // Short alias for readability.
 
-    const Expr *result = expr_maker_->make_variable_expr(result_loc, parse_ctx_->new_temp());
+    const Expr *const result = expr_maker_->make_variable_expr(result_loc, parse_ctx_->new_temp());
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
         const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
@@ -775,7 +526,7 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
     // Patching left side.
     DEBUG_SMART_ASSERT(!short_circuit_jump_stack_.empty());
     for (const LabelID quad_label: Policy::backpatch_list(lhs_bool))
-        quad_handler_->patch_quad(quad_label, short_circuit_jump_stack_.top());
+        quad_handler_->labelPatch_quad(quad_label, short_circuit_jump_stack_.top());
     short_circuit_jump_stack_.pop();
     Policy::backpatch_list(lhs_bool).clear();
 
@@ -926,17 +677,45 @@ BasicBuilder::Restricted::warn_if_lossy_conversion_int_to_float(
 
 void
 CallBuilder::Restricted::update_method_call_draft(
-    const char *const id,
-    const SourceLocation id_loc)
+    const char *const method_id,
+    const SourceLocation method_id_loc)
 {
-    method_call_draft_.id = id;
-    method_call_draft_.id_loc = id_loc;
+    DEBUG(
+        if (!parse_ctx_->hard_error_occurred()) SMART_ASSERT(
+            !draft_.method_info.has_value() &&
+            "When call is initiated, the method-info draft should be cleared()."
+        );
+    )
+    draft_.method_info.emplace(MethodInfo{.id = method_id, .id_loc = method_id_loc});
+}
+
+void
+CallBuilder::Restricted::init_call()
+{
+    parse_ctx_->temp_ctx_handler.enter_region(TempCtxHandler::Region::CALL);
+    parse_ctx_->call_ctx_handler.enter_call();
+
+    if (draft_.method_info.has_value())
+    {
+        draft_.call_info_stack.emplace(*draft_.method_info);
+        draft_.method_info.reset();
+    }
+    else
+        draft_.call_info_stack.emplace();
+}
+
+void
+CallBuilder::Restricted::finalize_call()
+{
+    parse_ctx_->call_ctx_handler.exit_call();
+    draft_.call_info_stack.pop();
+    parse_ctx_->temp_ctx_handler.exit_region(DEBUG(TempCtxHandler::Region::CALL));
 }
 
 void
 CallBuilder::Restricted::check_for_argument_mismatch(
     const Expr *const callable_lvalue,
-    const ExprList *param_list,
+    const CallInfo::ArgStack &arg_stack,
     const SourceLocation call_loc
 )
 {
@@ -945,12 +724,12 @@ CallBuilder::Restricted::check_for_argument_mismatch(
         return;
 
     const auto func_symbol = static_cast<const ProgFuncExpr *>(callable_lvalue)->func_symbol;
-    if (func_symbol->parameter_list.size() == param_list->size())
+    if (func_symbol->parameter_list.size() == arg_stack.size())
         return;
     dr_->report_call_argument_mismatch(
         func_symbol->name,
         func_symbol->parameter_list.size(),
-        param_list->size(),
+        arg_stack.size(),
         call_loc,
         func_symbol->loc
     );
@@ -959,61 +738,85 @@ CallBuilder::Restricted::check_for_argument_mismatch(
 const Expr *
 CallBuilder::Restricted::build_call_consuming(
     const Expr *const callable_lvalue,
-    ExprList *arg_list,
     const SourceLocation call_loc,
     const Expr *const method)
 {
-    DEBUG_SMART_ASSERT(!!callable_lvalue, !!arg_list);
+    DEBUG_SMART_ASSERT(!!callable_lvalue);
+    DEBUG_SMART_ASSERT(!draft_.call_info_stack.empty());
+    auto &call_args = draft_.call_info_stack.top().arguments;
+    check_for_argument_mismatch(callable_lvalue, call_args, call_loc);
 
-    check_for_argument_mismatch(callable_lvalue, arg_list, call_loc);
-
-    reset_temps_if_temp_operand(callable_lvalue);
-    const Expr *callee = ss_bridge_->materialize_if_table_item(callable_lvalue);
-
-    // At this point we have everything required to make a call, so we can retire call space.
-    retire_call_space();
-
-    for (auto it = arg_list->crbegin(); it != arg_list->crend(); ++it)
-        quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, *it, nullptr, (*it)->loc);
+    while (!call_args.empty())
+    {
+        const Expr *const arg = call_args.top();
+        quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, arg, nullptr, arg->loc);
+        call_args.pop();
+    }
     if (method)
         quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, method, nullptr, method->loc);
+
+    // reset_temps_if_temp_operand(callable_lvalue);
+    const Expr *callee = ss_bridge_->materialize_if_table_item(callable_lvalue);
     quad_handler_->emit_next(ir::Opcode::CALL, nullptr, callee, nullptr, call_loc);
 
+    // At these point we have used everything required to make a call.
+    finalize_call();
+
     const Expr *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
+    parse_ctx_->temp_ctx_handler.set_checkpoint();
     quad_handler_->emit_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
 
-    CallBuilder::Restricted::delete_expr_list(arg_list);
     return getretval_expr;
 }
 
 const Expr *
 CallBuilder::Restricted::build_method_call_consuming(
-    const Expr *const callable_lvalue, ExprList *arg_list, const SourceLocation call_loc)
+    const Expr *method_host,
+    const SourceLocation call_loc)
 {
-    const Expr *lvalue = ss_bridge_->materialize_if_table_item(callable_lvalue);
-    const Expr *const lvalue_copy = lvalue;
+    UNIMPLEMENTED("THE FOLLWOING FUNCTION IS FUCKED UP.. correct it!");
+    method_host = ss_bridge_->materialize_if_table_item(method_host);
+    const Expr *const method_host_copy = method_host;
+
+    DEBUG_SMART_ASSERT(!draft_.call_info_stack.empty());
+    DEBUG_SMART_ASSERT(draft_.call_info_stack.top().method_info.has_value());
 
     const Expr *const method_index = expr_maker_->make_const_string_expr(
-        method_call_draft_.id_loc,
-        method_call_draft_.id.c_str()
+        draft_.call_info_stack.top().method_info.value().id_loc,
+        draft_.call_info_stack.top().method_info.value().id.c_str()
     );
-    const Expr *const host_var = expr_maker_->make_table_item_expr(call_loc, lvalue, method_index);
+    const Expr *const host_var = expr_maker_->make_table_item_expr(call_loc, method_host, method_index);
 
-    lvalue = ss_bridge_->materialize_if_table_item(host_var);
-    return build_call_consuming(lvalue, arg_list, call_loc, DEBUG_REQUIRE_PTR(lvalue_copy));
+    method_host = ss_bridge_->materialize_if_table_item(host_var);
+    return build_call_consuming(method_host, call_loc, DEBUG_REQUIRE_PTR(method_host_copy));
 }
 
 const Expr *
 CallBuilder::Restricted::build_iife_call_consuming(
-    const FuncSymbol *const func_symbol, ExprList *arg_list,
+    const FuncSymbol *const func_symbol,
     const SourceLocation call_loc)
 {
     DEBUG_SMART_ASSERT(!!func_symbol);
     const auto *const prog_func_expr = expr_maker_->make_prog_func_expr(call_loc, func_symbol);
-    return build_call_consuming(prog_func_expr, arg_list, call_loc);
+    return build_call_consuming(prog_func_expr, call_loc);
 }
 
-void CallBuilder::Restricted::delete_expr_list(ExprList *param_list) { delete param_list; }
+void CallBuilder::commit_call_argument(const Expr *call_arg)
+{
+    DEBUG_SMART_ASSERT(!!call_arg);
+    auto &r = restricted();
+    call_arg = r.ss_bridge_->materialize_if_table_item(call_arg);
+    r.ss_bridge_->finalize_bool_expr(call_arg);
+    call_arg = r.expr_optimizer_->try_propagate_const(call_arg);
+
+    DEBUG_SMART_ASSERT(!r.draft_.call_info_stack.empty());
+    r.draft_.call_info_stack.top().arguments.push(call_arg);
+
+    r.parse_ctx_->temp_ctx_handler.set_checkpoint();
+
+    // TODO: do we need the thing below?
+    // r.reset_temps_if_temp_operand(call_arg);
+}
 
 const Expr *
 ConstBuilder::Restricted::build_true_expr(const SourceLocation loc)
@@ -1204,7 +1007,7 @@ const FuncSymbol *
 FunctionBuilder::Restricted::build_program_function_exit(
     const BlockSourceLocation block_loc)
 {
-    quad_handler_->patch_list(
+    quad_handler_->labelPatch_list(
         parse_ctx_->func_ctx_handler.return_list(), quad_handler_->next_quad_label());
 
     const auto fbi = parse_ctx_->func_ctx_handler.exit_function();
@@ -1219,7 +1022,7 @@ FunctionBuilder::Restricted::build_program_function_exit(
             nullptr,
             block_loc.end);
     }
-    quad_handler_->patch_quad(fbi.funcdef_skip_jump, quad_handler_->next_quad_label());
+    quad_handler_->labelPatch_quad(fbi.funcdef_skip_jump, quad_handler_->next_quad_label());
     parse_ctx_->space_handler.exit_space();
 
     return fbi.func_symbol;
@@ -1254,5 +1057,118 @@ TableAccessBuilder::Restricted::build_subscript_access(
     const Expr *const materialized_index = ss_bridge_->materialize_if_table_item(subscript);
     ss_bridge_->finalize_bool_expr(materialized_index);
     return expr_maker_->make_table_item_expr(access_loc, materialized_lvalue, materialized_index);
+}
+
+// We must create the table literal at the start in order to emit TABLESETELEM instructions in
+// place, which minimizes the lifetime of temporary variables. However, at creation time we do not
+// yet know the full span of the source location that the table literal covers.
+// As a result, location is patched once the table literal is closed.
+void
+TableBuilder::Restricted::init_table_literal()
+{
+    parse_ctx_->temp_ctx_handler.enter_region(TempCtxHandler::Region::TABLE);
+
+    const NewTableExpr *const new_table = expr_maker_->make_new_table_expr(k_no_loc);
+    // Guard the table expression with a checkpoint. Without this, committing new expressions
+    // that introduce temporaries could cause `reset_to_checkpoint()` to roll back the temp
+    // counter past the temporary reserved for the table itself.
+    parse_ctx_->temp_ctx_handler.set_checkpoint();
+
+    // Store quad label, so I can loc-patch quad's location
+    draft_.table_literal_stack.emplace(new_table, quad_handler_->next_quad_label());
+
+    quad_handler_->emit_next(ir::Opcode::TABLECREATE, new_table, nullptr, nullptr, k_no_loc);
+}
+
+const Expr *
+TableBuilder::Restricted::finalize_table_literal(const SourceLocation table_loc)
+{
+    auto &tls = draft_.table_literal_stack; // Short alias for readability.
+    DEBUG_SMART_ASSERT(!tls.empty() && "No active table literal to finalize");
+
+    // Clone the table expression with its finalized source location for accurate diagnostics
+    const Expr *const table_literal =
+        expr_maker_->clone_with_updated_location(table_loc, tls.top().host_expr);
+
+    // Backpatch the TABLECREATE quad with the correct source location
+    quad_handler_->locPatch_tablecreate(tls.top().host_quad_label, table_loc);
+
+    tls.pop();
+    parse_ctx_->temp_ctx_handler.exit_region(DEBUG(TempCtxHandler::Region::TABLE));
+    return table_literal;
+}
+
+// All state/services are intentionally nested inside `Restricted`.
+// This prevents `friend classes from accessing them directly.
+// As a side effect, even outer methods (like this one) must go through
+// `restricted()` to reach private data, since that's the only legal path.
+void
+TableBuilder::commit_table_element(const Expr *table_elem)
+{
+    DEBUG_SMART_ASSERT(!!table_elem);
+    auto &r = restricted(); // Local alias for clarity
+
+    // TODO: does same seq of these 3 instruction happens else where and often?
+    // if yes make put under helper function
+    table_elem = r.ss_bridge_->materialize_if_table_item(table_elem);
+    r.ss_bridge_->finalize_bool_expr(table_elem);
+    table_elem = r.expr_optimizer_->try_propagate_const(table_elem);
+
+    DEBUG_SMART_ASSERT(!r.draft_.table_literal_stack.empty());
+    auto &top_table = r.draft_.table_literal_stack.top();
+
+    const Expr *const index_expr = r.expr_maker_->make_const_int_expr(
+        table_elem->loc,
+        top_table.list_index++
+    );
+    r.quad_handler_->emit_next(
+        ir::Opcode::TABLESETELEM,
+        top_table.host_expr,
+        index_expr,
+        table_elem,
+        table_elem->loc
+    );
+    r.reset_temps_if_temp_operand(table_elem);
+}
+
+const ExprPair *
+TableBuilder::Restricted::build_dict_entry(const Expr *key, const Expr *val)
+{
+    DEBUG_SMART_ASSERT(!!key, !!val);
+
+    key = expr_optimizer_->try_propagate_const(key);
+    val = expr_optimizer_->try_propagate_const(val);
+    key = ss_bridge_->materialize_if_table_item(key);
+    val = ss_bridge_->materialize_if_table_item(val);
+    ss_bridge_->finalize_bool_expr(key);
+    ss_bridge_->finalize_bool_expr(val);
+
+    // TODO: can you make this `new const` ? Can you delete ptr afterwards?
+    // Without const_cast() checks when at end of project
+    return new ExprPair(key, val);
+}
+
+DictList *
+TableBuilder::Restricted::extend_dict_list(
+    DictList *const dlist,
+    const ExprPair *const next_pair
+)
+{
+    DEBUG_SMART_ASSERT(!!dlist, !!next_pair);
+    if (!draft_.table_literal_stack.empty())
+    {
+        const auto [key, val] = *next_pair;
+        const SourceLocation pair_loc = merge(key->loc, val->loc);
+        quad_handler_->emit_next(
+            ir::Opcode::TABLESETELEM,
+            draft_.table_literal_stack.top().host_expr,
+            key,
+            val,
+            pair_loc
+        );
+        reset_temps_if_temp_operand(key, val);
+    }
+    dlist->push_back(next_pair);
+    return dlist;
 }
 } // namespace alpha

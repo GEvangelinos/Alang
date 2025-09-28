@@ -14,7 +14,7 @@ SpaceHandler::~SpaceHandler()
     // Parse error recovery may leave stacks inconsistent,
     // so assertions are skipped in that case.
     DEBUG(
-        if (host_->hard_error_occurred.raised()) return;
+        if (host_->hard_error_occurred()) return;
         DEBUG_SMART_ASSERT(variable_offset_stack_.size() == 1);
     )
 }
@@ -33,29 +33,29 @@ ScopeHandler::ScopeHandler(const ParseCtx *host)
 ScopeHandler::~ScopeHandler()
 {
     DEBUG(
-        if (host_->hard_error_occurred.raised()) return;
+        if (host_->hard_error_occurred()) return;
         DEBUG_SMART_ASSERT(scope_ == k_global_scope);
     )
 }
 
-CallContextHandler::CallContextHandler(ParseCtx *const host)
+CallCtxHandler::CallCtxHandler(ParseCtx *const host)
     : host_(support::require_ptr(host)) {}
 
-CallContextHandler::~CallContextHandler()
+CallCtxHandler::~CallCtxHandler()
 {
     DEBUG(
-        if (host_->hard_error_occurred.raised()) return;
+        if (host_->hard_error_occurred()) return;
         DEBUG_SMART_ASSERT(call_nesting_depth_ == 0);
     )
 }
 
-AggregateCtxHandler::AggregateCtxHandler(ParseCtx *const host)
+TableCtxHandler::TableCtxHandler(ParseCtx *const host)
     : host_(support::require_ptr(host)) {}
 
-AggregateCtxHandler::~AggregateCtxHandler()
+TableCtxHandler::~TableCtxHandler()
 {
     DEBUG(
-        if (host_->hard_error_occurred.raised()) return;
+        if (host_->hard_error_occurred()) return;
         DEBUG_SMART_ASSERT(dict_entry_nesting_depth_ == 0);
     )
 }
@@ -76,7 +76,7 @@ FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const host)
 FunctionCtxHandler::~FunctionCtxHandler()
 {
     DEBUG(
-        if (host_->hard_error_occurred.raised()) return;
+        if (host_->hard_error_occurred()) return;
         DEBUG_SMART_ASSERT(
             frame_stack_.size() == k_global_data_frame_count,
             function_parameters_.empty() // All parameters must be used.
@@ -167,7 +167,7 @@ TempCtxHandler::TempCtxHandler(const ParseCtx *const host)
 TempCtxHandler::~TempCtxHandler()
 {
     DEBUG(
-        if (host_->hard_error_occurred.raised()) return;
+        if (host_->hard_error_occurred()) return;
         // At the end (before destruction) if everything went right, there should be only a single frame.
         // The one pushed at construction.
         DEBUG_SMART_ASSERT(temp_ctx_frame_stack_.size() == 1);
@@ -185,94 +185,187 @@ TempCtxHandler::pop_temp_ctx_frame()
 }
 
 void
-TempCtxHandler::reset_current_frame()
+TempCtxHandler::enter_region(const Region region_to_enter)
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    pop_temp_ctx_frame();
-    push_temp_ctx_frame();
+    temp_ctx_frame_stack_.top().regions.push_back(
+        TempCtxFrame::RegionInfo{.checkpoints = {}, .region = region_to_enter}
+    );
+}
+
+void
+TempCtxHandler::exit_region(DEBUG(const Region region_to_exit))
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    DEBUG(const auto expected = region();)
+    DEBUG_SMART_ASSERT(expected.has_value() && expected.value() == region_to_exit);
+
+    auto &regions = temp_ctx_frame_stack_.top().regions;
+
+    DEBUG_SMART_ASSERT(!regions.empty());
+    // TODO: POLISH CODE is SHIT
+    std::optional<u32> keep_alive_checkpoint = std::nullopt;
+    if (regions.size() >= 2)
+    {
+        const Region curr = regions[regions.size() - 1].region;
+        const Region prev = regions[regions.size() - 2].region;
+        if (curr == Region::TABLE && prev == Region::CALL)
+        {
+            DEBUG_SMART_ASSERT(
+                !regions[regions.size()-1].checkpoints.empty() &&
+                "TABLE pushes checkpoint atleast on table expr"
+            );
+            keep_alive_checkpoint = regions[regions.size() - 1].checkpoints.front();
+        }
+    }
+    regions.pop_back();
+
+    if (keep_alive_checkpoint.has_value())
+        regions[regions.size() - 1].checkpoints.push_back(keep_alive_checkpoint.value());
+    reset_temp_counter_to_last_checkpoint();
 }
 
 std::optional<TempCtxHandler::Region>
 TempCtxHandler::region() const
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    const TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
 
-    if (curr_frame.critical_region_stack.empty())
+    const auto &top_region_stack = temp_ctx_frame_stack_.top().regions;
+    if (top_region_stack.empty())
         return std::nullopt;
-    return curr_frame.critical_region_stack.top();
+    return top_region_stack.back().region;
 }
 
 void
-TempCtxHandler::enter_region(const TempCtxHandler::Region region_to_enter)
+TempCtxHandler::set_checkpoint()
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    temp_ctx_frame_stack_.top().critical_region_stack.push(region_to_enter);
+
+    auto &top_frame = temp_ctx_frame_stack_.top();
+
+    // TODO: uncomment debug remove the if branch
+    //DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.top().regions.empty());
+    if (temp_ctx_frame_stack_.top().regions.empty())
+        return;
+
+    top_frame.regions.back().checkpoints.push_back(top_frame.temp_counter);
 }
 
 void
-TempCtxHandler::exit_region()
+TempCtxHandler::consume_checkpoint_and_reset()
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    temp_ctx_frame_stack_.top().critical_region_stack.pop();
+
+    auto & top_frame = temp_ctx_frame_stack_.top();
+
+    // Remove 1 checkpoint and reset to last == reset to prev checkpoint and consume
+    top_frame.regions.back().checkpoints.pop_back();
+    reset_temp_counter_to_last_checkpoint();
+}
+
+// void
+// TempCtxHandler::consume_checkpoint_and_reset()
+// {
+//     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+//
+//     auto & top_frame = temp_ctx_frame_stack_.top();
+//
+//     if (top_frame.regions.empty())
+//     {
+//         top_frame.temp_counter = 0;
+//         return;
+//     }
+//
+//     if (top_frame.regions.back().checkpoints.empty())
+//     {
+//         std::size_t i = 0;
+//         while (true)
+//         {
+//             auto &regions = top_frame.regions;
+//             if (i >= regions.size())
+//                 break;
+//             if (regions[regions.size()-1 - i].checkpoints.empty())
+//                 ++i;
+//             else
+//             {
+//                 top_frame.temp_counter = regions[regions.size()-1 - i].checkpoints.back();
+//                 return;
+//             }
+//         }
+//         top_frame.temp_counter = 0;
+//     }
+//     else
+//     {
+//         // Remove 1 checkpoint and reset to last == reset to prev checkpoint and consume
+//         top_frame.regions.back().checkpoints.pop_back();
+//         reset_temp_counter_to_last_checkpoint();
+//     }
+// }
+
+void
+TempCtxHandler::reset_temp_ctx_frame()
+{
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    pop_temp_ctx_frame();
+    push_temp_ctx_frame();
 }
 
 void
-TempCtxHandler::reset_to_checkpoint()
+TempCtxHandler::reset_temp_counter_to_last_checkpoint()
 {
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
-    curr_frame.temp_counter_ = curr_frame.checkpoints_.empty() ? 0 : curr_frame.checkpoints_.back();
-}
+    // TODO fixup now code its just glued parts
 
-void
-TempCtxHandler::push_checkpoint()
-{
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
-    curr_frame.checkpoints_.push_back(curr_frame.temp_counter_);
-}
+    // CHATGPT:
+    // Quick sanity test ideas
 
-void
-TempCtxHandler::pop_checkpoint()
-{
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
-    DEBUG_SMART_ASSERT(!curr_frame.checkpoints_.empty());
-    curr_frame.checkpoints_.pop_back();
-}
+// Frame with no regions → counter becomes 0.
+//
+// Regions present, all with empty checkpoint stacks → 0.
+//
+// Innermost region has checkpoints → picks its .back().
+//
+// Outer region has checkpoints, inner empty → finds outer.
+//
+// If you also need to pop the found checkpoint (not just read it), say so and I’ll tweak the routine to pop and restore atomically.
 
-void
-TempCtxHandler::push_checkpoint_barrier()
-{
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
-    curr_frame.checkpoint_barriers_.push(curr_frame.checkpoints_.size());
-}
+    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty() && "Cnter lives in frames, nothing to reset");
+    auto &top_frame = temp_ctx_frame_stack_.top();
 
-void
-TempCtxHandler::pop_checkpoint_barrier()
-{
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    TempCtxFrame &curr_frame = temp_ctx_frame_stack_.top();
-    DEBUG_SMART_ASSERT(!curr_frame.checkpoint_barriers_.empty());
-    while (curr_frame.checkpoints_.size() > curr_frame.checkpoint_barriers_.top())
-        pop_checkpoint();
-    curr_frame.checkpoint_barriers_.pop();
-    reset_to_checkpoint();
+    if (top_frame.regions.empty())
+        top_frame.temp_counter = 0;
+    else if (top_frame.regions.back().checkpoints.empty())
+    {
+        std::size_t i = 0;
+        while (true)
+        {
+            auto &regions = top_frame.regions;
+            if (i >= regions.size())
+                break;
+            if (regions[regions.size()-1 - i].checkpoints.empty())
+                ++i;
+            else
+            {
+                top_frame.temp_counter = regions[regions.size()-1 - i].checkpoints.back();
+                return;
+            }
+        }
+        top_frame.temp_counter = 0;
+    }
+    else
+        top_frame.temp_counter = top_frame.regions.back().checkpoints.back();
 }
 
 std::string
 TempCtxHandler::new_name()
 {
     DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    return k_temp_variable_prefix + std::to_string(temp_ctx_frame_stack_.top().temp_counter_++);
+    return k_temp_variable_prefix + std::to_string(temp_ctx_frame_stack_.top().temp_counter++);
 }
 
 ParseCtx::ParseCtx(SymbolTable *const symbol_table)
     : space_handler(this),
       scope_handler(this),
-      aggregate_ctx_handler(this),
+      table_ctx_handler(this),
       call_ctx_handler(this),
       func_ctx_handler(this),
       temp_ctx_handler(this),

@@ -37,6 +37,10 @@ const char *to_string(OperandSide pos) noexcept;
     X(TABLE_ITEM)       \
     X(VARIABLE)
 
+// @Note: Be careful when modifying or reordering fields in this struct.
+//        Instances of Expr are generated constantly, so layout and size have a
+//        direct impact on performance and memory footprint. Aim to keep the
+//        struct as compact as possible.
 struct Expr : private Immobile
 {
     enum class Type : u8
@@ -46,8 +50,8 @@ struct Expr : private Immobile
         #undef  X
     };
 
-    const Type type;
     const SourceLocation loc;
+    const Type type;
 
     void rvalue_cast() const;
     [[nodiscard]] bool is_rvalue_casted() const noexcept;
@@ -71,7 +75,7 @@ struct Expr : private Immobile
 protected:
     // DO NOT explicitly initialize @param rvalue_casted!
     ALWAYS_INLINE Expr(const Type type, const SourceLocation loc)
-        : type(type), loc(loc), rvalue_casted() {}
+        : loc(loc), type(type), rvalue_casted() {}
 
 private:
     mutable Once<bool> rvalue_casted;
@@ -220,11 +224,11 @@ struct VariableExpr final : public ExprWVarSymbol
 
 struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
 {
-    const SourceLocation location;
+    SourceLocation loc = {};
+    LabelID label = {};
     const Expr *result;
     const Expr *arg1;
     const Expr *arg2;
-    u32 label;
     const ir::Opcode opcode;
 };
 

@@ -4,9 +4,9 @@
 #include <vector>
 
 #include "internal_typedefs.hpp"
+#include "ir_expr.hpp"
 #include "core/konstants.hpp"
 #include "parser/ir_opcode.gen.hpp"
-#include "parser/ir_opcode_info_traits.gen.hpp"
 #include "parser/konstants.hpp"
 
 namespace alpha
@@ -40,101 +40,27 @@ public:
         const Expr *arg2,
         SourceLocation loc);
 
-    void patch_quad(LabelID target_quad_label, LabelID destination_label);
-    void patch_list(const std::vector<LabelID> &patch_list, LabelID destination_label);
+    void labelPatch_quad(LabelID target_quad_label, LabelID destination_label);
+    void labelPatch_list(const std::vector<LabelID> &patch_list, LabelID destination_label);
+    void locPatch_tablecreate(LabelID target_quad_label, SourceLocation new_loc);
 
     [[nodiscard]] LabelID next_quad_label() const noexcept { return next_quad_label_; }
     [[nodiscard]] const std::vector<Quad> &quads() const noexcept { return quads_; }
 
 private:
     LabelID next_quad_label_ = k_first_label;
+    // TODO: write a container like deque but more efficient. (this can only store 9 or 10 elems before new malloc())
     std::vector<Quad> quads_;
+
+    [[nodiscard]] static std::size_t label_to_index(LabelID label);
 };
 
-inline void
-QuadHandler::emit(
-    const ir::Opcode opc,
-    const Expr *const result,
-    const Expr *const arg1,
-    const Expr *const arg2,
-    const SourceLocation loc,
-    const LabelID label)
+inline std::size_t
+QuadHandler::label_to_index(const LabelID label)
 {
-    DEBUG(
-        namespace ii = ir::info_traits;
-        using Requirement = ii::Requirement;
-
-        auto requirement_matches = [](const Requirement req, const Expr *const expr) -> bool
-        {
-        return req == Requirement::OPTIONAL ||
-        (req == Requirement::NONE && !expr) ||
-        (req == Requirement::REQUIRED && !!expr);
-        };
-
-        SMART_ASSERT(
-            quads_.size() + 1 == next_quad_label_,
-            !ir::info_traits::is_non_emittable(opc),
-            requirement_matches(ii::result(opc), result),
-            requirement_matches(ii::arg1(opc), arg1),
-            requirement_matches(ii::arg2(opc), arg2),
-            loc != k_no_loc,
-        );
-        if (opc == ir::Opcode::JUMP && label == next_quad_label()) SMART_ASSERT(
-            false && "ir::Opcode::JUMP jumps to itself"
-        );
-    )
-
-    quads_.emplace_back(Quad{
-        .location = loc,
-        .result = result,
-        .arg1 = arg1,
-        .arg2 = arg2,
-        .label = label,
-        .opcode = opc,
-    });
-    ++next_quad_label_;
+    DEBUG_SMART_ASSERT(label != k_no_label);
+    return label - 1;
 }
 
-inline void
-QuadHandler::emit_next(
-    const ir::Opcode opc,
-    const Expr *const result,
-    const Expr *const arg1,
-    const Expr *const arg2,
-    const SourceLocation loc,
-    const LabelID label_offset)
-{
-    emit(opc, result, arg1, arg2, loc, next_quad_label_ + label_offset);
-}
-
-inline void
-QuadHandler::emit_labelless(
-    const ir::Opcode opc,
-    const Expr *const result,
-    const Expr *const arg1,
-    const Expr *const arg2,
-    const SourceLocation loc) { emit(opc, result, arg1, arg2, loc, k_no_label); }
-
-inline void
-QuadHandler::patch_quad(const LabelID target_quad_label, const LabelID destination_label)
-{
-    // First quad at index 0, has quad with label 1.
-    const u32 quad_index = target_quad_label - 1;
-    DEBUG_SMART_ASSERT(
-        target_quad_label > 0,
-        quad_index < quads_.size(),
-        quads_[quad_index].label == k_no_label,
-        destination_label != k_no_label
-    );
-    quads_[quad_index].label = destination_label;
-}
-
-inline void
-QuadHandler::patch_list(const std::vector<LabelID> &patch_list, const LabelID destination_label)
-{
-    DEBUG_SMART_ASSERT(destination_label != k_no_label);
-    for (const LabelID target_quad_label: patch_list)
-        patch_quad(target_quad_label, destination_label);
-}
 } // namespace alpha
 #endif // QUAD_HANDLER_HPP

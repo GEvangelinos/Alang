@@ -45,7 +45,7 @@ SemanticSystemBridge::finalize_bool_expr(const Expr *const expr)
     DEBUG_SMART_ASSERT(!!bool_expr->var_symbol);
 
     // true branch: patch to here and assign true
-    qh->patch_list(bool_expr->true_list, qh->next_quad_label());
+    qh->labelPatch_list(bool_expr->true_list, qh->next_quad_label());
     qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_true_expr, nullptr, expr->loc);
 
     // Offset to land after the false branch
@@ -53,7 +53,7 @@ SemanticSystemBridge::finalize_bool_expr(const Expr *const expr)
     qh->emit_next(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc, past_false_branch_offset);
 
     // false branch: patch to here and assign false
-    qh->patch_list(bool_expr->false_list, qh->next_quad_label());
+    qh->labelPatch_list(bool_expr->false_list, qh->next_quad_label());
     qh->emit_next(ir::Opcode::ASSIGN, expr, &k_static_false_expr, nullptr, expr->loc);
 }
 } // namespace alpha

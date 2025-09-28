@@ -1095,3 +1095,21 @@ could be
 // 121,tablecreate,object,NA,NA,NA,71,71
 
 216) YOu can remove useless getrevals in calls if user never uses the result
+
+217) Check some invariant i am thinking about..
+
+you can never have an operation
+
+where both arguments are the same temp..
+
+like its impossible to have add $1 $0 $0
+
+of course
+
+$0 $0 $1 is possible
+or
+$1 $2 $3 is possible
+
+result, arg1, arg
+
+you can run invaiant checking on final IR.

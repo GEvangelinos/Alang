@@ -1,3 +1,12 @@
+/**
+ * Debug Tools Overview
+ *
+ * This header provides a unified set of diagnostic macros used throughout the compiler.
+ *
+ * These tools make control-flow contracts explicit, improve debug diagnostics,
+ * and provide optimization hints to the compiler in release builds.
+ */
+
 #ifndef SUPPORT_DEBUG_TOOLS_HPP
 #define SUPPORT_DEBUG_TOOLS_HPP
 
@@ -20,10 +29,14 @@
         FMT::format("{}:{} -> {}(): {}", __FILENAME__, __LINE__, __func__, (message))
 #define ATTACH_CONTEXT_CT(message)(__FILENAME__ __LINE__ message)
 
-#define UNIMPLEMENTED(message_if_reached)                                                           \
-        do                                                                        \
-        {                                                                         \
-                throw std::logic_error(ATTACH_CONTEXT("Control flow reached unimplemented code")); \
+#define UNIMPLEMENTED(message_if_reached)                                            \
+        do                                                                           \
+        {                                                                            \
+                throw std::logic_error(ATTACH_CONTEXT(FMT::format(                   \
+                    "Control flow reached unimplemented code.\n"                     \
+                    "User wrote: {}",                                                \
+                    message_if_reached                                               \
+                )));                                                                 \
         } while (0)
 
 #if defined(__GNUC__) || defined(__clang__)

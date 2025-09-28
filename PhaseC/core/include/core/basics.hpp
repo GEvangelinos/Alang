@@ -119,12 +119,86 @@ private:
     bool assigned_ = false;
 };
 
+template<typename T>
+class DebugOnce : private Immobile
+{
+public:
+    DebugOnce() = default;
+    explicit DebugOnce(const T &t) { set(t); }
+    explicit DebugOnce(T &&t) { set(std::move(t)); }
+
+    ~DebugOnce() = default;
+
+    void set(const T &value)
+    {
+        DEBUG(
+            if (assigned_) throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
+        )
+        value_ = value;
+        DEBUG(assigned_ = true;)
+    }
+
+    void set(T &&value)
+    {
+        DEBUG(
+            if (assigned_) throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
+        )
+        value_ = std::move(value);
+        DEBUG(assigned_ = true;)
+    }
+
+    operator const T &() const & { return get(); }
+
+    const DebugOnce &operator=(const T &value)
+    {
+        set(value);
+        return *this;
+    }
+
+    template<typename U = T>
+    std::enable_if_t<std::is_pointer_v<U>, U> operator->() { return get(); }
+
+    template<typename U = T>
+    std::enable_if_t<std::is_pointer_v<U>, U> operator->() const { return get(); }
+
+    // We prefer use addressof instead of  & to avoid overloads on & operator.
+    template<typename U = T>
+    std::enable_if_t<!std::is_pointer_v<U>, U> operator->() { return std::addressof(get()); }
+
+    // We prefer use addressof instead of  & to avoid overloads on & operator.
+    template<typename U = T>
+    std::enable_if_t<!std::is_pointer_v<U>, U> operator->() const { return std::addressof(get()); }
+
+    explicit operator bool() { return is_assigned(); }
+
+    [[nodiscard]] const T &get() const
+    {
+        DEBUG(
+            if (!assigned_) throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` not assigned yet"));
+        )
+        return value_;
+    }
+
+    [[nodiscard]] bool is_assigned() const noexcept
+    {
+        #ifdef DEBUG_MODE
+        return assigned_;
+        #else
+        UNREACHABLE("DebugOnce::is_assigned() is only available in DEBUG_MODE");
+        #endif
+    }
+
+private:
+    T value_;
+    DEBUG(bool assigned_ = false;)
+};
+
 class OnceFlag : private Immobile
 {
 public:
     OnceFlag() = default;
 
-    [[nodiscard]] bool raised() const { return once_flag.is_assigned(); }
+    [[nodiscard]] bool raised() const noexcept { return once_flag.is_assigned(); }
     void raise() { if (!raised()) once_flag.set(true); }
 
 private:

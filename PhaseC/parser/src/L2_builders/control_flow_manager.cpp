@@ -33,15 +33,6 @@ ControlFlowManager::Restricted::manage_ifbranch_entry(
     build_ctx_.unpatched_if_bypass_jumps.push(qh->next_quad_label());
     // Emit unconditional jump that will eventually point at the end of the if-block.
     qh->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, if_clause_loc);
-
-    // In CYA_MODE we don't do complex temp reuse,
-    // so we cant rely on temp reuse in ifbranch's condition.
-    // Thus, we reset temps at end of ifbranch entry (ifbranch clause)
-    #ifdef CYA_MODE
-    parse_ctx_->temp_ctx_handler.reset_current_frame();
-    #else
-    parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
-    #endif
 }
 
 void
@@ -53,7 +44,7 @@ ControlFlowManager::Restricted::manage_ifbranch_exit()
 
     const LabelID bypass_jump_quad_label = build_ctx_.unpatched_if_bypass_jumps.top();
     build_ctx_.unpatched_if_bypass_jumps.pop();
-    qh->patch_quad(bypass_jump_quad_label, qh->next_quad_label());
+    qh->labelPatch_quad(bypass_jump_quad_label, qh->next_quad_label());
 }
 
 void
@@ -82,12 +73,12 @@ ControlFlowManager::Restricted::manage_elsebranch_exit()
     auto *const qh = quad_handler_; // Short alias for readability.
 
     // We basically patch untaken if branches inside else branch.
-    qh->patch_quad(
+    qh->labelPatch_quad(
         build_ctx_.unpatched_if_bypass_jumps.top(),
         build_ctx_.unpatched_else_bypass_jumps.top() + 1
     );
     build_ctx_.unpatched_if_bypass_jumps.pop();
-    qh->patch_quad(build_ctx_.unpatched_else_bypass_jumps.top(), qh->next_quad_label());
+    qh->labelPatch_quad(build_ctx_.unpatched_else_bypass_jumps.top(), qh->next_quad_label());
 
     build_ctx_.unpatched_else_bypass_jumps.pop();
 }
@@ -130,15 +121,6 @@ ControlFlowManager::Restricted::manage_whileloop_condition(
     qh->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, while_clause_loc);
 
     parse_ctx_->func_ctx_handler.enter_loop();
-
-    // In CYA_MODE we don't do complex temp reuse,
-    // so we cant rely on, temp reuse in whileloop's condition.
-    // Thus, we reset temps at end of while clause (whileloop condition)
-    #ifdef CYA_MODE
-    parse_ctx_->temp_ctx_handler.reset_current_frame();
-    #else
-    parse_ctx_->temp_ctx_handler.reset_to_checkpoint();
-    #endif
 }
 
 void
@@ -165,10 +147,10 @@ ControlFlowManager::Restricted::manage_whileloop_exit(const SourceLocation while
         wlf.before_condition
     );
 
-    qh->patch_quad(wlf.unpatched_bypass_jump, qh->next_quad_label());
+    qh->labelPatch_quad(wlf.unpatched_bypass_jump, qh->next_quad_label());
 
-    qh->patch_list(fctx.break_list(), qh->next_quad_label());
-    qh->patch_list(fctx.continue_list(), wlf.before_condition);
+    qh->labelPatch_list(fctx.break_list(), qh->next_quad_label());
+    qh->labelPatch_list(fctx.continue_list(), wlf.before_condition);
 
     parse_ctx_->func_ctx_handler.exit_loop(); // Kills break and continue lists.
     build_ctx_.while_loop_frames.pop();       // DO NOT USE `wlf` PAST THIS POINT
@@ -269,17 +251,17 @@ ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_lo
 
         const LabelID after_loop_quad_label = qh->next_quad_label(); // First quad outside for-loop.
 
-        qh->patch_quad(flf.condition_true, flf.before_body); // Set IF_EQ true jump inside body
-        qh->patch_quad(flf.condition_false, after_loop_quad_label);
+        qh->labelPatch_quad(flf.condition_true, flf.before_body); // Set IF_EQ true jump inside body
+        qh->labelPatch_quad(flf.condition_false, after_loop_quad_label);
         // Set IF_EQ false jump outside body
-        qh->patch_quad(flf.after_update_list, flf.before_condition);
+        qh->labelPatch_quad(flf.after_update_list, flf.before_condition);
         // After update go check condition
-        qh->patch_quad(flf.after_body, flf.before_update_list); // After closure go update iterators
+        qh->labelPatch_quad(flf.after_body, flf.before_update_list); // After closure go update iterators
 
         // We route all breaks outside the body of the for loop.
-        qh->patch_list(parse_ctx_->func_ctx_handler.break_list(), after_loop_quad_label);
+        qh->labelPatch_list(parse_ctx_->func_ctx_handler.break_list(), after_loop_quad_label);
         // We route all continues at the beginning of the update_list
-        qh->patch_list(parse_ctx_->func_ctx_handler.continue_list(), flf.before_update_list);
+        qh->labelPatch_list(parse_ctx_->func_ctx_handler.continue_list(), flf.before_update_list);
     }
 
     parse_ctx_->func_ctx_handler.exit_loop(); // This kills break and continue lists.
@@ -291,27 +273,12 @@ ControlFlowManager::Restricted::enter_forloop_clause()
 {
     auto &tch = parse_ctx_->temp_ctx_handler; // Short alias to improve readability.
     tch.enter_region(TempCtxHandler::Region::FORLOOP_CLAUSE);
-    tch.push_checkpoint();
 }
 
 void
 ControlFlowManager::Restricted::exit_forloop_clause()
 {
-    auto &tch = parse_ctx_->temp_ctx_handler; // Short alias to improve readability.
-    tch.pop_checkpoint();
-    DEBUG_SMART_ASSERT(tch.region().has_value());
-    DEBUG_SMART_ASSERT(tch.region().value() == TempCtxHandler::Region::FORLOOP_CLAUSE);
-
-    parse_ctx_->temp_ctx_handler.exit_region();
-
-    // In CYA_MODE we don't do complex temp reuse,
-    // so we cant rely on, temp reuse in each for-loop stage.
-    // Thus, we reset temps at end of forloop clause
-    #ifdef CYA_MODE
-    tch.reset_current_frame();
-    #else
-    tch.reset_to_checkpoint();
-    #endif
+    parse_ctx_->temp_ctx_handler.exit_region(DEBUG(TempCtxHandler::Region::FORLOOP_CLAUSE));
 }
 
 void
@@ -319,7 +286,7 @@ ControlFlowManager::Restricted::mark_bad_forloop_clause()
 {
     DEBUG_SMART_ASSERT(!build_ctx_.for_loop_frames.empty());
     build_ctx_.for_loop_frames.top().bad_clause = true;
-    parse_ctx_->temp_ctx_handler.reset_current_frame();
+    parse_ctx_->temp_ctx_handler.reset_temp_ctx_frame();
 }
 
 void

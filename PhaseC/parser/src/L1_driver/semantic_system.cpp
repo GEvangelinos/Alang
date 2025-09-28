@@ -23,10 +23,9 @@ SemanticSystem::SemanticSystem(
       quad_handler_(std::make_unique<QuadHandler>()),
       expr_optimizer_(std::make_unique<ExprOptimizer>(opts, expr_maker_.get())),
       ss_bridge_(parse_ctx_, expr_maker_.get(), quad_handler_.get()),
-      aggregate_builder(create_semantic_system_services()),
+      assign_builder(get_assign_builder_options(opts), create_semantic_system_services()),
 
       // public (through call() dispatcher) servicers, used by users of semantic driver.
-      assign_builder(get_assign_builder_options(opts), create_semantic_system_services()),
       basic_builder(get_basic_builder_options(opts), create_semantic_system_services()),
       block_manager(create_semantic_system_services()),
       call_builder(create_semantic_system_services()),
@@ -35,6 +34,7 @@ SemanticSystem::SemanticSystem(
       lvalue_resolver(create_semantic_system_services()),
       function_builder(create_semantic_system_services()),
       table_access_builder(create_semantic_system_services()),
+      table_builder(create_semantic_system_services()),
 
       // public resources used by external components.
       gateway(std::unique_ptr<Gateway>(new Gateway(this))),
@@ -74,7 +74,7 @@ SemanticSystem::get_basic_builder_options(const settings::ExprOpts &opts)
 void
 SemanticSystem::reset_stmt_context() noexcept
 {
-    parse_ctx_->temp_ctx_handler.reset_current_frame();
+    parse_ctx_->temp_ctx_handler.reset_temp_ctx_frame();
 }
 
 void
@@ -82,6 +82,27 @@ SemanticSystem::consume_stmt_expr(const Expr *const expr)
 {
     const Expr *const materialized_expr = ss_bridge_.materialize_if_table_item(expr);
     ss_bridge_.finalize_bool_expr(materialized_expr);
+}
+
+void
+SemanticSystem::commit_expr_in_elist(const Expr *expr)
+{
+    const auto region = parse_ctx_->temp_ctx_handler.region();
+
+    DEBUG_SMART_ASSERT(region.has_value() && "Without a region value routing is impossible");
+    switch (region.value())
+    {
+    case TempCtxHandler::Region::CALL:
+        call_builder.commit_call_argument(expr);
+        break;
+    case TempCtxHandler::Region::FORLOOP_CLAUSE:
+        UNIMPLEMENTED("Well you know what to do");
+        break;
+    case TempCtxHandler::Region::TABLE:
+        table_builder.commit_table_element(expr);
+        break;
+    default: UNREACHABLE("Unknown Region, please register");
+    }
 }
 
 const Expr *
@@ -96,7 +117,7 @@ void
 SemanticSystem::Gateway::notify_hard_error() noexcept
 {
     host_->ss_status_ = SemanticSystem::Status::ERROR;
-    host_->parse_ctx_->hard_error_occurred.raise();
+    host_->parse_ctx_->hard_error_occurred_.raise();
 }
 
 SemanticSystem::ParserContextView::ParserContextView(SemanticSystem *const ss)
@@ -114,7 +135,6 @@ bool SemanticSystem::ParserContextView::is_in_call_arg_list() const noexcept
 
 bool SemanticSystem::ParserContextView::is_in_forloop_clause() const noexcept
 {
-    return host_->parse_ctx_->temp_ctx_handler.region() ==
-           TempCtxHandler::Region::FORLOOP_CLAUSE;
+    return host_->parse_ctx_->temp_ctx_handler.region() == TempCtxHandler::Region::FORLOOP_CLAUSE;
 }
 } // namespace alpha
