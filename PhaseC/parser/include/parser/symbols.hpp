@@ -3,11 +3,13 @@
 
 #include <list>
 #include <string>
+#include  <optional>
 
 #include "_parser_common.hpp"
 #include "core/konstants.hpp"
 #include "core/source_location.hpp"
 #include "support/misc_tools.hpp"
+#include "parser/internal_typedefs.hpp"
 
 namespace alpha
 {
@@ -71,6 +73,7 @@ public:
 
     const Space space;
     const u32 offset;
+    const std::optional<TempSlotID> temp_slot_id;
 
     VarSymbol(
         const std::string &name,
@@ -78,7 +81,8 @@ public:
         Type type,
         Space space,
         u32 offset,
-        SourceLocation loc) noexcept;
+        SourceLocation loc,
+        std::optional<TempSlotID> temp_slot_id = std::nullopt) noexcept;
     ~VarSymbol() override = default;
 
     const ConstExpr *get_const_expr() const noexcept { return const_expr_; }
@@ -158,10 +162,12 @@ VarSymbol::VarSymbol(
     const Type type,
     const Space space,
     const u32 offset,
-    const SourceLocation loc) noexcept
+    const SourceLocation loc,
+    const std::optional<TempSlotID> temp_slot_id) noexcept
     : Symbol(name, scope, type, loc),
       space(space),
-      offset(offset) {}
+      offset(offset),
+      temp_slot_id(temp_slot_id) {}
 
 inline Symbol::Type VarSymbol::scope_to_symbol_type(const u32 scope)
 {

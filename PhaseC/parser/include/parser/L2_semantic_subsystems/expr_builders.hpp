@@ -243,7 +243,6 @@ private:
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(update_method_call_draft);
     DISPATCH_SLAVE_METHOD_CALL(init_call);
-    DISPATCH_SLAVE_METHOD_CALL(finalize_call);
     DISPATCH_SLAVE_METHOD_CALL(build_call_consuming);
     DISPATCH_SLAVE_METHOD_CALL(build_iife_call_consuming);
     DISPATCH_SLAVE_METHOD_CALL(build_method_call_consuming);

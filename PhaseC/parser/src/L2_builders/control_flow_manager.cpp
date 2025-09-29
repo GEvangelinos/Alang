@@ -271,14 +271,13 @@ ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_lo
 void
 ControlFlowManager::Restricted::enter_forloop_clause()
 {
-    auto &tch = parse_ctx_->temp_ctx_handler; // Short alias to improve readability.
-    tch.enter_region(TempCtxHandler::Region::FORLOOP_CLAUSE);
+     parse_ctx_->elist_ctx_handler.exit_region(ElistCtxHandler::Region::FORLOOP_CLAUSE);
 }
 
 void
 ControlFlowManager::Restricted::exit_forloop_clause()
 {
-    parse_ctx_->temp_ctx_handler.exit_region(DEBUG(TempCtxHandler::Region::FORLOOP_CLAUSE));
+    parse_ctx_->elist_ctx_handler.exit_region(DEBUG(ElistCtxHandler::Region::FORLOOP_CLAUSE));
 }
 
 void

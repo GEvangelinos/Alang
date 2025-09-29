@@ -1,5 +1,6 @@
 #ifndef IR_HPP
 #define IR_HPP
+#include <optional>
 #include <vector>
 #include <parser/konstants.hpp>
 #include "core/basics.hpp"
@@ -70,7 +71,7 @@ struct Expr : private Immobile
     [[nodiscard]] bool is_rvalue() const noexcept;
     [[nodiscard]] bool is_static() const noexcept;
     [[nodiscard]] bool has_symbol() const noexcept;
-    [[nodiscard]] bool has_temp_symbol() const noexcept;
+    [[nodiscard]] bool has_active_tempvar() const noexcept;
 
 protected:
     // DO NOT explicitly initialize @param rvalue_casted!
@@ -104,9 +105,7 @@ public:
 
 protected:
     ALWAYS_INLINE ExprWFuncSymbol(
-        const Type type,
-        const SourceLocation loc,
-        const FuncSymbol *const func_symbol)
+        const Type type, const SourceLocation loc, const FuncSymbol *const func_symbol)
         : Expr(type, loc),
           func_symbol(DEBUG_REQUIRE_PTR(func_symbol)) {}
 };
@@ -209,9 +208,7 @@ struct TableItemExpr final : public ExprWVarSymbol
     const Expr *index;
 
     TableItemExpr(
-        const SourceLocation loc,
-        const VarSymbol *const var_symbol,
-        const Expr *const index)
+        const SourceLocation loc, const VarSymbol *const var_symbol, const Expr *const index)
         : ExprWVarSymbol(Type::TABLE_ITEM, loc, DEBUG_REQUIRE_PTR(var_symbol)),
           index(DEBUG_REQUIRE_PTR(index)) {}
 };

@@ -168,146 +168,77 @@ TempCtxHandler::~TempCtxHandler()
 {
     DEBUG(
         if (host_->hard_error_occurred()) return;
-        // At the end (before destruction) if everything went right, there should be only a single frame.
-        // The one pushed at construction.
-        DEBUG_SMART_ASSERT(temp_ctx_frame_stack_.size() == 1);
+        // On normal termination, there should be exactly one slot frame left:
+        // the initial frame pushed at construction.
+        DEBUG_SMART_ASSERT(temp_slots_stack.size() == 1);
     )
+
+    // The stack of slot handlers should never be completely empty.
+    // Even in error cases, grammar actions that push frames run before
+    // any possible mismatched symbols, so at least the initial frame survives.
+    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
 }
 
 void
-TempCtxHandler::push_temp_ctx_frame() { temp_ctx_frame_stack_.emplace(); }
+TempCtxHandler::push_temp_ctx_frame() { temp_slots_stack.emplace(); }
 
 void
 TempCtxHandler::pop_temp_ctx_frame()
 {
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    temp_ctx_frame_stack_.pop();
-}
-
-void
-TempCtxHandler::enter_region(const Region region_to_enter)
-{
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    temp_ctx_frame_stack_.top().regions.push_back(
-        TempCtxFrame::RegionInfo{
-            .region = region_to_enter,
-            .temp_counter_on_entering = temp_ctx_frame_stack_.top().temp_counter,
-            .checkpoints = {},
-        }
-    );
-}
-
-void
-TempCtxHandler::exit_region(DEBUG(const Region region_to_exit))
-{
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    DEBUG(const auto expected = region();)
-    DEBUG_SMART_ASSERT(expected.has_value() && expected.value() == region_to_exit);
-
-    auto &regions = temp_ctx_frame_stack_.top().regions;
-
-    DEBUG_SMART_ASSERT(!regions.empty());
-
-    // TODO: POLISH CODE is SHIT
-    std::optional<u32> keep_alive_checkpoint = std::nullopt;
-    if (regions.size() >= 2)
-    {
-        const Region curr = regions[regions.size() - 1].region;
-        const Region prev = regions[regions.size() - 2].region;
-        if (curr == Region::TABLE && prev == Region::CALL)
-        {
-            DEBUG_SMART_ASSERT(
-                !regions[regions.size()-1].checkpoints.empty() &&
-                "TABLE pushes checkpoint at-least on table expr"
-            );
-            keep_alive_checkpoint = regions[regions.size() - 1].checkpoints.front();
-        }
-    }
-    const auto temp_counter_on_entering = regions.back().temp_counter_on_entering;
-    regions.pop_back();
-
-    if (keep_alive_checkpoint.has_value())
-    {
-        regions[regions.size() - 1].checkpoints.push_back(keep_alive_checkpoint.value());
-        reset_temp_counter_to_last_checkpoint();
-    }
-    else
-        temp_ctx_frame_stack_.top().temp_counter = temp_counter_on_entering;
-}
-
-std::optional<TempCtxHandler::Region>
-TempCtxHandler::region() const
-{
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-
-    const auto &top_region_stack = temp_ctx_frame_stack_.top().regions;
-    if (top_region_stack.empty())
-        return std::nullopt;
-    return top_region_stack.back().region;
-}
-
-void
-TempCtxHandler::set_checkpoint()
-{
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-
-    auto &top_frame = temp_ctx_frame_stack_.top();
-
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.top().regions.empty());
-
-    top_frame.regions.back().checkpoints.push_back(top_frame.temp_counter);
-}
-
-void
-TempCtxHandler::dec_temp_counter()
-{
-    DEBUG_SMART_ASSERT(temp_ctx_frame_stack_.empty() && "There should b atleast global frame");
-    --temp_ctx_frame_stack_.top().temp_counter;
+    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
+    temp_slots_stack.pop();
 }
 
 void
 TempCtxHandler::reset_temp_ctx_frame()
 {
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
+    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
     pop_temp_ctx_frame();
     push_temp_ctx_frame();
-}
-
-void
-TempCtxHandler::reset_temp_counter_to_last_checkpoint()
-{
-    // TODO fixup now code its just glued parts
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty() && "Cnter lives in frames, nothing to reset");
-    auto &top_frame = temp_ctx_frame_stack_.top();
-    DEBUG_SMART_ASSERT(!top_frame.regions.empty() && "There must be at-least be Region::NONE");
-
-    if (top_frame.regions.back().checkpoints.empty())
-    {
-        std::size_t i = 0;
-        while (true)
-        {
-            auto &regions = top_frame.regions;
-            if (i >= regions.size())
-                break;
-            if (regions[regions.size() - 1 - i].checkpoints.empty())
-                ++i;
-            else
-            {
-                top_frame.temp_counter = regions[regions.size() - 1 - i].checkpoints.back();
-                return;
-            }
-        }
-        top_frame.temp_counter = 0;
-    }
-    else
-        top_frame.temp_counter = top_frame.regions.back().checkpoints.back();
 }
 
 std::string
 TempCtxHandler::new_name()
 {
-    DEBUG_SMART_ASSERT(!temp_ctx_frame_stack_.empty());
-    return k_temp_variable_prefix + std::to_string(temp_ctx_frame_stack_.top().temp_counter++);
+    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
+    const TempSlotID temp_id = acquire_temp_slot();
+    return k_temp_variable_prefix + std::to_string(temp_id);
+}
+
+TempSlotID
+TempCtxHandler::acquire_temp_slot()
+{
+    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
+
+    auto &temp_slots = temp_slots_stack.top().temp_slots_;
+
+    // Invariant check:
+    DEBUG(
+        for (const TempSlots::SlotState ss : temp_slots_stack.top().temp_slots_)
+        SMART_ASSERT(ss == TempSlots::SlotState::TAKEN);
+    )
+
+    temp_slots.emplace_back(TempSlots::SlotState::TAKEN);
+
+    DEBUG_SMART_ASSERT(temp_slots.size() - 1 <= std::numeric_limits<TempSlotID>::max());
+    return static_cast<TempSlotID>(temp_slots.size() - 1);
+}
+
+void
+TempCtxHandler::release_temp_slot(const TempSlotID id)
+{
+    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
+    auto &temp_slots = temp_slots_stack.top().temp_slots_;
+    DEBUG_SMART_ASSERT(!temp_slots.empty());
+
+    // Invariant check: If these rules fail... then release of temp values is not in order
+    // then acquiring is not in order too, and you would have to search for first available.
+    DEBUG(
+        for (const TempSlots::SlotState ss : temp_slots)
+        SMART_ASSERT(ss == TempSlots::SlotState::TAKEN);
+    )
+    DEBUG_SMART_ASSERT(temp_slots.size() - 1 == id);
+    temp_slots.pop_back();
 }
 
 ParseCtx::ParseCtx(SymbolTable *const symbol_table)
@@ -344,5 +275,29 @@ ParseCtx::new_temp()
     }
     DEBUG_SMART_ASSERT(symbol->is_variable());
     return static_cast<const VarSymbol *>(symbol);
+}
+
+void
+ElistCtxHandler::enter_region(const Region r) { region_stack_.push(r); }
+
+void
+ElistCtxHandler::exit_region(DEBUG(const Region r))
+{
+    DEBUG_SMART_ASSERT(!region_stack_.empty());
+
+    // Ensure we are exiting the same region we most recently entered.
+    // Regions must be balanced: every enter_region() must be matched
+    // with a corresponding exit_region() for the same Region.
+    DEBUG_SMART_ASSERT(this->region() == r && "Mismatched region exit");
+    region_stack_.pop();
+}
+
+std::optional<ElistCtxHandler::Region>
+ElistCtxHandler::region() const
+{
+    DEBUG_SMART_ASSERT(!region_stack_.empty());
+    if (region_stack_.empty())
+        return std::nullopt;
+    return region_stack_.top();
 }
 } // namespace alpha

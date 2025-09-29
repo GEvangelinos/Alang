@@ -307,10 +307,7 @@ term:
 | not_op                      { $term = $not_op; }
 | LEFT_PAREN
   expr
-  RIGHT_PAREN
-  {
-    $term = ss.call<"force_rvalue_cast">($expr, @term);
-  }
+  RIGHT_PAREN { $term = ss.call<"force_rvalue_cast">($expr, @term); }
 | MINUS expr %prec UMINUS     { $term = ss.call<"basic_builder.build_uminus">($expr, @term); }
 | INC expr { $term = ss.call<"assign_builder.build_pre_inc">($expr, @term); }
 | expr INC { $term = ss.call<"assign_builder.build_post_inc">($expr, @term); }

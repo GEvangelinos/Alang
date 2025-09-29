@@ -51,7 +51,7 @@ using namespace alpha;
 
     if (!validate_lvalue(dr, expr, full_expr_loc, op_name, op_symbol, lvalue_subject))
         return false;
-    if (expr->has_temp_symbol())
+    if (expr->has_active_tempvar())
     {
         dr->report_operator_requires_non_temp_lvalue(
             op_name, op_symbol, lvalue_subject, expr->type, full_expr_loc, expr->loc);
@@ -692,7 +692,7 @@ CallBuilder::Restricted::update_method_call_draft(
 void
 CallBuilder::Restricted::init_call()
 {
-    parse_ctx_->temp_ctx_handler.enter_region(TempCtxHandler::Region::CALL);
+    parse_ctx_->elist_ctx_handler.enter_region(ElistCtxHandler::Region::CALL);
     parse_ctx_->call_ctx_handler.enter_call();
 
     if (draft_.method_info.has_value())
@@ -709,7 +709,7 @@ CallBuilder::Restricted::finalize_call()
 {
     parse_ctx_->call_ctx_handler.exit_call();
     draft_.call_info_stack.pop();
-    parse_ctx_->temp_ctx_handler.exit_region(DEBUG(TempCtxHandler::Region::CALL));
+    parse_ctx_->elist_ctx_handler.exit_region(ElistCtxHandler::Region::CALL);
 }
 
 void
@@ -788,7 +788,8 @@ CallBuilder::Restricted::build_method_call_consuming(
         draft_.call_info_stack.top().method_info.value().id_loc,
         draft_.call_info_stack.top().method_info.value().id.c_str()
     );
-    const Expr *const host_var = expr_maker_->make_table_item_expr(call_loc, method_host, method_index);
+    const Expr *const host_var = expr_maker_->make_table_item_expr(
+        call_loc, method_host, method_index);
 
     method_host = ss_bridge_->materialize_if_table_item(host_var);
     return build_call_consuming(method_host, call_loc, DEBUG_REQUIRE_PTR(method_host_copy));
@@ -808,14 +809,16 @@ void CallBuilder::commit_call_argument(const Expr *call_arg)
 {
     DEBUG_SMART_ASSERT(!!call_arg);
     auto &r = restricted();
+    DEBUG_SMART_ASSERT(
+        r.parse_ctx_->elist_ctx_handler.region().has_value() &&
+        r.parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::CALL
+    );
     call_arg = r.ss_bridge_->materialize_if_table_item(call_arg);
     r.ss_bridge_->finalize_bool_expr(call_arg);
     call_arg = r.expr_optimizer_->try_propagate_const(call_arg);
 
     DEBUG_SMART_ASSERT(!r.draft_.call_info_stack.empty());
     r.draft_.call_info_stack.top().arguments.push(call_arg);
-
-    r.parse_ctx_->temp_ctx_handler.set_checkpoint();
 
     // TODO: do we need the thing below?
     // r.reset_temps_if_temp_operand(call_arg);
@@ -1069,14 +1072,8 @@ TableAccessBuilder::Restricted::build_subscript_access(
 void
 TableBuilder::Restricted::init_table_literal()
 {
-
-    parse_ctx_->temp_ctx_handler.enter_region(TempCtxHandler::Region::TABLE);
-
+    parse_ctx_->elist_ctx_handler.enter_region(ElistCtxHandler::Region::TABLE);
     const NewTableExpr *const new_table = expr_maker_->make_new_table_expr(k_no_loc);
-    // Guard the table expression with a checkpoint. Without this, committing new expressions
-    // that introduce temporaries could cause `reset_to_checkpoint()` to roll back the temp
-    // counter past the temporary reserved for the table itself.
-    parse_ctx_->temp_ctx_handler.set_checkpoint();
 
     // Store quad label, so I can loc-patch quad's location
     draft_.table_literal_stack.emplace(new_table, quad_handler_->next_quad_label());
@@ -1098,7 +1095,7 @@ TableBuilder::Restricted::finalize_table_literal(const SourceLocation table_loc)
     quad_handler_->locPatch_tablecreate(tls.top().host_quad_label, table_loc);
 
     tls.pop();
-    parse_ctx_->temp_ctx_handler.exit_region(DEBUG(TempCtxHandler::Region::TABLE));
+    parse_ctx_->elist_ctx_handler.exit_region(ElistCtxHandler::Region::TABLE);
     return table_literal;
 }
 
@@ -1111,6 +1108,11 @@ TableBuilder::commit_table_element(const Expr *table_elem)
 {
     DEBUG_SMART_ASSERT(!!table_elem);
     auto &r = restricted(); // Local alias for clarity
+
+    DEBUG_SMART_ASSERT(
+        r.parse_ctx_->elist_ctx_handler.region().has_value() &&
+        r.parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::TABLE
+    );
 
     // TODO: does same seq of these 3 instruction happens else where and often?
     // if yes make put under helper function

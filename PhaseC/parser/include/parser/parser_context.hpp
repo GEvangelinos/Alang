@@ -184,53 +184,42 @@ private:
 class TempCtxHandler
 {
 public:
-    enum class Region : u8 { NONE, CALL, TABLE, FORLOOP_CLAUSE };
-
     explicit TempCtxHandler(const ParseCtx *host);
     ~TempCtxHandler();
 
     void push_temp_ctx_frame();
     void pop_temp_ctx_frame();
 
-    void enter_region(Region region_to_enter);
-    void exit_region(DEBUG(Region region_to_exit));
-    std::optional<Region> region() const;
-
-    void set_checkpoint();
-
-    // TODO: maybe useless (or even bad) function
-    void dec_temp_counter();
+    [[nodiscard]] TempSlotID acquire_temp_slot();
+    void release_temp_slot(TempSlotID id);
 
     void reset_temp_ctx_frame();
-    void reset_temp_counter_to_last_checkpoint();
 
     [[nodiscard]] std::string new_name();
 
 private:
-    struct TempCtxFrame
+    struct TempSlots
     {
-        TempCtxFrame()
-        {
-            regions.push_back(RegionInfo{
-                .region = Region::NONE,
-                .temp_counter_on_entering = 0,
-                .checkpoints = {}
-            });
-        }
+        enum class SlotState : u8 { FREE, TAKEN };
 
-        struct RegionInfo
-        {
-            const Region region;
-            const u32 temp_counter_on_entering;
-            std::vector<u32> checkpoints;
-        };
-
-        u32 temp_counter = 0;
-        std::vector<RegionInfo> regions;
+        std::vector<SlotState> temp_slots_;
     };
 
     const ParseCtx *const host_;
-    VectorStack<TempCtxFrame> temp_ctx_frame_stack_;
+    VectorStack<TempSlots> temp_slots_stack;
+};
+
+class ElistCtxHandler
+{
+public:
+    enum class Region : u8 { CALL, FORLOOP_CLAUSE, TABLE };
+    std::optional<Region> region() const;
+
+    void enter_region(Region r);
+    void exit_region(DEBUG(Region r));
+
+private:
+    VectorStack<Region> region_stack_;
 };
 
 class ParseCtx : private Immobile
@@ -245,6 +234,7 @@ public:
     FunctionCtxHandler func_ctx_handler;
     AnonymousGenerator anonymous_generator;
     TempCtxHandler temp_ctx_handler;
+    ElistCtxHandler elist_ctx_handler;
 
     explicit ParseCtx(SymbolTable *symbol_table);
     ~ParseCtx() = default;

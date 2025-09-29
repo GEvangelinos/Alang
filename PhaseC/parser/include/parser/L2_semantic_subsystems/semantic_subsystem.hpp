@@ -28,17 +28,19 @@ inline void
 SemanticSubsystem::reset_temps_if_temp_operand(const Expr *const unary)
 {
     // Rvalue operands don't persist, so temp names can be safely reused.
-    if (unary->has_temp_symbol())
-        parse_ctx_->temp_ctx_handler.reset_temp_counter_to_last_checkpoint();
-
+    if (unary->has_active_tempvar())
+    {
+        const auto temp_slot = static_cast<const ExprWVarSymbol *>(unary)->var_symbol->temp_slot_id;
+        DEBUG_SMART_ASSERT(temp_slot.has_value());
+        parse_ctx_->temp_ctx_handler.release_temp_slot(*temp_slot);
+    }
 }
 
 inline void
 SemanticSubsystem::reset_temps_if_temp_operand(const Expr *const lhs, const Expr *const rhs)
 {
-    // Rvalue operands don't persist, so temp names can be safely reused.
-    if (lhs->has_temp_symbol() || rhs->has_temp_symbol())
-        parse_ctx_->temp_ctx_handler.reset_temp_counter_to_last_checkpoint();
+    reset_temps_if_temp_operand(lhs);
+    reset_temps_if_temp_operand(rhs);
 }
 
 // Destructor is always called, even if pure virtual, so we need to explicitly define it.

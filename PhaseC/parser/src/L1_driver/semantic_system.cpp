@@ -87,18 +87,18 @@ SemanticSystem::consume_stmt_expr(const Expr *const expr)
 void
 SemanticSystem::commit_expr_in_elist(const Expr *expr)
 {
-    const auto region = parse_ctx_->temp_ctx_handler.region();
+    const auto opt_region = parse_ctx_->elist_ctx_handler.region();
 
-    DEBUG_SMART_ASSERT(region.has_value() && "Without a region value routing is impossible");
-    switch (region.value())
+    DEBUG_SMART_ASSERT(opt_region.has_value() && "Without a region value routing is impossible");
+    switch (opt_region.value())
     {
-    case TempCtxHandler::Region::CALL:
+    case ElistCtxHandler::Region::CALL:
         call_builder.commit_call_argument(expr);
         break;
-    case TempCtxHandler::Region::FORLOOP_CLAUSE:
+    case ElistCtxHandler::Region::FORLOOP_CLAUSE:
         UNIMPLEMENTED("Well you know what to do");
         break;
-    case TempCtxHandler::Region::TABLE:
+    case ElistCtxHandler::Region::TABLE:
         table_builder.commit_table_element(expr);
         break;
     default: UNREACHABLE("Unknown Region, please register");
@@ -135,6 +135,7 @@ bool SemanticSystem::ParserContextView::is_in_call_arg_list() const noexcept
 
 bool SemanticSystem::ParserContextView::is_in_forloop_clause() const noexcept
 {
-    return host_->parse_ctx_->temp_ctx_handler.region() == TempCtxHandler::Region::FORLOOP_CLAUSE;
+    const auto &region = host_->parse_ctx_->elist_ctx_handler.region();
+    return region.has_value() && *region == ElistCtxHandler::Region::FORLOOP_CLAUSE;
 }
 } // namespace alpha
