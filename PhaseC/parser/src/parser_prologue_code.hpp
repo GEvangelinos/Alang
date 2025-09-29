@@ -46,6 +46,16 @@
         }                                                                       \
     }while(0)
 
+#define CLEAR_ERROR_IF_NOT_IN_TABLEDICT(local_semantic_driver)              \
+    do                                                                      \
+    {                                                                       \
+        if (!local_semantic_driver.parser_context_view->is_in_table_dict()) \
+        {                                                                   \
+            local_semantic_driver.recover();                                \
+            yyerrok;                                                        \
+        }                                                                   \
+    }while (0)
+
 namespace alpha
 {
 class LexerCtx;

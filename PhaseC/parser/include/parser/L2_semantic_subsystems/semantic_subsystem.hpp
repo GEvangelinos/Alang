@@ -18,29 +18,31 @@ protected:
 
     explicit SemanticSubsystem(const SemanticSystemServices &ss_services);
 
-    void reset_temps_if_temp_operand(const Expr *unary);
-    void reset_temps_if_temp_operand(const Expr *lhs, const Expr *rhs);
+    void release_temp_handle_if_active(const Expr *unary);
+    void release_temp_handle_if_active(const Expr *lhs, const Expr *rhs);
 
     virtual ~SemanticSubsystem() = 0;
 };
 
 inline void
-SemanticSubsystem::reset_temps_if_temp_operand(const Expr *const unary)
+SemanticSubsystem::release_temp_handle_if_active(const Expr *const unary)
 {
     // Rvalue operands don't persist, so temp names can be safely reused.
-    if (unary->has_active_tempvar())
+    if (unary->has_active_temp())
     {
-        const auto temp_slot = static_cast<const ExprWVarSymbol *>(unary)->var_symbol->temp_slot_id;
-        DEBUG_SMART_ASSERT(temp_slot.has_value());
-        parse_ctx_->temp_ctx_handler.release_temp_slot(*temp_slot);
+        const TempHandle handle = static_cast<const ExprWVarSymbol *>(unary)->var_symbol->temp_handle();
+        parse_ctx_->temp_ctx_handler.release_temp_handle(handle);
     }
 }
 
 inline void
-SemanticSubsystem::reset_temps_if_temp_operand(const Expr *const lhs, const Expr *const rhs)
+SemanticSubsystem::release_temp_handle_if_active(const Expr *const lhs, const Expr *const rhs)
 {
-    reset_temps_if_temp_operand(lhs);
-    reset_temps_if_temp_operand(rhs);
+    /// @Note: Because expr are evalutated left to right, that means temp handles are also
+    /// acquired left to right... So release should happen right to left...
+    /// At least that's what i have noticed in all of my unittests so far...
+    release_temp_handle_if_active(rhs);
+    release_temp_handle_if_active(lhs);
 }
 
 // Destructor is always called, even if pure virtual, so we need to explicitly define it.

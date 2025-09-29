@@ -40,22 +40,17 @@ to_string(const Expr::Type type) noexcept
 }
 
 bool
-Expr::has_active_tempvar() const noexcept
+Expr::has_active_temp() const noexcept
 {
     switch (type)
     {
     case Type::ARITHMETIC_EXPR:
-        return static_cast<const ArithmeticExpr *>(this)->var_symbol->temp_slot_id.has_value();
     case Type::ASSIGN_EXPR:
-        return static_cast<const AssignExpr *>(this)->var_symbol->temp_slot_id.has_value();
     case Type::BOOL_EXPR:
-        return static_cast<const BoolExpr *>(this)->var_symbol->temp_slot_id.has_value();
     case Type::NEW_TABLE:
-        return static_cast<const NewTableExpr *>(this)->var_symbol->temp_slot_id.has_value();
     case Type::TABLE_ITEM:
-        return static_cast<const TableItemExpr *>(this)->var_symbol->temp_slot_id.has_value();
     case Type::VARIABLE:
-        return static_cast<const VariableExpr *>(this)->var_symbol->temp_slot_id.has_value();
+        return static_cast<const ExprWVarSymbol *>(this)->var_symbol->has_temp_handle();
     default: return false;
     }
 }

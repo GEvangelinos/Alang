@@ -576,8 +576,7 @@ static void alpha_yyerror(
     [[maybe_unused]] const alpha::SemanticSystem &,
     const std::string &error_message)
 {
-    DEBUG_SMART_ASSERT(
-        false && "alpha_yyerror function called why? Memory exhaustion occurred?");
+    static_assert(false, "WRITE ME NICELY!");
     diagnostic_engine.report_syntax_error(Issue(
         Issue::Type::FATAL_ERROR,
         std::string("ERROR_MESSAGE: ")

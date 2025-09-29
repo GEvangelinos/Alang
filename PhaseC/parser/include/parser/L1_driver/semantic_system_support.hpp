@@ -21,7 +21,6 @@
 /// In short: This class exists to enforce boundaries.
 /// Only expand it with intent — never collapse it back into the driver.
 /// ─────────────────────────────────────────────────────────────────────────────
-
 #ifndef SEMANTIC_DRIVER_SERVICES_HPP
 #define SEMANTIC_DRIVER_SERVICES_HPP
 

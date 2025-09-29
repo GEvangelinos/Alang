@@ -67,10 +67,13 @@ public:
     [[nodiscard]] bool is_libfunc_name(const std::string &name) const;
     [[nodiscard]] const auto &symbols_per_scope() const { return symbols_per_scope_; }
 
-    /// The following two methods provide controlled overrides for `const_expr_` assignment
-    /// during constant propagation. See SymbolTable.cpp for detailed rationale.
-    static void clear_const_expr(const VarSymbol *var_symbol);
+    /// The following methods provide controlled overrides for VarSymbols.
+    /// See SymbolTable.cpp for detailed rationale.
+    static void detach_const_expr(const VarSymbol *var_symbol);
     static void attach_const_expr(const VarSymbol *var_symbol, const ConstExpr *const_expr);
+    static void attach_temp_handle(const VarSymbol *var_symbol, TempHandle id);
+    static TempHandle detach_temp_handle(const VarSymbol *var_symbol);
+
 
 private:
     SymbolMap symbol_map_;

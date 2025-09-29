@@ -170,75 +170,67 @@ TempCtxHandler::~TempCtxHandler()
         if (host_->hard_error_occurred()) return;
         // On normal termination, there should be exactly one slot frame left:
         // the initial frame pushed at construction.
-        DEBUG_SMART_ASSERT(temp_slots_stack.size() == 1);
+        DEBUG_SMART_ASSERT(temp_frames.size() == 1);
     )
 
     // The stack of slot handlers should never be completely empty.
     // Even in error cases, grammar actions that push frames run before
     // any possible mismatched symbols, so at least the initial frame survives.
-    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
+    DEBUG_SMART_ASSERT(!temp_frames.empty());
 }
 
 void
-TempCtxHandler::push_temp_ctx_frame() { temp_slots_stack.emplace(); }
+TempCtxHandler::push_temp_ctx_frame() { temp_frames.emplace(); }
 
 void
 TempCtxHandler::pop_temp_ctx_frame()
 {
-    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
-    temp_slots_stack.pop();
+    DEBUG_SMART_ASSERT(!temp_frames.empty());
+    temp_frames.pop();
 }
 
 void
 TempCtxHandler::reset_temp_ctx_frame()
 {
-    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
+    DEBUG_SMART_ASSERT(!temp_frames.empty());
     pop_temp_ctx_frame();
     push_temp_ctx_frame();
 }
 
-std::string
-TempCtxHandler::new_name()
+TempHandle
+TempCtxHandler::acquire_temp_handle()
 {
-    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
-    const TempSlotID temp_id = acquire_temp_slot();
-    return k_temp_variable_prefix + std::to_string(temp_id);
-}
+    DEBUG_SMART_ASSERT(!temp_frames.empty());
 
-TempSlotID
-TempCtxHandler::acquire_temp_slot()
-{
-    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
-
-    auto &temp_slots = temp_slots_stack.top().temp_slots_;
+    auto &temp_slots = temp_frames.top().temp_handles_;
 
     // Invariant check:
     DEBUG(
-        for (const TempSlots::SlotState ss : temp_slots_stack.top().temp_slots_)
-        SMART_ASSERT(ss == TempSlots::SlotState::TAKEN);
+        for (const TempHandles::HandleState ss : temp_frames.top().temp_handles_)
+        SMART_ASSERT(ss == TempHandles::HandleState::TAKEN);
     )
 
-    temp_slots.emplace_back(TempSlots::SlotState::TAKEN);
+    temp_slots.emplace_back(TempHandles::HandleState::TAKEN);
 
-    DEBUG_SMART_ASSERT(temp_slots.size() - 1 <= std::numeric_limits<TempSlotID>::max());
-    return static_cast<TempSlotID>(temp_slots.size() - 1);
+    DEBUG_SMART_ASSERT(temp_slots.size() - 1 <= std::numeric_limits<TempHandle>::max());
+    return static_cast<TempHandle>(temp_slots.size() - 1);
 }
 
 void
-TempCtxHandler::release_temp_slot(const TempSlotID id)
+TempCtxHandler::release_temp_handle(const TempHandle id)
 {
-    DEBUG_SMART_ASSERT(!temp_slots_stack.empty());
-    auto &temp_slots = temp_slots_stack.top().temp_slots_;
-    DEBUG_SMART_ASSERT(!temp_slots.empty());
+    DEBUG_SMART_ASSERT(!temp_frames.empty());
+    auto &temp_handles = temp_frames.top().temp_handles_;
+    DEBUG_SMART_ASSERT(!temp_handles.empty());
 
     // Invariant check: If these rules fail... then release of temp values is not in order
     // then acquiring is not in order too, and you would have to search for first available.
     DEBUG(
-        for (const TempSlots::SlotState ss : temp_slots)
-        SMART_ASSERT(ss == TempSlots::SlotState::TAKEN);
+        for (const TempHandles::HandleState ts : temp_handles)
+        SMART_ASSERT(ts == TempHandles::HandleState::TAKEN);
     )
-    DEBUG_SMART_ASSERT(temp_slots.size() - 1 == id);
-    temp_slots.pop_back();
+    DEBUG_SMART_ASSERT(temp_handles.size() - 1 == id);
+    temp_handles.pop_back();
 }
 
 ParseCtx::ParseCtx(SymbolTable *const symbol_table)
@@ -253,18 +245,25 @@ ParseCtx::ParseCtx(SymbolTable *const symbol_table)
 const VarSymbol *
 ParseCtx::new_temp()
 {
-    const std::string temp_name = temp_ctx_handler.new_name();
+    const TempHandle temp_handle = temp_ctx_handler.acquire_temp_handle();
+    const std::string temp_name = k_temp_variable_prefix + std::to_string(temp_handle);
+
     const Symbol *symbol = symbol_table_->lookup_local(temp_name, scope_handler.scope());
+    DEBUG_SMART_ASSERT(
+        !symbol || symbol->is_variable(),
+        !symbol || symbol->is_temp_variable()
+    );
+    const VarSymbol *var_symbol = static_cast<const VarSymbol *>(symbol);
 
     // We register new temp, only if current scope doesn't have that temp.
-    if (!symbol)
+    if (!var_symbol)
     {
         const VarSymbol::Type var_type =
             scope_handler.scope() == k_global_scope
             ? VarSymbol::Type::GLOBAL_VARIABLE
             : VarSymbol::Type::LOCAL_VARIABLE;
 
-        symbol = symbol_table_->insert_variable(
+        var_symbol = symbol_table_->insert_variable(
             temp_name,
             scope_handler.scope(),
             var_type,
@@ -272,9 +271,9 @@ ParseCtx::new_temp()
             space_handler.next_offset(),
             k_no_loc
         );
+        symbol_table_->attach_temp_handle(var_symbol, temp_handle);
     }
-    DEBUG_SMART_ASSERT(symbol->is_variable());
-    return static_cast<const VarSymbol *>(symbol);
+    return var_symbol;
 }
 
 void

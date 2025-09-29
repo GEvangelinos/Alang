@@ -75,7 +75,7 @@ public: // More public stuff at the end (check it out)
     DISPATCH_MASTER_MODULE_CALL(table_builder);
     DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
     DISPATCH_MASTER_METHOD_CALL(consume_stmt_expr);
-    DISPATCH_MASTER_METHOD_CALL(commit_expr_in_elist);
+    DISPATCH_MASTER_METHOD_CALL(commit_expr_of_elist);
     DISPATCH_MASTER_METHOD_CALL(force_rvalue_cast);
     DISPATCH_DEFINE_HANDLER_END();
 
@@ -111,7 +111,7 @@ private:
     // -- Directly dispatchable  methods-- // TODO: maybe package inside a module?
     void reset_stmt_context() noexcept;
     void consume_stmt_expr(const Expr *expr);
-    void commit_expr_in_elist(const Expr* expr);
+    void commit_expr_of_elist(const Expr* expr);
     [[nodiscard]] const Expr *force_rvalue_cast(const Expr *expr, SourceLocation cast_loc);
 
     [[nodiscard]] SemanticSystemServices create_semantic_system_services();
@@ -139,9 +139,10 @@ class SemanticSystem::ParserContextView
     friend class SemanticSystem;
 
 public:
-    [[nodiscard]] bool is_in_func_param_list() const noexcept;
     [[nodiscard]] bool is_in_call_arg_list() const noexcept;
     [[nodiscard]] bool is_in_forloop_clause() const noexcept;
+    [[nodiscard]] bool is_in_func_param_list() const noexcept;
+    [[nodiscard]] bool is_in_table_dict() const noexcept;
 
 private:
     SemanticSystem *const host_;

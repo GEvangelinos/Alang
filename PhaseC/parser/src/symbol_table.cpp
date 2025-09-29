@@ -60,7 +60,10 @@ SymbolTable::insert_symbol(
     auto &synonym_symbols = symbol_map_it->second;
     const auto symbol_it = find_insert_position(synonym_symbols, scope);
     SymbolPtr symbol_ptr = std::make_unique<SymbolKind>(
-        symbol_name_ref, scope, std::forward<Args>(args)...);
+        symbol_name_ref,
+        scope,
+        std::forward<Args>(args)...
+    );
 
     ensure_scope_slot(actives_per_scope_, scope);
     ensure_scope_slot(symbols_per_scope_, scope);
@@ -229,7 +232,7 @@ SymbolTable::is_libfunc_name(const std::string &name) const
 ///   it's *their bug*. This method trusts that the pipeline is well-formed.
 
 void
-SymbolTable::clear_const_expr(const VarSymbol *var_symbol) { var_symbol->const_expr_ = nullptr; }
+SymbolTable::detach_const_expr(const VarSymbol *var_symbol) { var_symbol->const_expr_ = nullptr; }
 
 // Related method — refer to rationale above
 void
@@ -239,5 +242,17 @@ SymbolTable::attach_const_expr(
 {
     DEBUG_SMART_ASSERT(!!const_expr, const_expr->is_const());
     var_symbol->const_expr_ = const_expr;
+}
+
+void
+SymbolTable::attach_temp_handle(const VarSymbol *const var_symbol, const TempHandle id)
+{
+    var_symbol->temp_binding_.bind(id);
+}
+
+TempHandle
+SymbolTable::detach_temp_handle(const VarSymbol *const var_symbol)
+{
+    return var_symbol->temp_binding_.release();
 }
 } // namespace alpha

@@ -5,7 +5,7 @@
 
 namespace alpha
 {
-using TempSlotID = u32;
+using TempHandle = u32;
 using LabelID = u32;
 using AlphaInt = i64;
 using AlphaFloat = f64;
@@ -14,7 +14,6 @@ struct Expr;
 
 using ExprList = std::vector<const Expr *>;
 using ExprPair = std::pair<const Expr *, const Expr *>;
-using DictList = std::vector<const ExprPair *>;
 } // namespace alpha
 
 #endif // INTERNAL_TYPEDEFS_HPP

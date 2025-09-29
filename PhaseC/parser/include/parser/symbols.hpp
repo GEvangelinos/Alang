@@ -2,14 +2,14 @@
 #define ALPHA_SYMBOLS_HPP
 
 #include <list>
-#include <string>
 #include  <optional>
+#include <string>
 
 #include "_parser_common.hpp"
 #include "core/konstants.hpp"
 #include "core/source_location.hpp"
-#include "support/misc_tools.hpp"
 #include "parser/internal_typedefs.hpp"
+#include "support/misc_tools.hpp"
 
 namespace alpha
 {
@@ -73,7 +73,6 @@ public:
 
     const Space space;
     const u32 offset;
-    const std::optional<TempSlotID> temp_slot_id;
 
     VarSymbol(
         const std::string &name,
@@ -81,19 +80,36 @@ public:
         Type type,
         Space space,
         u32 offset,
-        SourceLocation loc,
-        std::optional<TempSlotID> temp_slot_id = std::nullopt) noexcept;
+        SourceLocation loc) noexcept;
     ~VarSymbol() override = default;
 
-    const ConstExpr *get_const_expr() const noexcept { return const_expr_; }
-    bool has_const_value() const noexcept { return const_expr_; }
+    [[nodiscard]] const ConstExpr *get_const_expr() const noexcept { return const_expr_; }
+    [[nodiscard]] bool has_const_value() const noexcept { return const_expr_; }
+    [[nodiscard]] bool has_temp_handle() const noexcept { return temp_binding_.is_active(); }
+    [[nodiscard]] TempHandle temp_handle() const noexcept;
 
     [[nodiscard]] static Type scope_to_symbol_type(u32 scope);
 
 private:
+    class TempBinding final
+    {
+    public:
+        enum class Status :u8 { NONE, ACQUIRED, RELEASED };
+
+        [[nodiscard]] bool is_active() const noexcept { return status_ == Status::ACQUIRED; }
+        [[nodiscard]] TempHandle id() const noexcept;
+        void bind(TempHandle id) noexcept;
+        TempHandle release() noexcept;
+
+    private:
+        TempHandle id_ = std::numeric_limits<TempHandle>::max();
+        Status status_ = Status::NONE;
+    };
+
     // Used to reference the const_expr in order to extract its const_value for constant_propagation
     // Only modified through friend class SymbolTable!
     mutable const ConstExpr *const_expr_ = nullptr;
+    mutable TempBinding temp_binding_;
 };
 
 class FuncSymbol final : public Symbol
@@ -162,16 +178,47 @@ VarSymbol::VarSymbol(
     const Type type,
     const Space space,
     const u32 offset,
-    const SourceLocation loc,
-    const std::optional<TempSlotID> temp_slot_id) noexcept
+    const SourceLocation loc) noexcept
     : Symbol(name, scope, type, loc),
       space(space),
-      offset(offset),
-      temp_slot_id(temp_slot_id) {}
+      offset(offset) {}
 
-inline Symbol::Type VarSymbol::scope_to_symbol_type(const u32 scope)
+inline Symbol::Type
+VarSymbol::scope_to_symbol_type(const u32 scope)
 {
     return scope == k_global_scope ? Type::GLOBAL_VARIABLE : Type::LOCAL_VARIABLE;
+}
+
+inline TempHandle
+VarSymbol::temp_handle() const noexcept
+{
+    DEBUG_SMART_ASSERT(has_temp_handle() && "Variable symbol has no temp_handle to return");
+    return temp_binding_.id();
+}
+
+inline void
+VarSymbol::TempBinding::bind(const TempHandle id) noexcept
+{
+    DEBUG_SMART_ASSERT(status_ != Status::ACQUIRED && "Temp already bound");
+    DEBUG_SMART_ASSERT(status_ != Status::RELEASED && "Temp was released");
+    id_ = id;
+    status_ = Status::ACQUIRED;
+}
+
+inline TempHandle
+VarSymbol::TempBinding::release() noexcept
+{
+    DEBUG_SMART_ASSERT(status_ != Status::NONE && "Temp was never bound");
+    DEBUG_SMART_ASSERT(status_ != Status::RELEASED && "Temp already release");
+    status_ = Status::RELEASED;
+    return id_;
+}
+
+inline TempHandle
+VarSymbol::TempBinding::id() const noexcept
+{
+    DEBUG_SMART_ASSERT(is_active());
+    return id_;
 }
 
 inline

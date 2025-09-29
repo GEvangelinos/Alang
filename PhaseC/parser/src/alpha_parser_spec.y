@@ -225,7 +225,7 @@ stmt_impl:
 | func_def
 | SEMICOLON
 | error SEMICOLON   { CLEAR_ERROR_IF_NOT_IN_FORLOOP_CLAUSE(ss); }
-| error RIGHT_BRACE { CLEAR_ERROR(ss); }
+| error RIGHT_BRACE { CLEAR_ERROR_IF_NOT_IN_TABLEDICT(ss); }
 ;
 
 loop_ctrl_stmt:
@@ -371,10 +371,10 @@ call[invocation]:
 ;
 
 cs_exprs:
-  expr  { ss.call<"commit_expr_in_elist">($expr); }
+  expr  { ss.call<"commit_expr_of_elist">($expr); }
 | cs_exprs
   COMMA
-  expr  { ss.call<"commit_expr_in_elist">($expr); }
+  expr  { ss.call<"commit_expr_of_elist">($expr); }
 ;
 
 expr_list:
@@ -390,14 +390,18 @@ dict_entry:
   expr[value]
   RIGHT_BRACE
   {
-    $dict_entry = ss.call<"table_builder.build_dict_entry">($key, $value);
     ss.call<"table_builder.end_dict_entry">();
+    ss.call<"table_builder.commit_dict_element">($key, $value);
   }
 ;
 
-dict_list:
+/* Mirroring expr_list colletion */
+cs_dict_entries:
   dict_entry
 | dict_list COMMA dict_entry
+
+dict_list:
+  cs_dict_entries
 ;
 
 table_literal_begin:

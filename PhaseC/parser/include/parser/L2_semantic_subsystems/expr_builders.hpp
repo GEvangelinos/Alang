@@ -377,6 +377,8 @@ private:
         friend class TableBuilder;
 
     private:
+        using DictList = std::vector<const ExprPair *>;
+
         struct TableLiteralInfo
         {
             std::size_t list_index = 0; // Only used for ExprList. NOT DictList!
@@ -399,13 +401,9 @@ private:
         [[nodiscard]] const Expr *finalize_table_literal(SourceLocation table_loc);
 
         // Dict related (candidate for submodule)
-        // TODO: wtf do we do with these?
         void begin_dict_entry();
         void end_dict_entry();
-        [[nodiscard]] const ExprPair *build_dict_entry(const Expr *key, const Expr *val);
-        [[nodiscard]] static DictList *build_dict_list();
-        [[nodiscard]] DictList *build_dict_list(const ExprPair *head_pair);
-        [[nodiscard]] DictList *extend_dict_list(DictList *dlist, const ExprPair *next_pair);
+        void commit_dict_element(const Expr *key, const Expr *value);
     };
 
     // Accessors exists to insulate call sites from the DISPATCH_TARGET macro
@@ -416,17 +414,16 @@ private:
 
     explicit TableBuilder(const SemanticSystemServices &ss_services);
 
+    // Defined outside Restricted, so it can be accessed by SemanticSystem's generalized expr collector
     // List related (candidate for submodule)
-    void commit_table_element(const Expr *table_elem);
+    void commit_list_element(const Expr *table_elem);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(init_table_literal);
     DISPATCH_SLAVE_METHOD_CALL(finalize_table_literal);
     DISPATCH_SLAVE_METHOD_CALL(begin_dict_entry);
     DISPATCH_SLAVE_METHOD_CALL(end_dict_entry);
-    DISPATCH_SLAVE_METHOD_CALL(build_dict_entry);
-    DISPATCH_SLAVE_METHOD_CALL(build_dict_list);
-    DISPATCH_SLAVE_METHOD_CALL(extend_dict_list);
+    DISPATCH_SLAVE_METHOD_CALL(commit_dict_element);
     DISPATCH_DEFINE_HANDLER_END();
 };
 
@@ -442,15 +439,5 @@ TableBuilder::Restricted::begin_dict_entry() { parse_ctx_->table_ctx_handler.ent
 
 inline void
 TableBuilder::Restricted::end_dict_entry() { parse_ctx_->table_ctx_handler.exit_dict_entry(); }
-
-inline DictList *
-TableBuilder::Restricted::build_dict_list() { return new DictList(); }
-
-inline DictList *
-TableBuilder::Restricted::build_dict_list(const ExprPair *const head_pair)
-{
-    DEBUG_SMART_ASSERT(!!head_pair);
-    return extend_dict_list(build_dict_list(), head_pair);
-}
 } // namespace alpha
 #endif // EXPR_BUILDERS_HPP

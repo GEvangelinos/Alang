@@ -190,23 +190,21 @@ public:
     void push_temp_ctx_frame();
     void pop_temp_ctx_frame();
 
-    [[nodiscard]] TempSlotID acquire_temp_slot();
-    void release_temp_slot(TempSlotID id);
+    [[nodiscard]] TempHandle acquire_temp_handle();
+    void release_temp_handle(TempHandle id);
 
     void reset_temp_ctx_frame();
 
-    [[nodiscard]] std::string new_name();
-
 private:
-    struct TempSlots
+    struct TempHandles
     {
-        enum class SlotState : u8 { FREE, TAKEN };
+        enum class HandleState : u8 { FREE, TAKEN };
 
-        std::vector<SlotState> temp_slots_;
+        std::vector<HandleState> temp_handles_;
     };
 
     const ParseCtx *const host_;
-    VectorStack<TempSlots> temp_slots_stack;
+    VectorStack<TempHandles> temp_frames;
 };
 
 class ElistCtxHandler

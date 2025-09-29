@@ -71,7 +71,7 @@ struct Expr : private Immobile
     [[nodiscard]] bool is_rvalue() const noexcept;
     [[nodiscard]] bool is_static() const noexcept;
     [[nodiscard]] bool has_symbol() const noexcept;
-    [[nodiscard]] bool has_active_tempvar() const noexcept;
+    [[nodiscard]] bool has_active_temp() const noexcept;
 
 protected:
     // DO NOT explicitly initialize @param rvalue_casted!

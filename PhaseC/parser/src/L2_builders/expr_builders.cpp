@@ -51,7 +51,7 @@ using namespace alpha;
 
     if (!validate_lvalue(dr, expr, full_expr_loc, op_name, op_symbol, lvalue_subject))
         return false;
-    if (expr->has_active_tempvar())
+    if (expr->has_active_temp())
     {
         dr->report_operator_requires_non_temp_lvalue(
             op_name, op_symbol, lvalue_subject, expr->type, full_expr_loc, expr->loc);
@@ -218,7 +218,7 @@ AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const
     const auto *const var_symbol = static_cast<const VariableExpr *>(lvalue)->var_symbol;
     if (!rvalue->is_const())
     {
-        SymbolTable::clear_const_expr(var_symbol);
+        SymbolTable::detach_const_expr(var_symbol);
         return false;
     }
     SymbolTable::attach_const_expr(var_symbol, static_cast<const ConstExpr *>(rvalue));
@@ -380,7 +380,7 @@ BasicBuilder::Restricted::build_uminus(
         return optimized;
 
 skip_opt:
-    reset_temps_if_temp_operand(expr);
+    release_temp_handle_if_active(expr);
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
     quad_handler_->emit_next(ir::Opcode::UMINUS, arithmetic_expr, expr, nullptr, result_loc);
     return arithmetic_expr;
@@ -410,7 +410,7 @@ BasicBuilder::Restricted::build_arithmetic(
         return optimized;
 
 skip_opt:
-    reset_temps_if_temp_operand(lhs, rhs);
+    release_temp_handle_if_active(lhs, rhs);
     const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
     quad_handler_->emit_next(opc, arithmetic_expr, lhs, rhs, result_loc);
     return arithmetic_expr;
@@ -445,7 +445,7 @@ skip_opt:
     // TODO: Should we reset here? In lectures it wasn't recommend the reset temps in relationals.
     // Why? Test it out... You already reset temps in many more place... I can't think of a reason why
     // it would hurt anything...
-    reset_temps_if_temp_operand(lhs, rhs);
+    release_temp_handle_if_active(lhs, rhs);
     const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
     result_expr->true_list.push_back(quad_handler_->next_quad_label());
     quad_handler_->emit_labelless(opc, nullptr, lhs, rhs, result_loc);
@@ -466,7 +466,7 @@ BasicBuilder::Restricted::build_logical_not(const Expr *expr,
     // Sanity check, CONST_BOOL must be consumed by the optimizer.
     DEBUG_SMART_ASSERT(expr->is_bool_or_const_bool());
 
-    reset_temps_if_temp_operand(expr);
+    release_temp_handle_if_active(expr);
     const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
     bool_result_expr->true_list = static_cast<const BoolExpr *>(expr)->false_list;
     bool_result_expr->false_list = static_cast<const BoolExpr *>(expr)->true_list;
@@ -485,7 +485,7 @@ BasicBuilder::Restricted::build_logical_and(
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::AND>(result_loc, lhs, rhs))
         return optimized;
 
-    reset_temps_if_temp_operand(lhs, rhs);
+    release_temp_handle_if_active(lhs, rhs);
     return build_short_circuit_bool_expr<AndShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
@@ -501,7 +501,7 @@ BasicBuilder::Restricted::build_logical_or(
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(result_loc, lhs, rhs))
         return optimized;
 
-    reset_temps_if_temp_operand(lhs, rhs);
+    release_temp_handle_if_active(lhs, rhs);
     return build_short_circuit_bool_expr<OrShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
@@ -752,6 +752,7 @@ CallBuilder::Restricted::build_call_consuming(
     {
         const Expr *const arg = call_args.top();
         quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, arg, nullptr, arg->loc);
+        release_temp_handle_if_active(arg);
         call_args.pop();
     }
     if (method)
@@ -1087,6 +1088,7 @@ TableBuilder::Restricted::finalize_table_literal(const SourceLocation table_loc)
     auto &tls = draft_.table_literal_stack; // Short alias for readability.
     DEBUG_SMART_ASSERT(!tls.empty() && "No active table literal to finalize");
 
+    // TODO: provide a locpatch_expr method of expr_maker.. instead of cloining
     // Clone the table expression with its finalized source location for accurate diagnostics
     const Expr *const table_literal =
         expr_maker_->clone_with_updated_location(table_loc, tls.top().host_expr);
@@ -1099,12 +1101,43 @@ TableBuilder::Restricted::finalize_table_literal(const SourceLocation table_loc)
     return table_literal;
 }
 
+void TableBuilder::Restricted::commit_dict_element(const Expr *key, const Expr *value)
+{
+    DEBUG_SMART_ASSERT(!!key, !!value);
+
+    key = expr_optimizer_->try_propagate_const(key);
+    key = ss_bridge_->materialize_if_table_item(key);
+    ss_bridge_->finalize_bool_expr(key);
+    value = expr_optimizer_->try_propagate_const(value);
+    value = ss_bridge_->materialize_if_table_item(value);
+    ss_bridge_->finalize_bool_expr(value);
+
+    DEBUG_SMART_ASSERT(
+        !draft_.table_literal_stack.empty() &&
+        "If we collect a dict_entry, then we must be inside a table_literal"
+    );
+
+    const auto &top_table = draft_.table_literal_stack.top();
+
+    quad_handler_->emit_next(
+        ir::Opcode::TABLESETELEM,
+        top_table.host_expr,
+        key,
+        value,
+        merge(key->loc, value->loc)
+    );
+
+    // Key is evaluated before value, so `val` must be released first.
+    // Release always happens in reverse evaluation order to preserve
+    release_temp_handle_if_active(key, value);
+}
+
 // All state/services are intentionally nested inside `Restricted`.
 // This prevents `friend classes from accessing them directly.
 // As a side effect, even outer methods (like this one) must go through
 // `restricted()` to reach private data, since that's the only legal path.
 void
-TableBuilder::commit_table_element(const Expr *table_elem)
+TableBuilder::commit_list_element(const Expr *table_elem)
 {
     DEBUG_SMART_ASSERT(!!table_elem);
     auto &r = restricted(); // Local alias for clarity
@@ -1134,47 +1167,6 @@ TableBuilder::commit_table_element(const Expr *table_elem)
         table_elem,
         table_elem->loc
     );
-    r.reset_temps_if_temp_operand(table_elem);
-}
-
-const ExprPair *
-TableBuilder::Restricted::build_dict_entry(const Expr *key, const Expr *val)
-{
-    DEBUG_SMART_ASSERT(!!key, !!val);
-
-    key = expr_optimizer_->try_propagate_const(key);
-    val = expr_optimizer_->try_propagate_const(val);
-    key = ss_bridge_->materialize_if_table_item(key);
-    val = ss_bridge_->materialize_if_table_item(val);
-    ss_bridge_->finalize_bool_expr(key);
-    ss_bridge_->finalize_bool_expr(val);
-
-    // TODO: can you make this `new const` ? Can you delete ptr afterwards?
-    // Without const_cast() checks when at end of project
-    return new ExprPair(key, val);
-}
-
-DictList *
-TableBuilder::Restricted::extend_dict_list(
-    DictList *const dlist,
-    const ExprPair *const next_pair
-)
-{
-    DEBUG_SMART_ASSERT(!!dlist, !!next_pair);
-    if (!draft_.table_literal_stack.empty())
-    {
-        const auto [key, val] = *next_pair;
-        const SourceLocation pair_loc = merge(key->loc, val->loc);
-        quad_handler_->emit_next(
-            ir::Opcode::TABLESETELEM,
-            draft_.table_literal_stack.top().host_expr,
-            key,
-            val,
-            pair_loc
-        );
-        reset_temps_if_temp_operand(key, val);
-    }
-    dlist->push_back(next_pair);
-    return dlist;
+    r.release_temp_handle_if_active(table_elem);
 }
 } // namespace alpha
