@@ -12,31 +12,30 @@
 
 #define WARNING_BANNER_PREFIX COLOR_ASCII_MAGENTA SGR_BOLD "Warning" SGR_BLINK "❗" SGR_RESET ": "
 inline constexpr auto k_reescaped_warning_banner =
-        WARNING_BANNER_PREFIX
-        "Special characters are escaped; Ex.: \"\\n\" prints literally (not a newline) to keep the table aligned.\n"
-        SGR_RESET;
+    WARNING_BANNER_PREFIX
+    "Special characters are escaped; Ex.: \"\\n\" prints literally (not a newline) to keep the table aligned.\n"
+    SGR_RESET;
 
 // Note: The following stirng contains Greek characters.
 // I dont remember what going on with unicode and C++
 // but in case it causes any problems just remove the Greek part
 // It is just a reference to a lecture.
 inline constexpr auto k_temp_reuse_warning_banner =
-        WARNING_BANNER_PREFIX
-        "Temporaries are context-local. Each function starts with a fresh temp frame (counter reset to zero).\n"
-        "           Nested function definitions or functions assigned to tables/variables therefore allocate temps from a\n"
-        "           clean slate. When the function definition ends, the previous temp counter is restored. (Lecture 9 Slide 40)\n"
-        "           >>> Οι κρυφές μεταβλητές είναι κανονικές μεταβλητές και η δημιουργία\n"
-        "           >>> τους απαιτεί δημιουργία νέου συμβόλου στον πίνακα συμβόλων, ενώ\n"
-        "           >>> απενεργοποιούνται κανονικά εκτός της εμβέλειας δήλωσής τους\n"
-        SGR_RESET;
+    WARNING_BANNER_PREFIX
+    "Temporaries are context-local. Each function starts with a fresh temp frame (counter reset to zero).\n"
+    "           Nested function definitions or functions assigned to tables/variables therefore allocate temps from a\n"
+    "           clean slate. When the function definition ends, the previous temp counter is restored. (Lecture 9 Slide 40)\n"
+    "           >>> Οι κρυφές μεταβλητές είναι κανονικές μεταβλητές και η δημιουργία\n"
+    "           >>> τους απαιτεί δημιουργία νέου συμβόλου στον πίνακα συμβόλων, ενώ\n"
+    "           >>> απενεργοποιούνται κανονικά εκτός της εμβέλειας δήλωσής τους\n"
+    SGR_RESET;
 
 inline constexpr auto k_cya_mode_off_warning_banner =
-        WARNING_BANNER_PREFIX
-        "This executable was built with CYA_MODE disabled. As a result:\n"
-        "           a) Aggressive reuse of temporary variables is enabled; table literals are handled differently.\n"
-        "           b) Assignment temps are no longer created except when strictly required (e.g., inside function calls).\n"
-        SGR_RESET
-;
+    WARNING_BANNER_PREFIX
+    "This executable was built with CYA_MODE disabled. As a result:\n"
+    "           a) Aggressive reuse of temporary variables is enabled; table literals are handled differently.\n"
+    "           b) Assignment temps are no longer created except when strictly required (e.g., inside function calls).\n"
+    SGR_RESET;
 
 namespace
 {
@@ -276,7 +275,11 @@ TranslationUnit::create_diagnostic_engine_policy()
     return DiagnosticEngine::Policy{
         .should_emit_diagnostic = [this]() { return pass_manager_->is_in_hard_error(); },
         .notify_max_errors_reached = []() { notify_max_errors_reached(); },
-        .notify_fatal_error = []() { notify_fatal_error(); },
+        .notify_fatal_error = [this]()
+        {
+            pass_manager_->notify_hard_error();
+            notify_fatal_error();
+        },
         .notify_hard_error = [this]() { pass_manager_->notify_hard_error(); }
     };
 }
@@ -345,8 +348,8 @@ PassManager::ScannerHandle::ScannerHandle(TranslationUnitBuffer &tu_buffer)
     if (alpha_yy_scan_buffer(tu_buffer.data(), tu_buffer.size(), scanner_) == nullptr)
     {
         std::string error =
-                "Failed to load Flex buffer. A common cause is forgetting "
-                "to append two null bytes for padding in at end of the buffer.";
+            "Failed to load Flex buffer. A common cause is forgetting "
+            "to append two null bytes for padding in at end of the buffer.";
         if (alpha_yylex_destroy(scanner_) != 0)
             error += " | Additionally, cleanup of the scanner failed.";
         throw std::runtime_error(ATTACH_CONTEXT(error));

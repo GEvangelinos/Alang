@@ -2,7 +2,6 @@
 #define ALPHA_PARSER_PROLOGUE_CODE_HPP
 
 #include <string>
-
 // TODO: use the static SourceLocation function to do the merge.. (both merges) (make a second static func if necessary).
 #define YYLLOC_DEFAULT(Current, Rhs, N)                             \
     do                                                              \
@@ -70,8 +69,8 @@ static void alpha_yyerror(
     yyscan_t,
     const alpha::LexerCtx &,
     const alpha::LocationTracker &,
-    alpha::DiagnosticEngine &,
-    const alpha::DiagnosticReporter &,
+    const alpha::DiagnosticEngine &,
+    alpha::DiagnosticReporter &,
     const alpha::SemanticSystem &,
     const std::string &error_message);
 #endif // ALPHA_PARSER_PROLOGUE_CODE_HPP

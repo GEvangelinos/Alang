@@ -38,7 +38,7 @@ class Diagnostic:
                 return Diagnostic.Type.SOFT_ERROR
             case "HARD_ERROR":
                 return Diagnostic.Type.HARD_ERROR
-            case "FATAL_FATAL":
+            case "FATAL_ERROR":
                 return Diagnostic.Type.FATAL_ERROR
             case _:
                 raise ValueError(f"Unknown diagnostic type: {type_}")

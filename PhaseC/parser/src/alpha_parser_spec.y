@@ -7,16 +7,7 @@
 
 %code top
 {
-    // IWYU pragma: no_include <features.h>
-    // IWYU pragma: no_include <stdio.h>
-    // IWYU pragma: no_include <stdlib.h>
-    // IWYU pragma: no_include <string.h>
-    #include <parser/alpha_parser.gen.hpp>
-    #include <string>                       // for basic_string, string
-    #include "parser/trace_logger.hpp"      // for display_trace
-    #include "parser/parser_context.hpp"    // for ParseCtx
-    #include <L1_driver/semantic_system.hpp>
-    using Op = alpha::ir::Opcode;
+    #include "parser_top_code.hpp"
 }
 
 %code requires

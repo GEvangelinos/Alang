@@ -49,25 +49,14 @@
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/.test.asc.swp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/test.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/test.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_support.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_support.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/internal_typedefs.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/internal_typedefs.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/translation_unit.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/ir_expr.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/ir_expr.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/parser_context.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_context.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/symbol_table.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/symbol_table.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -759,7 +748,7 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "non__cya__mode/ir-gen",
-    "last_opened_file_path": "/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/.GOSPEL",
+    "last_opened_file_path": "/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/parser/src",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -778,11 +767,11 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/parser/src" />
       <recent name="$PROJECT_DIR$/.GOSPEL" />
       <recent name="$PROJECT_DIR$/scripts/old_regression_runner" />
       <recent name="$PROJECT_DIR$/scripts/prophet" />
       <recent name="$PROJECT_DIR$/.tests/.embdedded_tests" />
-      <recent name="$PROJECT_DIR$/.tests/GOLDEN_DIAGNOSTICS" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
@@ -972,7 +961,7 @@
       <workItem from="1758622947050" duration="8794000" />
       <workItem from="1758662529901" duration="35784000" />
       <workItem from="1758820088022" duration="57803000" />
-      <workItem from="1758964500480" duration="124088000" />
+      <workItem from="1758964500480" duration="135688000" />
     </task>
     <servers />
   </component>

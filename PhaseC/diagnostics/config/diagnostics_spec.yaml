@@ -232,3 +232,13 @@
     - Message: "symbol `{0}` not found in global scope"
       Args: [ symbol_name ]
       Location: symbol_use_loc
+
+- Diagnostic: PARSER_STACK_EXHAUSTED
+  Type: FATAL_ERROR
+  Primary:
+    - Message: "parser stack exhausted (maximum depth of {0} symbols reached)"
+      Args: [ stack_limit ]
+      Location: fatal_loc
+  Notes:
+    - Message: "this is a hard parser limit; it can only be changed at configuration time"
+      Location: fatal_loc

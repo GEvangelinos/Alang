@@ -14,6 +14,7 @@
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <scanner/alpha_scanner.gen.hpp>
 
+#include "parser_top_code.hpp"
 #include "diagnostics/diagnostic_types.hpp"
 #include "L1_driver/semantic_system.hpp"
 #include "scanner/scanner_context.hpp"
@@ -571,20 +572,13 @@ static void alpha_yyerror(
     [[maybe_unused]] const yyscan_t,
     [[maybe_unused]] const alpha::LexerCtx &,
     [[maybe_unused]] const alpha::LocationTracker &,
-    alpha::DiagnosticEngine &diagnostic_engine,
-    [[maybe_unused]] const alpha::DiagnosticReporter &,
+    [[maybe_unused]] const alpha::DiagnosticEngine &diagnostic_engine,
+    alpha::DiagnosticReporter &dr,
     [[maybe_unused]] const alpha::SemanticSystem &,
-    const std::string &error_message)
+    [[maybe_unused]] const std::string &error_message)
 {
-    static_assert(false, "WRITE ME NICELY!");
-    diagnostic_engine.report_syntax_error(Issue(
-        Issue::Type::FATAL_ERROR,
-        std::string("ERROR_MESSAGE: ")
-        + error_message
-        + "\n"
-        "INTERNAL-ERROR, IF YOU SEE THIS CONTACT DEVELOPER",
-        *err_loc
-    ));
+    //static_assert(false, "WRITE ME NICELY!");
+    dr.report_parser_stack_exhausted(PARSER_STACK_CAPACITY, *err_loc);
 }
 
 #endif // PARSER_EPILOGUE_CODE_HPP

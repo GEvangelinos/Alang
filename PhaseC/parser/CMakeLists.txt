@@ -110,7 +110,7 @@ else () # This is the case exists for when python is not allowed
         "${ALPHA_PARSER_OUTPUT_FILEPATH}"
         DEFINES_FILE "${ALPHA_PARSER_HEADER_FILEPATH}"
     )
-    add_custom_target(generate_parser  DEPENDS
+    add_custom_target(generate_parser DEPENDS
         "${BISON_ALPHA_PARSER_OUTPUTS}"
         "src/${BISON_SPEC_FILENAME}"
     )
@@ -167,3 +167,33 @@ add_dependencies(alpha_parser_impl generate_parser_scanner)
 if (NOT HATE_PYTHON_MODE)
     target_sources(alpha_parser_impl PRIVATE ${GENERATED_IR_OPCODE_SOURCES})
 endif ()
+
+# Default if not set from CLI
+if (NOT DEFINED PARSER_STACK_CAPACITY)
+    set(PARSER_STACK_CAPACITY 1000 CACHE STRING "Initial (and max) parser stack capacity")
+endif ()
+
+# Convert to number (CMake caches everything as string)
+math(EXPR PARSER_STACK_CAPACITY_INT "${PARSER_STACK_CAPACITY}")
+
+# Check for negative or zero
+if (PARSER_STACK_CAPACITY_INT LESS_EQUAL 0)
+    message(FATAL_ERROR "PARSER_STACK_CAPACITY must be > 0 (got ${PARSER_STACK_CAPACITY})")
+endif ()
+
+# Check for too small (say, less than 50 is probably unsafe)
+if (PARSER_STACK_CAPACITY_INT LESS 50)
+    message(WARNING "PARSER_STACK_CAPACITY=${PARSER_STACK_CAPACITY} is very small; "
+        "parser may fail on real programs")
+endif ()
+
+# Check for too large (say, over 1e6 is excessive in most cases)
+if (PARSER_STACK_CAPACITY_INT GREATER 1000000)
+    message(WARNING "PARSER_STACK_CAPACITY=${PARSER_STACK_CAPACITY} is extremely large; "
+        "this will allocate a big parser stack (~${PARSER_STACK_CAPACITY_INT} slots).")
+endif ()
+
+# Apply the definition
+target_compile_definitions(alpha_parser_impl
+    PRIVATE PARSER_STACK_CAPACITY=${PARSER_STACK_CAPACITY_INT})
+#define PARSER_STACK_CAPACITY 1000 // Bison's default is 200
