@@ -91,11 +91,11 @@ CallBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
 
 CallBuilder::Restricted::CallInfo::CallInfo()
-    : method_info(std::nullopt),
+    : pending_method_info(std::nullopt),
       arguments() {}
 
 CallBuilder::Restricted::CallInfo::CallInfo(MethodInfo method_info)
-    : method_info(method_info),
+    : pending_method_info(method_info),
       arguments() {}
 
 ConstBuilder::ConstBuilder(const SemanticSystemServices &ss_services)
@@ -243,6 +243,8 @@ AssignBuilder::Restricted::handle_direct_assignment(
             return rhs;
 
     quad_handler_->emit_next(ir::Opcode::ASSIGN, lhs, rhs, nullptr, result_loc);
+    // TODO: uncomment below
+    // release_temp_handle_if_active(rhs);
 
     // In certain contexts, force each (x=val) to yield its arg value; avoid C’s unspecified arg order
     if (assignment_requires_temp())
@@ -682,11 +684,11 @@ CallBuilder::Restricted::update_method_call_draft(
 {
     DEBUG(
         if (!parse_ctx_->hard_error_occurred()) SMART_ASSERT(
-            !draft_.method_info.has_value() &&
+            !draft_.immediate_method_info.has_value() &&
             "When call is initiated, the method-info draft should be cleared()."
         );
     )
-    draft_.method_info.emplace(MethodInfo{.id = method_id, .id_loc = method_id_loc});
+    draft_.immediate_method_info.emplace(MethodInfo{.id = method_id, .id_loc = method_id_loc});
 }
 
 void
@@ -695,10 +697,10 @@ CallBuilder::Restricted::init_call()
     parse_ctx_->elist_ctx_handler.enter_region(ElistCtxHandler::Region::CALL);
     parse_ctx_->call_ctx_handler.enter_call();
 
-    if (draft_.method_info.has_value())
+    if (draft_.immediate_method_info.has_value())
     {
-        draft_.call_info_stack.emplace(*draft_.method_info);
-        draft_.method_info.reset();
+        draft_.call_info_stack.emplace(*draft_.immediate_method_info);
+        draft_.immediate_method_info.reset();
     }
     else
         draft_.call_info_stack.emplace();
@@ -709,7 +711,7 @@ CallBuilder::Restricted::finalize_call()
 {
     parse_ctx_->call_ctx_handler.exit_call();
     draft_.call_info_stack.pop();
-    parse_ctx_->elist_ctx_handler.exit_region(ElistCtxHandler::Region::CALL);
+    parse_ctx_->elist_ctx_handler.exit_region(DEBUG(ElistCtxHandler::Region::CALL));
 }
 
 void
@@ -739,14 +741,12 @@ const Expr *
 CallBuilder::Restricted::build_call_consuming(
     const Expr *const callable_lvalue,
     const SourceLocation call_loc,
-    const Expr *const method)
+    const ConstStringExpr *const method_name)
 {
     DEBUG_SMART_ASSERT(!!callable_lvalue);
     DEBUG_SMART_ASSERT(!draft_.call_info_stack.empty());
     auto &call_args = draft_.call_info_stack.top().arguments;
     check_for_argument_mismatch(callable_lvalue, call_args, call_loc);
-
-    // TODO: do we need to reset if callable_lvalue is temp?
 
     while (!call_args.empty())
     {
@@ -755,45 +755,52 @@ CallBuilder::Restricted::build_call_consuming(
         release_temp_handle_if_active(arg);
         call_args.pop();
     }
-    if (method)
-        quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, method, nullptr, method->loc);
 
-    // reset_temps_if_temp_operand(callable_lvalue);
-    const Expr *callee = ss_bridge_->materialize_if_table_item(callable_lvalue);
-    quad_handler_->emit_next(ir::Opcode::CALL, nullptr, callee, nullptr, call_loc);
+    if (method_name)
+    {
+        // Materialize host (handles cases like a[b]..c; host being a[b])
+        const Expr *const materialized_host =
+            ss_bridge_->materialize_if_table_item(callable_lvalue);
+        quad_handler_->emit_next(
+            ir::Opcode::PARAM, nullptr, materialized_host, nullptr, method_name->loc);
+        release_temp_handle_if_active(materialized_host);
+
+        // Extract method into a callable expression.
+        const Expr *const callable_method =
+            expr_maker_->make_table_item_expr(call_loc, materialized_host, method_name);
+        const Expr *const callee = ss_bridge_->materialize_if_table_item(callable_method);
+        quad_handler_->emit_next(ir::Opcode::CALL, nullptr, callee, nullptr, call_loc);
+        release_temp_handle_if_active(callee);
+    }
+    else
+    {
+        const Expr *const callee = ss_bridge_->materialize_if_table_item(callable_lvalue);
+        quad_handler_->emit_next(ir::Opcode::CALL, nullptr, callee, nullptr, call_loc);
+        release_temp_handle_if_active(callee);
+    }
+
 
     // At these point we have used everything required to make a call.
     finalize_call();
-
     const auto *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
-    // parse_ctx_->temp_ctx_handler.set_checkpoint();
-
     quad_handler_->emit_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
-
     return getretval_expr;
 }
 
 const Expr *
 CallBuilder::Restricted::build_method_call_consuming(
-    const Expr *method_host,
+    const Expr *const method_host,
     const SourceLocation call_loc)
 {
-    UNIMPLEMENTED("THE FOLLWOING FUNCTION IS FUCKED UP.. correct it!");
-    method_host = ss_bridge_->materialize_if_table_item(method_host);
-    const Expr *const method_host_copy = method_host;
-
     DEBUG_SMART_ASSERT(!draft_.call_info_stack.empty());
-    DEBUG_SMART_ASSERT(draft_.call_info_stack.top().method_info.has_value());
+    DEBUG_SMART_ASSERT(draft_.call_info_stack.top().pending_method_info.has_value());
 
-    const Expr *const method_index = expr_maker_->make_const_string_expr(
-        draft_.call_info_stack.top().method_info.value().id_loc,
-        draft_.call_info_stack.top().method_info.value().id.c_str()
-    );
-    const Expr *const host_var = expr_maker_->make_table_item_expr(
-        call_loc, method_host, method_index);
+    const MethodInfo &mi = *draft_.call_info_stack.top().pending_method_info;
+    // Turn method name into a string literal expression
+    const auto *const method_name = expr_maker_->make_const_string_expr(mi.id_loc, mi.id.c_str());
 
-    method_host = ss_bridge_->materialize_if_table_item(host_var);
-    return build_call_consuming(method_host, call_loc, DEBUG_REQUIRE_PTR(method_host_copy));
+    // Don't materialize callable_method, let build_call_consuming() do it.
+    return build_call_consuming(method_host, call_loc, method_name);
 }
 
 const Expr *
@@ -975,8 +982,7 @@ FunctionBuilder::Restricted::build_program_function_entry(
 {
     const bool validated_funcname = validate_funcdef_name(function_draft_.id, func_signature_loc);
     const u32 skip_func_jump_label = quad_handler_->next_quad_label();
-    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr,
-                                  func_signature_loc);
+    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_signature_loc);
     const FuncSymbol *func_symbol = nullptr;
     if (validated_funcname)
     {
@@ -1097,7 +1103,7 @@ TableBuilder::Restricted::finalize_table_literal(const SourceLocation table_loc)
     quad_handler_->locPatch_tablecreate(tls.top().host_quad_label, table_loc);
 
     tls.pop();
-    parse_ctx_->elist_ctx_handler.exit_region(ElistCtxHandler::Region::TABLE);
+    parse_ctx_->elist_ctx_handler.exit_region(DEBUG(ElistCtxHandler::Region::TABLE));
     return table_literal;
 }
 

@@ -197,7 +197,7 @@ private:
         {
             using ArgStack = VectorStack<const Expr *>;
 
-            std::optional<MethodInfo> method_info;
+            std::optional<MethodInfo> pending_method_info;
             ArgStack arguments;
 
             CallInfo();
@@ -208,7 +208,7 @@ private:
         {
             // A stack is required because we can have nested calls.
             VectorStack<CallInfo> call_info_stack;
-            std::optional<MethodInfo> method_info;
+            std::optional<MethodInfo> immediate_method_info;
         } draft_;
 
         explicit Restricted(const SemanticSystemServices &ss_services);
@@ -225,7 +225,9 @@ private:
             SourceLocation call_loc);
 
         [[nodiscard]] const Expr *build_call_consuming(
-            const Expr *callable_lvalue, SourceLocation call_loc, const Expr *method = nullptr);
+            const Expr *callable_lvalue,
+            SourceLocation call_loc,
+            const ConstStringExpr *method_name = nullptr);
         [[nodiscard]] const Expr *build_method_call_consuming(
             const Expr *method_host, SourceLocation call_loc);
         [[nodiscard]] const Expr *build_iife_call_consuming(

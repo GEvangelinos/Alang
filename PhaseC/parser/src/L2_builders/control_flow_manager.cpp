@@ -271,7 +271,7 @@ ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_lo
 void
 ControlFlowManager::Restricted::enter_forloop_clause()
 {
-     parse_ctx_->elist_ctx_handler.exit_region(ElistCtxHandler::Region::FORLOOP_CLAUSE);
+     parse_ctx_->elist_ctx_handler.enter_region(ElistCtxHandler::Region::FORLOOP_CLAUSE);
 }
 
 void

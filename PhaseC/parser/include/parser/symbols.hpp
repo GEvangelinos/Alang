@@ -94,7 +94,7 @@ private:
     class TempBinding final
     {
     public:
-        enum class Status :u8 { NONE, ACQUIRED, RELEASED };
+        enum class Status :u8 { ACQUIRED, RELEASED };
 
         [[nodiscard]] bool is_active() const noexcept { return status_ == Status::ACQUIRED; }
         [[nodiscard]] TempHandle id() const noexcept;
@@ -103,7 +103,7 @@ private:
 
     private:
         TempHandle id_ = std::numeric_limits<TempHandle>::max();
-        Status status_ = Status::NONE;
+        Status status_ = Status::RELEASED;
     };
 
     // Used to reference the const_expr in order to extract its const_value for constant_propagation
@@ -200,7 +200,6 @@ inline void
 VarSymbol::TempBinding::bind(const TempHandle id) noexcept
 {
     DEBUG_SMART_ASSERT(status_ != Status::ACQUIRED && "Temp already bound");
-    DEBUG_SMART_ASSERT(status_ != Status::RELEASED && "Temp was released");
     id_ = id;
     status_ = Status::ACQUIRED;
 }
@@ -208,8 +207,7 @@ VarSymbol::TempBinding::bind(const TempHandle id) noexcept
 inline TempHandle
 VarSymbol::TempBinding::release() noexcept
 {
-    DEBUG_SMART_ASSERT(status_ != Status::NONE && "Temp was never bound");
-    DEBUG_SMART_ASSERT(status_ != Status::RELEASED && "Temp already release");
+    DEBUG_SMART_ASSERT(status_ != Status::RELEASED && "Temp not bound");
     status_ = Status::RELEASED;
     return id_;
 }

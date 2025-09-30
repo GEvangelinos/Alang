@@ -200,6 +200,7 @@ private:
     {
         enum class HandleState : u8 { FREE, TAKEN };
 
+        DEBUG(std::size_t max_temp_handle = 0;)
         std::vector<HandleState> temp_handles_;
     };
 
@@ -211,6 +212,7 @@ class ElistCtxHandler
 {
 public:
     enum class Region : u8 { CALL, FORLOOP_CLAUSE, TABLE };
+
     std::optional<Region> region() const;
 
     void enter_region(Region r);
@@ -240,9 +242,13 @@ public:
     [[nodiscard]] const VarSymbol *new_temp();
     [[nodiscard]] bool hard_error_occurred() const noexcept;
 
+    DEBUG([[nodiscard]] bool assert_temps_are_released(TempHandle max_temp_handle) const;)
+
 private:
     SymbolTable *const symbol_table_;
     OnceFlag hard_error_occurred_;
+
+    [[nodiscard]] static std::string generate_temp_name(TempHandle temp_handle) noexcept;
 };
 
 inline void

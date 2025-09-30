@@ -30,8 +30,9 @@ SemanticSubsystem::release_temp_handle_if_active(const Expr *const unary)
     // Rvalue operands don't persist, so temp names can be safely reused.
     if (unary->has_active_temp())
     {
-        const TempHandle handle = static_cast<const ExprWVarSymbol *>(unary)->var_symbol->temp_handle();
-        parse_ctx_->temp_ctx_handler.release_temp_handle(handle);
+        const VarSymbol* const var_symbol =  static_cast<const ExprWVarSymbol *>(unary)->var_symbol;
+        parse_ctx_->temp_ctx_handler.release_temp_handle(var_symbol->temp_handle());
+        symbol_table_->detach_temp_handle(var_symbol);
     }
 }
 

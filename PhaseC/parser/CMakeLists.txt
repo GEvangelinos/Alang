@@ -169,31 +169,23 @@ if (NOT HATE_PYTHON_MODE)
 endif ()
 
 # Default if not set from CLI
-if (NOT DEFINED PARSER_STACK_CAPACITY)
-    set(PARSER_STACK_CAPACITY 1000 CACHE STRING "Initial (and max) parser stack capacity")
+if (DEFINED PARSER_STACK_CAPACITY)
+    # Convert to number (CMake caches everything as string)
+    math(EXPR PARSER_STACK_CAPACITY_INT "${PARSER_STACK_CAPACITY}")
+
+    if (PARSER_STACK_CAPACITY_INT LESS_EQUAL 0)
+        message(FATAL_ERROR "PARSER_STACK_CAPACITY must be > 0 (got ${PARSER_STACK_CAPACITY})")
+    endif ()
+    if (PARSER_STACK_CAPACITY_INT LESS 50)
+        message(WARNING "PARSER_STACK_CAPACITY=${PARSER_STACK_CAPACITY} is very small; "
+            "parser may fail on real programs")
+    endif ()
+    if (PARSER_STACK_CAPACITY_INT GREATER 1000000)
+        message(WARNING "PARSER_STACK_CAPACITY=${PARSER_STACK_CAPACITY} is extremely large; "
+            "this will allocate a big parser stack (~${PARSER_STACK_CAPACITY_INT} slots).")
+    endif ()
+
+    target_compile_definitions(alpha_parser_impl
+        PRIVATE PARSER_STACK_CAPACITY=${PARSER_STACK_CAPACITY_INT})
 endif ()
-
-# Convert to number (CMake caches everything as string)
-math(EXPR PARSER_STACK_CAPACITY_INT "${PARSER_STACK_CAPACITY}")
-
-# Check for negative or zero
-if (PARSER_STACK_CAPACITY_INT LESS_EQUAL 0)
-    message(FATAL_ERROR "PARSER_STACK_CAPACITY must be > 0 (got ${PARSER_STACK_CAPACITY})")
-endif ()
-
-# Check for too small (say, less than 50 is probably unsafe)
-if (PARSER_STACK_CAPACITY_INT LESS 50)
-    message(WARNING "PARSER_STACK_CAPACITY=${PARSER_STACK_CAPACITY} is very small; "
-        "parser may fail on real programs")
-endif ()
-
-# Check for too large (say, over 1e6 is excessive in most cases)
-if (PARSER_STACK_CAPACITY_INT GREATER 1000000)
-    message(WARNING "PARSER_STACK_CAPACITY=${PARSER_STACK_CAPACITY} is extremely large; "
-        "this will allocate a big parser stack (~${PARSER_STACK_CAPACITY_INT} slots).")
-endif ()
-
-# Apply the definition
-target_compile_definitions(alpha_parser_impl
-    PRIVATE PARSER_STACK_CAPACITY=${PARSER_STACK_CAPACITY_INT})
 #define PARSER_STACK_CAPACITY 1000 // Bison's default is 200

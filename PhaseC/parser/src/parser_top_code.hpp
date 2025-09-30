@@ -13,7 +13,7 @@
 using Op = alpha::ir::Opcode;
 
 #ifndef PARSER_STACK_CAPACITY
-#define PARSER_STACK_CAPACITY 1000 // Bison's default is 200
+#define PARSER_STACK_CAPACITY 10000 // Bison's default is 200
 #endif
 
 #ifndef YYINITDEPTH

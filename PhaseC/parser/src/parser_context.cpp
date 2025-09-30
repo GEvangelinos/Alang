@@ -186,6 +186,7 @@ void
 TempCtxHandler::pop_temp_ctx_frame()
 {
     DEBUG_SMART_ASSERT(!temp_frames.empty());
+    DEBUG_SMART_ASSERT(host_->assert_temps_are_released(temp_frames.top().max_temp_handle));
     temp_frames.pop();
 }
 
@@ -202,7 +203,7 @@ TempCtxHandler::acquire_temp_handle()
 {
     DEBUG_SMART_ASSERT(!temp_frames.empty());
 
-    auto &temp_slots = temp_frames.top().temp_handles_;
+    auto &temp_handles = temp_frames.top().temp_handles_;
 
     // Invariant check:
     DEBUG(
@@ -210,14 +211,21 @@ TempCtxHandler::acquire_temp_handle()
         SMART_ASSERT(ss == TempHandles::HandleState::TAKEN);
     )
 
-    temp_slots.emplace_back(TempHandles::HandleState::TAKEN);
+    temp_handles.emplace_back(TempHandles::HandleState::TAKEN);
+    DEBUG_SMART_ASSERT(temp_handles.size() - 1 >= std::numeric_limits<TempHandle>::min());
+    DEBUG_SMART_ASSERT(temp_handles.size() - 1 <= std::numeric_limits<TempHandle>::max());
+    const TempHandle handle = static_cast<TempHandle>(temp_handles.size() - 1);
 
-    DEBUG_SMART_ASSERT(temp_slots.size() - 1 <= std::numeric_limits<TempHandle>::max());
-    return static_cast<TempHandle>(temp_slots.size() - 1);
+#ifdef DEBUG_MODE
+    if (handle > temp_frames.top().max_temp_handle)
+        temp_frames.top().max_temp_handle = handle;
+#endif
+
+    return handle;
 }
 
 void
-TempCtxHandler::release_temp_handle(const TempHandle id)
+TempCtxHandler::release_temp_handle([[maybe_unused]] const TempHandle id)
 {
     DEBUG_SMART_ASSERT(!temp_frames.empty());
     auto &temp_handles = temp_frames.top().temp_handles_;
@@ -242,11 +250,18 @@ ParseCtx::ParseCtx(SymbolTable *const symbol_table)
       temp_ctx_handler(this),
       symbol_table_(support::require_ptr(symbol_table)) {}
 
+std::string
+ParseCtx::generate_temp_name(const TempHandle temp_handle)
+    noexcept(noexcept(std::to_string(temp_handle)))
+{
+    return k_temp_variable_prefix + std::to_string(temp_handle);
+}
+
 const VarSymbol *
 ParseCtx::new_temp()
 {
     const TempHandle temp_handle = temp_ctx_handler.acquire_temp_handle();
-    const std::string temp_name = k_temp_variable_prefix + std::to_string(temp_handle);
+    const std::string temp_name = ParseCtx::generate_temp_name(temp_handle);
 
     const Symbol *symbol = symbol_table_->lookup_local(temp_name, scope_handler.scope());
     DEBUG_SMART_ASSERT(
@@ -271,10 +286,32 @@ ParseCtx::new_temp()
             space_handler.next_offset(),
             k_no_loc
         );
-        symbol_table_->attach_temp_handle(var_symbol, temp_handle);
     }
+    symbol_table_->attach_temp_handle(var_symbol, temp_handle);
     return var_symbol;
 }
+
+// clang-format off
+#ifdef DEBUG_MODE
+bool
+ParseCtx::assert_temps_are_released(const TempHandle max_temp_handle) const
+{
+    for (TempHandle i = 0; i <= max_temp_handle; ++i)
+    {
+        const Symbol *s = symbol_table_->lookup_local(
+            ParseCtx::generate_temp_name(i),
+            scope_handler.scope()
+        );
+
+        SMART_ASSERT(s && s->is_temp_variable());
+
+        if (static_cast<const VarSymbol *>(s)->has_temp_handle())
+            return false;
+    }
+    return true;
+}
+#endif // DEBUG_MODE
+// clang-format on
 
 void
 ElistCtxHandler::enter_region(const Region r) { region_stack_.push(r); }
