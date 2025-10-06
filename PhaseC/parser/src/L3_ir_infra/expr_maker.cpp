@@ -14,9 +14,9 @@ ExprMaker::~ExprMaker() noexcept
         switch (e->type)
         {
             // clang-format off
-        case ET::ARITHMETIC_EXPR: delete static_cast<const ArithmeticExpr *>(e); break;
-        case ET::ASSIGN_EXPR: delete static_cast<const AssignExpr *>(e);         break;
-        case ET::BOOL_EXPR: delete static_cast<const BoolExpr *>(e);             break;
+        case ET::ARITHMETIC: delete static_cast<const ArithmeticExpr *>(e);      break;
+        case ET::ASSIGN: delete static_cast<const AssignExpr *>(e);              break;
+        case ET::BOOL: delete static_cast<const BoolExpr *>(e);                  break;
         case ET::CONST_BOOL: delete static_cast<const ConstBoolExpr *>(e);       break;
         case ET::CONST_INT: delete static_cast<const ConstIntExpr *>(e);         break;
         case ET::CONST_FLOAT: delete static_cast<const ConstFloatExpr *>(e);     break;
@@ -41,11 +41,11 @@ ExprMaker::clone_with_updated_location(const SourceLocation new_loc, const Expr 
     using ET = Expr::Type;
     switch (donor_expr->type)
     {
-    case ET::ARITHMETIC_EXPR:
+    case ET::ARITHMETIC:
         return make_arithmetic_expr<true>(new_loc, static_cast<const ArithmeticExpr *>(donor_expr));
-    case ET::ASSIGN_EXPR:
+    case ET::ASSIGN:
         return make_assign_expr(new_loc, static_cast<const AssignExpr *>(donor_expr)->var_symbol);
-    case ET::BOOL_EXPR:
+    case ET::BOOL:
     {
         // TODO: test this case... the trim_logical functions.. is it safe to move() the vectors?
         const auto *const bool_donor_expr = static_cast<const BoolExpr *>(donor_expr);

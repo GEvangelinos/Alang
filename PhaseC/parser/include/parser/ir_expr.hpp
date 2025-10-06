@@ -23,10 +23,10 @@ enum class OperandSide : u8
 
 const char *to_string(OperandSide pos) noexcept;
 
-#define EXPR_TYPES      \
-    X(ARITHMETIC_EXPR)  \
-    X(ASSIGN_EXPR)      \
-    X(BOOL_EXPR)        \
+#define EXPR_TYPES(X)   \
+    X(ARITHMETIC)       \
+    X(ASSIGN)           \
+    X(BOOL)             \
     X(CONST_BOOL)       \
     X(CONST_INT)        \
     X(CONST_FLOAT)      \
@@ -46,9 +46,9 @@ struct Expr : private Immobile
 {
     enum class Type : u8
     {
-        #define X(expr_type) expr_type,
-        EXPR_TYPES
-        #undef  X
+        #define TYPE_EXTRACTOR(expr_type) expr_type,
+        EXPR_TYPES(TYPE_EXTRACTOR)
+        #undef  TYPE_EXTRACTOR
     };
 
     const SourceLocation loc;
@@ -119,13 +119,13 @@ struct ConstExpr : public Expr
 struct ArithmeticExpr final : public ExprWVarSymbol
 {
     ALWAYS_INLINE ArithmeticExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
-        : ExprWVarSymbol(Type::ARITHMETIC_EXPR, loc, var_symbol) {}
+        : ExprWVarSymbol(Type::ARITHMETIC, loc, var_symbol) {}
 };
 
 struct AssignExpr final : public ExprWVarSymbol
 {
     ALWAYS_INLINE AssignExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
-        : ExprWVarSymbol(Type::ASSIGN_EXPR, loc, DEBUG_REQUIRE_PTR(var_symbol)) {}
+        : ExprWVarSymbol(Type::ASSIGN, loc, DEBUG_REQUIRE_PTR(var_symbol)) {}
 };
 
 struct BoolExpr final : public ExprWVarSymbol
@@ -134,7 +134,7 @@ struct BoolExpr final : public ExprWVarSymbol
     mutable std::vector<LabelID> false_list;
 
     ALWAYS_INLINE BoolExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
-        : ExprWVarSymbol(Type::BOOL_EXPR, loc, var_symbol) {}
+        : ExprWVarSymbol(Type::BOOL, loc, var_symbol) {}
 };
 
 struct ConstBoolExpr final : public ConstExpr
@@ -240,8 +240,8 @@ Expr::is_arithmetic_convertible() const noexcept
 {
     switch (type)
     {
-    case Type::ARITHMETIC_EXPR:
-    case Type::ASSIGN_EXPR:
+    case Type::ARITHMETIC:
+    case Type::ASSIGN:
     case Type::CONST_INT:
     case Type::CONST_FLOAT:
     case Type::TABLE_ITEM:
@@ -259,7 +259,7 @@ Expr::is_func() const noexcept
 inline bool
 Expr::is_bool_or_const_bool() const noexcept
 {
-    return type == Type::BOOL_EXPR || type == Type::CONST_BOOL;
+    return type == Type::BOOL || type == Type::CONST_BOOL;
 }
 
 inline bool
@@ -323,7 +323,7 @@ Expr::is_lvalue_type() const noexcept
 {
     switch (type)
     {
-    case Type::ASSIGN_EXPR:
+    case Type::ASSIGN:
     case Type::TABLE_ITEM:
     case Type::VARIABLE: return true;
     default: return false;

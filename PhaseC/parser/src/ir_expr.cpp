@@ -20,9 +20,9 @@ to_string(const Expr::Type type) noexcept
     using ET = Expr::Type;
     switch (type)
     {
-    case ET::ARITHMETIC_EXPR: return "arithmetic-expression";
-    case ET::ASSIGN_EXPR: return "assign-expression";
-    case ET::BOOL_EXPR: return "bool-expression";
+    case ET::ARITHMETIC: return "arithmetic-expression";
+    case ET::ASSIGN: return "assign-expression";
+    case ET::BOOL: return "bool-expression";
     case ET::CONST_BOOL: return "bool-constant";
     case ET::CONST_INT: return "integer-constant";
     case ET::CONST_NIL: return "nil";
@@ -44,9 +44,9 @@ Expr::has_active_temp() const noexcept
 {
     switch (type)
     {
-    case Type::ARITHMETIC_EXPR:
-    case Type::ASSIGN_EXPR:
-    case Type::BOOL_EXPR:
+    case Type::ARITHMETIC:
+    case Type::ASSIGN:
+    case Type::BOOL:
     case Type::NEW_TABLE:
     case Type::TABLE_ITEM:
     case Type::VARIABLE:

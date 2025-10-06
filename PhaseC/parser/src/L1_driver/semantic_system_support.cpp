@@ -36,7 +36,7 @@ void
 SemanticSystemBridge::finalize_bool_expr(const Expr *const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
-    if (expr->type != Expr::Type::BOOL_EXPR)
+    if (expr->type != Expr::Type::BOOL)
         return; // Nothing to backpatch if not bool_expr.
 
     const BoolExpr *const bool_expr = static_cast<const BoolExpr *>(expr);

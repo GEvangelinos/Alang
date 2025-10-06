@@ -520,7 +520,7 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
         "Unknown backpatching policy"
     );
 
-    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL_EXPR && rhs->type == Expr::Type::BOOL_EXPR);
+    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL && rhs->type == Expr::Type::BOOL);
     const BoolExpr *const lhs_bool = static_cast<const BoolExpr *>(lhs);
     const BoolExpr *const rhs_bool = static_cast<const BoolExpr *>(rhs);
     const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
@@ -533,9 +533,9 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
     Policy::backpatch_list(lhs_bool).clear();
 
     // Merging right side.
-    auto &lhs_merge = Policy::merge_lhs_list(lhs_bool);            //lhs_bool->false_list
-    auto &rhs_merge = Policy::merge_rhs_list(rhs_bool);            //rhs_bool->false_list
-    auto &result_merge = Policy::merge_lhs_list(bool_result_expr); //lhs_bool->false_list
+    auto &lhs_merge = Policy::merge_lhs_list(lhs_bool);            // lhs_bool->false_list
+    auto &rhs_merge = Policy::merge_rhs_list(rhs_bool);            // rhs_bool->false_list
+    auto &result_merge = Policy::merge_lhs_list(bool_result_expr); // lhs_bool->false_list
 
     // We could use merge_rhs too
     result_merge.reserve(lhs_merge.size() + rhs_merge.size());
@@ -552,7 +552,7 @@ BasicBuilder::Restricted::normalize_to_bool_expr(const Expr *const expr)
     DEBUG_SMART_ASSERT(!!expr);
     auto *const qh = quad_handler_; // Short alias for readability.
 
-    if (expr->type == Expr::Type::BOOL_EXPR)
+    if (expr->type == Expr::Type::BOOL)
         return expr;
 
     if (options_.fold_static_bools)
