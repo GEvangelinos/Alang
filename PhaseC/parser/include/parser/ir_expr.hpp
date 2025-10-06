@@ -59,7 +59,6 @@ struct Expr : private Immobile
     [[nodiscard]] bool is_arithmetic_convertible() const noexcept;
     [[nodiscard]] bool is_func() const noexcept;
     [[nodiscard]] bool is_bool_or_const_bool() const noexcept;
-    [[nodiscard]] bool is_const_bool() const noexcept;
     [[nodiscard]] bool is_const_0() const noexcept;
     [[nodiscard]] bool is_const_1() const noexcept;
     [[nodiscard]] bool is_const_true() const noexcept;
@@ -262,9 +261,6 @@ Expr::is_bool_or_const_bool() const noexcept
     return type == Type::BOOL || type == Type::CONST_BOOL;
 }
 
-inline bool
-Expr::is_const_bool() const noexcept { return type == Expr::Type::CONST_BOOL; }
-
 bool inline
 Expr::is_const_0() const noexcept
 {
@@ -290,13 +286,13 @@ Expr::is_const_1() const noexcept
 inline bool
 Expr::is_const_true() const noexcept
 {
-    return is_const_bool() && static_cast<const ConstBoolExpr *>(this)->value == true;
+    return type == Type::CONST_BOOL && static_cast<const ConstBoolExpr *>(this)->value == true;
 }
 
 inline bool
 Expr::is_const_false() const noexcept
 {
-    return is_const_bool() && static_cast<const ConstBoolExpr *>(this)->value == false;
+    return type == Type::CONST_BOOL && static_cast<const ConstBoolExpr *>(this)->value == false;
 }
 
 inline bool

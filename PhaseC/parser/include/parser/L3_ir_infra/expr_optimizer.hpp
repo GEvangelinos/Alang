@@ -104,12 +104,12 @@ ExprFolder::should_fold_relational_equality(const Expr *lhs, const Expr *rhs)
 }
 
 inline bool
-ExprFolder::should_fold_logical(const Expr *expr) { return expr->is_const_bool(); }
+ExprFolder::should_fold_logical(const Expr *expr) { return expr->type == Expr::Type::CONST_BOOL; }
 
 inline bool
 ExprFolder::should_fold_logical(const Expr *lhs, const Expr *rhs)
 {
-    return lhs->is_const_bool() && rhs->is_const_bool();
+    return lhs->type == Expr::Type::CONST_BOOL && rhs->type == Expr::Type::CONST_BOOL;
 }
 
 template<ir::Opcode opc, typename... Exprs>
