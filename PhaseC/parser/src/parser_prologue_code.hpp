@@ -28,7 +28,7 @@
 #define CLEAR_ERROR_IF_IN_FUNC_PARAM_LIST(local_semantic_driver)                \
     do                                                                          \
     {                                                                           \
-        if (local_semantic_driver.parser_context_view->is_in_func_param_list()) \
+        if (local_semantic_driver.context_inspector->is_in_func_param_list()) \
         {                                                                       \
             local_semantic_driver.recover();                                    \
             yyerrok;                                                            \
@@ -38,7 +38,7 @@
 #define CLEAR_ERROR_IF_NOT_IN_FORLOOP_CLAUSE(local_semantic_driver)             \
     do                                                                          \
     {                                                                           \
-        if (!local_semantic_driver.parser_context_view->is_in_forloop_clause()) \
+        if (!local_semantic_driver.context_inspector->is_in_forloop_clause()) \
         {                                                                       \
             local_semantic_driver.recover();                                    \
             yyerrok;                                                            \
@@ -48,7 +48,7 @@
 #define CLEAR_ERROR_IF_NOT_IN_TABLEDICT(local_semantic_driver)              \
     do                                                                      \
     {                                                                       \
-        if (!local_semantic_driver.parser_context_view->is_in_table_dict()) \
+        if (!local_semantic_driver.context_inspector->is_in_table_dict()) \
         {                                                                   \
             local_semantic_driver.recover();                                \
             yyerrok;                                                        \

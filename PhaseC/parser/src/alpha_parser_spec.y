@@ -88,7 +88,7 @@
 %type  <const_expr_ptr> table_literal
 %type  <const_expr_ptr> table_item
 
-%type  <const_expr_pair_ptr> dict_entry
+%type  <const_expr_pair_ptr> dict_element
 
 %type  <const_func_symbol_ptr> func_signature
 %type  <const_func_symbol_ptr> func_def
@@ -324,7 +324,7 @@ lvalue:
   table_item { $lvalue = $table_item; }
 | ID         { $lvalue = ss.call<"lvalue_resolver.resolve_id">($ID, @lvalue); }
 | LOCAL ID   { $lvalue = ss.call<"lvalue_resolver.resolve_local_id">($ID, @lvalue); }
-| GLOBAL ID  { $lvalue = ss.call<"lvalue_resolver.resolve_global_id">($ID, @lvalue	); }
+| GLOBAL ID  { $lvalue = ss.call<"lvalue_resolver.resolve_global_id">($ID, @lvalue); }
 ;
 
 table_item:
@@ -373,7 +373,7 @@ expr_list:
 | cs_exprs
 ;
 
-dict_entry:
+dict_element:
   LEFT_BRACE
   { ss.call<"table_builder.begin_dict_entry">(); }
   expr[key]
@@ -382,17 +382,17 @@ dict_entry:
   RIGHT_BRACE
   {
     ss.call<"table_builder.end_dict_entry">();
-    ss.call<"table_builder.commit_dict_element">($key, $value);
+    ss.call<"table_builder.commit_dict_element">($key, $value, @dict_element);
   }
 ;
 
 /* Mirroring expr_list colletion */
-cs_dict_entries:
-  dict_entry
-| dict_list COMMA dict_entry
+cs_dict_elements:
+  dict_element
+| dict_list COMMA dict_element
 
 dict_list:
-  cs_dict_entries
+  cs_dict_elements
 ;
 
 table_literal_begin:

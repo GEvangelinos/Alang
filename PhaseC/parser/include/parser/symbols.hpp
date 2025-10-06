@@ -199,7 +199,6 @@ VarSymbol::temp_handle() const noexcept
 inline void
 VarSymbol::TempBinding::bind(const TempHandle id) noexcept
 {
-    DEBUG_SMART_ASSERT(status_ != Status::ACQUIRED && "Temp already bound");
     id_ = id;
     status_ = Status::ACQUIRED;
 }
@@ -207,7 +206,6 @@ VarSymbol::TempBinding::bind(const TempHandle id) noexcept
 inline TempHandle
 VarSymbol::TempBinding::release() noexcept
 {
-    DEBUG_SMART_ASSERT(status_ != Status::RELEASED && "Temp not bound");
     status_ = Status::RELEASED;
     return id_;
 }

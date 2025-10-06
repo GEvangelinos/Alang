@@ -1,12 +1,12 @@
-#ifndef CONTROL_FLOW_HANDLERS_HPP
-#define CONTROL_FLOW_HANDLERS_HPP
+#ifndef CONTROL_FLOW_MANAGER_HPP
+#define CONTROL_FLOW_MANAGER_HPP
 
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 #include "parser_context.hpp"
 #include "core/source_location.hpp"
 #include "L1_driver/semantic_system_support.hpp"
-#include "L3_ir_infra/quad_handler.hpp"
+#include "core/quad_emitter.hpp"
 
 #include  <parser/ir_opcode.gen.hpp>
 #include "semantic_subsystem.hpp"
@@ -137,4 +137,4 @@ private:
 };
 
 } // namespace alpha
-#endif // CONTROL_FLOW_HANDLERS_HPP
+#endif // CONTROL_FLOW_MANAGER_HPP

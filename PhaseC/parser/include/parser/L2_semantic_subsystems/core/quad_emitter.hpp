@@ -1,5 +1,5 @@
-#ifndef QUAD_HANDLER_HPP
-#define QUAD_HANDLER_HPP
+#ifndef QUAD_EMITTER_HPP
+#define QUAD_EMITTER_HPP
 
 #include <vector>
 
@@ -11,11 +11,22 @@
 
 namespace alpha
 {
-class QuadHandler : private Immobile
+class ParseCtx;
+
+class QuadEmitter : private Immobile
 {
 public:
-    QuadHandler() = default;
-    ~QuadHandler() = default;
+    class EmitterKey // Passkey mechanisms, so only friends to EmitterKey can emit
+    {
+        friend class QuadYielder;
+        friend class ExprNormalizer;
+        EmitterKey() = default;
+        // TODO: why is this line necessary... EmitterKEy is class.. doesnt its default ctor default tor private?
+        // or its considred aggregate struct?
+    };
+
+    QuadEmitter() = default;
+    ~QuadEmitter() = default;
 
     void emit(
         ir::Opcode opc,
@@ -23,22 +34,8 @@ public:
         const Expr *arg1,
         const Expr *arg2,
         SourceLocation loc,
-        LabelID label);
-
-    void emit_next(
-        ir::Opcode opc,
-        const Expr *result,
-        const Expr *arg1,
-        const Expr *arg2,
-        SourceLocation loc,
-        LabelID label_offset = 0);
-
-    void emit_labelless(
-        ir::Opcode opc,
-        const Expr *result,
-        const Expr *arg1,
-        const Expr *arg2,
-        SourceLocation loc);
+        LabelID label,
+        EmitterKey);
 
     void labelPatch_quad(LabelID target_quad_label, LabelID destination_label);
     void labelPatch_list(const std::vector<LabelID> &patch_list, LabelID destination_label);
@@ -56,11 +53,10 @@ private:
 };
 
 inline std::size_t
-QuadHandler::label_to_index(const LabelID label)
+QuadEmitter::label_to_index(const LabelID label)
 {
     DEBUG_SMART_ASSERT(label != k_no_label);
     return label - 1;
 }
-
 } // namespace alpha
-#endif // QUAD_HANDLER_HPP
+#endif // QUAD_EMITTER_HPP

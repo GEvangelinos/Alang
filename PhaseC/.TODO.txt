@@ -1113,3 +1113,32 @@ $1 $2 $3 is possible
 result, arg1, arg
 
 you can run invaiant checking on final IR.
+
+218)
+input: x = a and not true;
+
+can we optimize
+
+// quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
+// 1,if_eq,NA,a,true,3,1,1
+// 2,jump,NA,NA,NA,7,1,1
+// 3,if_eq,NA,true,true,7,1,1
+// 4,jump,NA,NA,NA,5,1,1
+// 5,assign,$0,true,NA,NA,1,1
+// 6,jump,NA,NA,NA,8,1,1
+// 7,assign,$0,false,NA,NA,1,1
+// 8,assign,x,$0,NA,NA,1,1
+// __END_IR__
+
+
+to this
+
+// quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
+// 1,if_eq,NA,a,true,3,1,1
+// 2,jump,NA,NA,NA,7,1,1
+// 3,if_eq,NA,true,true,7,1,1
+// 4,jump,NA,NA,NA,5,1,1
+// 5,assign,x,true,NA,NA,1,1
+// 6,jump,NA,NA,NA,8,1,1
+// 7,assign,x,false,NA,NA,1,1
+// __END_IR__

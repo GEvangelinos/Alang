@@ -1,4 +1,7 @@
-#include "parser/L2_semantic_subsystems/lvalue_resolver.hpp"
+#include "L2_semantic_subsystems/lvalue_resolver.hpp"
+#include <diagnostics/diagnostic_reporter.gen.hpp>
+#include "L2_semantic_subsystems/core/expr_normalizer.hpp"
+
 
 namespace alpha
 {
@@ -12,7 +15,7 @@ const Expr *
 LvalueResolver::Restricted::resolve_id(const char *id_name, const SourceLocation id_loc)
 {
     const Symbol *result = symbol_table_->
-            lookup_nearest(id_name, parse_ctx_->scope_handler.scope());
+        lookup_nearest(id_name, parse_ctx_->scope_handler.scope());
     if (!result) // Symbol not found, so insert it!
     {
         result = symbol_table_->insert_variable(
@@ -72,7 +75,7 @@ LvalueResolver::Restricted::resolve_local_id(
 }
 
 const Expr *LvalueResolver::Restricted::resolve_global_id(
-    const char * const gid_name,
+    const char *const gid_name,
     const SourceLocation gid_loc)
 {
     DEBUG_SMART_ASSERT(!!gid_name);
@@ -91,16 +94,22 @@ const Expr *LvalueResolver::Restricted::resolve_global_id(
     UNREACHABLE("Unexpected symbol type");
 }
 
-DEBUG_ALWAYS_INLINE bool // inline hint for local call-sites
+const Expr *
+LvalueResolver::Restricted::resolve_lvalue_to_rvalue(const Expr *const lvalue)
+{
+    return expr_normalizer_->materialize_if_table_item(lvalue);
+}
+
+bool
 LvalueResolver::Restricted::ensure_reachable_symbol(
     const Symbol *symbol,
     const char *const id_name,
     const SourceLocation id_loc)
 {
     const bool reachable =
-            !symbol->is_variable() ||
-            symbol->scope == k_global_scope ||
-            symbol->scope > parse_ctx_->func_ctx_handler.current_function_scope();
+        !symbol->is_variable() ||
+        symbol->scope == k_global_scope ||
+        symbol->scope > parse_ctx_->func_ctx_handler.current_function_scope();
     if (reachable)
         return true;
     dr_->report_inaccessible_var_in_func(

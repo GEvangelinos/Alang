@@ -2,11 +2,11 @@
 #define EXPR_OPTIMIZER_HPP
 
 #include <type_traits>
-#include "expr_maker.hpp"
 #include <parser/ir_opcode_info_traits.gen.hpp>
+#include <parser/ir_opcode_opt_traits.gen.hpp>
+#include "expr_maker.hpp"
 #include "core/source_location.hpp"
 #include "parser/ir_opcode.gen.hpp"
-#include <parser/ir_opcode_opt_traits.gen.hpp>
 
 #include "settings/compiler_settings.hpp"
 #include "support/dependent_false.hpp"
@@ -104,10 +104,10 @@ ExprFolder::should_fold_relational_equality(const Expr *lhs, const Expr *rhs)
 }
 
 inline bool
-ExprFolder::should_fold_logical(const Expr *expr) { return expr->type == Expr::Type::CONST_BOOL; }
+ExprFolder::should_fold_logical(const Expr *const expr) { return expr->type == Expr::Type::BOOL; }
 
 inline bool
-ExprFolder::should_fold_logical(const Expr *lhs, const Expr *rhs)
+ExprFolder::should_fold_logical(const Expr *const lhs, const Expr *const rhs)
 {
     return lhs->type == Expr::Type::CONST_BOOL && rhs->type == Expr::Type::CONST_BOOL;
 }

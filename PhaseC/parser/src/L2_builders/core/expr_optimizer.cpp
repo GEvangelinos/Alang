@@ -1,7 +1,7 @@
 #include <cmath>
 #include <parser/ir_opcode.gen.hpp>
 #include <parser/semantic_utils.hpp>
-#include <parser/L3_ir_infra/expr_optimizer.hpp>
+#include <../../include/parser/L2_semantic_subsystems/core/expr_optimizer.hpp>
 #include "L1_driver/semantic_system.hpp"
 
 namespace alpha
@@ -274,6 +274,7 @@ ExprTrimmer::try_trim_binary_logical(
 const Expr *
 ExprOptimizer::try_propagate_const(const Expr *const expr)
 {
+    DEBUG_SMART_ASSERT(!!expr);
     if (!expr_opts_.opt_const_propagation) [[unlikely]] // We optimize for fully optimized setups.
         return expr;
     if (expr->type != Expr::Type::VARIABLE)

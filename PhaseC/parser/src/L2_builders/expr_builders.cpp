@@ -1,7 +1,7 @@
 #include "L2_semantic_subsystems/expr_builders.hpp"
 
-#include <L2_semantic_subsystems/expr_builders.hpp>
 #include <diagnostics/diagnostic_reporter.gen.hpp>
+#include "L2_semantic_subsystems/core/expr_normalizer.hpp"
 #include "parser/internal_typedefs.hpp"
 
 namespace
@@ -122,6 +122,78 @@ TableBuilder::TableBuilder(const SemanticSystemServices &ss_services)
 TableBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
 
+// TODO: do we propagate assignment of assignment like x = y = z = 5? If NOT
+// We might need to let Expr::Type::ASSIGN_EXPR
+bool
+AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const Expr *const rvalue)
+{
+    DEBUG_SMART_ASSERT(
+        !!lvalue, !!rvalue,
+        options_.record_constant_variables &&
+        "Recording values of constant variables is OFF, shouldn't be called"
+    );
+    if (lvalue->type != Expr::Type::VARIABLE)
+        return false;
+
+    const auto *const var_symbol = static_cast<const VariableExpr *>(lvalue)->var_symbol;
+    if (!rvalue->is_const())
+    {
+        SymbolTable::detach_const_expr(var_symbol);
+        return false;
+    }
+    SymbolTable::attach_const_expr(var_symbol, static_cast<const ConstExpr *>(rvalue));
+    return true;
+}
+
+const Expr *
+AssignBuilder::Restricted::handle_direct_assignment(
+    const Expr *const lhs,
+    const Expr *rhs,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    DEBUG_SMART_ASSERT(lhs->type != Expr::Type::TABLE_ITEM && "goto handle_table_item_assignment");
+
+    rhs = expr_optimizer_->try_propagate_const(rhs);
+    rhs = expr_normalizer_->materialize_if_table_item(rhs);
+    expr_normalizer_->resolve_bool_short_circuit(rhs);
+
+    if (options_.record_constant_variables)  // Returning rhs, instead of lhs has 2 benefits:
+        if (try_record_const_expr(lhs, rhs)) // 1) Removes the need for const extraction.
+            return rhs;                      // 2) No temp required for: <<x = [{c=10 : c= 5}];>>
+
+    quad_yielder_->yield_next(ir::Opcode::ASSIGN, lhs, rhs, nullptr, result_loc);
+
+    if (!assignment_requires_temp())
+        return lhs;
+
+    const auto result_factory = [result_loc, this]()
+    {
+        return expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());
+    };
+    return quad_yielder_->yield_next(ir::Opcode::ASSIGN, result_factory, lhs, nullptr, result_loc);
+}
+
+const Expr *
+AssignBuilder::Restricted::handle_table_item_assignment(
+    const Expr *const lhs,
+    const Expr *rhs,
+    const SourceLocation result_loc)
+{
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::TABLE_ITEM);
+
+    const auto *const ti = static_cast<const TableItemExpr *>(lhs);
+    rhs = expr_optimizer_->try_propagate_const(rhs);
+    rhs = expr_normalizer_->materialize_if_table_item(rhs);
+    expr_normalizer_->resolve_bool_short_circuit(rhs);
+
+    quad_yielder_->yield_next(ir::Opcode::TABLESETELEM, ti, ti->index, rhs, result_loc);
+
+    // We resurface the assigned element of table to allow chained assignment. Ex.: a = b.c = d;
+    return expr_normalizer_->materialize_if_table_item(ti);
+}
+
 const Expr *
 AssignBuilder::Restricted::build_assignment(
     const Expr *const lhs,
@@ -132,12 +204,9 @@ AssignBuilder::Restricted::build_assignment(
     if (!validate_assignment(lhs, result_loc))
         return nullptr;
 
-    const Expr *const materialized_rhs = ss_bridge_->materialize_if_table_item(rhs);
-    ss_bridge_->finalize_bool_expr(materialized_rhs);
-
     return AssignBuilder::Restricted::is_direct_target_expr(lhs)
-           ? handle_direct_assignment(lhs, materialized_rhs, result_loc)
-           : handle_table_item_assignment(lhs, materialized_rhs, result_loc);
+           ? handle_direct_assignment(lhs, rhs, result_loc)
+           : handle_table_item_assignment(lhs, rhs, result_loc);
 }
 
 const Expr *
@@ -202,78 +271,68 @@ AssignBuilder::Restricted::validate_assignment(
     return validator(dr_, lhs, assign_loc, "assignment", "=", "left operand");
 }
 
-// TODO: do we propagate assignment of assignment like x = y = z = 5? If NOT
-// We might need to let Expr::Type::ASSIGN_EXPR
-bool
-AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const Expr *const rvalue)
-{
-    DEBUG_SMART_ASSERT(
-        !!lvalue, !!rvalue,
-        options_.record_constant_variables &&
-        "Recording values of constant variables is OFF, shouldn't be called"
-    );
-    if (lvalue->type != Expr::Type::VARIABLE)
-        return false;
-
-    const auto *const var_symbol = static_cast<const VariableExpr *>(lvalue)->var_symbol;
-    if (!rvalue->is_const())
-    {
-        SymbolTable::detach_const_expr(var_symbol);
-        return false;
-    }
-    SymbolTable::attach_const_expr(var_symbol, static_cast<const ConstExpr *>(rvalue));
-    return true;
-}
-
-inline const Expr *
-AssignBuilder::Restricted::handle_direct_assignment(
-    const Expr *lhs,
-    const Expr *rhs,
-    const SourceLocation result_loc)
-{
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-
-    rhs = expr_optimizer_->try_propagate_const(rhs);
-
-    // Return rhs, instead of lhs has 2 benefits:
-    // 1) Removes the need from const extraction.
-    // 2) Exprs like: <<x = [{c=10 : c= 5}];>> no longer required yielding temp var.
-    if (options_.record_constant_variables)
-        if (try_record_const_expr(lhs, rhs))
-            return rhs;
-
-    quad_handler_->emit_next(ir::Opcode::ASSIGN, lhs, rhs, nullptr, result_loc);
-    // TODO: uncomment below
-    // release_temp_handle_if_active(rhs);
-
-    // In certain contexts, force each (x=val) to yield its arg value; avoid C’s unspecified arg order
-    if (assignment_requires_temp())
-    {
-        const Expr *const temp = expr_maker_->make_assign_expr(result_loc, parse_ctx_->new_temp());
-        quad_handler_->emit_next(ir::Opcode::ASSIGN, temp, lhs, nullptr, result_loc);
-        return temp;
-    }
-    return lhs;
-}
-
+template<typename Policy>
 const Expr *
-AssignBuilder::Restricted::handle_table_item_assignment(
-    const Expr *const lhs,
-    const Expr *const rhs,
+AssignBuilder::Restricted::handle_pre_inc_dec(
+    const Expr *const lvalue,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::TABLE_ITEM);
+    static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
+    DEBUG_SMART_ASSERT(!!lvalue);
+    auto *qy = quad_yielder_;
 
-    const auto *const ti = static_cast<const TableItemExpr *>(lhs);
-    quad_handler_->emit_next(ir::Opcode::TABLESETELEM, ti, ti->index, rhs, result_loc);
+    if (lvalue->type == Expr::Type::TABLE_ITEM)
+    {
+        const auto *const ti_host = static_cast<const TableItemExpr *>(lvalue);
+        // External materialization is required, as ti is also used on quad's result field.
+        const Expr *const ti = expr_normalizer_->materialize_if_table_item(ti_host);
+        qy->yield_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
+        // TODO: do i need to materialize ti_host->index?
+        qy->yield_next(ir::Opcode::TABLESETELEM, ti_host, ti_host->index, ti, result_loc);
+        return ti;
+    }
+    else
+    {
+        qy->yield_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
+        if (!assignment_requires_temp())
+            return lvalue;
 
-    // We resurface the assigned element of table to allow chained assignment. Ex.: a = b.c = d;
-    const Expr *temp_var = ss_bridge_->materialize_if_table_item(lhs); // !CERTAIN EMIT!
+        const auto result_factory =
+            [result_loc, this]() { return expr_maker_->make_arithmetic_expr(result_loc); };
+        return qy->yield_next(ir::Opcode::ASSIGN, result_factory, lvalue, nullptr, result_loc);
+    }
+}
 
-    DEBUG_SMART_ASSERT(temp_var->type == Expr::Type::VARIABLE);
-    const VarSymbol *temp_symbol = static_cast<const VariableExpr *>(temp_var)->var_symbol;
-    return expr_maker_->make_assign_expr(result_loc, temp_symbol);
+template<typename Policy>
+const Expr *
+AssignBuilder::Restricted::handle_post_inc_dec(
+    const Expr *const lvalue,
+    const SourceLocation result_loc)
+{
+    static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
+    auto *qy = quad_yielder_;
+
+    auto temp_factory = [result_loc, this]()
+    {
+        return expr_maker_->make_variable_expr(result_loc, parse_ctx_->new_temp());
+    };
+
+    const Expr *result = nullptr;
+    if (lvalue->type == Expr::Type::TABLE_ITEM)
+    {
+        const auto *const ti_host = static_cast<const TableItemExpr *>(lvalue);
+        const Expr *const ti = expr_normalizer_->materialize_if_table_item(lvalue);
+        // We externally materialize as we need `ti` in more than a single yield.
+        result = qy->yield_next(ir::Opcode::ASSIGN, temp_factory, ti, nullptr, result_loc);
+        qy->yield_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
+        qy->yield_next(ir::Opcode::TABLESETELEM, ti_host, ti_host->index, ti, result_loc);
+    }
+    else
+    {
+        result = qy->yield_next(ir::Opcode::ASSIGN, temp_factory, lvalue, nullptr, result_loc);
+        qy->yield_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
+    }
+    return DEBUG_REQUIRE_PTR(result);
 }
 
 template<AssignBuilder::Restricted::OpVariant op_variant, typename Policy>
@@ -295,75 +354,24 @@ AssignBuilder::Restricted::build_inc_dec(const Expr *const expr, const SourceLoc
         static_assert(always_false_v<void>, "build_inc_dec(): Unknown OpVariant");
 }
 
-template<typename Policy>
-
-const Expr *
-AssignBuilder::Restricted::handle_pre_inc_dec(
-    const Expr *const expr,
-    const SourceLocation result_loc)
-{
-    static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
-    DEBUG_SMART_ASSERT(!!expr);
-    auto *const qh = quad_handler_; // Short alias for readability.
-
-    if (expr->type == Expr::Type::TABLE_ITEM)
-    {
-        const auto *const ti_lvalue = static_cast<const TableItemExpr *>(expr);
-        const Expr *const result = ss_bridge_->materialize_if_table_item(ti_lvalue); // EMITS!
-        qh->emit_next(Policy::opc, result, result, &k_static_int_1_expr, result_loc);
-        qh->emit_next(ir::Opcode::TABLESETELEM, ti_lvalue, ti_lvalue->index, result, result_loc);
-        return DEBUG_REQUIRE_PTR(result);
-    }
-    qh->emit_next(Policy::opc, expr, expr, &k_static_int_1_expr, result_loc);
-    if (assignment_requires_temp())
-    {
-        const Expr *const result = expr_maker_->make_arithmetic_expr(result_loc);
-        qh->emit_next(ir::Opcode::ASSIGN, result, expr, nullptr, result_loc);
-        return DEBUG_REQUIRE_PTR(result);
-    }
-    return DEBUG_REQUIRE_PTR(expr);
-}
-
-template
-<
-    typename Policy>
-
-const Expr *
-AssignBuilder::Restricted::handle_post_inc_dec(const Expr *lvalue,
-                                               const SourceLocation result_loc)
-{
-    static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
-    auto *const qh = quad_handler_; // Short alias for readability.
-
-    const Expr *const result = expr_maker_->make_variable_expr(result_loc, parse_ctx_->new_temp());
-    if (lvalue->type == Expr::Type::TABLE_ITEM)
-    {
-        const auto *const ti_lvalue = static_cast<const TableItemExpr *>(lvalue);
-        const Expr *ti = ss_bridge_->materialize_if_table_item(lvalue);
-        qh->emit_next(ir::Opcode::ASSIGN, result, ti, nullptr, result_loc);
-        qh->emit_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
-        qh->emit_next(ir::Opcode::TABLESETELEM, ti_lvalue, ti_lvalue->index, ti, result_loc);
-    }
-    else
-    {
-        qh->emit_next(ir::Opcode::ASSIGN, result, lvalue, nullptr, result_loc);
-        qh->emit_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
-    }
-    return result;
-}
-
 const Expr *
 BasicBuilder::Restricted::prepare_logical_operand_expr(const Expr *expr)
 {
-    expr = ss_bridge_->materialize_if_table_item(expr);
+    expr = expr_normalizer_->materialize_if_table_item(expr);
     expr = expr_optimizer_->try_propagate_const(expr);
-    return normalize_to_bool_expr(expr);
+    expr = normalize_to_bool_expr(expr);
+
+    // TODO: test if releasing temp handle causes problems.
+    // by so far because we use backpatching i cant find a scenario it causes problems...
+    // Test further
+    quad_yielder_->release_temp_handle_if_active(expr);
+    return expr;
 }
 
 void
 BasicBuilder::Restricted::mark_short_circuit_jump_point()
 {
-    short_circuit_jump_stack_.push(quad_handler_->next_quad_label());
+    short_circuit_jump_stack_.push(quad_emitter_->next_quad_label());
 }
 
 const Expr *
@@ -372,20 +380,16 @@ BasicBuilder::Restricted::build_uminus(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
-
-    expr = ss_bridge_->materialize_if_table_item(expr);
-
     if (!validate_arithmetic_expr(ir::Opcode::UMINUS, expr, OperandSide::UNARY))
         goto skip_opt;
-
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::UMINUS>(result_loc, expr))
         return optimized;
 
 skip_opt:
-    release_temp_handle_if_active(expr);
-    const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
-    quad_handler_->emit_next(ir::Opcode::UMINUS, arithmetic_expr, expr, nullptr, result_loc);
-    return arithmetic_expr;
+    const auto result_factory =
+        [result_loc, this]() { return expr_maker_->make_arithmetic_expr(result_loc); };
+    expr = expr_normalizer_->materialize_if_table_item(expr);
+    return quad_yielder_->yield_next(ir::Opcode::UMINUS, result_factory, expr, nullptr, result_loc);
 }
 
 const Expr *
@@ -396,15 +400,15 @@ BasicBuilder::Restricted::build_arithmetic(
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-
-    lhs = ss_bridge_->materialize_if_table_item(lhs);
-    rhs = ss_bridge_->materialize_if_table_item(rhs);
-
     // Always build IR. On validation errors we report error diagnostics and never export bad IR.
     const bool valid_lhs = validate_arithmetic_expr(opc, lhs, OperandSide::LEFT);
     const bool valid_rhs = validate_arithmetic_expr(opc, rhs, OperandSide::RIGHT);
     if (!(valid_lhs && valid_rhs))
         goto skip_opt;
+
+    // We pre-propagate const (so we can catch div by zero)
+    rhs = expr_optimizer_->try_propagate_const(rhs);
+
     // Warn on CT div-by-zero, skip folding; VM must still handle division-by-zero at runtime.
     if (!validate_possible_division(opc, rhs, result_loc))
         goto skip_opt;
@@ -412,10 +416,11 @@ BasicBuilder::Restricted::build_arithmetic(
         return optimized;
 
 skip_opt:
-    release_temp_handle_if_active(lhs, rhs);
-    const ArithmeticExpr *const arithmetic_expr = expr_maker_->make_arithmetic_expr(result_loc);
-    quad_handler_->emit_next(opc, arithmetic_expr, lhs, rhs, result_loc);
-    return arithmetic_expr;
+    const auto result_factory =
+        [result_loc, this]() { return expr_maker_->make_arithmetic_expr(result_loc); };
+    lhs = expr_normalizer_->materialize_if_table_item(lhs);
+    rhs = expr_normalizer_->materialize_if_table_item(rhs);
+    return quad_yielder_->yield_next(opc, result_factory, lhs, rhs, result_loc);
 }
 
 const Expr *
@@ -427,12 +432,12 @@ BasicBuilder::Restricted::build_relational(
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
 
-    lhs = ss_bridge_->materialize_if_table_item(lhs);
-    rhs = ss_bridge_->materialize_if_table_item(rhs);
+    lhs = expr_normalizer_->materialize_if_table_item(lhs);
+    rhs = expr_normalizer_->materialize_if_table_item(rhs);
 
-    // In case of == and != the expr need to be finalized.
-    ss_bridge_->finalize_bool_expr(lhs);
-    ss_bridge_->finalize_bool_expr(rhs);
+    // In case of == and != exprs need to be finalized.
+    expr_normalizer_->resolve_bool_short_circuit(lhs);
+    expr_normalizer_->resolve_bool_short_circuit(rhs);
 
     // Always build IR. On validation errors we report error diagnostics and never export bad IR.
     const bool valid_lhs = validate_relational_expr(opc, lhs, OperandSide::LEFT);
@@ -444,21 +449,23 @@ BasicBuilder::Restricted::build_relational(
         return optimized;
 
 skip_opt:
-    // TODO: Should we reset here? In lectures it wasn't recommend the reset temps in relationals.
-    // Why? Test it out... You already reset temps in many more place... I can't think of a reason why
-    // it would hurt anything...
-    release_temp_handle_if_active(lhs, rhs);
-    const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
-    result_expr->true_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(opc, nullptr, lhs, rhs, result_loc);
-    result_expr->false_list.push_back(quad_handler_->next_quad_label());
-    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, result_loc);
-    return result_expr;
+    auto hook = [result_loc, this]()
+    {
+        const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
+        result_expr->true_list.push_back(quad_emitter_->next_quad_label());
+        result_expr->false_list.push_back(quad_emitter_->next_quad_label() + 1); // +1 for jump quad
+        return result_expr;
+    };
+
+    const auto hook_result = quad_yielder_->yield_returning_hook_result(
+        opc, nullptr, lhs, rhs, result_loc, k_no_label, hook
+    );
+    quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, result_loc);
+    return hook_result;
 }
 
 const Expr *
-BasicBuilder::Restricted::build_logical_not(const Expr *expr,
-                                            const SourceLocation result_loc)
+BasicBuilder::Restricted::build_logical_not(const Expr *expr, const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
     DEBUG_SMART_ASSERT(expr->is_bool_or_const_bool());
@@ -466,13 +473,10 @@ BasicBuilder::Restricted::build_logical_not(const Expr *expr,
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::NOT>(result_loc, expr))
         return optimized;
     // Sanity check, CONST_BOOL must be consumed by the optimizer.
-    DEBUG_SMART_ASSERT(expr->is_bool_or_const_bool());
+    DEBUG_SMART_ASSERT(expr->type == Expr::Type::BOOL);
 
-    release_temp_handle_if_active(expr);
-    const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
-    bool_result_expr->true_list = static_cast<const BoolExpr *>(expr)->false_list;
-    bool_result_expr->false_list = static_cast<const BoolExpr *>(expr)->true_list;
-    return bool_result_expr;
+    static_cast<const BoolExpr *>(expr)->invert();
+    return expr;
 }
 
 const Expr *
@@ -487,7 +491,9 @@ BasicBuilder::Restricted::build_logical_and(
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::AND>(result_loc, lhs, rhs))
         return optimized;
 
-    release_temp_handle_if_active(lhs, rhs);
+    // TODO: do we need to materialize? or resolve bool?
+    quad_yielder_->release_temp_handle_if_active(rhs);
+    quad_yielder_->release_temp_handle_if_active(lhs);
     return build_short_circuit_bool_expr<AndShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
@@ -503,7 +509,9 @@ BasicBuilder::Restricted::build_logical_or(
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(result_loc, lhs, rhs))
         return optimized;
 
-    release_temp_handle_if_active(lhs, rhs);
+    // TODO: do we need to materialize? or resolve bool?
+    quad_yielder_->release_temp_handle_if_active(rhs);
+    quad_yielder_->release_temp_handle_if_active(lhs);
     return build_short_circuit_bool_expr<OrShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
@@ -528,7 +536,7 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
     // Patching left side.
     DEBUG_SMART_ASSERT(!short_circuit_jump_stack_.empty());
     for (const LabelID quad_label: Policy::backpatch_list(lhs_bool))
-        quad_handler_->labelPatch_quad(quad_label, short_circuit_jump_stack_.top());
+        quad_emitter_->labelPatch_quad(quad_label, short_circuit_jump_stack_.top());
     short_circuit_jump_stack_.pop();
     Policy::backpatch_list(lhs_bool).clear();
 
@@ -550,7 +558,6 @@ const Expr *
 BasicBuilder::Restricted::normalize_to_bool_expr(const Expr *const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
-    auto *const qh = quad_handler_; // Short alias for readability.
 
     if (expr->type == Expr::Type::BOOL)
         return expr;
@@ -561,12 +568,18 @@ BasicBuilder::Restricted::normalize_to_bool_expr(const Expr *const expr)
                    ? expr_maker_->make_const_bool_expr(expr->loc, true)
                    : expr_maker_->make_const_bool_expr(expr->loc, false);
 
-    const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
-    bool_expr->true_list.push_back(qh->next_quad_label());
-    qh->emit_labelless(ir::Opcode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc);
-    bool_expr->false_list.push_back(qh->next_quad_label());
-    qh->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc);
+    const auto hook = [expr, this]()
+    {
+        const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
+        bool_expr->true_list.push_back(quad_emitter_->next_quad_label());
+        bool_expr->false_list.push_back(quad_emitter_->next_quad_label() + 1);
+        return bool_expr;
+    };
 
+    const Expr *const bool_expr = quad_yielder_->yield_returning_hook_result(
+        ir::Opcode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc, k_no_label, hook
+    );
+    quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc);
     return bool_expr;
 }
 
@@ -745,45 +758,34 @@ CallBuilder::Restricted::build_call_consuming(
 {
     DEBUG_SMART_ASSERT(!!callable_lvalue);
     DEBUG_SMART_ASSERT(!draft_.call_info_stack.empty());
+    auto *qy = quad_yielder_; // Short alias for readability.
+
     auto &call_args = draft_.call_info_stack.top().arguments;
     check_for_argument_mismatch(callable_lvalue, call_args, call_loc);
-
     while (!call_args.empty())
     {
         const Expr *const arg = call_args.top();
-        quad_handler_->emit_next(ir::Opcode::PARAM, nullptr, arg, nullptr, arg->loc);
-        release_temp_handle_if_active(arg);
+        qy->yield_next(ir::Opcode::PARAM, nullptr, arg, nullptr, arg->loc);
         call_args.pop();
     }
 
+    const Expr *call_target = callable_lvalue;
     if (method_name)
     {
         // Materialize host (handles cases like a[b]..c; host being a[b])
         const Expr *const materialized_host =
-            ss_bridge_->materialize_if_table_item(callable_lvalue);
-        quad_handler_->emit_next(
-            ir::Opcode::PARAM, nullptr, materialized_host, nullptr, method_name->loc);
-        release_temp_handle_if_active(materialized_host);
-
-        // Extract method into a callable expression.
-        const Expr *const callable_method =
-            expr_maker_->make_table_item_expr(call_loc, materialized_host, method_name);
-        const Expr *const callee = ss_bridge_->materialize_if_table_item(callable_method);
-        quad_handler_->emit_next(ir::Opcode::CALL, nullptr, callee, nullptr, call_loc);
-        release_temp_handle_if_active(callee);
+            expr_normalizer_->materialize_if_table_item(callable_lvalue);
+        qy->yield_next(ir::Opcode::PARAM, nullptr, materialized_host, nullptr, method_name->loc);
+        // Extract method into a call_target.
+        call_target = expr_maker_->make_table_item_expr(call_loc, materialized_host, method_name);
     }
-    else
-    {
-        const Expr *const callee = ss_bridge_->materialize_if_table_item(callable_lvalue);
-        quad_handler_->emit_next(ir::Opcode::CALL, nullptr, callee, nullptr, call_loc);
-        release_temp_handle_if_active(callee);
-    }
-
+    const Expr *const callee = expr_normalizer_->materialize_if_table_item(call_target);
+    qy->yield_next(ir::Opcode::CALL, nullptr, callee, nullptr, call_loc);
 
     // At these point we have used everything required to make a call.
     finalize_call();
     const auto *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
-    quad_handler_->emit_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
+    qy->yield_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
     return getretval_expr;
 }
 
@@ -821,15 +823,15 @@ void CallBuilder::commit_call_argument(const Expr *call_arg)
         r.parse_ctx_->elist_ctx_handler.region().has_value() &&
         r.parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::CALL
     );
-    call_arg = r.ss_bridge_->materialize_if_table_item(call_arg);
-    r.ss_bridge_->finalize_bool_expr(call_arg);
+
+    // TODO: if we move the following 3 commands in build_call_consuming... does it change anything?
+    // TODO: would we use less temps if we did so ?
     call_arg = r.expr_optimizer_->try_propagate_const(call_arg);
+    call_arg = r.expr_normalizer_->materialize_if_table_item(call_arg);
+    r.expr_normalizer_->resolve_bool_short_circuit(call_arg);
 
     DEBUG_SMART_ASSERT(!r.draft_.call_info_stack.empty());
     r.draft_.call_info_stack.top().arguments.push(call_arg);
-
-    // TODO: do we need the thing below?
-    // r.reset_temps_if_temp_operand(call_arg);
 }
 
 const Expr *
@@ -977,12 +979,11 @@ FunctionBuilder::Restricted::forward_program_function(
 /// or we’ll end up polluting the original function’s frame with
 /// local_variable_count from the redefinition. TODO: DO WE POLLUTE CURRENTLY?
 const FuncSymbol *
-FunctionBuilder::Restricted::build_program_function_entry(
-    const SourceLocation func_signature_loc)
+FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation func_signature_loc)
 {
     const bool validated_funcname = validate_funcdef_name(function_draft_.id, func_signature_loc);
-    const u32 skip_func_jump_label = quad_handler_->next_quad_label();
-    quad_handler_->emit_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_signature_loc);
+    const u32 skip_func_jump_label = quad_emitter_->next_quad_label();
+    quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_signature_loc);
     const FuncSymbol *func_symbol = nullptr;
     if (validated_funcname)
     {
@@ -994,7 +995,7 @@ FunctionBuilder::Restricted::build_program_function_entry(
             func_signature_loc
         );
 
-        quad_handler_->emit_next(
+        quad_yielder_->yield_next(
             ir::Opcode::FUNCSTART,
             nullptr,
             expr_maker_->make_prog_func_expr(func_signature_loc, func_symbol),
@@ -1002,16 +1003,13 @@ FunctionBuilder::Restricted::build_program_function_entry(
             func_signature_loc
         );
     }
-    DEBUG_SMART_ASSERT(support::logical_xnor(validated_funcname, !!func_symbol));
-    // Sanity check
+    DEBUG_SMART_ASSERT(support::logical_xnor(validated_funcname, !!func_symbol)); // Sanity check
 
     parse_ctx_->func_ctx_handler.enter_function(
         function_draft_.id, func_signature_loc, func_symbol, skip_func_jump_label);
     register_function_parameters();
-    function_draft_.reset();
-    // Mandatory to support nested functions in the upcoming func-block.
-    parse_ctx_->space_handler.enter_space();
-    // New var space -- must be after param registration.
+    function_draft_.reset(); // Mandatory to support nested functions in the upcoming func-block.
+    parse_ctx_->space_handler.enter_space(); // New var space -- must be after param registration.
 
     return func_symbol;
 }
@@ -1020,22 +1018,24 @@ const FuncSymbol *
 FunctionBuilder::Restricted::build_program_function_exit(
     const BlockSourceLocation block_loc)
 {
-    quad_handler_->labelPatch_list(
-        parse_ctx_->func_ctx_handler.return_list(), quad_handler_->next_quad_label());
+    quad_emitter_->labelPatch_list(
+        parse_ctx_->func_ctx_handler.return_list(),
+        quad_emitter_->next_quad_label()
+    );
 
     const auto fbi = parse_ctx_->func_ctx_handler.exit_function();
     if (!!fbi.func_symbol)
     {
         fbi.func_symbol->stackframe_slot_count = fbi.local_var_count;
 
-        quad_handler_->emit_next(
+        quad_yielder_->yield_next(
             ir::Opcode::FUNCEND,
             nullptr,
             expr_maker_->make_prog_func_expr(block_loc.end, fbi.func_symbol),
             nullptr,
             block_loc.end);
     }
-    quad_handler_->labelPatch_quad(fbi.funcdef_skip_jump, quad_handler_->next_quad_label());
+    quad_emitter_->labelPatch_quad(fbi.funcdef_skip_jump, quad_emitter_->next_quad_label());
     parse_ctx_->space_handler.exit_space();
 
     return fbi.func_symbol;
@@ -1051,25 +1051,29 @@ TableAccessBuilder::Restricted::build_member_access(
     DEBUG_SMART_ASSERT(!!base, !!member_id);
     if (!validate_lvalue(dr_, base, access_loc, "member access", ".", "base expression"))
         return nullptr;
-    const Expr *const materialized_lvalue = ss_bridge_->materialize_if_table_item(base);
+    const Expr *const materialized_lvalue = expr_normalizer_->materialize_if_table_item(base);
     const Expr *const index = expr_maker_->make_const_string_expr(member_id_loc, member_id);
     return expr_maker_->make_table_item_expr(access_loc, materialized_lvalue, index);
 }
 
 const Expr *
 TableAccessBuilder::Restricted::build_subscript_access(
-    const Expr *const base,
-    const Expr *const subscript,
+    const Expr *base,
+    const Expr *subscript,
     const SourceLocation access_loc)
 {
     DEBUG_SMART_ASSERT(!!base, !!subscript);
 
     if (!validate_lvalue(dr_, base, access_loc, "subscript", "[]", "base expression"))
         return nullptr;
-    const Expr *const materialized_lvalue = ss_bridge_->materialize_if_table_item(base);
-    const Expr *const materialized_index = ss_bridge_->materialize_if_table_item(subscript);
-    ss_bridge_->finalize_bool_expr(materialized_index);
-    return expr_maker_->make_table_item_expr(access_loc, materialized_lvalue, materialized_index);
+
+    base = expr_normalizer_->materialize_if_table_item(base);
+
+    subscript = expr_optimizer_->try_propagate_const(subscript);
+    subscript = expr_normalizer_->materialize_if_table_item(subscript);
+    expr_normalizer_->resolve_bool_short_circuit(subscript);
+
+    return expr_maker_->make_table_item_expr(access_loc, base, subscript);
 }
 
 // We must create the table literal at the start in order to emit TABLESETELEM instructions in
@@ -1083,9 +1087,9 @@ TableBuilder::Restricted::init_table_literal()
     const NewTableExpr *const new_table = expr_maker_->make_new_table_expr(k_no_loc);
 
     // Store quad label, so I can loc-patch quad's location
-    draft_.table_literal_stack.emplace(new_table, quad_handler_->next_quad_label());
+    draft_.table_literal_stack.emplace(new_table, quad_emitter_->next_quad_label());
 
-    quad_handler_->emit_next(ir::Opcode::TABLECREATE, new_table, nullptr, nullptr, k_no_loc);
+    quad_yielder_->yield_next(ir::Opcode::TABLECREATE, new_table, nullptr, nullptr, k_no_loc);
 }
 
 const Expr *
@@ -1100,23 +1104,26 @@ TableBuilder::Restricted::finalize_table_literal(const SourceLocation table_loc)
         expr_maker_->clone_with_updated_location(table_loc, tls.top().host_expr);
 
     // Backpatch the TABLECREATE quad with the correct source location
-    quad_handler_->locPatch_tablecreate(tls.top().host_quad_label, table_loc);
+    quad_emitter_->locPatch_tablecreate(tls.top().host_quad_label, table_loc);
 
     tls.pop();
     parse_ctx_->elist_ctx_handler.exit_region(DEBUG(ElistCtxHandler::Region::TABLE));
     return table_literal;
 }
 
-void TableBuilder::Restricted::commit_dict_element(const Expr *key, const Expr *value)
+void TableBuilder::Restricted::commit_dict_element(
+    const Expr *key,
+    const Expr *value,
+    const SourceLocation  dict_elem_loc)
 {
     DEBUG_SMART_ASSERT(!!key, !!value);
 
     key = expr_optimizer_->try_propagate_const(key);
-    key = ss_bridge_->materialize_if_table_item(key);
-    ss_bridge_->finalize_bool_expr(key);
+    key = expr_normalizer_->materialize_if_table_item(key);
+    expr_normalizer_->resolve_bool_short_circuit(key);
     value = expr_optimizer_->try_propagate_const(value);
-    value = ss_bridge_->materialize_if_table_item(value);
-    ss_bridge_->finalize_bool_expr(value);
+    value = expr_normalizer_->materialize_if_table_item(value);
+    expr_normalizer_->resolve_bool_short_circuit(value);
 
     DEBUG_SMART_ASSERT(
         !draft_.table_literal_stack.empty() &&
@@ -1125,17 +1132,13 @@ void TableBuilder::Restricted::commit_dict_element(const Expr *key, const Expr *
 
     const auto &top_table = draft_.table_literal_stack.top();
 
-    quad_handler_->emit_next(
+    quad_yielder_->yield_next(
         ir::Opcode::TABLESETELEM,
         top_table.host_expr,
         key,
         value,
-        merge(key->loc, value->loc)
+        dict_elem_loc
     );
-
-    // Key is evaluated before value, so `val` must be released first.
-    // Release always happens in reverse evaluation order to preserve
-    release_temp_handle_if_active(key, value);
 }
 
 // All state/services are intentionally nested inside `Restricted`.
@@ -1143,9 +1146,9 @@ void TableBuilder::Restricted::commit_dict_element(const Expr *key, const Expr *
 // As a side effect, even outer methods (like this one) must go through
 // `restricted()` to reach private data, since that's the only legal path.
 void
-TableBuilder::commit_list_element(const Expr *table_elem)
+TableBuilder::commit_list_element(const Expr *list_elem)
 {
-    DEBUG_SMART_ASSERT(!!table_elem);
+    DEBUG_SMART_ASSERT(!!list_elem);
     auto &r = restricted(); // Local alias for clarity
 
     DEBUG_SMART_ASSERT(
@@ -1153,26 +1156,23 @@ TableBuilder::commit_list_element(const Expr *table_elem)
         r.parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::TABLE
     );
 
-    // TODO: does same seq of these 3 instruction happens else where and often?
-    // if yes make put under helper function
-    table_elem = r.ss_bridge_->materialize_if_table_item(table_elem);
-    r.ss_bridge_->finalize_bool_expr(table_elem);
-    table_elem = r.expr_optimizer_->try_propagate_const(table_elem);
+    list_elem = r.expr_optimizer_->try_propagate_const(list_elem);
+    list_elem = r.expr_normalizer_->materialize_if_table_item(list_elem);
+    r.expr_normalizer_->resolve_bool_short_circuit(list_elem);
 
     DEBUG_SMART_ASSERT(!r.draft_.table_literal_stack.empty());
     auto &top_table = r.draft_.table_literal_stack.top();
 
     const Expr *const index_expr = r.expr_maker_->make_const_int_expr(
-        table_elem->loc,
+        list_elem->loc,
         top_table.list_index++
     );
-    r.quad_handler_->emit_next(
+    r.quad_yielder_->yield_next(
         ir::Opcode::TABLESETELEM,
         top_table.host_expr,
         index_expr,
-        table_elem,
-        table_elem->loc
+        list_elem,
+        list_elem->loc
     );
-    r.release_temp_handle_if_active(table_elem);
 }
 } // namespace alpha

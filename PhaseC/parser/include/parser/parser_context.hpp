@@ -200,7 +200,6 @@ private:
     {
         enum class HandleState : u8 { FREE, TAKEN };
 
-        DEBUG(std::size_t max_temp_handle = 0;)
         std::vector<HandleState> temp_handles_;
     };
 
@@ -241,8 +240,6 @@ public:
 
     [[nodiscard]] const VarSymbol *new_temp();
     [[nodiscard]] bool hard_error_occurred() const noexcept;
-
-    DEBUG([[nodiscard]] bool assert_temps_are_released(TempHandle max_temp_handle) const;)
 
 private:
     SymbolTable *const symbol_table_;

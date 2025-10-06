@@ -186,7 +186,7 @@ void
 TempCtxHandler::pop_temp_ctx_frame()
 {
     DEBUG_SMART_ASSERT(!temp_frames.empty());
-    DEBUG_SMART_ASSERT(host_->assert_temps_are_released(temp_frames.top().max_temp_handle));
+    DEBUG(if (!host_->hard_error_occurred()) SMART_ASSERT(temp_frames.top().temp_handles_.empty());)
     temp_frames.pop();
 }
 
@@ -214,14 +214,7 @@ TempCtxHandler::acquire_temp_handle()
     temp_handles.emplace_back(TempHandles::HandleState::TAKEN);
     DEBUG_SMART_ASSERT(temp_handles.size() - 1 >= std::numeric_limits<TempHandle>::min());
     DEBUG_SMART_ASSERT(temp_handles.size() - 1 <= std::numeric_limits<TempHandle>::max());
-    const TempHandle handle = static_cast<TempHandle>(temp_handles.size() - 1);
-
-#ifdef DEBUG_MODE
-    if (handle > temp_frames.top().max_temp_handle)
-        temp_frames.top().max_temp_handle = handle;
-#endif
-
-    return handle;
+    return static_cast<TempHandle>(temp_handles.size() - 1);
 }
 
 void
@@ -291,28 +284,6 @@ ParseCtx::new_temp()
     return var_symbol;
 }
 
-// clang-format off
-#ifdef DEBUG_MODE
-bool
-ParseCtx::assert_temps_are_released(const TempHandle max_temp_handle) const
-{
-    for (TempHandle i = 0; i <= max_temp_handle; ++i)
-    {
-        const Symbol *s = symbol_table_->lookup_local(
-            ParseCtx::generate_temp_name(i),
-            scope_handler.scope()
-        );
-
-        SMART_ASSERT(s && s->is_temp_variable());
-
-        if (static_cast<const VarSymbol *>(s)->has_temp_handle())
-            return false;
-    }
-    return true;
-}
-#endif // DEBUG_MODE
-// clang-format on
-
 void
 ElistCtxHandler::enter_region(const Region r) { region_stack_.push(r); }
 
@@ -324,14 +295,13 @@ ElistCtxHandler::exit_region(DEBUG(const Region r))
     // Ensure we are exiting the same region we most recently entered.
     // Regions must be balanced: every enter_region() must be matched
     // with a corresponding exit_region() for the same Region.
-    DEBUG_SMART_ASSERT(this->region() == r && "Mismatched region exit");
+    DEBUG_SMART_ASSERT(region() == r && "Mismatched region exit");
     region_stack_.pop();
 }
 
 std::optional<ElistCtxHandler::Region>
 ElistCtxHandler::region() const
 {
-    DEBUG_SMART_ASSERT(!region_stack_.empty());
     if (region_stack_.empty())
         return std::nullopt;
     return region_stack_.top();

@@ -135,15 +135,16 @@ add_library(alpha_parser_impl STATIC
     src/parser_context.cpp
     src/ir_expr.cpp
     src/L1_driver/semantic_system.cpp
-    src/L1_driver/semantic_system_support.cpp
     src/L2_builders/lvalue_resolver.cpp
     src/L2_builders/control_flow_manager.cpp
     src/L2_builders/expr_builders.cpp
     src/L2_builders/semantic_subsystem.cpp
     src/L2_builders/block_manager.cpp
-    src/L3_ir_infra/expr_optimizer.cpp
-    src/L3_ir_infra/expr_maker.cpp
-    src/L3_ir_infra/quad_handler.cpp
+    src/L2_builders/core/expr_maker.cpp
+    src/L2_builders/core/expr_normalizer.cpp
+    src/L2_builders/core/expr_optimizer.cpp
+    src/L2_builders/core/quad_emitter.cpp
+    src/L2_builders/core/quad_yielder.cpp
     invariants/ir_opcode_static_invariants.cpp
 )
 

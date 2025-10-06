@@ -2,10 +2,9 @@
 #define LVALUE_RESOLVER_HPP
 
 #include <core/source_location.hpp>
-#include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <parser/parser_context.hpp>
 #include <parser/symbol_table.hpp>
-#include <parser/L3_ir_infra/expr_maker.hpp>
+#include "L2_semantic_subsystems/core/expr_maker.hpp"
 #include "L1_driver/semantic_system_support.hpp"
 #include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 
@@ -47,10 +46,5 @@ private:
     DISPATCH_DEFINE_HANDLER_END();
 };
 
-inline const Expr *
-LvalueResolver::Restricted::resolve_lvalue_to_rvalue(const Expr *const lvalue)
-{
-    return ss_bridge_->materialize_if_table_item(lvalue);
-}
 } // namespace alpha
 #endif // LVALUE_RESOLVER_HPP

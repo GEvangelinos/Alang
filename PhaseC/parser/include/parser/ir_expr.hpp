@@ -23,7 +23,7 @@ enum class OperandSide : u8
 
 const char *to_string(OperandSide pos) noexcept;
 
-#define EXPR_TYPES(X)   \
+#define EXPR_TYPES(X)     \
     X(ARITHMETIC)       \
     X(ASSIGN)           \
     X(BOOL)             \
@@ -81,7 +81,7 @@ private:
     mutable OnceFlag rvalue_casted;
 };
 
-const char *to_string(Expr::Type type) noexcept; // We keep outside of Expr, so ADL finds it.
+const char *to_string(Expr::Type type) noexcept; // We keep outside Expr, so ADL finds it.
 
 struct ExprWVarSymbol : public Expr
 {
@@ -131,6 +131,9 @@ struct BoolExpr final : public ExprWVarSymbol
 {
     mutable std::vector<LabelID> true_list;
     mutable std::vector<LabelID> false_list;
+
+    // We mark as const, as we only change mutable fields.
+    void invert() const { std::swap(true_list, false_list); }
 
     ALWAYS_INLINE BoolExpr(const SourceLocation loc, const VarSymbol *const var_symbol)
         : ExprWVarSymbol(Type::BOOL, loc, var_symbol) {}
@@ -266,8 +269,8 @@ Expr::is_const_0() const noexcept
 {
     switch (type)
     {
-    case Expr::Type::CONST_INT: return static_cast<const ConstIntExpr *>(this)->value == 0;
-    case Expr::Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(this)->value == 0.0;
+    case Type::CONST_INT: return static_cast<const ConstIntExpr *>(this)->value == 0;
+    case Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(this)->value == 0.0;
     default: return false;
     }
 }
@@ -277,8 +280,8 @@ Expr::is_const_1() const noexcept
 {
     switch (type)
     {
-    case Expr::Type::CONST_INT: return static_cast<const ConstIntExpr *>(this)->value == 1;
-    case Expr::Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(this)->value == 1.0;
+    case Type::CONST_INT: return static_cast<const ConstIntExpr *>(this)->value == 1;
+    case Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(this)->value == 1.0;
     default: return false;
     }
 }
@@ -286,13 +289,13 @@ Expr::is_const_1() const noexcept
 inline bool
 Expr::is_const_true() const noexcept
 {
-    return type == Type::CONST_BOOL && static_cast<const ConstBoolExpr *>(this)->value == true;
+    return type == Type::BOOL && static_cast<const ConstBoolExpr *>(this)->value == true;
 }
 
 inline bool
 Expr::is_const_false() const noexcept
 {
-    return type == Type::CONST_BOOL && static_cast<const ConstBoolExpr *>(this)->value == false;
+    return type == Type::BOOL && static_cast<const ConstBoolExpr *>(this)->value == false;
 }
 
 inline bool
@@ -301,7 +304,8 @@ Expr::is_const_arithmetic() const noexcept
     return type == Type::CONST_INT || type == Type::CONST_FLOAT;
 }
 
-inline bool Expr::is_const() const noexcept
+inline bool
+Expr::is_const() const noexcept
 {
     switch (type)
     {

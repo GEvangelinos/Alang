@@ -7,9 +7,8 @@
 #include  <support/misc_tools.hpp>
 #include "semantic_subsystem.hpp"
 #include "L1_driver/semantic_system_support.hpp"
-#include "L3_ir_infra/expr_maker.hpp"
-#include "L3_ir_infra/expr_optimizer.hpp"
-#include "L3_ir_infra/quad_handler.hpp"
+#include "core/expr_maker.hpp"
+#include "core/expr_optimizer.hpp"
 #include "parser/semantic_utils.hpp"
 
 namespace alpha
@@ -67,9 +66,9 @@ private:
             const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
 
         template<typename Policy>
-        [[nodiscard]] const Expr *handle_pre_inc_dec(const Expr *expr, SourceLocation result_loc);
+        [[nodiscard]] const Expr *handle_pre_inc_dec(const Expr *lvalue, SourceLocation result_loc);
         template<typename Policy>
-        [[nodiscard]] const Expr *handle_post_inc_dec(const Expr *expr, SourceLocation result_loc);
+        [[nodiscard]] const Expr *handle_post_inc_dec(const Expr *lvalue, SourceLocation result_loc);
         template<OpVariant op_variant, typename Policy>
         [[nodiscard]] const Expr *build_inc_dec(const Expr *expr, SourceLocation result_loc);
     };
@@ -405,7 +404,7 @@ private:
         // Dict related (candidate for submodule)
         void begin_dict_entry();
         void end_dict_entry();
-        void commit_dict_element(const Expr *key, const Expr *value);
+        void commit_dict_element(const Expr *key, const Expr *value, SourceLocation dict_elem_loc);
     };
 
     // Accessors exists to insulate call sites from the DISPATCH_TARGET macro
@@ -418,7 +417,7 @@ private:
 
     // Defined outside Restricted, so it can be accessed by SemanticSystem's generalized expr collector
     // List related (candidate for submodule)
-    void commit_list_element(const Expr *table_elem);
+    void commit_list_element(const Expr *list_elem);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(init_table_literal);

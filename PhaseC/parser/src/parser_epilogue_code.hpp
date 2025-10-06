@@ -74,8 +74,8 @@ determine_suggested_token_based_on_parsing_heuristics(
     if (has_expected(info, YYSYMBOL_COLON)) return YYSYMBOL_COLON;
     if (has_expected(info, YYSYMBOL_COMMA) &&
         (
-            ss.parser_context_view->is_in_func_param_list() ||
-            ss.parser_context_view->is_in_call_arg_list()
+            ss.context_inspector->is_in_func_param_list() ||
+            ss.context_inspector->is_in_call_arg_list()
         )) { return YYSYMBOL_COMMA; }
     if (has_expected(info, YYSYMBOL_RIGHT_PAREN)) return YYSYMBOL_RIGHT_PAREN;
     if (has_expected(info, YYSYMBOL_RIGHT_BRACKET)) return YYSYMBOL_RIGHT_BRACKET;
@@ -104,7 +104,7 @@ made_diagnostic_based_on_semantic_heuristics(
     if (info.expected_tokens.empty())
         return false;
 
-    if (ss.parser_context_view->is_in_func_param_list() &&
+    if (ss.context_inspector->is_in_func_param_list() &&
         info.unexpected_token == YYSYMBOL_LEFT_BRACE &&
         has_expected(info, YYSYMBOL_RIGHT_PAREN))
     {
@@ -121,7 +121,7 @@ made_diagnostic_based_on_semantic_heuristics(
         ));
         return true;
     }
-    if (ss.parser_context_view->is_in_func_param_list() &&
+    if (ss.context_inspector->is_in_func_param_list() &&
         has_expected(info, YYSYMBOL_COMMA))
     {
         auto expected = yysymbol_name(YYSYMBOL_COMMA);
@@ -142,7 +142,7 @@ made_diagnostic_based_on_semantic_heuristics(
         ));
         return true;
     }
-    if (ss.parser_context_view->is_in_func_param_list() &&
+    if (ss.context_inspector->is_in_func_param_list() &&
         info.unexpected_token == YYSYMBOL_RIGHT_PAREN &&
         lexer_ctx.second_last_token_info().has_value() &&
         lexer_ctx.second_last_token_info().value().id == COMMA)

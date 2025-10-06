@@ -30,9 +30,10 @@
 
 #include "core/basics.hpp"
 #include "L2_semantic_subsystems/block_manager.hpp"
-#include "L3_ir_infra/expr_maker.hpp"
-#include "L3_ir_infra/expr_optimizer.hpp"
-#include "L3_ir_infra/quad_handler.hpp"
+#include "L2_semantic_subsystems/core/expr_maker.hpp"
+#include "L2_semantic_subsystems/core/expr_optimizer.hpp"
+#include "L2_semantic_subsystems/core/quad_emitter.hpp"
+#include "L2_semantic_subsystems/core/expr_normalizer.hpp"
 #include "parser/parser_context.hpp"
 #include "parser/symbol_table.hpp"
 #include "parser/L2_semantic_subsystems/control_flow_manager.hpp"
@@ -90,13 +91,14 @@ private:
     SymbolTable *const symbol_table_ = nullptr;
     DiagnosticReporter *const dr_ = nullptr;
 
-    // -- Layer 3 subsystems -- We use unique_ptr instead of normal vars, in order to detect wrong initialization order
+    // -- Layer 2 cor subsystems -- We use unique_ptr instead of normal vars, in order to detect wrong initialization order
     std::unique_ptr<ExprMaker> expr_maker_;
-    std::unique_ptr<QuadHandler> quad_handler_;
+    std::unique_ptr<QuadEmitter> quad_emitter_;
+    std::unique_ptr<QuadYielder> quad_yielder_;
+    std::unique_ptr<ExprNormalizer> expr_normalizer_;
     std::unique_ptr<ExprOptimizer> expr_optimizer_;
-    SemanticSystemBridge ss_bridge_;
 
-    // -- Layer 2 subsystems -- No trailing underscores here, as these are directly used in dispatch mechanisms.
+    // -- Layer 2 subsystems -- No trailing underscores here, as these are directly used in DSL dispatcher
     AssignBuilder assign_builder;
     BasicBuilder basic_builder;
     BlockManager block_manager;
@@ -111,7 +113,7 @@ private:
     // -- Directly dispatchable  methods-- // TODO: maybe package inside a module?
     void reset_stmt_context() noexcept;
     void consume_stmt_expr(const Expr *expr);
-    void commit_expr_of_elist(const Expr* expr);
+    void commit_expr_of_elist(const Expr *expr);
     [[nodiscard]] const Expr *force_rvalue_cast(const Expr *expr, SourceLocation cast_loc);
 
     [[nodiscard]] SemanticSystemServices create_semantic_system_services();
@@ -128,13 +130,13 @@ public:
     class Gateway;
 
     // Used to give access to specific queries to Bison's custom syntax error handler
-    class ParserContextView;
+    class ContextInspector;
 
     std::unique_ptr<Gateway> gateway;
-    std::unique_ptr<ParserContextView> parser_context_view;
+    std::unique_ptr<ContextInspector> context_inspector;
 };
 
-class SemanticSystem::ParserContextView
+class SemanticSystem::ContextInspector
 {
     friend class SemanticSystem;
 
@@ -147,7 +149,7 @@ public:
 private:
     SemanticSystem *const host_;
 
-    explicit ParserContextView(SemanticSystem *ss);
+    explicit ContextInspector(SemanticSystem *ss);
 };
 
 // Gateway lets PassManager mark hard errors, but not clear them;
@@ -165,7 +167,7 @@ private:
         : host_(support::require_ptr(ss)) {}
 
     void notify_hard_error() noexcept;
-    [[nodiscard]] const auto &get_quads() const noexcept { return host_->quad_handler_->quads(); }
+    [[nodiscard]] const auto &get_quads() const noexcept { return host_->quad_emitter_->quads(); }
 };
 } // namespace alpha
 #endif // SEMANTIC_SYSTEM_HPP
