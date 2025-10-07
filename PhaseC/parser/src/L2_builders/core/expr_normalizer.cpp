@@ -9,10 +9,12 @@ namespace alpha
 ExprNormalizer::ExprNormalizer(
     ParseCtx *const parse_ctx,
     ExprMaker *const expr_maker,
-    QuadEmitter *const quad_emitter)
+    QuadEmitter *const quad_emitter,
+    QuadYielder *const quad_yielder)
     : parse_ctx_(support::require_ptr(parse_ctx)),
       expr_maker_(support::require_ptr(expr_maker)),
-      quad_emitter_(support::require_ptr(quad_emitter)) {}
+      quad_emitter_(support::require_ptr(quad_emitter)),
+      quad_yielder_(support::require_ptr(quad_yielder)) {}
 
 const Expr *
 ExprNormalizer::materialize_if_table_item(const Expr *const expr)
@@ -20,18 +22,20 @@ ExprNormalizer::materialize_if_table_item(const Expr *const expr)
     DEBUG_SMART_ASSERT(!!expr);
     if (expr->type != Expr::Type::TABLE_ITEM)
         return expr;
+
+    auto temp_factory = [expr, this]()
+    {
+        return expr_maker_->make_variable_expr(expr->loc, parse_ctx_->new_temp());
+    };
+
     const auto *const ti_expr = static_cast<const TableItemExpr *>(expr);
-    const auto *const temp_var = expr_maker_->make_variable_expr(expr->loc, parse_ctx_->new_temp());
-    quad_emitter_->emit(
+    return quad_yielder_->yield_next(
         ir::Opcode::TABLEGETELEM,
-        temp_var,
+        temp_factory,
         ti_expr,
         ti_expr->index,
-        ti_expr->loc,
-        quad_emitter_->next_quad_label(),
-        QuadEmitter::EmitterKey{}
+        ti_expr->loc
     );
-    return temp_var;
 }
 
 void

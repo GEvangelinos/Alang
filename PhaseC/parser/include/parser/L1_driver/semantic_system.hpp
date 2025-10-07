@@ -73,7 +73,7 @@ public: // More public stuff at the end (check it out)
     DISPATCH_MASTER_MODULE_CALL(lvalue_resolver);
     DISPATCH_MASTER_MODULE_CALL(function_builder);
     DISPATCH_MASTER_MODULE_CALL(table_access_builder);
-    DISPATCH_MASTER_MODULE_CALL(table_builder);
+    DISPATCH_MASTER_MODULE_CALL(aggregate_builder);
     DISPATCH_MASTER_METHOD_CALL(reset_stmt_context);
     DISPATCH_MASTER_METHOD_CALL(consume_stmt_expr);
     DISPATCH_MASTER_METHOD_CALL(commit_expr_of_elist);
@@ -99,6 +99,7 @@ private:
     std::unique_ptr<ExprOptimizer> expr_optimizer_;
 
     // -- Layer 2 subsystems -- No trailing underscores here, as these are directly used in DSL dispatcher
+    AggregateBuilder aggregate_builder;
     AssignBuilder assign_builder;
     BasicBuilder basic_builder;
     BlockManager block_manager;
@@ -108,7 +109,6 @@ private:
     LvalueResolver lvalue_resolver;
     FunctionBuilder function_builder;
     TableAccessBuilder table_access_builder;
-    TableBuilder table_builder;
 
     // -- Directly dispatchable  methods-- // TODO: maybe package inside a module?
     void reset_stmt_context() noexcept;

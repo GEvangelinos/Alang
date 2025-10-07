@@ -13,6 +13,65 @@
 
 namespace alpha
 {
+class AggregateBuilder
+{
+    friend class SemanticSystem;
+
+private:
+    class Restricted final : private SemanticSubsystem
+    {
+        friend class AggregateBuilder;
+
+    private:
+        using DictList = std::vector<const ExprPair *>;
+
+        struct TableLiteralInfo
+        {
+            std::size_t list_index = 0; // Only used for ExprList. NOT DictList!
+            const NewTableExpr *const host_expr;
+            const LabelID host_quad_label;
+
+            TableLiteralInfo(const NewTableExpr *new_table_expr, LabelID host_quad_label);
+        };
+
+        struct
+        {
+            // A stack is required because we can have nested aggregates.
+            VectorStack<TableLiteralInfo> table_literal_stack;
+        } draft_;
+
+        explicit Restricted(const SemanticSystemServices &ss_services);
+        ~Restricted() override = default;
+
+        void init_table_literal();
+        [[nodiscard]] const Expr *finalize_table_literal(SourceLocation table_loc);
+
+        // Dict related (candidate for submodule)
+        void begin_dict_entry();
+        void end_dict_entry();
+        void commit_dict_element(const Expr *key, const Expr *value, SourceLocation dict_elem_loc);
+    };
+
+    // Accessors exists to insulate call sites from the DISPATCH_TARGET macro
+    // and to make the intended access point to Restricted state explicit.
+    Restricted DISPATCH_TARGET;
+    Restricted &restricted() noexcept { return DISPATCH_TARGET; }
+    const Restricted &restricted() const noexcept { return DISPATCH_TARGET; }
+
+    explicit AggregateBuilder(const SemanticSystemServices &ss_services);
+
+    // Defined outside Restricted, so it can be accessed by SemanticSystem's generalized expr collector
+    void commit_list_element(const Expr *list_elem);
+
+    DISPATCH_DEFINE_HANDLER_BEGIN();
+    DISPATCH_SLAVE_METHOD_CALL(init_table_literal);
+    DISPATCH_SLAVE_METHOD_CALL(finalize_table_literal);
+    DISPATCH_SLAVE_METHOD_CALL(begin_dict_entry);
+    DISPATCH_SLAVE_METHOD_CALL(end_dict_entry);
+    DISPATCH_SLAVE_METHOD_CALL(commit_dict_element);
+    DISPATCH_DEFINE_HANDLER_END();
+};
+
 class AssignBuilder
 {
     friend class SemanticSystem;
@@ -224,7 +283,7 @@ private:
             SourceLocation call_loc);
 
         [[nodiscard]] const Expr *build_call_consuming(
-            const Expr *callable_lvalue,
+            const Expr *callable,
             SourceLocation call_loc,
             const ConstStringExpr *method_name = nullptr);
         [[nodiscard]] const Expr *build_method_call_consuming(
@@ -368,77 +427,10 @@ private:
     DISPATCH_DEFINE_HANDLER_END();
 };
 
-class TableBuilder
-{
-    friend class SemanticSystem;
-
-private:
-    class Restricted final : private SemanticSubsystem
-    {
-        friend class TableBuilder;
-
-    private:
-        using DictList = std::vector<const ExprPair *>;
-
-        struct TableLiteralInfo
-        {
-            std::size_t list_index = 0; // Only used for ExprList. NOT DictList!
-            const NewTableExpr *const host_expr;
-            const LabelID host_quad_label;
-
-            TableLiteralInfo(const NewTableExpr *new_table_expr, LabelID host_quad_label);
-        };
-
-        struct
-        {
-            // A stack is required because we can have nested aggregates.
-            VectorStack<TableLiteralInfo> table_literal_stack;
-        } draft_;
-
-        explicit Restricted(const SemanticSystemServices &ss_services);
-        ~Restricted() override = default;
-
-        void init_table_literal();
-        [[nodiscard]] const Expr *finalize_table_literal(SourceLocation table_loc);
-
-        // Dict related (candidate for submodule)
-        void begin_dict_entry();
-        void end_dict_entry();
-        void commit_dict_element(const Expr *key, const Expr *value, SourceLocation dict_elem_loc);
-    };
-
-    // Accessors exists to insulate call sites from the DISPATCH_TARGET macro
-    // and to make the intended access point to Restricted state explicit.
-    Restricted DISPATCH_TARGET;
-    Restricted &restricted() noexcept { return DISPATCH_TARGET; }
-    const Restricted &restricted() const noexcept { return DISPATCH_TARGET; }
-
-    explicit TableBuilder(const SemanticSystemServices &ss_services);
-
-    // Defined outside Restricted, so it can be accessed by SemanticSystem's generalized expr collector
-    // List related (candidate for submodule)
-    void commit_list_element(const Expr *list_elem);
-
-    DISPATCH_DEFINE_HANDLER_BEGIN();
-    DISPATCH_SLAVE_METHOD_CALL(init_table_literal);
-    DISPATCH_SLAVE_METHOD_CALL(finalize_table_literal);
-    DISPATCH_SLAVE_METHOD_CALL(begin_dict_entry);
-    DISPATCH_SLAVE_METHOD_CALL(end_dict_entry);
-    DISPATCH_SLAVE_METHOD_CALL(commit_dict_element);
-    DISPATCH_DEFINE_HANDLER_END();
-};
-
-inline
-TableBuilder::Restricted::TableLiteralInfo::TableLiteralInfo(
-    const NewTableExpr *const new_table_expr,
-    const LabelID host_quad_label)
-    : host_expr(DEBUG_REQUIRE_PTR(new_table_expr)),
-      host_quad_label(host_quad_label) {}
+inline void
+AggregateBuilder::Restricted::begin_dict_entry() { parse_ctx_->table_ctx_handler.enter_dict_entry(); }
 
 inline void
-TableBuilder::Restricted::begin_dict_entry() { parse_ctx_->table_ctx_handler.enter_dict_entry(); }
-
-inline void
-TableBuilder::Restricted::end_dict_entry() { parse_ctx_->table_ctx_handler.exit_dict_entry(); }
+AggregateBuilder::Restricted::end_dict_entry() { parse_ctx_->table_ctx_handler.exit_dict_entry(); }
 } // namespace alpha
 #endif // EXPR_BUILDERS_HPP

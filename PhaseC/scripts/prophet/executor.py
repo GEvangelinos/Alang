@@ -73,7 +73,7 @@ class TestfileExecutor:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
         )
-        self._status_line.append(f"--Testing: {self.testfile.name:<50} ")
+        self._status_line.append(f"--Testing: {self.testfile.name:<60} ")
         if completed_subprocess.returncode != _EXIT_SUCCESS_RETURNCODE:
             self._status_line.append(
                 f"{COLOR_RED}Failure, test produced errors.{SGR_RESET}")

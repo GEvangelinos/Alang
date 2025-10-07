@@ -1142,3 +1142,25 @@ to this
 // 6,jump,NA,NA,NA,8,1,1
 // 7,assign,x,false,NA,NA,1,1
 // __END_IR__
+
+
+219)
+    for(;1;);
+ check if IR for this leads to itself,, when you optimize jump tracing (shorten jump chains)
+
+ 220) if you simplify x = a+a to add x, a,a
+
+ you must remeber to simplyfy general case: x = a+a+a to add x, a, a and add x,x,a
+
+ 221)
+ this :
+     x = input();
+procudes:
+40         call                                 input                                     -          4
+41         getretval       $0                                                             -          4
+42         assign          x                    $0                                        -          4
+
+it could be optimized to:
+
+40         call                                 input                                     -          4
+41         getretval       x                                                             -          4

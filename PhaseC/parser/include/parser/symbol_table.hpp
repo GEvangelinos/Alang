@@ -71,8 +71,8 @@ public:
     /// See SymbolTable.cpp for detailed rationale.
     static void detach_const_expr(const VarSymbol *var_symbol);
     static void attach_const_expr(const VarSymbol *var_symbol, const ConstExpr *const_expr);
-    static void attach_temp_handle(const VarSymbol *var_symbol, TempHandle id);
-    static TempHandle detach_temp_handle(const VarSymbol *var_symbol);
+    static void attach_temp_handle(const VarSymbol *var_symbol, TempHandleID id);
+    static TempHandleID detach_temp_handle(const VarSymbol *var_symbol);
 
 
 private:

@@ -116,11 +116,118 @@ TableAccessBuilder::TableAccessBuilder(const SemanticSystemServices &ss_services
 TableAccessBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
 
-TableBuilder::TableBuilder(const SemanticSystemServices &ss_services)
+AggregateBuilder::AggregateBuilder(const SemanticSystemServices &ss_services)
     :DISPATCH_TARGET(ss_services) {}
 
-TableBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
+AggregateBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
+
+
+AggregateBuilder::Restricted::TableLiteralInfo::TableLiteralInfo(
+    const NewTableExpr *const new_table_expr,
+    const LabelID host_quad_label)
+    : host_expr(DEBUG_REQUIRE_PTR(new_table_expr)),
+      host_quad_label(host_quad_label) {}
+
+// We must create the table literal at the start in order to emit TABLESETELEM instructions in
+// place, which minimizes the lifetime of temporary variables. However, at creation time we do not
+// yet know the full span of the source location that the table literal covers.
+// As a result, location is patched once the table literal is closed.
+void
+AggregateBuilder::Restricted::init_table_literal()
+{
+    parse_ctx_->elist_ctx_handler.enter_region(ElistCtxHandler::Region::TABLE);
+    const NewTableExpr *const new_table = expr_maker_->make_new_table_expr(k_no_loc);
+
+    // Store quad label, so I can loc-patch quad's location
+    draft_.table_literal_stack.emplace(new_table, quad_emitter_->next_quad_label());
+
+    quad_yielder_->yield_next(ir::Opcode::TABLECREATE, new_table, nullptr, nullptr, k_no_loc);
+}
+
+const Expr *
+AggregateBuilder::Restricted::finalize_table_literal(const SourceLocation table_loc)
+{
+    auto &tls = draft_.table_literal_stack; // Short alias for readability.
+    DEBUG_SMART_ASSERT(!tls.empty() && "No active table literal to finalize");
+
+    // TODO: provide a locpatch_expr method of expr_maker.. instead of cloining
+    // Clone the table expression with its finalized source location for accurate diagnostics
+    const Expr *const table_literal =
+        expr_maker_->clone_with_updated_location(table_loc, tls.top().host_expr);
+
+    // Backpatch the TABLECREATE quad with the correct source location
+    quad_emitter_->locPatch_tablecreate(tls.top().host_quad_label, table_loc);
+
+    tls.pop();
+    parse_ctx_->elist_ctx_handler.exit_region(DEBUG(ElistCtxHandler::Region::TABLE));
+    return table_literal;
+}
+
+void AggregateBuilder::Restricted::commit_dict_element(
+    const Expr *key,
+    const Expr *value,
+    const SourceLocation  dict_elem_loc)
+{
+    DEBUG_SMART_ASSERT(!!key, !!value);
+
+    key = expr_optimizer_->try_propagate_const(key);
+    key = expr_normalizer_->materialize_if_table_item(key);
+    expr_normalizer_->resolve_bool_short_circuit(key);
+    value = expr_optimizer_->try_propagate_const(value);
+    value = expr_normalizer_->materialize_if_table_item(value);
+    expr_normalizer_->resolve_bool_short_circuit(value);
+
+    DEBUG_SMART_ASSERT(
+        !draft_.table_literal_stack.empty() &&
+        "If we collect a dict_entry, then we must be inside a table_literal"
+    );
+
+    const auto &top_table = draft_.table_literal_stack.top();
+
+    quad_yielder_->yield_next(
+        ir::Opcode::TABLESETELEM,
+        top_table.host_expr,
+        key,
+        value,
+        dict_elem_loc
+    );
+}
+
+// All state/services are intentionally nested inside `Restricted`.
+// This prevents `friend classes from accessing them directly.
+// As a side effect, even outer methods (like this one) must go through
+// `restricted()` to reach private data, since that's the only legal path.
+void
+AggregateBuilder::commit_list_element(const Expr *list_elem)
+{
+    DEBUG_SMART_ASSERT(!!list_elem);
+    auto &r = restricted(); // Local alias for clarity
+
+    DEBUG_SMART_ASSERT(
+        r.parse_ctx_->elist_ctx_handler.region().has_value() &&
+        r.parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::TABLE
+    );
+
+    list_elem = r.expr_optimizer_->try_propagate_const(list_elem);
+    list_elem = r.expr_normalizer_->materialize_if_table_item(list_elem);
+    r.expr_normalizer_->resolve_bool_short_circuit(list_elem);
+
+    DEBUG_SMART_ASSERT(!r.draft_.table_literal_stack.empty());
+    auto &top_table = r.draft_.table_literal_stack.top();
+
+    const Expr *const index_expr = r.expr_maker_->make_const_int_expr(
+        list_elem->loc,
+        top_table.list_index++
+    );
+    r.quad_yielder_->yield_next(
+        ir::Opcode::TABLESETELEM,
+        top_table.host_expr,
+        index_expr,
+        list_elem,
+        list_elem->loc
+    );
+}
 
 // TODO: do we propagate assignment of assignment like x = y = z = 5? If NOT
 // We might need to let Expr::Type::ASSIGN_EXPR
@@ -752,16 +859,17 @@ CallBuilder::Restricted::check_for_argument_mismatch(
 
 const Expr *
 CallBuilder::Restricted::build_call_consuming(
-    const Expr *const callable_lvalue,
+    const Expr *const callable,
     const SourceLocation call_loc,
     const ConstStringExpr *const method_name)
 {
-    DEBUG_SMART_ASSERT(!!callable_lvalue);
+    DEBUG_SMART_ASSERT(!!callable);
+    DEBUG_SMART_ASSERT(callable->is_callable());
     DEBUG_SMART_ASSERT(!draft_.call_info_stack.empty());
     auto *qy = quad_yielder_; // Short alias for readability.
 
     auto &call_args = draft_.call_info_stack.top().arguments;
-    check_for_argument_mismatch(callable_lvalue, call_args, call_loc);
+    check_for_argument_mismatch(callable, call_args, call_loc);
     while (!call_args.empty())
     {
         const Expr *const arg = call_args.top();
@@ -769,17 +877,18 @@ CallBuilder::Restricted::build_call_consuming(
         call_args.pop();
     }
 
-    const Expr *call_target = callable_lvalue;
+    const Expr *call_target = callable;
     if (method_name)
     {
         // Materialize host (handles cases like a[b]..c; host being a[b])
         const Expr *const materialized_host =
-            expr_normalizer_->materialize_if_table_item(callable_lvalue);
+            expr_normalizer_->materialize_if_table_item(callable);
         qy->yield_next(ir::Opcode::PARAM, nullptr, materialized_host, nullptr, method_name->loc);
         // Extract method into a call_target.
         call_target = expr_maker_->make_table_item_expr(call_loc, materialized_host, method_name);
     }
     const Expr *const callee = expr_normalizer_->materialize_if_table_item(call_target);
+    DEBUG_SMART_ASSERT(callee->is_callable());
     qy->yield_next(ir::Opcode::CALL, nullptr, callee, nullptr, call_loc);
 
     // At these point we have used everything required to make a call.
@@ -796,6 +905,9 @@ CallBuilder::Restricted::build_method_call_consuming(
 {
     DEBUG_SMART_ASSERT(!draft_.call_info_stack.empty());
     DEBUG_SMART_ASSERT(draft_.call_info_stack.top().pending_method_info.has_value());
+
+    if (!validate_lvalue(dr_, method_host, call_loc, "method access", "..", "base expression"))
+        return nullptr;
 
     const MethodInfo &mi = *draft_.call_info_stack.top().pending_method_info;
     // Turn method name into a string literal expression
@@ -1074,105 +1186,5 @@ TableAccessBuilder::Restricted::build_subscript_access(
     expr_normalizer_->resolve_bool_short_circuit(subscript);
 
     return expr_maker_->make_table_item_expr(access_loc, base, subscript);
-}
-
-// We must create the table literal at the start in order to emit TABLESETELEM instructions in
-// place, which minimizes the lifetime of temporary variables. However, at creation time we do not
-// yet know the full span of the source location that the table literal covers.
-// As a result, location is patched once the table literal is closed.
-void
-TableBuilder::Restricted::init_table_literal()
-{
-    parse_ctx_->elist_ctx_handler.enter_region(ElistCtxHandler::Region::TABLE);
-    const NewTableExpr *const new_table = expr_maker_->make_new_table_expr(k_no_loc);
-
-    // Store quad label, so I can loc-patch quad's location
-    draft_.table_literal_stack.emplace(new_table, quad_emitter_->next_quad_label());
-
-    quad_yielder_->yield_next(ir::Opcode::TABLECREATE, new_table, nullptr, nullptr, k_no_loc);
-}
-
-const Expr *
-TableBuilder::Restricted::finalize_table_literal(const SourceLocation table_loc)
-{
-    auto &tls = draft_.table_literal_stack; // Short alias for readability.
-    DEBUG_SMART_ASSERT(!tls.empty() && "No active table literal to finalize");
-
-    // TODO: provide a locpatch_expr method of expr_maker.. instead of cloining
-    // Clone the table expression with its finalized source location for accurate diagnostics
-    const Expr *const table_literal =
-        expr_maker_->clone_with_updated_location(table_loc, tls.top().host_expr);
-
-    // Backpatch the TABLECREATE quad with the correct source location
-    quad_emitter_->locPatch_tablecreate(tls.top().host_quad_label, table_loc);
-
-    tls.pop();
-    parse_ctx_->elist_ctx_handler.exit_region(DEBUG(ElistCtxHandler::Region::TABLE));
-    return table_literal;
-}
-
-void TableBuilder::Restricted::commit_dict_element(
-    const Expr *key,
-    const Expr *value,
-    const SourceLocation  dict_elem_loc)
-{
-    DEBUG_SMART_ASSERT(!!key, !!value);
-
-    key = expr_optimizer_->try_propagate_const(key);
-    key = expr_normalizer_->materialize_if_table_item(key);
-    expr_normalizer_->resolve_bool_short_circuit(key);
-    value = expr_optimizer_->try_propagate_const(value);
-    value = expr_normalizer_->materialize_if_table_item(value);
-    expr_normalizer_->resolve_bool_short_circuit(value);
-
-    DEBUG_SMART_ASSERT(
-        !draft_.table_literal_stack.empty() &&
-        "If we collect a dict_entry, then we must be inside a table_literal"
-    );
-
-    const auto &top_table = draft_.table_literal_stack.top();
-
-    quad_yielder_->yield_next(
-        ir::Opcode::TABLESETELEM,
-        top_table.host_expr,
-        key,
-        value,
-        dict_elem_loc
-    );
-}
-
-// All state/services are intentionally nested inside `Restricted`.
-// This prevents `friend classes from accessing them directly.
-// As a side effect, even outer methods (like this one) must go through
-// `restricted()` to reach private data, since that's the only legal path.
-void
-TableBuilder::commit_list_element(const Expr *list_elem)
-{
-    DEBUG_SMART_ASSERT(!!list_elem);
-    auto &r = restricted(); // Local alias for clarity
-
-    DEBUG_SMART_ASSERT(
-        r.parse_ctx_->elist_ctx_handler.region().has_value() &&
-        r.parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::TABLE
-    );
-
-    list_elem = r.expr_optimizer_->try_propagate_const(list_elem);
-    list_elem = r.expr_normalizer_->materialize_if_table_item(list_elem);
-    r.expr_normalizer_->resolve_bool_short_circuit(list_elem);
-
-    DEBUG_SMART_ASSERT(!r.draft_.table_literal_stack.empty());
-    auto &top_table = r.draft_.table_literal_stack.top();
-
-    const Expr *const index_expr = r.expr_maker_->make_const_int_expr(
-        list_elem->loc,
-        top_table.list_index++
-    );
-    r.quad_yielder_->yield_next(
-        ir::Opcode::TABLESETELEM,
-        top_table.host_expr,
-        index_expr,
-        list_elem,
-        list_elem->loc
-    );
 }
 } // namespace alpha

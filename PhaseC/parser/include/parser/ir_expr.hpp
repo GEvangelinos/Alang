@@ -59,6 +59,7 @@ struct Expr : private Immobile
     [[nodiscard]] bool is_arithmetic_convertible() const noexcept;
     [[nodiscard]] bool is_func() const noexcept;
     [[nodiscard]] bool is_bool_or_const_bool() const noexcept;
+    [[nodiscard]] bool is_callable() const noexcept;
     [[nodiscard]] bool is_const_0() const noexcept;
     [[nodiscard]] bool is_const_1() const noexcept;
     [[nodiscard]] bool is_const_true() const noexcept;
@@ -264,7 +265,10 @@ Expr::is_bool_or_const_bool() const noexcept
     return type == Type::BOOL || type == Type::CONST_BOOL;
 }
 
-bool inline
+inline bool
+Expr::is_callable() const noexcept { return is_lvalue() || is_func(); }
+
+inline bool
 Expr::is_const_0() const noexcept
 {
     switch (type)

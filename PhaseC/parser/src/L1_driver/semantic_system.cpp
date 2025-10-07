@@ -31,11 +31,13 @@ SemanticSystem::SemanticSystem(
     expr_normalizer_(std::make_unique<ExprNormalizer>(
         parse_ctx,
         expr_maker_.get(),
-        quad_emitter_.get()
+        quad_emitter_.get(),
+        quad_yielder_.get()
     )),
     expr_optimizer_(std::make_unique<ExprOptimizer>(opts, expr_maker_.get())),
 
     // public (through call() dispatcher) servicers, used by users of semantic driver.
+    aggregate_builder(create_semantic_system_services()),
     assign_builder(get_assign_builder_options(opts), create_semantic_system_services()),
     basic_builder(get_basic_builder_options(opts), create_semantic_system_services()),
     block_manager(create_semantic_system_services()),
@@ -45,7 +47,6 @@ SemanticSystem::SemanticSystem(
     lvalue_resolver(create_semantic_system_services()),
     function_builder(create_semantic_system_services()),
     table_access_builder(create_semantic_system_services()),
-    table_builder(create_semantic_system_services()),
 
     // public resources used by external components.
     gateway(std::unique_ptr<Gateway>(new Gateway(this))),
@@ -110,10 +111,10 @@ SemanticSystem::commit_expr_of_elist(const Expr *expr)
         call_builder.commit_call_argument(expr);
         break;
     case ElistCtxHandler::Region::FORLOOP_CLAUSE:
-        UNIMPLEMENTED("Well you know what to do");
+        control_flow_manager.commit_forloop_header_expr(expr);
         break;
     case ElistCtxHandler::Region::TABLE:
-        table_builder.commit_list_element(expr);
+        aggregate_builder.commit_list_element(expr);
         break;
     default: UNREACHABLE("Unknown Region, please register");
     }

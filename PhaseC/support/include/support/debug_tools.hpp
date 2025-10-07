@@ -47,7 +47,7 @@
         #define ALWAYS_INLINE inline
 #endif
 #ifdef DEBUG_MODE
-        #define DEBUG(...) __VA_ARGS__
+        #define DEBUG(code) code
         #define DEBUG_ALWAYS_INLINE // Disable inlining to ensure that a function visible debug symbols.
         #define DEBUG_NULLIFY(pointer) ((pointer) = nullptr)
 
@@ -56,7 +56,7 @@
 //  Also active in debug mode: same as above, runs full logic
         #define DEBUG_SMART_ASSERT_EVAL(...) SMART_ASSERT(__VA_ARGS__)
 #else
-        #define DEBUG(...) // Ignore input!
+        #define DEBUG(code) // Ignore input!
         #define DEBUG_ALWAYS_INLINE ALWAYS_INLINE
         #define DEBUG_NULLIFY(pointer) ((void)0)
 

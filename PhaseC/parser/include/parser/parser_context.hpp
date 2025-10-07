@@ -181,6 +181,11 @@ private:
     u32 anonymous_counter_ = 0;
 };
 
+/// As I am writing testfiles, I come to realize, that a linear "stack-like" vector of temp handles,
+/// will be insufficient. Although we mostly acquire and release the handle with the highest ID.
+/// There are cases that we might acquire handle ID=1 but be able to reuse handle ID=0.
+/// Thus, we need a pool-based system for handle management. Where acquiring a handle requires
+/// a linear scan of the hande pool, where we get the first FREEed handle or add a new one.
 class TempCtxHandler
 {
 public:
@@ -190,21 +195,23 @@ public:
     void push_temp_ctx_frame();
     void pop_temp_ctx_frame();
 
-    [[nodiscard]] TempHandle acquire_temp_handle();
-    void release_temp_handle(TempHandle id);
+    [[nodiscard]] TempHandleID acquire_temp_handle();
+    void release_temp_handle(TempHandleID id);
 
     void reset_temp_ctx_frame();
 
 private:
-    struct TempHandles
+    // Note: You could add a Free-list for faster acquisition, but then you would grab which ever
+    // handle is available (or add a new one) and no the available handle with the least ID num.
+    struct TempFrame
     {
-        enum class HandleState : u8 { FREE, TAKEN };
+        enum class Handle : u8 { RELEASED, ACQUIRED };
 
-        std::vector<HandleState> temp_handles_;
+        std::vector<Handle> temp_handles_;
     };
 
     const ParseCtx *const host_;
-    VectorStack<TempHandles> temp_frames;
+    VectorStack<TempFrame> temp_frames;
 };
 
 class ElistCtxHandler
@@ -245,7 +252,7 @@ private:
     SymbolTable *const symbol_table_;
     OnceFlag hard_error_occurred_;
 
-    [[nodiscard]] static std::string generate_temp_name(TempHandle temp_handle) noexcept;
+    [[nodiscard]] static std::string generate_temp_name(TempHandleID temp_handle) noexcept;
 };
 
 inline void

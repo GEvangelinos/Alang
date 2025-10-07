@@ -42,7 +42,7 @@ public:
     [[nodiscard]] const ProgFuncExpr *make_prog_func_expr(
         SourceLocation expr_loc, const FuncSymbol *func_symbol);
     [[nodiscard]] const TableItemExpr *make_table_item_expr(
-        SourceLocation expr_loc, const Expr *lvalue, const Expr *index);
+        SourceLocation expr_loc, const Expr *base, const Expr *index);
     [[nodiscard]] const VariableExpr *make_variable_expr(
         SourceLocation expr_loc, const VarSymbol *var);
 
@@ -147,20 +147,20 @@ ExprMaker::make_prog_func_expr(
 inline const TableItemExpr *
 ExprMaker::make_table_item_expr(
     const SourceLocation expr_loc,
-    const Expr *const lvalue,
+    const Expr *const base,
     const Expr *const index)
 {
     DEBUG_SMART_ASSERT(
-        !!lvalue, !!index,
-        lvalue->is_lvalue(),
-        lvalue->has_symbol()
+        !!base, !!index,
+        base->is_lvalue(),
+        base->has_symbol()
     );
     // TODO POLISH
     DEBUG_SMART_ASSERT(
-        lvalue->type == Expr::Type::VARIABLE &&
+        base->type == Expr::Type::VARIABLE &&
         "if it fails then we must check for lib and prog, assign , tableitem "
     );
-    const auto *const expr_w_var_symbol = static_cast<const ExprWVarSymbol *>(lvalue);
+    const auto *const expr_w_var_symbol = static_cast<const ExprWVarSymbol *>(base);
     const auto *const lvalue_symbol = static_cast<const VarSymbol *>(expr_w_var_symbol->var_symbol);
     const auto *const table_item_expr = new const TableItemExpr(expr_loc, lvalue_symbol, index);
     expr_sink_.push_back(table_item_expr);

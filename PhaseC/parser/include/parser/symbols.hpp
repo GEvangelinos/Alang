@@ -86,7 +86,7 @@ public:
     [[nodiscard]] const ConstExpr *get_const_expr() const noexcept { return const_expr_; }
     [[nodiscard]] bool has_const_value() const noexcept { return const_expr_; }
     [[nodiscard]] bool has_temp_handle() const noexcept { return temp_binding_.is_active(); }
-    [[nodiscard]] TempHandle temp_handle() const noexcept;
+    [[nodiscard]] TempHandleID temp_handle() const noexcept;
 
     [[nodiscard]] static Type scope_to_symbol_type(u32 scope);
 
@@ -97,12 +97,12 @@ private:
         enum class Status :u8 { ACQUIRED, RELEASED };
 
         [[nodiscard]] bool is_active() const noexcept { return status_ == Status::ACQUIRED; }
-        [[nodiscard]] TempHandle id() const noexcept;
-        void bind(TempHandle id) noexcept;
-        TempHandle release() noexcept;
+        [[nodiscard]] TempHandleID id() const noexcept;
+        void bind(TempHandleID id) noexcept;
+        TempHandleID release() noexcept;
 
     private:
-        TempHandle id_ = std::numeric_limits<TempHandle>::max();
+        TempHandleID id_ = std::numeric_limits<TempHandleID>::max();
         Status status_ = Status::RELEASED;
     };
 
@@ -189,7 +189,7 @@ VarSymbol::scope_to_symbol_type(const u32 scope)
     return scope == k_global_scope ? Type::GLOBAL_VARIABLE : Type::LOCAL_VARIABLE;
 }
 
-inline TempHandle
+inline TempHandleID
 VarSymbol::temp_handle() const noexcept
 {
     DEBUG_SMART_ASSERT(has_temp_handle() && "Variable symbol has no temp_handle to return");
@@ -197,20 +197,20 @@ VarSymbol::temp_handle() const noexcept
 }
 
 inline void
-VarSymbol::TempBinding::bind(const TempHandle id) noexcept
+VarSymbol::TempBinding::bind(const TempHandleID id) noexcept
 {
     id_ = id;
     status_ = Status::ACQUIRED;
 }
 
-inline TempHandle
+inline TempHandleID
 VarSymbol::TempBinding::release() noexcept
 {
     status_ = Status::RELEASED;
     return id_;
 }
 
-inline TempHandle
+inline TempHandleID
 VarSymbol::TempBinding::id() const noexcept
 {
     DEBUG_SMART_ASSERT(is_active());

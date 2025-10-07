@@ -5,7 +5,7 @@
 
 namespace alpha
 {
-using TempHandle = u32;
+using TempHandleID = u32;
 using LabelID = u32;
 using AlphaInt = i64;
 using AlphaFloat = f64;

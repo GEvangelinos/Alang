@@ -375,14 +375,14 @@ expr_list:
 
 dict_element:
   LEFT_BRACE
-  { ss.call<"table_builder.begin_dict_entry">(); }
+  { ss.call<"aggregate_builder.begin_dict_entry">(); }
   expr[key]
   COLON
   expr[value]
   RIGHT_BRACE
   {
-    ss.call<"table_builder.end_dict_entry">();
-    ss.call<"table_builder.commit_dict_element">($key, $value, @dict_element);
+    ss.call<"aggregate_builder.end_dict_entry">();
+    ss.call<"aggregate_builder.commit_dict_element">($key, $value, @dict_element);
   }
 ;
 
@@ -397,7 +397,7 @@ dict_list:
 
 table_literal_begin:
   LEFT_BRACKET
-  { ss.call<"table_builder.init_table_literal">(); }
+  { ss.call<"aggregate_builder.init_table_literal">(); }
 ;
 
 table_literal_end:
@@ -406,10 +406,10 @@ table_literal_end:
 
 table_literal:
   table_literal_begin expr_list table_literal_end
-  { $table_literal = ss.call<"table_builder.finalize_table_literal">(@table_literal); }
+  { $table_literal = ss.call<"aggregate_builder.finalize_table_literal">(@table_literal); }
 |
   table_literal_begin dict_list table_literal_end
-  { $table_literal = ss.call<"table_builder.finalize_table_literal">(@table_literal); }
+  { $table_literal = ss.call<"aggregate_builder.finalize_table_literal">(@table_literal); }
 ;
 
 block_begin:

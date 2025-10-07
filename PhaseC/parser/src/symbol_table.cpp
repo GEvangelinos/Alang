@@ -245,12 +245,12 @@ SymbolTable::attach_const_expr(
 }
 
 void
-SymbolTable::attach_temp_handle(const VarSymbol *const var_symbol, const TempHandle id)
+SymbolTable::attach_temp_handle(const VarSymbol *const var_symbol, const TempHandleID id)
 {
     var_symbol->temp_binding_.bind(id);
 }
 
-TempHandle
+TempHandleID
 SymbolTable::detach_temp_handle(const VarSymbol *const var_symbol)
 {
     return var_symbol->temp_binding_.release();

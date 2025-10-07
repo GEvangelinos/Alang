@@ -186,7 +186,11 @@ void
 TempCtxHandler::pop_temp_ctx_frame()
 {
     DEBUG_SMART_ASSERT(!temp_frames.empty());
-    DEBUG(if (!host_->hard_error_occurred()) SMART_ASSERT(temp_frames.top().temp_handles_.empty());)
+    DEBUG(
+        if (!host_->hard_error_occurred())
+        /**/for (const auto temp_handle : temp_frames.top().temp_handles_)
+        /******/DEBUG_SMART_ASSERT(temp_handle == TempFrame::Handle::RELEASED);
+    )
     temp_frames.pop();
 }
 
@@ -198,40 +202,39 @@ TempCtxHandler::reset_temp_ctx_frame()
     push_temp_ctx_frame();
 }
 
-TempHandle
+TempHandleID
 TempCtxHandler::acquire_temp_handle()
 {
+    static_assert(
+        std::numeric_limits<TempHandleID>::min() == 0,
+        "TempHandleID must begin at 0 since IDs are used to generate temporary variable names."
+    );
     DEBUG_SMART_ASSERT(!temp_frames.empty());
 
     auto &temp_handles = temp_frames.top().temp_handles_;
 
-    // Invariant check:
-    DEBUG(
-        for (const TempHandles::HandleState ss : temp_frames.top().temp_handles_)
-        SMART_ASSERT(ss == TempHandles::HandleState::TAKEN);
-    )
+    // Scan for available
+    for (TempHandleID id = 0; id < temp_handles.size(); ++id)
+        if (temp_handles[id] == TempFrame::Handle::RELEASED)
+        {
+            temp_handles[id] = TempFrame::Handle::ACQUIRED;
+            return id;
+        }
 
-    temp_handles.emplace_back(TempHandles::HandleState::TAKEN);
-    DEBUG_SMART_ASSERT(temp_handles.size() - 1 >= std::numeric_limits<TempHandle>::min());
-    DEBUG_SMART_ASSERT(temp_handles.size() - 1 <= std::numeric_limits<TempHandle>::max());
-    return static_cast<TempHandle>(temp_handles.size() - 1);
+    // If no available push new.
+    temp_handles.emplace_back(TempFrame::Handle::ACQUIRED);
+    const auto new_id = temp_handles.size() - 1;
+    DEBUG_SMART_ASSERT(static_cast<TempHandleID>(new_id) == new_id && "`new_id` out of range");
+    return static_cast<TempHandleID>(new_id);
 }
 
 void
-TempCtxHandler::release_temp_handle([[maybe_unused]] const TempHandle id)
+TempCtxHandler::release_temp_handle(const TempHandleID id)
 {
     DEBUG_SMART_ASSERT(!temp_frames.empty());
     auto &temp_handles = temp_frames.top().temp_handles_;
-    DEBUG_SMART_ASSERT(!temp_handles.empty());
-
-    // Invariant check: If these rules fail... then release of temp values is not in order
-    // then acquiring is not in order too, and you would have to search for first available.
-    DEBUG(
-        for (const TempHandles::HandleState ts : temp_handles)
-        SMART_ASSERT(ts == TempHandles::HandleState::TAKEN);
-    )
-    DEBUG_SMART_ASSERT(temp_handles.size() - 1 == id);
-    temp_handles.pop_back();
+    DEBUG_SMART_ASSERT(!temp_handles.empty(), id < temp_handles.size());
+    temp_handles[id] = TempFrame::Handle::RELEASED;
 }
 
 ParseCtx::ParseCtx(SymbolTable *const symbol_table)
@@ -244,7 +247,7 @@ ParseCtx::ParseCtx(SymbolTable *const symbol_table)
       symbol_table_(support::require_ptr(symbol_table)) {}
 
 std::string
-ParseCtx::generate_temp_name(const TempHandle temp_handle)
+ParseCtx::generate_temp_name(const TempHandleID temp_handle)
     noexcept(noexcept(std::to_string(temp_handle)))
 {
     return k_temp_variable_prefix + std::to_string(temp_handle);
@@ -253,7 +256,7 @@ ParseCtx::generate_temp_name(const TempHandle temp_handle)
 const VarSymbol *
 ParseCtx::new_temp()
 {
-    const TempHandle temp_handle = temp_ctx_handler.acquire_temp_handle();
+    const TempHandleID temp_handle = temp_ctx_handler.acquire_temp_handle();
     const std::string temp_name = ParseCtx::generate_temp_name(temp_handle);
 
     const Symbol *symbol = symbol_table_->lookup_local(temp_name, scope_handler.scope());

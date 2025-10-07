@@ -86,12 +86,12 @@ ControlFlowManager::Restricted::manage_elsebranch_exit()
 void
 ControlFlowManager::Restricted::manage_whileloop_entry()
 {
-    build_ctx_.push_new_whileloop_frame();
+    build_ctx_.push_new_whileloop_patch_point_frame();
     DEBUG(
-        const auto &wlf_stack = build_ctx_.while_loop_frames;
+        const auto &wlf_stack = build_ctx_.while_loop_patch_points;
         SMART_ASSERT(!wlf_stack.empty());
     )
-    build_ctx_.while_loop_frames.top().before_condition = quad_emitter_->next_quad_label();
+    build_ctx_.while_loop_patch_points.top().before_condition = quad_emitter_->next_quad_label();
 }
 
 void
@@ -114,7 +114,7 @@ ControlFlowManager::Restricted::manage_whileloop_condition(
         offset_to_while_block
     );
     // Record the placeholder label for the 'false' condition jump to be patched later.
-    build_ctx_.while_loop_frames.top().unpatched_bypass_jump = quad_emitter_->next_quad_label();
+    build_ctx_.while_loop_patch_points.top().unpatched_bypass_jump = quad_emitter_->next_quad_label();
     // Emit unconditional jump that will eventually point at the end of the while-block.
     quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, while_clause_loc);
 
@@ -125,7 +125,7 @@ void
 ControlFlowManager::Restricted::manage_whileloop_exit(const SourceLocation while_stmt_loc)
 {
     DEBUG(
-        auto &wlf_stack = build_ctx_.while_loop_frames;
+        auto &wlf_stack = build_ctx_.while_loop_patch_points;
         SMART_ASSERT(!wlf_stack.empty());
         SMART_ASSERT(
             wlf_stack.top().before_condition != k_no_label,
@@ -133,7 +133,7 @@ ControlFlowManager::Restricted::manage_whileloop_exit(const SourceLocation while
         );
     )
     auto &qe = quad_emitter_;                             // Short alias for readability.
-    const auto &wlf = build_ctx_.while_loop_frames.top(); // Short alias for readability.
+    const auto &wlf = build_ctx_.while_loop_patch_points.top(); // Short alias for readability.
     auto &fctx = parse_ctx_->func_ctx_handler;            // Short alias for readability.
 
     quad_yielder_->yield(
@@ -151,15 +151,14 @@ ControlFlowManager::Restricted::manage_whileloop_exit(const SourceLocation while
     qe->labelPatch_list(fctx.continue_list(), wlf.before_condition);
 
     parse_ctx_->func_ctx_handler.exit_loop(); // Kills break and continue lists.
-    build_ctx_.while_loop_frames.pop();       // DO NOT USE `wlf` PAST THIS POINT
+    build_ctx_.while_loop_patch_points.pop();       // DO NOT USE `wlf` PAST THIS POINT
 }
 
 void
 ControlFlowManager::Restricted::mark_forloop_condition_entry()
 {
-    build_ctx_.push_new_forloop_frame();
     DEBUG(
-        auto &flf_stack = build_ctx_.for_loop_frames;
+        auto &flf_stack = build_ctx_.for_loop_patch_points;
         SMART_ASSERT(!flf_stack.empty());
         SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::BEFORE_CONDITION);
     )
@@ -170,7 +169,7 @@ void
 ControlFlowManager::Restricted::mark_forloop_update_list_entry()
 {
     DEBUG(
-        auto &flf_stack = build_ctx_.for_loop_frames;
+        auto &flf_stack = build_ctx_.for_loop_patch_points;
         SMART_ASSERT(!flf_stack.empty());
         SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::BEFORE_UPDATE_LIST);
     )
@@ -181,7 +180,7 @@ void
 ControlFlowManager::Restricted::mark_forloop_update_list_exit(const SourceLocation exit_loc)
 {
     DEBUG(
-        auto &flf_stack = build_ctx_.for_loop_frames;
+        auto &flf_stack = build_ctx_.for_loop_patch_points;
         SMART_ASSERT(!flf_stack.empty());
         SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::AFTER_UPDATE_LIST);
     )
@@ -194,7 +193,7 @@ ControlFlowManager::Restricted::manage_forloop_condition(
     const Expr *conditional,
     const SourceLocation condition_loc)
 {
-    DEBUG(auto &flf_stack = build_ctx_.for_loop_frames;)
+    DEBUG(auto &flf_stack = build_ctx_.for_loop_patch_points;)
     DEBUG_SMART_ASSERT(!flf_stack.empty());
     DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::CONDITION_TRUE);
 
@@ -219,12 +218,12 @@ ControlFlowManager::Restricted::manage_forloop_condition(
 void
 ControlFlowManager::Restricted::manage_forloop_entry()
 {
-    DEBUG(auto & flf_stack = build_ctx_.for_loop_frames;)
+    DEBUG(auto & flf_stack = build_ctx_.for_loop_patch_points;)
     DEBUG_SMART_ASSERT(!flf_stack.empty());
     // Increment loop counter to keep stack balanced, even if the for-clause is malformed.
     parse_ctx_->func_ctx_handler.enter_loop();
 
-    if (build_ctx_.for_loop_frames.top().bad_clause)
+    if (build_ctx_.for_loop_patch_points.top().bad_clause)
         return;
 
     DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::BEFORE_BODY);
@@ -234,12 +233,12 @@ ControlFlowManager::Restricted::manage_forloop_entry()
 void
 ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_loc)
 {
-    DEBUG(auto & flf_stack = build_ctx_.for_loop_frames;)
+    DEBUG(auto & flf_stack = build_ctx_.for_loop_patch_points;)
     DEBUG_SMART_ASSERT(!flf_stack.empty());
 
     auto *const qe = quad_emitter_; // Short alias to improve readability.
 
-    const auto &flf = build_ctx_.for_loop_frames.top(); // Short alias to improve readability.
+    const auto &flf = build_ctx_.for_loop_patch_points.top(); // Short alias to improve readability.
     if (!flf.bad_clause)
     {
         // Emit closure loop jump.
@@ -264,13 +263,14 @@ ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_lo
     }
 
     parse_ctx_->func_ctx_handler.exit_loop(); // This kills break and continue lists.
-    build_ctx_.for_loop_frames.pop();         // DO NOT USE `flf` PAST THIS POINT
+    build_ctx_.for_loop_patch_points.pop();         // DO NOT USE `flf` PAST THIS POINT
 }
 
 void
 ControlFlowManager::Restricted::enter_forloop_clause()
 {
     parse_ctx_->elist_ctx_handler.enter_region(ElistCtxHandler::Region::FORLOOP_CLAUSE);
+    build_ctx_.push_new_forloop_patch_point_frame();
 }
 
 void
@@ -282,8 +282,8 @@ ControlFlowManager::Restricted::exit_forloop_clause()
 void
 ControlFlowManager::Restricted::mark_bad_forloop_clause()
 {
-    DEBUG_SMART_ASSERT(!build_ctx_.for_loop_frames.empty());
-    build_ctx_.for_loop_frames.top().bad_clause = true;
+    DEBUG_SMART_ASSERT(!build_ctx_.for_loop_patch_points.empty());
+    build_ctx_.for_loop_patch_points.top().bad_clause = true;
     parse_ctx_->temp_ctx_handler.reset_temp_ctx_frame();
 }
 
@@ -322,10 +322,10 @@ ControlFlowManager::Restricted::manage_return(
 void
 ControlFlowManager::Restricted::mark_upcoming_forloop_sites()
 {
-    DEBUG_SMART_ASSERT(!build_ctx_.for_loop_frames.empty());
+    DEBUG_SMART_ASSERT(!build_ctx_.for_loop_patch_points.empty());
     using FLS = ForLoopSite;
 
-    auto &flf = build_ctx_.for_loop_frames.top(); // Short alias to improve readability.
+    auto &flf = build_ctx_.for_loop_patch_points.top(); // Short alias to improve readability.
 
     // clang-format off
     switch (const LabelID next_jump_label = quad_emitter_->next_quad_label(); flf.next_patch_point)
@@ -393,5 +393,21 @@ ControlFlowManager::Restricted::next(const ForLoopSite fls) noexcept
     case FLS::AFTER_BODY: return FLS::BEFORE_CONDITION;
     default: [[unlikely]] UNREACHABLE("Unknown FLS");
     }
+}
+
+void
+ControlFlowManager::commit_forloop_header_expr(const Expr * header_expr)
+{
+    DEBUG_SMART_ASSERT(!!header_expr);
+    const auto &r = restricted();
+    DEBUG_SMART_ASSERT(
+        r.parse_ctx_->elist_ctx_handler.region().has_value() &&
+        r.parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::FORLOOP_CLAUSE
+    );
+
+    // TODO: can we remove materialize? can't think of a reason why this would be useful, or even run anytime...
+    header_expr= r.expr_normalizer_->materialize_if_table_item(header_expr);
+    r.expr_normalizer_->resolve_bool_short_circuit(header_expr);
+    r.quad_yielder_->release_temp_handle_if_active(header_expr);
 }
 } // namespace alpha

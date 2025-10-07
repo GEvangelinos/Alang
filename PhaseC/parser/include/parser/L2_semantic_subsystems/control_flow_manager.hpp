@@ -50,34 +50,34 @@ private:
     private:
         struct // (singleton)
         {
-            using LabelStack = std::stack<LabelID, std::vector<LabelID>>;
+            using LabelStack = VectorStack<LabelID>;
             LabelStack unpatched_if_bypass_jumps;
             LabelStack unpatched_else_bypass_jumps;
 
             struct WhileLoopPatchPoints
             {
-                LabelID unpatched_bypass_jump;
-                LabelID before_condition;
+                LabelID unpatched_bypass_jump = k_no_label;
+                LabelID before_condition = k_no_label;
             };
 
             struct ForLoopPatchPoints
             {
                 ForLoopSite next_patch_point = ForLoopSite::BEFORE_CONDITION;
-                LabelID before_condition;
-                LabelID condition_true;
-                LabelID condition_false;
-                LabelID before_update_list;
-                LabelID after_update_list;
-                LabelID before_body;
-                LabelID after_body;
+                LabelID before_condition = k_no_label;
+                LabelID condition_true = k_no_label;
+                LabelID condition_false = k_no_label;
+                LabelID before_update_list = k_no_label;
+                LabelID after_update_list = k_no_label;
+                LabelID before_body = k_no_label;
+                LabelID after_body = k_no_label;
                 bool bad_clause;
             };
 
-            std::stack<WhileLoopPatchPoints, std::vector<WhileLoopPatchPoints>> while_loop_frames;
-            std::stack<ForLoopPatchPoints, std::vector<ForLoopPatchPoints>> for_loop_frames;
+            VectorStack<WhileLoopPatchPoints> while_loop_patch_points;
+            VectorStack<ForLoopPatchPoints> for_loop_patch_points;
 
-            void push_new_whileloop_frame() { while_loop_frames.push(WhileLoopPatchPoints()); }
-            void push_new_forloop_frame() { for_loop_frames.push(ForLoopPatchPoints()); }
+            void push_new_whileloop_patch_point_frame() { while_loop_patch_points.emplace(); }
+            void push_new_forloop_patch_point_frame() { for_loop_patch_points.emplace(); }
         } build_ctx_;
 
         explicit Restricted(const SemanticSystemServices &ss_services);
@@ -109,9 +109,16 @@ private:
         static ForLoopSite next(ForLoopSite fls) noexcept;
     };
 
+    // Accessors exists to insulate call sites from the DISPATCH_TARGET macro
+    // and to make the intended access point to Restricted state explicit.
     Restricted DISPATCH_TARGET;
+    Restricted &restricted() noexcept { return DISPATCH_TARGET; }
+    const Restricted &restricted() const noexcept { return DISPATCH_TARGET; }
 
     explicit ControlFlowManager(const SemanticSystemServices &ss_services);
+
+    // Defined outside Restricted, so it can be accessed by SemanticSystem's generalized expr collector
+    void commit_forloop_header_expr(const Expr *header_expr);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(manage_ifbranch_entry);
@@ -135,6 +142,5 @@ private:
     DISPATCH_SLAVE_METHOD_CALL(exit_forloop_clause);
     DISPATCH_DEFINE_HANDLER_END();
 };
-
 } // namespace alpha
 #endif // CONTROL_FLOW_MANAGER_HPP
