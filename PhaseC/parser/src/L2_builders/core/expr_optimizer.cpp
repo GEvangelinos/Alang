@@ -74,7 +74,11 @@ ExprFolder::try_fold_arithmetic_binary(
         case ir::Opcode::MUL: return make_const_num_expr(l * r);
         case ir::Opcode::DIV: return make_const_num_expr(l / r);
         case ir::Opcode::MOD:
-            if constexpr (std::is_same_v<decltype(l), AlphaInt> && std::is_same_v<decltype(r), AlphaInt>) // NOLINT
+            std::cout << "L == " << typeid(decltype(l)).name() << '\n';
+            std::cout << "R == " << typeid(decltype(r)).name() << '\n';
+            std::cout << "Aint == " << typeid(AlphaInt).name() << '\n';
+            std::cout << "Afloat == " << typeid(AlphaFloat).name() << '\n';
+            if constexpr (std::is_integral_v<decltype(l)> && std::is_integral_v<decltype(r)>)
                 return expr_maker_->make_const_int_expr(result_loc, l % r);
             else
                 return expr_maker_->make_const_float_expr(result_loc, std::fmod(l, r));
@@ -144,6 +148,7 @@ ExprFolder::try_fold_relational_equality(
     if (!should_fold_relational_equality(lhs, rhs))
         return nullptr;
 
+    static_assert(false, "You must not always make bool.. for numeric stuff.. this is not true. .How about strings?")
     const bool lhs_value = SemUtils::as_bool(lhs);
     const bool rhs_value = SemUtils::as_bool(rhs);
     if (opc == ir::Opcode::IF_EQ)
@@ -163,10 +168,11 @@ ExprFolder::try_fold_logical_or(
     if (!ExprFolder::should_fold_logical(lhs, rhs))
         return nullptr;
 
-    if (lhs->is_const_false() && rhs->is_const_false())
-        return expr_maker_->make_const_bool_expr(result_loc, false);
-    throw std::logic_error(ATTACH_CONTEXT(
-        "This function must not be used, if both operands are not ConstBoolExpr"));
+    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::CONST_BOOL, rhs->type == Expr::Type::CONST_BOOL);
+    const auto bool_lhs = static_cast<const ConstBoolExpr *>(lhs)->value;
+    const auto bool_rhs = static_cast<const ConstBoolExpr *>(rhs)->value;
+
+    return expr_maker_->make_const_bool_expr(result_loc, bool_lhs || bool_rhs);
 }
 
 const Expr *
@@ -179,10 +185,11 @@ ExprFolder::try_fold_logical_and(
     if (!ExprFolder::should_fold_logical(lhs, rhs))
         return nullptr;
 
-    if (lhs->is_const_true() && rhs->is_const_true())
-        return expr_maker_->make_const_bool_expr(result_loc, true);
-    throw std::logic_error(ATTACH_CONTEXT(
-        "This function must not be used, if both operands are not ConstBoolExpr"));
+    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::CONST_BOOL, rhs->type == Expr::Type::CONST_BOOL);
+    const auto bool_lhs = static_cast<const ConstBoolExpr *>(lhs)->value;
+    const auto bool_rhs = static_cast<const ConstBoolExpr *>(rhs)->value;
+
+    return expr_maker_->make_const_bool_expr(result_loc, bool_lhs && bool_rhs);
 }
 
 const Expr *

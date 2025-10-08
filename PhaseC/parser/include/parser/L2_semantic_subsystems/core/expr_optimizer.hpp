@@ -83,33 +83,43 @@ private:
 };
 
 inline bool
-ExprFolder::should_fold_arithmetic(const Expr *const expr) { return expr->is_const_arithmetic(); }
+ExprFolder::should_fold_arithmetic(const Expr *const expr)
+{
+    return DEBUG_REQUIRE_PTR(expr)->is_const_arithmetic();
+}
 
 inline bool
 ExprFolder::should_fold_arithmetic(const Expr *const lhs, const Expr *const rhs)
 {
-    return lhs->is_const_arithmetic() && rhs->is_const_arithmetic();
+    return DEBUG_REQUIRE_PTR(lhs)->is_const_arithmetic() &&
+           DEBUG_REQUIRE_PTR(rhs)->is_const_arithmetic();
 }
 
 inline bool
 ExprFolder::should_fold_relational_numeric(const Expr *const lhs, const Expr *const rhs)
 {
-    return lhs->is_const_arithmetic() && rhs->is_const_arithmetic();
+    return DEBUG_REQUIRE_PTR(lhs)->is_const_arithmetic() &&
+           DEBUG_REQUIRE_PTR(rhs)->is_const_arithmetic();
 }
 
 inline bool
-ExprFolder::should_fold_relational_equality(const Expr *lhs, const Expr *rhs)
+ExprFolder::should_fold_relational_equality(const Expr *const lhs, const Expr *const rhs)
 {
-    return lhs->is_static() && rhs->is_static();
+    return DEBUG_REQUIRE_PTR(lhs)->is_static() &&
+           DEBUG_REQUIRE_PTR(rhs)->is_static();
 }
 
 inline bool
-ExprFolder::should_fold_logical(const Expr *const expr) { return expr->type == Expr::Type::BOOL; }
+ExprFolder::should_fold_logical(const Expr *const expr)
+{
+    return DEBUG_REQUIRE_PTR(expr)->type == Expr::Type::CONST_BOOL;
+}
 
 inline bool
 ExprFolder::should_fold_logical(const Expr *const lhs, const Expr *const rhs)
 {
-    return lhs->type == Expr::Type::CONST_BOOL && rhs->type == Expr::Type::CONST_BOOL;
+    return DEBUG_REQUIRE_PTR(lhs)->type == Expr::Type::CONST_BOOL &&
+           DEBUG_REQUIRE_PTR(rhs)->type == Expr::Type::CONST_BOOL;
 }
 
 template<ir::Opcode opc, typename... Exprs>
@@ -121,11 +131,11 @@ const Expr *ExprOptimizer::try_optimize(const SourceLocation result_loc, Exprs &
     ((exprs = try_propagate_const(exprs)), ...);
 
     if constexpr (ir::opt_traits::is_foldable(opc))
-        if (expr_opts_.opt_const_eval) [[likely]]  // We optimize for fully optimized setups.
+        if (expr_opts_.opt_const_eval) [[likely]] // We optimize for fully optimized setups.
         if (const Expr *folded = try_fold_optimize<opc>(result_loc, exprs...))
             return folded;
     if constexpr (ir::opt_traits::is_trimmable(opc))
-        if (expr_opts_.opt_const_eval) [[likely]]  // We optimize for fully optimized setups.
+        if (expr_opts_.opt_const_eval) [[likely]] // We optimize for fully optimized setups.
         if (const Expr *trimmed = try_trim_optimize<opc>(result_loc, exprs...))
             return trimmed;
     return nullptr;
