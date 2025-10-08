@@ -48,32 +48,20 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_reassignSameVarInDict_v000__OPT=NONE.asc" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_reassignSameVarInList_v000__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v006__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v006__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Simple__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Simple__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Tree__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Tree__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_complex__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_complex__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_objects__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_objects__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_simple__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_simple__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_basic_expr__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_basic_expr__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_calls__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_calls__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_flow_control__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_flow_control__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_funcdecl__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_funcdecl__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_if_else__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_if_else__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_object_creation_expr__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_object_creation_expr__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_relational__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_relational__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_114__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_114__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_115__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_115__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_reassign_same_var_in_dict__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_reassign_same_var_in_list__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_temp_reuse_ifbranch__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_temp_reuse_ifbranch__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_100__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_100__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_101__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_101__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_102__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_102__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_103__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_103__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_104__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_104__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_105__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_105__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_108__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_108__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_109__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_109__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_110__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_110__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_113__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_113__OPT=NONE.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/.testbed.asc.swp" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/.testbed.asc.swp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/test.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/test.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scripts/prophet/parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/prophet/parser.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

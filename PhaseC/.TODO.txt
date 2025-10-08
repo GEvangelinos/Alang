@@ -1419,3 +1419,21 @@ you have to know which vars are modified in each function call...
 
 if function is not defined... and we just call an arbitrery symbol.. then we can assume (safely i think)
 that this global is not modifed in that call..
+
+237) NOTE: Temps you can optimise copy propagation...
+
+tablegetelem $0
+
+assign x $0
+
+to tablegetelem x...
+
+but you need to be careful with normal vars..
+
+add $0 a a
+assign x $0
+assign x 2
+
+you can't do x =2 and delete add and first assignment.. cause you dont know the scope of each x.
+
+first can be local, next can be global.. So you can do such further ops.. only when you know scope too!!
