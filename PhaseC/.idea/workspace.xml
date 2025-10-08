@@ -42,46 +42,38 @@
   </component>
   <component name="CMakeSettings">
     <configurations>
-      <configuration PROFILE_NAME="Release" ENABLED="true" CONFIG_NAME="Release" />
-      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" GENERATION_OPTIONS="-DDEBUG_MODE=ON" />
+      <configuration PROFILE_NAME="Release" ENABLED="true" CONFIG_NAME="Release" BUILD_OPTIONS="--regression_check" />
+      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" GENERATION_OPTIONS="-DDEBUG_MODE=ON" BUILD_OPTIONS="-- -j 8 regression_check" />
     </configurations>
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_Anonymous__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Anonymous__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_Block__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_Circle__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_GlobalAndLocal__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_Grammar__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_Random__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_ShadowedNameOffunctions__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_Simple__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_Tree__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_backpatch0__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_backpatch0__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_backpatch1__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_backpatch2__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_backpatch3__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_assignments_complex__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_assignments_objects__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_assignments_simple__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_basic_expr__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_calls__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_const_maths__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_flow_control__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_funcdecl__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_if_else__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_object_creation_expr__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_relational__OPT=NONE.asc" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_p3t_var_maths__OPT=NONE.asc" beforeDir="false" />
+      <change afterPath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_reassignSameVarInDict_v000__OPT=NONE.asc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_reassignSameVarInList_v000__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v006__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v006__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Simple__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Simple__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Tree__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Tree__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_complex__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_complex__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_objects__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_objects__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_simple__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_simple__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_basic_expr__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_basic_expr__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_calls__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_calls__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_flow_control__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_flow_control__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_funcdecl__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_funcdecl__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_if_else__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_if_else__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_object_creation_expr__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_object_creation_expr__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_relational__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_relational__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_114__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_114__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_115__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_115__OPT=NONE.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_reassign_same_var_in_dict__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_reassign_same_var_in_list__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_temp_reuse_ifbranch__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_temp_reuse_ifbranch__OPT=NONE.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/.testbed.asc.swp" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/.testbed.asc.swp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/test.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/test.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/working/Grammar.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/working/Grammar.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_maker.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_maker.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/prophet/parser.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/prophet/parser.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -870,7 +862,7 @@
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.lookFeel",
+    "settings.editor.selected.configurable": "CMakeSettings",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -903,7 +895,7 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="alang" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--source ./.tests/test.asc --show_ir --show_symbol_table" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang" CONFIG_NAME="Release" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang">
+    <configuration name="alang" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--source ./.tests/testbed.asc --show_ir --show_symbol_table" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang" CONFIG_NAME="Release" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>

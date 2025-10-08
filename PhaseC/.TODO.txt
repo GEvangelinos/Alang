@@ -1305,3 +1305,117 @@ quad#      opcode          result               arg1                 arg2       
 11         assign          x                    $0                                        -          1-4
 
 Basically no more assign temps...
+
+230) (Not really worth it.. language is dynamic.. hard to predict.. gonna have to write ton of code for a single quad..)
+
+this input:
+
+if (root.left)
+    PrintTree(root.left);
+
+has these quads:
+109        tablegetelem    $0                   root                 "left"               -          71
+110        if_eq                                $0                   true                 112        71
+111        jump                                                                           116        71
+112        tablegetelem    $0                   root                 "left"               -          72
+113        param                                $0                                        -          72
+114        call                                 PrintTree                                 -          72
+115        getretval       $0                                                             -          72
+
+can we optimize to this:
+???
+
+109        tablegetelem    $0                   root                 "left"               -          71
+110        if_eq                                $0                   true                 112        71
+111        jump                                                                           116        71
+113        param                                $0                                        -          72
+114        call                                 PrintTree                                 -          72
+115        getretval       $0                                                             -          72
+
+Basically because $0 is not rewritten after 109.. until 113 we can skip quad 112...
+Basically do: Local Common Subexpression Elimination (CSE)
+
+Warning: can root.left change with other ways?
+
+like:
+tablegetelem    $0                   root                 X               -          71
+
+what if X variable has "left" inside it ?
+
+
+231) Focus on these OPTimizations:
+        * constant folding / propagation
+        * dead code elimination
+        * copy propagation
+        * common subexpression elimination of pure arithmetic
+        * control flow simplification
+
+232) Do Dead Strore Elimination.. (calling a func, remove getretval if retval not used)...
+
+or only arithmetic expression that is not used.. or a table..
+
+just make sure there are no sideeffects.
+
+233) do copy propagation:
+
+126        call                                 Stack                                     -          79
+127        getretval       $0                                                             -          79
+128        assign          k                    $0                                        -          79
+
+
+234)
+
+// TODO(Side-Effect-Aware DSE):
+//
+// When performing Dead Store Elimination (DSE), ensure that we preserve all
+// side-effecting operations even if their results are unused.
+//
+// Example:
+//
+//     x = a();
+//     y = a();
+//     z = b();
+//
+// If `x`, `y`, and `z` are never read again, the *assignments* and *temporaries*
+// can be safely removed — but the *function calls* must remain, since `a()` and
+// `b()` may have side effects (e.g., I/O, global writes, mutations).
+//
+// Correct optimized form:
+//
+//     call a();
+//     call a();
+//     call b();
+//
+// This applies equally to cases like unused table stores, global variable writes,
+// or any other opcode that can cause observable effects.
+//
+// In summary:
+//   - Remove unused assignments and getretval chains.
+//   - Keep all side-effecting instructions (CALL, TABLESETELEM, I/O, etc.).
+//   - Distinguish "dead value flow" from "dead execution" — only the former
+//     should be eliminated.
+
+
+235) Post optimizations... you will see that you use $0 and then $3
+
+and IR does not used  $1 and $2 no-where in between..
+
+that means.. you can find these temps.. remove them from that scope.. (possibly using SymbolTable)
+
+and then lower the value of $3 to $1.. basically anyway using $3 use $1... so remove $2 and $3
+
+something like Temp-Slot-Compaction.. (maybe you need to have a separate symbol table for temps or something..)
+
+or 1 master symbol table with inside it 1 for canonical variables an funcs.. and 1 for tempvars
+
+!!! Benefit: smaller temp space, simpler IR, less register pressure downstream.!!!
+
+236) REMINDER!!! SOS!!:
+
+every global can be changed from any scope... so when you call a function..
+you can't know if a global was modified or not (not when you define a function..)
+so.. when you call a function.. if you want to continue const var propagation...
+you have to know which vars are modified in each function call...
+
+if function is not defined... and we just call an arbitrery symbol.. then we can assume (safely i think)
+that this global is not modifed in that call..

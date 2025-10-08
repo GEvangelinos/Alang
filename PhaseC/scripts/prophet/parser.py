@@ -103,14 +103,15 @@ class TestfileParser:
         point = "ending" if inside_section else "beginning"
         raise StageError(f"Failed finding {point} of {section_name} lines for {self.testfile_path}")
 
-    @staticmethod
-    def _uncomment_section(section: list[str], section_name: str) -> list[str]:
+    def _uncomment_section(self, section: list[str], section_name: str) -> list[str]:
         cleaned_section: list[str] = []
         for line in section:
             cleaned = line.lstrip()
             if not cleaned.startswith(COMMENT_TOKEN):
                 raise StageError(
-                    f"{section_name} line does not start with comment token `{COMMENT_TOKEN}`: <<{line}>>")
+                    f"{section_name} line does not start with comment token `{COMMENT_TOKEN}`: <<{line}>>"
+                    f"\n\tfor {self.testfile_path}"
+                )
             cleaned = cleaned.removeprefix(COMMENT_TOKEN)
             cleaned = cleaned.lstrip()
             cleaned_section.append(cleaned)
