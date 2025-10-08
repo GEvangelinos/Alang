@@ -160,6 +160,8 @@ SemanticSystem::ContextInspector::is_in_func_param_list() const noexcept
 bool
 SemanticSystem::ContextInspector::is_in_table_dict() const noexcept
 {
+    if (!host_->parse_ctx_->elist_ctx_handler.region().has_value())
+        return false;
     return host_->parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::TABLE;
 }
 } // namespace alpha

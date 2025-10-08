@@ -1152,6 +1152,8 @@ to this
 
  you must remeber to simplyfy general case: x = a+a+a to add x, a, a and add x,x,a
 
+ ONLY if x no in right side.. cause then you would break x = b; x = a+a+a+x+a; // here rhs x must be b
+
  221)
  this :
      x = input();
@@ -1164,3 +1166,142 @@ it could be optimized to:
 
 40         call                                 input                                     -          4
 41         getretval       x                                                             -          4
+
+222) optimize to use only j
+
+113        assign          $0                   true                                      -          65
+114        jump                                                                           116        65
+115        assign          $0                   false                                     -          65
+116        assign          j                    $0                                        -          65
+
+223)
+
+Can be optimized..
+
+if object is never use as rvalue inside table, we could use object in place of $0
+
+121        tablecreate     $0                                                             -          71
+122        assign          object               $0                                        -          71
+123        tablecreate     $0                                                             -          73
+124        tablesetelem    $0                   0                    1                    -          73
+125        tablesetelem    $0                   1                    2                    -          73
+126        tablesetelem    $0                   2                    "test"               -          73
+127        assign          object               $0                                        -          73
+
+224)
+
+A = x.y=3;
+
+outputs:
+---------------------------------------------------------------------------------------------------------------
+1          tablesetelem    x                    "y"                  3                    -          1
+2          tablegetelem    A                   x                    "y"                  -          1
+
+optimize to this:
+
+225)
+x = a < b or c > d and e < f;
+
+7          if_lt                                a                    b                    13         3
+8          jump                                                                           9          3
+9          if_gt                                c                    d                    11         3
+10         jump                                                                           15         3
+11         if_lt                                e                    f                    13         3
+12         jump                                                                           15         3
+13         assign          $0                   true                                      -          3
+14         jump                                                                           16         3
+15         assign          $0                   false                                     -          3
+16         assign          x                    $0                                        -          3
+
+optimize to:
+
+7          if_lt                                a                    b                    13         3
+8          jump                                                                           9          3
+9          if_gt                                c                    d                    11         3
+10         jump                                                                           15         3
+11         if_lt                                e                    f                    13         3
+12         jump                                                                           15         3
+13         assign          x                   true                                      -          3
+14         jump                                                                           16         3
+15         assign          x                   false                                     -          3
+
+
+
+226) Add test with anonymous functions where you do const propagation on their value.
+
+x = (function () {})
+
+y = x or false; // -> TRUE as func addresses are always positive..
+
+227)
+
+input: x = TEST(++i);
+
+quad#      opcode          result               arg1                 arg2                 label      line
+---------------------------------------------------------------------------------------------------------------
+1          add             i                    i                    1                    -          1
+2          assign          $0                   i                                         -          1
+3          param                                $0                                        -          1
+4          call                                 TEST                                      -          1
+5          getretval       $0                                                             -          1
+6          assign          x                    $0                                        -          1
+
+can we optimize to this?
+
+quad#      opcode          result               arg1                 arg2                 label      line
+---------------------------------------------------------------------------------------------------------------
+1          add             i                    i                    1                    -          1
+2          param                                i                                         -          1
+3          call                                 TEST                                      -          1
+4          getretval       $0                                                             -          1
+5          assign          x                    $0                                        -          1
+
+(ofcourse this can't be done for TEST(++i, ++i); here we need assign temps..
+
+but how about TEST(++i, ++j); We need a post IR generation opt pass.. To simplify such patterns.
+
+228)
+
+We need to do a general copy propagation optimization.. for example:
+input:
+
+x = TEST(
+++a[b],
+++a[b]
+);
+
+output:
+
+quad#      opcode          result               arg1                 arg2                 label      line
+---------------------------------------------------------------------------------------------------------------
+1          tablegetelem    $0                   a                    b                    -          2
+2          add             $0                   $0                   1                    -          2
+3          tablesetelem    a                    b                    $0                   -          2
+4          assign          $0                   $0                                        -          2
+5          tablegetelem    $1                   a                    b                    -          3
+6          add             $1                   $1                   1                    -          3
+7          tablesetelem    a                    b                    $1                   -          3
+8          assign          $1                   $1                                        -          3
+9          param                                $1                                        -          3
+10         param                                $0                                        -          2
+11         call                                 TEST                                      -          1-4
+12         getretval       $0                                                             -          1-4
+13         assign          x                    $0                                        -          1-4
+
+optimized:
+
+quad#      opcode          result               arg1                 arg2                 label      line
+---------------------------------------------------------------------------------------------------------------
+1          tablegetelem    $0                   a                    b                    -          2
+2          add             $0                   $0                   1                    -          2
+3          tablesetelem    a                    b                    $0                   -          2
+4          tablegetelem    $1                   a                    b                    -          3
+5          add             $1                   $1                   1                    -          3
+6          tablesetelem    a                    b                    $1                   -          3
+7          param                                $1                                        -          3
+8         param                                $0                                        -          2
+9         call                                 TEST                                      -          1-4
+10         getretval       $0                                                             -          1-4
+11         assign          x                    $0                                        -          1-4
+
+Basically no more assign temps...

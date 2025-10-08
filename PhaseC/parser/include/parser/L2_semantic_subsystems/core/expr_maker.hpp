@@ -20,12 +20,18 @@ public:
     template<bool make_dup = false>
     [[nodiscard]] const ArithmeticExpr *make_arithmetic_expr(
         SourceLocation expr_loc, const ArithmeticExpr *dup_from = nullptr);
+    [[nodiscard]] const ArithmeticExpr *make_arithmetic_expr(
+        SourceLocation expr_loc, const VarSymbol *var_symbol);
     template<bool make_dup = false>
     [[nodiscard]] const BoolExpr *make_bool_expr(
         SourceLocation expr_loc, const BoolExpr *dup_from = nullptr);
+    [[nodiscard]] const BoolExpr *make_bool_expr(
+        SourceLocation expr_loc, const VarSymbol *var_symbol);
     template<bool make_dup = false>
     [[nodiscard]] const NewTableExpr *make_new_table_expr(
         SourceLocation expr_loc, const NewTableExpr *dup_from = nullptr);
+    [[nodiscard]] const NewTableExpr *make_new_table_expr(
+        SourceLocation expr_loc, const VarSymbol *var_symbol);
     [[nodiscard]] const AssignExpr *make_assign_expr(
         SourceLocation expr_loc, const VarSymbol *var_symbol);
     [[nodiscard]] const ConstBoolExpr *make_const_bool_expr(
@@ -44,7 +50,7 @@ public:
     [[nodiscard]] const TableItemExpr *make_table_item_expr(
         SourceLocation expr_loc, const Expr *base, const Expr *index);
     [[nodiscard]] const VariableExpr *make_variable_expr(
-        SourceLocation expr_loc, const VarSymbol *var);
+        SourceLocation expr_loc, const VarSymbol *var_symbol);
 
     [[nodiscard]] const Expr *clone_with_updated_location(
         SourceLocation new_loc, const Expr *donor_expr);
@@ -71,6 +77,39 @@ DEFINE_MAKER_WITH_TEMP_SYMBOL(ArithmeticExpr, make_arithmetic_expr)
 DEFINE_MAKER_WITH_TEMP_SYMBOL(BoolExpr, make_bool_expr)
 DEFINE_MAKER_WITH_TEMP_SYMBOL(NewTableExpr, make_new_table_expr)
 #undef DEFINE_MAKER_WITH_TEMP_SYMBOL
+
+inline const ArithmeticExpr *
+ExprMaker::make_arithmetic_expr(
+    const SourceLocation expr_loc,
+    const VarSymbol *const var_symbol)
+{
+    DEBUG_SMART_ASSERT(!!var_symbol);
+    const auto *const arithmetic_expr = new const ArithmeticExpr(expr_loc, var_symbol);
+    expr_sink_.push_back(arithmetic_expr);
+    return arithmetic_expr;
+}
+
+inline const BoolExpr *
+ExprMaker::make_bool_expr(
+    const SourceLocation expr_loc,
+    const VarSymbol *const var_symbol)
+{
+    DEBUG_SMART_ASSERT(!!var_symbol);
+    const auto *const bool_expr = new const BoolExpr(expr_loc, var_symbol);
+    expr_sink_.push_back(bool_expr);
+    return bool_expr;
+}
+
+inline const NewTableExpr *
+ExprMaker::make_new_table_expr(
+    const SourceLocation expr_loc,
+    const VarSymbol *const var_symbol)
+{
+    DEBUG_SMART_ASSERT(!!var_symbol);
+    const auto *const new_table_expr = new const NewTableExpr(expr_loc, var_symbol);
+    expr_sink_.push_back(new_table_expr);
+    return new_table_expr;
+}
 
 inline const AssignExpr *
 ExprMaker::make_assign_expr(
@@ -168,10 +207,10 @@ ExprMaker::make_table_item_expr(
 }
 
 inline const VariableExpr *
-ExprMaker::make_variable_expr(const SourceLocation expr_loc, const VarSymbol *const var)
+ExprMaker::make_variable_expr(const SourceLocation expr_loc, const VarSymbol *const var_symbol)
 {
-    DEBUG_SMART_ASSERT(!!var);
-    const auto *const variable_expr = new const VariableExpr(expr_loc, var);
+    DEBUG_SMART_ASSERT(!!var_symbol);
+    const auto *const variable_expr = new const VariableExpr(expr_loc, var_symbol);
     expr_sink_.push_back(variable_expr);
     return variable_expr;
 }

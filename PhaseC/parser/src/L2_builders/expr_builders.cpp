@@ -122,7 +122,6 @@ AggregateBuilder::AggregateBuilder(const SemanticSystemServices &ss_services)
 AggregateBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
 
-
 AggregateBuilder::Restricted::TableLiteralInfo::TableLiteralInfo(
     const NewTableExpr *const new_table_expr,
     const LabelID host_quad_label)
@@ -167,7 +166,7 @@ AggregateBuilder::Restricted::finalize_table_literal(const SourceLocation table_
 void AggregateBuilder::Restricted::commit_dict_element(
     const Expr *key,
     const Expr *value,
-    const SourceLocation  dict_elem_loc)
+    const SourceLocation dict_elem_loc)
 {
     DEBUG_SMART_ASSERT(!!key, !!value);
 
@@ -378,6 +377,7 @@ AssignBuilder::Restricted::validate_assignment(
     return validator(dr_, lhs, assign_loc, "assignment", "=", "left operand");
 }
 
+// TODO: DRY!
 template<typename Policy>
 const Expr *
 AssignBuilder::Restricted::handle_pre_inc_dec(
@@ -393,17 +393,35 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
         const auto *const ti_host = static_cast<const TableItemExpr *>(lvalue);
         // External materialization is required, as ti is also used on quad's result field.
         const Expr *const ti = expr_normalizer_->materialize_if_table_item(ti_host);
+        DEBUG_SMART_ASSERT(ti_host->index->type != Expr::Type::TABLE_ITEM && "Materialize index!");
         qy->yield_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
-        // TODO: do i need to materialize ti_host->index?
         qy->yield_next(ir::Opcode::TABLESETELEM, ti_host, ti_host->index, ti, result_loc);
-        return ti;
+
+        if (!assignment_requires_temp())
+        {
+            DEBUG_SMART_ASSERT(ti->has_symbol_var());
+            const auto ti_symbol = static_cast<const ExprWVarSymbol *>(ti)->var_symbol;
+            return expr_maker_->make_arithmetic_expr(result_loc, ti_symbol);
+        }
+
+        // NOTE: This will emit a self-assignment (e.g. assign $N, $N) purely to preserve a live temp handle.
+        // While we could implement a special-case "rebind" API to transfer ownership of the temp,
+        // it's better to keep IR emission explicit and let a later copy-propagation pass remove the redundancy.
+        const auto result_factory =
+            [result_loc, this]() { return expr_maker_->make_arithmetic_expr(result_loc); };
+        return qy->yield_next(ir::Opcode::ASSIGN, result_factory, ti, nullptr, result_loc);
     }
     else
     {
         qy->yield_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
         if (!assignment_requires_temp())
-            return lvalue;
+        {
+            DEBUG_SMART_ASSERT(lvalue->has_symbol_var());
+            const auto lvalue_symbol = static_cast<const ExprWVarSymbol *>(lvalue)->var_symbol;
+            return expr_maker_->make_arithmetic_expr(result_loc, lvalue_symbol);
+        }
 
+        // TODO: should re use result hook in assignment temps?
         const auto result_factory =
             [result_loc, this]() { return expr_maker_->make_arithmetic_expr(result_loc); };
         return qy->yield_next(ir::Opcode::ASSIGN, result_factory, lvalue, nullptr, result_loc);
@@ -419,9 +437,9 @@ AssignBuilder::Restricted::handle_post_inc_dec(
     static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
     auto *qy = quad_yielder_;
 
-    auto temp_factory = [result_loc, this]()
+    const auto temp_factory = [result_loc, this]()
     {
-        return expr_maker_->make_variable_expr(result_loc, parse_ctx_->new_temp());
+        return expr_maker_->make_arithmetic_expr(result_loc, parse_ctx_->new_temp());
     };
 
     const Expr *result = nullptr;
@@ -429,13 +447,21 @@ AssignBuilder::Restricted::handle_post_inc_dec(
     {
         const auto *const ti_host = static_cast<const TableItemExpr *>(lvalue);
         const Expr *const ti = expr_normalizer_->materialize_if_table_item(lvalue);
+        DEBUG_SMART_ASSERT(ti->has_active_temp());
         // We externally materialize as we need `ti` in more than a single yield.
-        result = qy->yield_next(ir::Opcode::ASSIGN, temp_factory, ti, nullptr, result_loc);
+        // IMPORTANT: For table items we must allocate the result temp before `yield_next` call.
+        // Deferring (by passing `temp_factory` as a callable, like in the else branch) would
+        // release the table item’s active temp before ASSIGN and then re-acquire the same slot,
+        // yielding a self-assignment (`assign $n $n`).
+        result = temp_factory();
+        qy->yield_next(ir::Opcode::ASSIGN, result, ti, nullptr, result_loc);
         qy->yield_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
         qy->yield_next(ir::Opcode::TABLESETELEM, ti_host, ti_host->index, ti, result_loc);
     }
     else
     {
+        DEBUG_SMART_ASSERT(!lvalue->has_active_temp() &&
+            "if lvalue has temp we need to set result before yield_next call");
         result = qy->yield_next(ir::Opcode::ASSIGN, temp_factory, lvalue, nullptr, result_loc);
         qy->yield_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
     }
@@ -451,14 +477,23 @@ AssignBuilder::Restricted::build_inc_dec(const Expr *const expr, const SourceLoc
     const auto validator = AssignBuilder::Restricted::is_direct_target_expr(expr)
                            ? &validate_direct_lvalue
                            : &validate_lvalue;
+
     if (!validator(dr_, expr, result_loc, Policy::op_name, Policy::op_symbol, "operand"))
         return nullptr;
+
+    const Expr *result = nullptr;
     if constexpr (op_variant == OpVariant::PRE)
-        return handle_pre_inc_dec<Policy>(expr, result_loc);
+        result = handle_pre_inc_dec<Policy>(expr, result_loc);
     else if constexpr (op_variant == OpVariant::POST)
-        return handle_post_inc_dec<Policy>(expr, result_loc);
+        result = handle_post_inc_dec<Policy>(expr, result_loc);
     else
         static_assert(always_false_v<void>, "build_inc_dec(): Unknown OpVariant");
+
+    DEBUG_SMART_ASSERT(
+        support::require_ptr(result)->type == Expr::Type::ARITHMETIC &&
+        "increment/decrement is an arithmetic expression"
+    );
+    return result;
 }
 
 const Expr *

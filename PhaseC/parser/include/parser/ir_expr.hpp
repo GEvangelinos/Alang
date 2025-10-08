@@ -71,6 +71,8 @@ struct Expr : private Immobile
     [[nodiscard]] bool is_rvalue() const noexcept;
     [[nodiscard]] bool is_static() const noexcept;
     [[nodiscard]] bool has_symbol() const noexcept;
+    [[nodiscard]] bool has_symbol_func() const noexcept;
+    [[nodiscard]] bool has_symbol_var() const noexcept;
     [[nodiscard]] bool has_active_temp() const noexcept;
 
 protected:
@@ -345,6 +347,12 @@ Expr::is_static() const noexcept { return is_const() || is_func(); }
 
 inline bool
 Expr::has_symbol() const noexcept { return !is_const(); }
+
+inline bool
+Expr::has_symbol_func() const noexcept { return has_symbol() && is_func(); }
+
+inline bool
+Expr::has_symbol_var() const noexcept { return has_symbol() && !is_func(); }
 
 inline Expr::Type
 to_expr_type(const Symbol::Type symbol_type)

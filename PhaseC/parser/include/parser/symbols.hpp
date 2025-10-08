@@ -231,7 +231,7 @@ FuncSymbol::FuncSymbol(
 {
     DEBUG_SMART_ASSERT(
         type == Symbol::Type::LIBRARY_FUNCTION ||
-        type == Symbol::Type::PROGRAM_FUNCTION //
+        type == Symbol::Type::PROGRAM_FUNCTION
     );
 }
 } // namespace alpha
