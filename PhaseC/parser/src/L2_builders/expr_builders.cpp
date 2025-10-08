@@ -916,11 +916,11 @@ CallBuilder::Restricted::build_call_consuming(
     if (method_name)
     {
         // Materialize host (handles cases like a[b]..c; host being a[b])
-        const Expr *const materialized_host =
-            expr_normalizer_->materialize_if_table_item(callable);
-        qy->yield_next(ir::Opcode::PARAM, nullptr, materialized_host, nullptr, method_name->loc);
+        const Expr *const method_keeper = expr_normalizer_->materialize_if_table_item(callable);
+        qy->yield_next(ir::Opcode::PARAM, nullptr, method_keeper, nullptr, method_keeper->loc);
         // Extract method into a call_target.
-        call_target = expr_maker_->make_table_item_expr(call_loc, materialized_host, method_name);
+        const SourceLocation method_get_loc = merge(method_keeper->loc, method_name->loc);
+        call_target = expr_maker_->make_table_item_expr(method_get_loc, method_keeper, method_name);
     }
     const Expr *const callee = expr_normalizer_->materialize_if_table_item(call_target);
     DEBUG_SMART_ASSERT(callee->is_callable());

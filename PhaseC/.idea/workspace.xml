@@ -48,20 +48,235 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_100__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_100__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_101__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_101__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_102__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_102__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_103__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_103__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_104__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_104__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_105__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_105__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_108__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_108__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_109__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_109__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_110__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_110__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_113__OPT=NONE.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W_mine_113__OPT=NONE.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error0__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error10__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error11__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error12__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error1__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error2__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error3__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error4__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error5__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error6__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error7__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error8__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_Error9__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_MyError0__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_MyError1__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_memberAccess_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_memberAccess_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_memberAccess_v002__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_memberAccess_v003__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_methodAccess_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_methodAccess_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_nonArithOperand_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_oldFailures_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_operatorRequiresLvalue_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_operatorRequiresLvalue_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_operatorRequiresLvalue_v002__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_operatorRequiresLvalue_v003__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_operatorRequiresLvalue_v004__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v002__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v003__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v004__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v005__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v006__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_REGRESSION_syntaxError_v007__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_mine_200__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_mine_201__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_mine_202__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_mine_203__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_mine_204__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_mine_205__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_mine_206__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_mine_207__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_mine_208__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_mine_209__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/E_p3t_flow_control_error__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Anonymous__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Block__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Circle__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_GlobalAndLocal__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Grammar__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Random__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_ShadowedNameOffunctions__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Simple__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE2_Tree__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_backpatch0__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_backpatch1__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_backpatch2__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_backpatch3__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_complex__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_objects__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_assignments_simple__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_basic_expr__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_calls__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_const_maths__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_flow_control__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_funcdecl__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_if_else__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_object_creation_expr__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_relational__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_PHASE3_p3t_var_maths__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v002__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v003__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v004__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v005__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v006__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v007__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v008__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v009__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v010__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_boolean_v011__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v002__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v003__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v004__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v005__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v006__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v007__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v008__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v009__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v010__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v011__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v012__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v013__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v014__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v015__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v016__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v017__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v018__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v019__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v020__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v021__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v022__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v023__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v024__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v025__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v026__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v027__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v028__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v029__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v030__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v031__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v032__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v033__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v034__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v035__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v036__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v037__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v038__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v039__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_call_norm_v040__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v002__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v003__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v004__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v005__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v006__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v007__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v008__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v009__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v010__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v011__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v012__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v013__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v014__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v015__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v016__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v017__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v018__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v019__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v020__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v021__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_forloop_v022__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v002__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v003__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v004__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v005__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v006__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v007__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v008__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v009__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v010__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v011__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v012__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDecWithAssignTemps_v013__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDec_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDec_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDec_v002__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDec_v003__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDec_v004__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDec_v005__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDec_v006__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_incDec_v007__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_mathOrder_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_oldFailures_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_reassignSameVarInDict_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_reassignSameVarInList_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_reassignSameVarInList_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v002__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v003__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v004__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v005__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v006__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v007__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v008__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v009__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v010__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v011__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v012__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v013__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v014__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v015__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_tableAccess_v016__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_dict_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_dict_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_dict_v002__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_dict_v003__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_dict_v004__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_dict_v005__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_list_v000__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_list_v001__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_list_v002__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_list_v003__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_list_v004__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_list_v005__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_list_v006__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_list_v007__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_list_v008__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_REGRESSION_table_list_v009__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_100__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_101__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_102__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_103__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_104__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_105__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_106__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_107__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_108__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_109__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_110__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_111__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_112__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_113__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_114__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_mine_115__OPT=NONE.asc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.GOSPEL/W_temp_reuse_ifbranch__OPT=NONE.asc" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/.testbed.asc.swp" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/.testbed.asc.swp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/.testbed.asc.swp" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_emitter.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_emitter.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -826,34 +1041,34 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "CMake Application.alang.executor": "Run",
-    "CMake Application.alang.out.executor": "Run",
-    "CMake Application.alpha_driver.out.executor": "Run",
-    "CMake Debug.Alpha.executor": "Debug",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.main.executor": "Run",
-    "RunOnceActivity.RadMigrateCodeStyle": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "RunOnceActivity.west.config.association.type.startup.service": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "non__cya__mode/ir-gen",
-    "last_opened_file_path": "/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/.GOSPEL",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "CMakeSettings",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;CMake Application.alang.executor&quot;: &quot;Run&quot;,
+    &quot;CMake Application.alang.out.executor&quot;: &quot;Run&quot;,
+    &quot;CMake Application.alpha_driver.out.executor&quot;: &quot;Run&quot;,
+    &quot;CMake Debug.Alpha.executor&quot;: &quot;Debug&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.west.config.association.type.startup.service&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;non__cya__mode/ir-gen&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/.GOSPEL&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;CMakeSettings&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
       <console-settings module-name="PhaseC">
@@ -864,10 +1079,10 @@
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/.GOSPEL" />
+      <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/parser/src" />
       <recent name="$PROJECT_DIR$/scripts/old_regression_runner" />
       <recent name="$PROJECT_DIR$/scripts/prophet" />
-      <recent name="$PROJECT_DIR$/.tests/.embdedded_tests" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
@@ -878,11 +1093,6 @@
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.alang">
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="alang" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--source ./.tests/testbed.asc --show_ir --show_symbol_table" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang" CONFIG_NAME="Release" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -1058,6 +1268,7 @@
       <workItem from="1758662529901" duration="35784000" />
       <workItem from="1758820088022" duration="57803000" />
       <workItem from="1758964500480" duration="156975000" />
+      <workItem from="1759960159751" duration="3000" />
     </task>
     <servers />
   </component>

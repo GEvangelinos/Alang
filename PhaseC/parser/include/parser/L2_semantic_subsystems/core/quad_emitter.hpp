@@ -21,8 +21,6 @@ public:
         friend class QuadYielder;
         friend class ExprNormalizer;
         EmitterKey() = default;
-        // TODO: why is this line necessary... EmitterKEy is class.. doesnt its default ctor default tor private?
-        // or its considred aggregate struct?
     };
 
     QuadEmitter() = default;
