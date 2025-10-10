@@ -82,46 +82,6 @@ private:
     [[nodiscard]] const Expr *try_trim_optimize(SourceLocation result_loc, const Exprs &... exprs);
 };
 
-inline bool
-ExprFolder::should_fold_arithmetic(const Expr *const expr)
-{
-    return DEBUG_REQUIRE_PTR(expr)->is_const_arithmetic();
-}
-
-inline bool
-ExprFolder::should_fold_arithmetic(const Expr *const lhs, const Expr *const rhs)
-{
-    return DEBUG_REQUIRE_PTR(lhs)->is_const_arithmetic() &&
-           DEBUG_REQUIRE_PTR(rhs)->is_const_arithmetic();
-}
-
-inline bool
-ExprFolder::should_fold_relational_numeric(const Expr *const lhs, const Expr *const rhs)
-{
-    return DEBUG_REQUIRE_PTR(lhs)->is_const_arithmetic() &&
-           DEBUG_REQUIRE_PTR(rhs)->is_const_arithmetic();
-}
-
-inline bool
-ExprFolder::should_fold_relational_equality(const Expr *const lhs, const Expr *const rhs)
-{
-    return DEBUG_REQUIRE_PTR(lhs)->is_static() &&
-           DEBUG_REQUIRE_PTR(rhs)->is_static();
-}
-
-inline bool
-ExprFolder::should_fold_logical(const Expr *const expr)
-{
-    return DEBUG_REQUIRE_PTR(expr)->type == Expr::Type::CONST_BOOL;
-}
-
-inline bool
-ExprFolder::should_fold_logical(const Expr *const lhs, const Expr *const rhs)
-{
-    return DEBUG_REQUIRE_PTR(lhs)->type == Expr::Type::CONST_BOOL &&
-           DEBUG_REQUIRE_PTR(rhs)->type == Expr::Type::CONST_BOOL;
-}
-
 template<ir::Opcode opc, typename... Exprs>
 const Expr *ExprOptimizer::try_optimize(const SourceLocation result_loc, Exprs &... exprs)
 {

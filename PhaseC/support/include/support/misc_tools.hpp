@@ -18,20 +18,6 @@ template<typename N>
     requires std::is_integral_v<N>
 [[nodiscard]] constexpr bool is_even(N n) noexcept { return !is_odd(n); }
 
-template<typename T, typename U>
-    requires (std::is_convertible_v<T, bool> && std::is_convertible_v<U, bool>)
-[[nodiscard]] constexpr bool logical_xor(const T t, const U u) noexcept
-{
-    return static_cast<bool>(t) != static_cast<bool>(u);
-}
-
-template<typename T, typename U>
-    requires (std::is_convertible_v<T, bool> && std::is_convertible_v<U, bool>)
-[[nodiscard]] constexpr bool logical_xnor(const T t, const U u) noexcept
-{
-    return !logical_xor(t, u);
-}
-
 // Utility function used to mainly assert pointers
 // in initialization lists of constructors.
 template<typename T>

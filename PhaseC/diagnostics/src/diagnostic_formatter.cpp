@@ -212,7 +212,7 @@ DiagnosticFormatter::build_suggestion_lines(const Suggestion &suggestion) const
 
     std::vector<std::string> suggestion_lines;
     std::string current_line = indent;
-    for (const char ch: suggestion.text)
+    for (const char ch: suggestion.desc)
     {
         if (ch == '\n')
         {
@@ -339,7 +339,7 @@ DiagnosticFormatter::format_issue(const Issue &issue, const bool colorize) const
 
     highlight_pointer_flag.enable();
 
-    const Issue::RenderingSpan span = issue.compute_printing_span(loc_tracker_);
+    const Issue::RenderingLineSpan span = issue.compute_printing_span(loc_tracker_);
 
     const auto issue_line_count = span.end_line - span.start_line;
     if (issue_line_count < max_shown_lines)

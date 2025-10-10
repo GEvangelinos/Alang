@@ -103,9 +103,9 @@ std::string expr_printer(const alpha::Expr *expr, const char *const missing_mark
     case ET::ARITHMETIC: return static_cast<const ArithmeticExpr *>(expr)->var_symbol->name;
     case ET::ASSIGN: return static_cast<const AssignExpr *>(expr)->var_symbol->name;
     case ET::BOOL: return static_cast<const BoolExpr *>(expr)->var_symbol->name;
-    case ET::LIBRARY_FUNCTION: return static_cast<const LibFuncExpr *>(expr)->func_symbol->name;
+    case ET::LIBRARY_FUNCTION: return static_cast<const LibFuncExpr *>(expr)->libfunc_symbol->name;
     case ET::NEW_TABLE: return static_cast<const NewTableExpr *>(expr)->var_symbol->name;
-    case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr *>(expr)->func_symbol->name;
+    case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr *>(expr)->progfunc_symbol->name;
     case ET::TABLE_ITEM: return static_cast<const TableItemExpr *>(expr)->var_symbol->name;
     case ET::VARIABLE: return static_cast<const VariableExpr *>(expr)->var_symbol->name;
     default:

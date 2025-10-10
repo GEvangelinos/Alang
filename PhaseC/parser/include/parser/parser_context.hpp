@@ -97,7 +97,7 @@ public:
         const u32 scope;
         const SourceLocation location;
         const u32 local_var_count;
-        const FuncSymbol *func_symbol;
+        const ProgFuncSymbol *func_symbol;
         const LabelID funcdef_skip_jump;
     };
 
@@ -113,7 +113,7 @@ public:
     void enter_function(
         const std::string &func_name,
         SourceLocation func_loc,
-        const FuncSymbol *func_symbol,
+        const ProgFuncSymbol *func_symbol,
         LabelID label_of_jump);
     [[nodiscard]] FunctionBackpatchInfo exit_function() noexcept;
     [[nodiscard]] u32 function_nesting_depth() const noexcept;
@@ -136,7 +136,7 @@ private:
         const std::string name;
         const u32 scope;
         const SourceLocation loc;
-        const FuncSymbol *func_symbol; // Valid function ONLY IF NOT nullptr;
+        const ProgFuncSymbol *func_symbol; // Valid function ONLY IF NOT nullptr;
 
         u32 loop_nesting_count = 0;
 
@@ -156,7 +156,7 @@ private:
             const std::string &name,
             const u32 scope,
             const SourceLocation loc,
-            const FuncSymbol *const func_symbol,
+            const ProgFuncSymbol *const func_symbol,
             const u32 label_of_jump)
             : name(std::move(name)),
               scope(scope),

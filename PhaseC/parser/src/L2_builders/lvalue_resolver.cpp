@@ -2,7 +2,6 @@
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 #include "L2_semantic_subsystems/core/expr_normalizer.hpp"
 
-
 namespace alpha
 {
 LvalueResolver::LvalueResolver(const SemanticSystemServices &ss_services)
@@ -31,10 +30,11 @@ LvalueResolver::Restricted::resolve_id(const char *id_name, const SourceLocation
         return nullptr;
     if (result->is_variable())
         return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol *>(result));
-    if (result->is_progfunc())
-        return expr_maker_->make_prog_func_expr(id_loc, static_cast<const FuncSymbol *>(result));
-    if (result->is_libfunc())
-        return expr_maker_->make_lib_func_expr(id_loc, static_cast<const FuncSymbol *>(result));
+    if (result->type == Symbol::Type::PROGRAM_FUNCTION)
+        return expr_maker_->
+            make_prog_func_expr(id_loc, static_cast<const ProgFuncSymbol *>(result));
+    if (result->type == Symbol::Type::LIBRARY_FUNCTION)
+        return expr_maker_->make_lib_func_expr(id_loc, static_cast<const LibFuncSymbol *>(result));
     UNREACHABLE("Resolved symbol is neither a variable nor a function: unexpected symbol type");
 }
 
@@ -68,9 +68,13 @@ LvalueResolver::Restricted::resolve_local_id(
     }
     if (result->is_variable())
         return expr_maker_->make_variable_expr(lid_loc, static_cast<const VarSymbol *>(result));
-    if (result->is_progfunc())
-        return expr_maker_->make_prog_func_expr(lid_loc, static_cast<const FuncSymbol *>(result));
-    DEBUG_SMART_ASSERT(!result->is_libfunc() && "libfunc, should be resolved at name lookup");
+    if (result->type == Symbol::Type::PROGRAM_FUNCTION)
+        return expr_maker_->make_prog_func_expr(
+            lid_loc, static_cast<const ProgFuncSymbol *>(result));
+    DEBUG_SMART_ASSERT(
+        result->type!= Symbol::Type::LIBRARY_FUNCTION &&
+        "libfunc, should be resolved at name lookup"
+    );
     UNREACHABLE("Unexpected symbol type");
 }
 
@@ -87,10 +91,11 @@ const Expr *LvalueResolver::Restricted::resolve_global_id(
     }
     if (result->is_variable())
         return expr_maker_->make_variable_expr(gid_loc, static_cast<const VarSymbol *>(result));
-    if (result->is_progfunc())
-        return expr_maker_->make_prog_func_expr(gid_loc, static_cast<const FuncSymbol *>(result));
-    if (result->is_libfunc())
-        return expr_maker_->make_lib_func_expr(gid_loc, static_cast<const FuncSymbol *>(result));
+    if (result->type == Symbol::Type::PROGRAM_FUNCTION)
+        return expr_maker_->make_prog_func_expr(
+            gid_loc, static_cast<const ProgFuncSymbol *>(result));
+    if (result->type == Symbol::Type::LIBRARY_FUNCTION)
+        return expr_maker_->make_lib_func_expr(gid_loc, static_cast<const LibFuncSymbol *>(result));
     UNREACHABLE("Unexpected symbol type");
 }
 

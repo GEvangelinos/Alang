@@ -19,38 +19,6 @@ concept ExprFactory =
         std::remove_const_t<std::remove_pointer_t<std::invoke_result_t<Callable>>>
     >;
 
-template<typename Enum>
-    requires std::is_enum_v<Enum>
-constexpr Enum operator |(const Enum lhs, const Enum rhs) noexcept
-{
-    using U = std::underlying_type_t<Enum>;
-    return static_cast<Enum>(static_cast<U>(lhs) | static_cast<U>(rhs));
-}
-
-template<typename Enum>
-    requires std::is_enum_v<Enum>
-constexpr Enum operator &(const Enum lhs, const Enum rhs) noexcept
-{
-    using U = std::underlying_type_t<Enum>;
-    return static_cast<Enum>(static_cast<U>(lhs) & static_cast<U>(rhs));
-}
-
-template<typename Enum>
-    requires std::is_enum_v<Enum>
-constexpr Enum operator ~(const Enum unary) noexcept
-{
-    using U = std::underlying_type_t<Enum>;
-    return static_cast<Enum>(~static_cast<U>(unary));
-}
-
-template<typename Enum>
-    requires std::is_enum_v<Enum>
-constexpr bool any(Enum e) noexcept
-{
-    using U = std::underlying_type_t<Enum>;
-    return static_cast<U>(e) != 0;
-}
-
 class QuadYielder
 {
 public:

@@ -25,6 +25,7 @@ static constexpr char k_anonymous_prefix[] = "@";
 static constexpr char k_temp_variable_prefix[] = "$";
 
 static constexpr u32 k_global_scope = 0;
+static constexpr u32 k_libfunc_scope = k_global_scope;
 static constexpr u32 k_libfunc_local_variable_count = 0;
 static constexpr u32 k_no_line = 0;
 static constexpr SourceLocation k_no_loc = {0, 0};

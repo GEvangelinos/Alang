@@ -23,7 +23,8 @@ enum class OperandSide : u8
 
 const char *to_string(OperandSide pos) noexcept;
 
-#define EXPR_TYPES(X)     \
+// X(enum_type)
+#define EXPR_TYPES(X)   \
     X(ARITHMETIC)       \
     X(ASSIGN)           \
     X(BOOL)             \
@@ -36,7 +37,8 @@ const char *to_string(OperandSide pos) noexcept;
     X(PROGRAM_FUNCTION) \
     X(NEW_TABLE)        \
     X(TABLE_ITEM)       \
-    X(VARIABLE)
+    X(VARIABLE)         \
+    X(COUNT__)
 
 // @Note: Be careful when modifying or reordering fields in this struct.
 //        Instances of Expr are generated constantly, so layout and size have a
@@ -44,11 +46,11 @@ const char *to_string(OperandSide pos) noexcept;
 //        struct as compact as possible.
 struct Expr : private Immobile
 {
-    enum class Type : u8
+    enum class Type : u16
     {
-        #define TYPE_EXTRACTOR(expr_type) expr_type,
-        EXPR_TYPES(TYPE_EXTRACTOR)
-        #undef  TYPE_EXTRACTOR
+        #define EXPR_TYPE_ENUM_MAKER(expr_type) expr_type,
+        EXPR_TYPES(EXPR_TYPE_ENUM_MAKER)
+        #undef  EXPR_TYPE_ENUM_MAKER
     };
 
     const SourceLocation loc;
@@ -71,8 +73,8 @@ struct Expr : private Immobile
     [[nodiscard]] bool is_rvalue() const noexcept;
     [[nodiscard]] bool is_static() const noexcept;
     [[nodiscard]] bool has_symbol() const noexcept;
-    [[nodiscard]] bool has_symbol_func() const noexcept;
-    [[nodiscard]] bool has_symbol_var() const noexcept;
+    [[nodiscard]] bool has_func_symbol() const noexcept;
+    [[nodiscard]] bool has_var_symbol() const noexcept;
     [[nodiscard]] bool has_active_temp() const noexcept;
 
 protected:
@@ -98,18 +100,6 @@ protected:
         const VarSymbol *const var_symbol)
         : Expr(type, loc),
           var_symbol(DEBUG_REQUIRE_PTR(var_symbol)) {}
-};
-
-struct ExprWFuncSymbol : public Expr
-{
-public:
-    const FuncSymbol *const func_symbol;
-
-protected:
-    ALWAYS_INLINE ExprWFuncSymbol(
-        const Type type, const SourceLocation loc, const FuncSymbol *const func_symbol)
-        : Expr(type, loc),
-          func_symbol(DEBUG_REQUIRE_PTR(func_symbol)) {}
 };
 
 struct ConstExpr : public Expr
@@ -190,16 +180,22 @@ struct ConstNilExpr final : public ConstExpr
         : ConstExpr(Type::CONST_NIL, loc) {}
 };
 
-struct LibFuncExpr final : public ExprWFuncSymbol
+struct LibFuncExpr final : public Expr
 {
-    LibFuncExpr(const SourceLocation loc, const FuncSymbol *const func_symbol)
-        : ExprWFuncSymbol(Type::LIBRARY_FUNCTION, loc, func_symbol) {}
+    const LibFuncSymbol *const libfunc_symbol;
+
+    LibFuncExpr(const SourceLocation loc, const LibFuncSymbol *const func_symbol)
+        : Expr(Type::LIBRARY_FUNCTION, loc),
+          libfunc_symbol(DEBUG_REQUIRE_PTR(func_symbol)) {}
 };
 
-struct ProgFuncExpr final : public ExprWFuncSymbol
+struct ProgFuncExpr final : public Expr
 {
-    ProgFuncExpr(const SourceLocation loc, const FuncSymbol *const func_symbol)
-        : ExprWFuncSymbol(Type::PROGRAM_FUNCTION, loc, func_symbol) {}
+    const ProgFuncSymbol *const progfunc_symbol;
+
+    ProgFuncExpr(const SourceLocation loc, const ProgFuncSymbol *const func_symbol)
+        : Expr(Type::PROGRAM_FUNCTION, loc),
+          progfunc_symbol(DEBUG_REQUIRE_PTR(func_symbol)) {}
 };
 
 struct NewTableExpr final : public ExprWVarSymbol
@@ -236,139 +232,6 @@ struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
 
 inline void
 Expr::rvalue_cast() const { rvalue_casted.raise(); }
-
-inline bool
-Expr::is_rvalue_casted() const noexcept { return rvalue_casted.is_raised(); }
-
-inline bool
-Expr::is_arithmetic_convertible() const noexcept
-{
-    switch (type)
-    {
-    case Type::ARITHMETIC:
-    case Type::ASSIGN:
-    case Type::CONST_INT:
-    case Type::CONST_FLOAT:
-    case Type::TABLE_ITEM:
-    case Type::VARIABLE: return true;
-    default: return false;
-    }
-}
-
-inline bool
-Expr::is_func() const noexcept
-{
-    return type == Type::LIBRARY_FUNCTION || type == Type::PROGRAM_FUNCTION;
-}
-
-inline bool
-Expr::is_bool_or_const_bool() const noexcept
-{
-    return type == Type::BOOL || type == Type::CONST_BOOL;
-}
-
-inline bool
-Expr::is_callable() const noexcept { return is_lvalue() || is_func(); }
-
-inline bool
-Expr::is_const_0() const noexcept
-{
-    switch (type)
-    {
-    case Type::CONST_INT: return static_cast<const ConstIntExpr *>(this)->value == 0;
-    case Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(this)->value == 0.0;
-    default: return false;
-    }
-}
-
-bool inline
-Expr::is_const_1() const noexcept
-{
-    switch (type)
-    {
-    case Type::CONST_INT: return static_cast<const ConstIntExpr *>(this)->value == 1;
-    case Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(this)->value == 1.0;
-    default: return false;
-    }
-}
-
-inline bool
-Expr::is_const_true() const noexcept
-{
-    return type == Type::BOOL && static_cast<const ConstBoolExpr *>(this)->value == true;
-}
-
-inline bool
-Expr::is_const_false() const noexcept
-{
-    return type == Type::BOOL && static_cast<const ConstBoolExpr *>(this)->value == false;
-}
-
-inline bool
-Expr::is_const_arithmetic() const noexcept
-{
-    return type == Type::CONST_INT || type == Type::CONST_FLOAT;
-}
-
-inline bool
-Expr::is_const() const noexcept
-{
-    switch (type)
-    {
-    case Type::CONST_BOOL:
-    case Type::CONST_INT:
-    case Type::CONST_FLOAT:
-    case Type::CONST_STRING:
-    case Type::CONST_NIL: return true;
-    default: return false;
-    }
-}
-
-inline bool
-Expr::is_lvalue_type() const noexcept
-{
-    switch (type)
-    {
-    case Type::ASSIGN:
-    case Type::TABLE_ITEM:
-    case Type::VARIABLE: return true;
-    default: return false;
-    }
-}
-
-inline bool
-Expr::is_lvalue() const noexcept { return is_lvalue_type() && !is_rvalue_casted(); }
-
-inline bool
-Expr::is_rvalue() const noexcept { return !is_lvalue(); }
-
-inline bool
-Expr::is_static() const noexcept { return is_const() || is_func(); }
-
-inline bool
-Expr::has_symbol() const noexcept { return !is_const(); }
-
-inline bool
-Expr::has_symbol_func() const noexcept { return has_symbol() && is_func(); }
-
-inline bool
-Expr::has_symbol_var() const noexcept { return has_symbol() && !is_func(); }
-
-inline Expr::Type
-to_expr_type(const Symbol::Type symbol_type)
-{
-    switch (symbol_type)
-    {
-    case Symbol::Type::GLOBAL_VARIABLE:
-    case Symbol::Type::FORMAL_ARGUMENT:
-    case Symbol::Type::LOCAL_VARIABLE: return Expr::Type::VARIABLE;
-    case Symbol::Type::LIBRARY_FUNCTION: return Expr::Type::LIBRARY_FUNCTION;
-    case Symbol::Type::PROGRAM_FUNCTION: return Expr::Type::PROGRAM_FUNCTION;
-    default:
-        [[unlikely]] UNREACHABLE(FMT::format(
-            "Unknown Symbol::Type. int(symbol_type) = {}", static_cast<int>(symbol_type)));
-    }
-}
 
 // WARNING: static_* expressions have dummy location which does NOT correspond
 // to any real source buffer region. Never return them from synthesis; doing so

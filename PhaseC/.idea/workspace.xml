@@ -48,11 +48,32 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W__OPT=const_eval__FAMILY_arithOps_v001.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W__OPT=const_eval__FAMILY_arithOps_v001.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.tests/.testbed.asc.swp" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/.testbed.asc.swp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/konstants.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/konstants.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_types.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_types.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/src/diagnostic_formatter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/diagnostic_formatter.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/src/diagnostic_types.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/diagnostic_types.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/translation_unit.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_maker.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_maker.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_optimizer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_optimizer.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_yielder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_yielder.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_maker.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_maker.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/ir_expr.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/ir_expr.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/parser_context.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_context.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/symbol_table.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/symbol_table.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/support/include/support/misc_tools.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/support/include/support/misc_tools.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -201,7 +222,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "CMake Application.alang.executor": "Debug",
+    "CMake Application.alang.executor": "Run",
     "CMake Application.alang.out.executor": "Run",
     "CMake Application.alpha_driver.out.executor": "Run",
     "CMake Debug.Alpha.executor": "Debug",
@@ -217,13 +238,13 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "non__cya__mode/ir-gen",
-    "last_opened_file_path": "/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/.GOSPEL",
+    "last_opened_file_path": "/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/diagnostics/config",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "CMakeSettings",
+    "settings.editor.selected.configurable": "preferences.sourceCode.C/C++",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -236,18 +257,18 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/diagnostics/config" />
       <recent name="$PROJECT_DIR$/.GOSPEL" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/parser/src" />
       <recent name="$PROJECT_DIR$/scripts/old_regression_runner" />
-      <recent name="$PROJECT_DIR$/scripts/prophet" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/parser/include/parser" />
+      <recent name="$PROJECT_DIR$/parser/include" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/scripts/prophet" />
       <recent name="$PROJECT_DIR$/.tests/working/MODE_CYA_OPT_NONE" />
-      <recent name="$PROJECT_DIR$/.tests/GOLDEN_SYMBOL_TABLES/MODE_CYA_OPT_NONE" />
-      <recent name="$PROJECT_DIR$/.tests/GOLDEN_IR/MODE_CYA_OPT_NONE" />
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.alang">
@@ -426,7 +447,7 @@
       <workItem from="1758662529901" duration="35784000" />
       <workItem from="1758820088022" duration="57803000" />
       <workItem from="1758964500480" duration="156975000" />
-      <workItem from="1759960159751" duration="5736000" />
+      <workItem from="1759960159751" duration="57992000" />
     </task>
     <servers />
   </component>
@@ -467,12 +488,12 @@
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/src/symbol_table.cpp</url>
-          <line>247</line>
+          <line>223</line>
           <option name="timeStamp" value="267" />
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/src/symbol_table.cpp</url>
-          <line>238</line>
+          <line>214</line>
           <option name="timeStamp" value="268" />
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
@@ -482,17 +503,17 @@
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/src/symbol_table.cpp</url>
-          <line>253</line>
+          <line>229</line>
           <option name="timeStamp" value="271" />
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/include/parser/symbols.hpp</url>
-          <line>199</line>
+          <line>203</line>
           <option name="timeStamp" value="272" />
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/include/parser/symbols.hpp</url>
-          <line>206</line>
+          <line>210</line>
           <option name="timeStamp" value="273" />
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
@@ -502,13 +523,8 @@
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_yielder.hpp</url>
-          <line>157</line>
+          <line>125</line>
           <option name="timeStamp" value="285" />
-        </line-breakpoint>
-        <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp</url>
-          <line>720</line>
-          <option name="timeStamp" value="286" />
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/src/parser_context.cpp</url>
@@ -517,12 +533,12 @@
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/include/parser/symbols.hpp</url>
-          <line>220</line>
+          <line>228</line>
           <option name="timeStamp" value="291" />
         </line-breakpoint>
         <line-breakpoint type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp</url>
-          <line>10</line>
+          <line>13</line>
           <option name="timeStamp" value="293" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
@@ -537,21 +553,6 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_optimizer.hpp</url>
-          <line>118</line>
-          <option name="timeStamp" value="297" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp</url>
-          <line>178</line>
-          <option name="timeStamp" value="298" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp</url>
-          <line>609</line>
-          <option name="timeStamp" value="300" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_optimizer.hpp</url>
           <line>26</line>
           <option name="timeStamp" value="301" />
         </line-breakpoint>
@@ -559,11 +560,6 @@
           <url>file://$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp</url>
           <line>136</line>
           <option name="timeStamp" value="302" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp</url>
-          <line>195</line>
-          <option name="timeStamp" value="303" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

@@ -106,7 +106,7 @@ void
 FunctionCtxHandler::enter_function(
     const std::string &func_name,
     const SourceLocation func_loc,
-    const FuncSymbol *const func_symbol,
+    const ProgFuncSymbol *const func_symbol,
     const LabelID label_of_jump)
 {
     DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting && "A safe small sanity limit");

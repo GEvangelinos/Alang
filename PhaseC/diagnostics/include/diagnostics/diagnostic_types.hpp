@@ -13,13 +13,19 @@ namespace alpha
 {
 struct Suggestion
 {
-    const std::string text;
+    const std::string desc;
     const SourceLocation insert_after;
 
     Suggestion() = delete;
     Suggestion(std::string_view text, SourceLocation insert_after);
 
     [[nodiscard]] u32 compute_printing_span() const;
+};
+
+struct Highlight
+{
+    const std::string label;
+    const SourceLocation loc;
 };
 
 class Issue
@@ -34,7 +40,7 @@ public:
         FATAL_ERROR,
     };
 
-    struct RenderingSpan
+    struct RenderingLineSpan
     {
         u32 start_line;
         u32 end_line;
@@ -43,18 +49,20 @@ public:
     const Type type;
     const std::string desc;
     const SourceLocation loc;
-    std::optional<Suggestion> suggestion;
+    const std::optional<Suggestion> suggestion;
+    const std::optional<std::list<Highlight>> highlights;
 
     Issue(
         Type type,
         std::string description,
         SourceLocation loc,
-        std::optional<Suggestion> suggestion = std::nullopt);
+        std::optional<Suggestion> suggestion = std::nullopt,
+        std::optional<std::list<Highlight>> highlights = std::nullopt);
 
     [[nodiscard]] u32 line(const LocationTracker &loc_tracker) const;
     [[nodiscard]] u32 column(const LocationTracker &loc_tracker) const;
 
-    [[nodiscard]] RenderingSpan compute_printing_span(const LocationTracker &loc_tracker) const;
+    [[nodiscard]] RenderingLineSpan compute_printing_span(const LocationTracker &loc_tracker) const;
 };
 
 [[nodiscard]] const char *to_string(Issue::Type type) noexcept;

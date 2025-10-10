@@ -4,17 +4,17 @@
 namespace alpha
 {
 Suggestion::Suggestion(const std::string_view text, const SourceLocation insert_after)
-    : text(text), insert_after(insert_after) {}
+    : desc(text), insert_after(insert_after) {}
 
 u32
 Suggestion::compute_printing_span() const
 {
     constexpr u32 k_line_offset = 1; // non-empty text always has one more line than '\n' count
 
-    if (text.empty())
+    if (desc.empty())
         return 0;
 
-    const auto newline_count = std::count(text.begin(), text.end(), '\n');
+    const auto newline_count = std::count(desc.begin(), desc.end(), '\n');
     DEBUG_SMART_ASSERT(
         newline_count >= 0,
         newline_count < std::numeric_limits<u32>::max() - k_line_offset
@@ -26,11 +26,25 @@ Issue::Issue(
     const Type type,
     std::string description,
     const SourceLocation loc,
-    std::optional<Suggestion> suggestion)
+    std::optional<Suggestion> suggestion,
+    std::optional<std::list<Highlight>> highlights)
     : type(type),
       desc(std::move(description)),
       loc(loc),
-      suggestion(std::move(suggestion)) {}
+      suggestion(std::move(suggestion)),
+      highlights(std::move(highlights))
+{
+    // Assert highlights underline correct code regions.
+    if (highlights.has_value())
+        return;
+    for (const Highlight &h : *highlights)
+    {
+        if (h.loc.first_index < loc.first_index)
+            throw std::logic_error(ATTACH_CONTEXT("Highlight points before Issue's location"));
+        if (h.loc.last_index > loc.last_index)
+            throw std::logic_error(ATTACH_CONTEXT("Highlight points after  Issue's location"));
+    }
+}
 
 u32
 Issue::line(const LocationTracker &loc_tracker) const { return loc_tracker.find_first_line(loc); }
@@ -41,11 +55,11 @@ Issue::column(const LocationTracker &loc_tracker) const
     return loc_tracker.find_first_column(loc);
 }
 
-Issue::RenderingSpan
+Issue::RenderingLineSpan
 Issue::compute_printing_span(const LocationTracker &loc_tracker) const
 {
     // Start with the span of the issue itself.
-    RenderingSpan result{
+    RenderingLineSpan result{
         .start_line = loc_tracker.find_first_line(loc),
         .end_line = loc_tracker.find_last_line(loc)
     };

@@ -44,9 +44,9 @@ public:
         SourceLocation expr_loc, const char *str_value);
     [[nodiscard]] const ConstNilExpr *make_nil_expr(SourceLocation expr_loc);
     [[nodiscard]] const LibFuncExpr *make_lib_func_expr(
-        SourceLocation expr_loc, const FuncSymbol *func_symbol);
+        SourceLocation expr_loc, const LibFuncSymbol *func_symbol);
     [[nodiscard]] const ProgFuncExpr *make_prog_func_expr(
-        SourceLocation expr_loc, const FuncSymbol *func_symbol);
+        SourceLocation expr_loc, const ProgFuncSymbol *func_symbol);
     [[nodiscard]] const TableItemExpr *make_table_item_expr(
         SourceLocation expr_loc, const Expr *base, const Expr *index);
     [[nodiscard]] const VariableExpr *make_variable_expr(
@@ -164,7 +164,7 @@ ExprMaker::make_nil_expr(const SourceLocation expr_loc)
 }
 
 inline const LibFuncExpr *
-ExprMaker::make_lib_func_expr(const SourceLocation expr_loc, const FuncSymbol *const func_symbol)
+ExprMaker::make_lib_func_expr(const SourceLocation expr_loc, const LibFuncSymbol *const func_symbol)
 {
     DEBUG_SMART_ASSERT(!!func_symbol);
     const auto *const lib_func_expr = new const LibFuncExpr(expr_loc, func_symbol);
@@ -175,7 +175,7 @@ ExprMaker::make_lib_func_expr(const SourceLocation expr_loc, const FuncSymbol *c
 inline const ProgFuncExpr *
 ExprMaker::make_prog_func_expr(
     const SourceLocation expr_loc,
-    const FuncSymbol *const func_symbol)
+    const ProgFuncSymbol *const func_symbol)
 {
     DEBUG_SMART_ASSERT(!!func_symbol);
     const auto *const prog_func_expr = new const ProgFuncExpr(expr_loc, func_symbol);

@@ -1,6 +1,9 @@
 #include "L2_semantic_subsystems/expr_builders.hpp"
 
 #include <diagnostics/diagnostic_reporter.gen.hpp>
+
+#include "expr_type_traits.hpp"
+#include "expr_type_traits.hpp"
 #include "L2_semantic_subsystems/core/expr_normalizer.hpp"
 #include "parser/internal_typedefs.hpp"
 
@@ -297,7 +300,15 @@ AssignBuilder::Restricted::handle_table_item_assignment(
     quad_yielder_->yield_next(ir::Opcode::TABLESETELEM, ti, ti->index, rhs, result_loc);
 
     // We resurface the assigned element of table to allow chained assignment. Ex.: a = b.c = d;
-    return expr_normalizer_->materialize_if_table_item(ti);
+    // This is also useful for call(t[i]=1, t[i]=2, t[i]=3);
+    const Expr *const materialized = expr_normalizer_->materialize_if_table_item(ti);
+    DEBUG_SMART_ASSERT(materialized->has_var_symbol());
+
+    // We semantically transform materialized to an ASSIGN expression
+    return expr_maker_->make_assign_expr(
+        materialized->loc,
+        static_cast<const ExprWVarSymbol *>(materialized)->var_symbol
+    );
 }
 
 const Expr *
@@ -360,13 +371,13 @@ AssignBuilder::Restricted::validate_assignment(
     DEBUG_SMART_ASSERT(!!lhs);
     if (lhs->type == Expr::Type::LIBRARY_FUNCTION)
     {
-        const auto *const func_symbol = static_cast<const LibFuncExpr *>(lhs)->func_symbol;
+        const auto *const func_symbol = static_cast<const LibFuncExpr *>(lhs)->libfunc_symbol;
         dr_->report_assign_to_libfunc(func_symbol->name, assign_loc);
         return false;
     }
     if (lhs->type == Expr::Type::PROGRAM_FUNCTION)
     {
-        const auto *const func_symbol = static_cast<const ProgFuncExpr *>(lhs)->func_symbol;
+        const auto *const func_symbol = static_cast<const ProgFuncExpr *>(lhs)->progfunc_symbol;
         dr_->report_assign_to_func(func_symbol->name, assign_loc, func_symbol->loc);
         return false;
     }
@@ -399,7 +410,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
 
         if (!assignment_requires_temp())
         {
-            DEBUG_SMART_ASSERT(ti->has_symbol_var());
+            DEBUG_SMART_ASSERT(ti->has_var_symbol());
             const auto ti_symbol = static_cast<const ExprWVarSymbol *>(ti)->var_symbol;
             return expr_maker_->make_arithmetic_expr(result_loc, ti_symbol);
         }
@@ -416,7 +427,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
         qy->yield_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
         if (!assignment_requires_temp())
         {
-            DEBUG_SMART_ASSERT(lvalue->has_symbol_var());
+            DEBUG_SMART_ASSERT(lvalue->has_var_symbol());
             const auto lvalue_symbol = static_cast<const ExprWVarSymbol *>(lvalue)->var_symbol;
             return expr_maker_->make_arithmetic_expr(result_loc, lvalue_symbol);
         }
@@ -543,9 +554,7 @@ BasicBuilder::Restricted::build_arithmetic(
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
     // Always build IR. On validation errors we report error diagnostics and never export bad IR.
-    const bool valid_lhs = validate_arithmetic_expr(opc, lhs, OperandSide::LEFT);
-    const bool valid_rhs = validate_arithmetic_expr(opc, rhs, OperandSide::RIGHT);
-    if (!(valid_lhs && valid_rhs))
+    if (!validate_arithmetic_operation(opc, lhs, rhs))
         goto skip_opt;
 
     // We pre-propagate const (so we can catch div by zero)
@@ -582,9 +591,7 @@ BasicBuilder::Restricted::build_relational(
     expr_normalizer_->resolve_bool_short_circuit(rhs);
 
     // Always build IR. On validation errors we report error diagnostics and never export bad IR.
-    const bool valid_lhs = validate_relational_expr(opc, lhs, OperandSide::LEFT);
-    const bool valid_rhs = validate_relational_expr(opc, rhs, OperandSide::RIGHT);
-    if (!(valid_lhs && valid_rhs))
+    if (!validate_relational_operation(opc, lhs, rhs))
         goto skip_opt;
 
     if (const auto optimized = this->try_optimize_relational_expr(opc, lhs, rhs, result_loc))
@@ -737,7 +744,8 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
 
     if (SemUtils::is_binary_arithmetic_opcode(opc))
         dr_->report_nonarith_arith_op_operand(
-            op_side, SemUtils::arith_op_str(opc), expr->type, expr->loc);
+            op_side, SemUtils::arith_op_str(opc), expr->type, expr->loc
+        );
     else if (opc == ir::Opcode::UMINUS)
         dr_->report_nonarith_uminus_operand(expr->type, expr->loc);
     else
@@ -748,21 +756,73 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
 }
 
 bool
-BasicBuilder::Restricted::validate_relational_expr(
+BasicBuilder::Restricted::validate_arithmetic_operation(
     const ir::Opcode opc,
-    const Expr *const expr,
-    const OperandSide op_side)
+    const Expr *const lhs,
+    const Expr *const rhs)
 {
-    DEBUG_SMART_ASSERT(!!expr,);
-    // In Alpha everything is convertible to bool.
-    // And operators == and != convert their operands to bool.
+    const bool valid_lhs = validate_arithmetic_expr(opc, lhs, OperandSide::LEFT);
+    const bool valid_rhs = validate_arithmetic_expr(opc, rhs, OperandSide::RIGHT);
+    return valid_lhs && valid_rhs;
+}
+
+bool
+BasicBuilder::Restricted::validate_relational_operation(
+    const ir::Opcode opc,
+    const Expr *const lhs,
+    const Expr *const rhs)
+{
+    DEBUG_SMART_ASSERT(!!lhs, !!rhs, SemUtils::is_relational_iropcode(opc));
+
+    const auto validate_numeric = [opc, lhs, rhs, this]() -> bool
+    {
+        DEBUG_SMART_ASSERT(SemUtils::is_relational_numeric_iropcode(opc));
+        if (lhs->is_arithmetic_convertible() && rhs->is_arithmetic_convertible())
+            return true;
+        const auto opc_str = SemUtils::relop_str(opc);
+        if (!lhs->is_arithmetic_convertible())
+            dr_->report_nonarith_rel_op_operand(OperandSide::LEFT, opc_str, lhs->type, lhs->loc);
+        if (!rhs->is_arithmetic_convertible())
+            dr_->report_nonarith_rel_op_operand(OperandSide::RIGHT, opc_str, rhs->type, rhs->loc);
+        return false;
+    };
+
+    const auto validate_equality = [opc, lhs, rhs, this]() -> bool
+    {
+        using ET = Expr::Type;
+        DEBUG_SMART_ASSERT(SemUtils::is_relational_equality_iropcode(opc));
+
+        // Pass rhs->type through specific masks/filters to detect invalid comparisons.
+        const bool passes_mask = [lhs, rhs]()
+        {
+            namespace ETCM = expr_traits::cmp_bitmasks;
+            const auto rhs_bitmask = ETCM::to_bitmask(rhs->type);
+            switch (lhs->type)
+            {
+            case ET::ARITHMETIC:
+            case ET::CONST_FLOAT:
+            case ET::CONST_INT: return static_cast<bool>(ETCM::arithmetic & rhs_bitmask);
+            case ET::CONST_STRING: return static_cast<bool>(ETCM::string & rhs_bitmask);
+            case ET::LIBRARY_FUNCTION: return static_cast<bool>(ETCM::libfunc & rhs_bitmask);
+            case ET::PROGRAM_FUNCTION: return static_cast<bool>(ETCM::progfunc & rhs_bitmask);
+            case ET::CONST_NIL:
+            case ET::NEW_TABLE: return static_cast<bool>(ETCM::aggregate & rhs_bitmask);
+            default: return true;
+            }
+        }();
+        if (passes_mask)
+            return true;
+        dr_->report_equality_rel_op_operand_mismatch(
+            lhs->type, rhs->type, merge(lhs->loc, rhs->loc)
+        );
+        return false;
+    };
+
+    if (SemUtils::is_relational_numeric_iropcode(opc))
+        return validate_numeric();
     if (SemUtils::is_relational_equality_iropcode(opc))
-        return true;
-    // If here relational operator is:  < <= > >=
-    if (expr->is_arithmetic_convertible())
-        return true;
-    dr_->report_nonarith_rel_op_operand(op_side, SemUtils::relop_str(opc), expr->type, expr->loc);
-    return false;
+        return validate_equality();
+    throw std::logic_error(ATTACH_CONTEXT("Unknown relational OPCode"));
 }
 
 bool
@@ -795,8 +855,7 @@ BasicBuilder::Restricted::try_optimize_arithmetic_expr(
     HANDLE_ARITHMETIC(MUL);
     HANDLE_ARITHMETIC(DIV);
     HANDLE_ARITHMETIC(MOD);
-    default: [[unlikely]] UNREACHABLE(
-            FMT::format("Unexpected opcode: {}", static_cast<int>(opc)));
+    default: [[unlikely]] UNREACHABLE(FMT::format("Unexpected opcode: {}", static_cast<int>(opc)));
     }
     #undef  HANDLE_ARITHMETIC
 }
@@ -880,7 +939,8 @@ CallBuilder::Restricted::check_for_argument_mismatch(
     if (callable_lvalue->type != Expr::Type::PROGRAM_FUNCTION)
         return;
 
-    const auto func_symbol = static_cast<const ProgFuncExpr *>(callable_lvalue)->func_symbol;
+    DEBUG_SMART_ASSERT(callable_lvalue->type == Expr::Type::PROGRAM_FUNCTION);
+    const auto func_symbol = static_cast<const ProgFuncExpr *>(callable_lvalue)->progfunc_symbol;
     if (func_symbol->parameter_list.size() == arg_stack.size())
         return;
     dr_->report_call_argument_mismatch(
@@ -954,7 +1014,7 @@ CallBuilder::Restricted::build_method_call_consuming(
 
 const Expr *
 CallBuilder::Restricted::build_iife_call_consuming(
-    const FuncSymbol *const func_symbol,
+    const ProgFuncSymbol *const func_symbol,
     const SourceLocation call_loc)
 {
     DEBUG_SMART_ASSERT(!!func_symbol);
@@ -1111,7 +1171,7 @@ FunctionBuilder::Restricted::validate_formal_param_name(const Parameter &param)
 
 const Expr *
 FunctionBuilder::Restricted::forward_program_function(
-    const FuncSymbol *const func_symbol,
+    const ProgFuncSymbol *const func_symbol,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!func_symbol);
@@ -1125,16 +1185,16 @@ FunctionBuilder::Restricted::forward_program_function(
 /// we must *NOT* back-patch the local-variable count,
 /// or we’ll end up polluting the original function’s frame with
 /// local_variable_count from the redefinition. TODO: DO WE POLLUTE CURRENTLY?
-const FuncSymbol *
+const ProgFuncSymbol *
 FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation func_signature_loc)
 {
     const bool validated_funcname = validate_funcdef_name(function_draft_.id, func_signature_loc);
     const u32 skip_func_jump_label = quad_emitter_->next_quad_label();
     quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_signature_loc);
-    const FuncSymbol *func_symbol = nullptr;
+    const ProgFuncSymbol *func_symbol = nullptr;
     if (validated_funcname)
     {
-        func_symbol = symbol_table_->insert_function(
+        func_symbol = symbol_table_->insert_program_function(
             function_draft_.id,
             parse_ctx_->scope_handler.scope(),
             next_function_address_++,
@@ -1150,7 +1210,8 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation f
             func_signature_loc
         );
     }
-    DEBUG_SMART_ASSERT(support::logical_xnor(validated_funcname, !!func_symbol)); // Sanity check
+    // Sanity check
+    DEBUG_SMART_ASSERT(!(validated_funcname ^ !!func_symbol));
 
     parse_ctx_->func_ctx_handler.enter_function(
         function_draft_.id, func_signature_loc, func_symbol, skip_func_jump_label);
@@ -1161,7 +1222,7 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation f
     return func_symbol;
 }
 
-const FuncSymbol *
+const ProgFuncSymbol *
 FunctionBuilder::Restricted::build_program_function_exit(
     const BlockSourceLocation block_loc)
 {

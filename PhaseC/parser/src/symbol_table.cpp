@@ -22,7 +22,7 @@ namespace // (Anonymous)
     }
 
     template<typename SynonymContainer>
-    DEBUG_ALWAYS_INLINE typename SynonymContainer::const_iterator
+    typename SynonymContainer::const_iterator
     find_insert_position(const SynonymContainer &synonym_symbols, u32 scope)
     {
         auto symbol_it = synonym_symbols.begin();
@@ -46,12 +46,9 @@ namespace // (Anonymous)
 } // namespace
 
 template<typename SymbolKind, typename... Args>
-    requires std::is_same_v<SymbolKind, VarSymbol> || std::is_same_v<SymbolKind, FuncSymbol>
-DEBUG_ALWAYS_INLINE const SymbolKind *
-SymbolTable::insert_symbol(
-    const std::string &name,
-    u32 scope,
-    Args &&... args)
+    requires std::is_base_of_v<Symbol, SymbolKind>
+const SymbolKind *
+SymbolTable::insert_symbol(const std::string &name, u32 scope, Args &&... args)
 {
     DEBUG_SMART_ASSERT(!name.empty());
 
@@ -75,48 +72,27 @@ SymbolTable::insert_symbol(
     ));
 }
 
-// Explicit instantiations for insert_symbol()
-template const FuncSymbol *
-SymbolTable::insert_symbol<FuncSymbol>(
-    const std::string &, u32, FuncSymbol::Type &&, u32 &&, const std::vector<Parameter> &,
-    SourceLocation &&);
-
-template const VarSymbol *
-SymbolTable::insert_symbol<VarSymbol>(
-    const std::string &, u32, VarSymbol::Type &&, VarSymbol::Space &&, u32 &&, SourceLocation &&);
-
 SymbolTable::SymbolTable()
 {
     // Load library functions
     for (uf32 i = 0; i < k_library_function_names.size(); i++)
     {
         const std::string &name = k_library_function_names[i];
-        const auto function_address = i;
-
-        const FuncSymbol *const function_symbol = insert_symbol<FuncSymbol>(
-            name,
-            k_global_scope,
-            Symbol::Type::LIBRARY_FUNCTION,
-            function_address,
-            k_empty_parameter_list,
-            k_no_loc);
         library_function_set_.insert(name);
-
-        function_symbol->stackframe_slot_count.set(k_libfunc_local_variable_count);
+        (void) insert_symbol<LibFuncSymbol>(name, k_libfunc_scope);
     }
 }
 
 // Used for inserting PROGRAM_FUNCTIONS (USER FUNCTIONS)
-const FuncSymbol *
-SymbolTable::insert_function(
+const ProgFuncSymbol *
+SymbolTable::insert_program_function(
     const std::string &name,
     const u32 scope,
     const u32 address,
     const std::vector<Parameter> &parameter_list,
     const SourceLocation location)
 {
-    return insert_symbol<FuncSymbol>(
-        name, scope, Symbol::Type::PROGRAM_FUNCTION, address, parameter_list, location);
+    return insert_symbol<ProgFuncSymbol>(name, scope, address, parameter_list, location);
 }
 
 const VarSymbol *

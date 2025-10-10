@@ -15,9 +15,9 @@ namespace alpha
 {
 struct ConstExpr; // FWD declared
 // Classes defined here:
-class Symbol;     // IWYU pragma: keep
-class VarSymbol;  // IWYU pragma: keep
-class FuncSymbol; // IWYU pragma: keep
+class Symbol;         // IWYU pragma: keep
+class VarSymbol;      // IWYU pragma: keep
+class ProgFuncSymbol; // IWYU pragma: keep
 
 class Symbol // Lean version (it doesn't contain name, Symbol Table keeps that as its key).
 {
@@ -43,11 +43,8 @@ public:
     [[nodiscard]] std::string_view type_to_string() const noexcept;
     [[nodiscard]] bool is_temp_variable() const noexcept;
     [[nodiscard]] bool is_variable() const noexcept { return !is_function(); }
-    [[nodiscard]] bool is_libfunc() const noexcept;
-    [[nodiscard]] bool is_progfunc() const noexcept;
     [[nodiscard]] bool is_function() const noexcept;
     [[nodiscard]] bool is_active() const noexcept { return is_active_; }
-    [[nodiscard]] static bool is_modifiable_symbol(const Symbol *symbol);
 
 protected:
     Symbol(const std::string &name, u32 scope, Type type, SourceLocation loc) noexcept;
@@ -112,7 +109,18 @@ private:
     mutable TempBinding temp_binding_;
 };
 
-class FuncSymbol final : public Symbol
+class LibFuncSymbol final : public Symbol
+{
+    friend class SymbolTable;
+
+public:
+    // Constructor keeps a dummy 'scope' parameter for compatibility
+    // with the generic SymbolTable::insert_symbol() template.
+    explicit LibFuncSymbol(const std::string &name, [[maybe_unused]] u32);
+    ~LibFuncSymbol() override = default;
+};
+
+class ProgFuncSymbol final : public Symbol
 {
     friend class SymbolTable;
 
@@ -123,14 +131,13 @@ public:
     // Declared mutable, as we backpatch it after the function’s complete definition.
     mutable Once<u32> stackframe_slot_count;
 
-    FuncSymbol(
+    ProgFuncSymbol(
         const std::string &name,
         u32 scope,
-        Type type,
         u32 address,
         const std::vector<Parameter> &parameter_list,
         SourceLocation location);
-    ~FuncSymbol() override = default;
+    ~ProgFuncSymbol() override = default;
 };
 
 inline
@@ -163,13 +170,10 @@ Symbol::is_temp_variable() const noexcept
 }
 
 inline bool
-Symbol::is_libfunc() const noexcept { return type == Type::LIBRARY_FUNCTION; }
-
-inline bool
-Symbol::is_progfunc() const noexcept { return type == Type::PROGRAM_FUNCTION; }
-
-inline bool
-Symbol::is_function() const noexcept { return is_libfunc() || is_progfunc(); }
+Symbol::is_function() const noexcept
+{
+    return type == Type::LIBRARY_FUNCTION || type == Type::PROGRAM_FUNCTION;
+}
 
 inline
 VarSymbol::VarSymbol(
@@ -218,21 +222,18 @@ VarSymbol::TempBinding::id() const noexcept
 }
 
 inline
-FuncSymbol::FuncSymbol(
+LibFuncSymbol::LibFuncSymbol(const std::string &name, [[maybe_unused]] u32)
+    : Symbol(name, k_libfunc_scope, Symbol::Type::LIBRARY_FUNCTION, k_no_loc) {}
+
+inline
+ProgFuncSymbol::ProgFuncSymbol(
     const std::string &name,
     const u32 scope,
-    const Type type,
     const u32 address,
     const std::vector<Parameter> &parameter_list,
     const SourceLocation location)
-    : Symbol(name, scope, type, location),
+    : Symbol(name, scope, Symbol::Type::PROGRAM_FUNCTION, location),
       address(address),
-      parameter_list(parameter_list)
-{
-    DEBUG_SMART_ASSERT(
-        type == Symbol::Type::LIBRARY_FUNCTION ||
-        type == Symbol::Type::PROGRAM_FUNCTION
-    );
-}
+      parameter_list(parameter_list) {}
 } // namespace alpha
 #endif // ALPHA_SYMBOLS_HPP

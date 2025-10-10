@@ -39,12 +39,12 @@ class SymbolTable : private Immobile
 public:
     using SymbolName = std::string;
     using SymbolPtr = std::unique_ptr<Symbol>;
-    using SymbolMap = std::unordered_map<SymbolName, std::list<SymbolPtr> >;
+    using SymbolMap = std::unordered_map<SymbolName, std::list<SymbolPtr>>;
 
     SymbolTable();
     ~SymbolTable() = default;
 
-    const FuncSymbol *insert_function(
+    const ProgFuncSymbol *insert_program_function(
         const std::string &name,
         u32 scope,
         u32 address,
@@ -74,17 +74,16 @@ public:
     static void attach_temp_handle(const VarSymbol *var_symbol, TempHandleID id);
     static TempHandleID detach_temp_handle(const VarSymbol *var_symbol);
 
-
 private:
     SymbolMap symbol_map_;
     // Are inserted in sorted order based on symbol insertion.
-    std::vector<std::vector<const Symbol *> > symbols_per_scope_;
+    std::vector<std::vector<const Symbol *>> symbols_per_scope_;
     // Are inserted in sorted order based on symbol insertion.
-    std::vector<std::vector<Symbol *> > actives_per_scope_;
+    std::vector<std::vector<Symbol *>> actives_per_scope_;
     std::unordered_set<SymbolName> library_function_set_;
 
     template<typename SymbolKind, typename... Args>
-        requires std::is_same_v<SymbolKind, VarSymbol> || std::is_same_v<SymbolKind, FuncSymbol>
+        requires std::is_base_of_v<Symbol, SymbolKind>
     [[nodiscard]] const SymbolKind *insert_symbol(
         const std::string &name, u32 scope, Args &&... args);
 };

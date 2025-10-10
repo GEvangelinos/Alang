@@ -70,10 +70,10 @@ ExprMaker::clone_with_updated_location(const SourceLocation new_loc, const Expr 
         return make_nil_expr(new_loc);
     case ET::LIBRARY_FUNCTION:
         return make_lib_func_expr(
-            new_loc, static_cast<const LibFuncExpr *>(donor_expr)->func_symbol);
+            new_loc, static_cast<const LibFuncExpr *>(donor_expr)->libfunc_symbol);
     case ET::PROGRAM_FUNCTION:
         return make_prog_func_expr(
-            new_loc, static_cast<const ProgFuncExpr *>(donor_expr)->func_symbol);
+            new_loc, static_cast<const ProgFuncExpr *>(donor_expr)->progfunc_symbol);
     case ET::NEW_TABLE:
         return make_new_table_expr<true>(new_loc, static_cast<const NewTableExpr *>(donor_expr));
     case ET::TABLE_ITEM:

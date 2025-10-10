@@ -23,7 +23,7 @@
     namespace alpha
     {
         struct Expr;
-        class FuncSymbol;
+        class ProgFuncSymbol;
         class DiagnosticEngine;
         class DiagnosticReporter;
         class LexerCtx;
@@ -68,7 +68,7 @@
     bool const_bool;
     alpha::AlphaInt const_int;
     alpha::AlphaFloat const_float;
-    const alpha::FuncSymbol *const_func_symbol_ptr;
+    const alpha::ProgFuncSymbol *const_progfunc_symbol_ptr;
     const alpha::Expr *const_expr_ptr;
     const alpha::ExprPair *const_expr_pair_ptr;
 
@@ -90,8 +90,8 @@
 
 %type  <const_expr_pair_ptr> dict_element
 
-%type  <const_func_symbol_ptr> func_signature
-%type  <const_func_symbol_ptr> func_def
+%type  <const_progfunc_symbol_ptr> func_signature
+%type  <const_progfunc_symbol_ptr> func_def
 %type  <block_location> block
 
 /**

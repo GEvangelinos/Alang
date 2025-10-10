@@ -127,7 +127,8 @@ private:
         template<typename Policy>
         [[nodiscard]] const Expr *handle_pre_inc_dec(const Expr *lvalue, SourceLocation result_loc);
         template<typename Policy>
-        [[nodiscard]] const Expr *handle_post_inc_dec(const Expr *lvalue, SourceLocation result_loc);
+        [[nodiscard]] const Expr *
+        handle_post_inc_dec(const Expr *lvalue, SourceLocation result_loc);
         template<OpVariant op_variant, typename Policy>
         [[nodiscard]] const Expr *build_inc_dec(const Expr *expr, SourceLocation result_loc);
     };
@@ -201,8 +202,10 @@ private:
         [[nodiscard]] const Expr *normalize_to_bool_expr(const Expr *expr);
         [[nodiscard]] bool validate_arithmetic_expr(
             ir::Opcode opc, const Expr *expr, OperandSide op_side);
-        [[nodiscard]] bool validate_relational_expr(
-            ir::Opcode opc, const Expr *expr, OperandSide op_side);
+        [[nodiscard]] bool validate_arithmetic_operation(
+            ir::Opcode opc, const Expr *lhs, const Expr *rhs);
+        [[nodiscard]] bool validate_relational_operation(
+            ir::Opcode opc, const Expr *lhs, const Expr *rhs);
         [[nodiscard]] bool validate_possible_division(
             ir::Opcode opc, const Expr *rhs, SourceLocation division_loc);
 
@@ -289,7 +292,7 @@ private:
         [[nodiscard]] const Expr *build_method_call_consuming(
             const Expr *method_host, SourceLocation call_loc);
         [[nodiscard]] const Expr *build_iife_call_consuming(
-            const FuncSymbol *func_symbol, SourceLocation call_loc);
+            const ProgFuncSymbol *func_symbol, SourceLocation call_loc);
     };
 
     Restricted DISPATCH_TARGET;
@@ -371,10 +374,11 @@ private:
         void update_function_draft(const std::string &id);
         void collect_function_parameter(const std::string &id, SourceLocation id_loc);
         [[nodiscard]] const Expr *forward_program_function(
-            const FuncSymbol *func_symbol, SourceLocation result_loc);
-        [[nodiscard]] const FuncSymbol *build_program_function_entry(
+            const ProgFuncSymbol *func_symbol, SourceLocation result_loc);
+        [[nodiscard]] const ProgFuncSymbol *build_program_function_entry(
             SourceLocation func_signature_loc);
-        [[nodiscard]] const FuncSymbol *build_program_function_exit(BlockSourceLocation block_loc);
+        [[nodiscard]] const ProgFuncSymbol *build_program_function_exit(
+            BlockSourceLocation block_loc);
 
         void register_function_parameters();
         [[nodiscard]] bool validate_funcdef_name(
@@ -428,7 +432,10 @@ private:
 };
 
 inline void
-AggregateBuilder::Restricted::begin_dict_entry() { parse_ctx_->table_ctx_handler.enter_dict_entry(); }
+AggregateBuilder::Restricted::begin_dict_entry()
+{
+    parse_ctx_->table_ctx_handler.enter_dict_entry();
+}
 
 inline void
 AggregateBuilder::Restricted::end_dict_entry() { parse_ctx_->table_ctx_handler.exit_dict_entry(); }
