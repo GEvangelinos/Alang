@@ -7,7 +7,7 @@ ExprMaker::ExprMaker(ParseCtx *const parse_ctx)
 
 ExprMaker::~ExprMaker() noexcept
 {
-    for (const Expr *e: expr_sink_)
+    for (const Expr *e : expr_sink_)
     {
         DEBUG_SMART_ASSERT(!!e);
         using ET = Expr::Type;
@@ -84,8 +84,9 @@ ExprMaker::clone_with_updated_location(const SourceLocation new_loc, const Expr 
     case ET::VARIABLE:
         return make_variable_expr(
             new_loc, static_cast<const VariableExpr *>(donor_expr)->var_symbol);
+    default:
+        UNREACHABLE(FMT::format(
+            "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(donor_expr->type)));
     }
-    UNREACHABLE(FMT::format(
-        "Unknown Expr::Type. Expr::Type's int value = {}", static_cast<int>(donor_expr->type)));
 }
 } // namespace alpha

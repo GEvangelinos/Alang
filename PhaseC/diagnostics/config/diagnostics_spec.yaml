@@ -1,3 +1,24 @@
+# MacroDefinition
+#  ├── Name: str
+#  └── Body: list[MacroBodyLine]             # literal text / template lines (expanded inline)
+
+# Diagnostic
+#  ├──Name: str                     # e.g., MY_FAVORITE_DIAGNOSTIC
+#  ├──Type: DiagnosticType          # e.g., WARNING, SOFT_ERROR, HARD_ERROR, NOTE, FATAL
+#  ├──Primary: Issue                # exactly one
+#  │    ├──Entry
+#  │    ├──Suggestion?: Entry       # 0..1
+#  │    └──Highlights?: list[Entry] # 0..N
+#  └──Notes?: list[Issue]           # 0..N
+#       ├──Entry
+#       ├──Suggestion?: Entry       # 0..1
+#       └──Highlights?: list[Entry] # 0..N
+
+# Entry
+#  ├──Message: str
+#  ├──Args?: list[cpp_identifier] # Must contain as many names, as there are unique placeholders in 'Message'
+#  └──Location: SourceLocation (C++ custom type)
+
 # ======================================================================================
 # NOTE: SPECIAL DIAGNOSTIC CODE
 # --------------------------------------------------------------------------------------

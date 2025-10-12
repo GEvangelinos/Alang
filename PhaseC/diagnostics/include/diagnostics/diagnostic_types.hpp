@@ -17,14 +17,14 @@ struct Suggestion
     const SourceLocation insert_after;
 
     Suggestion() = delete;
-    Suggestion(std::string_view text, SourceLocation insert_after);
+    Suggestion(std::string_view desc, SourceLocation insert_after);
 
     [[nodiscard]] u32 compute_printing_span() const;
 };
 
 struct Highlight
 {
-    const std::string label;
+    const std::string desc;
     const SourceLocation loc;
 };
 
@@ -70,11 +70,23 @@ public:
 class Note final : public Issue
 {
 public:
-    Note(std::string desc, const SourceLocation loc)
-        : Issue(Type::NOTE, std::move(desc), loc) {}
 
-    Note(std::string desc, const SourceLocation loc, Suggestion suggestion)
-        : Issue(Type::NOTE, std::move(desc), loc, std::move(suggestion)) {}
+    Note(
+        std::string desc,
+        const SourceLocation loc,
+        std::optional<Suggestion> suggestion,
+        std::optional<std::list<Highlight>> highlights)
+        : Issue(Type::NOTE, std::move(desc), loc, std::move(suggestion), std::move(highlights)) {}
+
+    Note(
+        std::string desc,
+        const SourceLocation loc,
+        std::optional<Suggestion> suggestion)
+        : Issue(Type::NOTE, std::move(desc), loc, std::move(suggestion), std::nullopt) {}
+    Note(
+        std::string desc,
+        const SourceLocation loc)
+        : Issue(Type::NOTE, std::move(desc), loc, std::nullopt, std::nullopt) {}
 };
 
 class Diagnostic

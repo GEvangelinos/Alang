@@ -14,10 +14,9 @@
 namespace alpha
 {
 class DiagnosticReporter;
+
 class DiagnosticEngine : private Immobile
 {
-    friend class DiagnosticReporter;
-
 public:
     struct Policy
     {
@@ -27,10 +26,22 @@ public:
         std::function<void()> notify_hard_error;         // notify: a hard error occurred.
     };
 
+    class ReportKey
+    {
+        friend class DiagnosticReporter;
+        ReportKey() = default;
+    };
+
     std::unique_ptr<DiagnosticReporter> reporter;
 
     explicit DiagnosticEngine(
         Policy &&policy, std::optional<std::size_t> max_errors = std::nullopt);
+
+    void report(
+        ReportKey,
+        DiagnosticCode code,
+        Issue &&primary,
+        std::list<Note> &&note_list = std::list<Note>());
 
     void report_syntax_error(Issue primary, std::list<Note> &&note_list = std::list<Note>());
 
@@ -60,13 +71,6 @@ private:
     std::vector<const Diagnostic *> softs_;
     std::vector<const Diagnostic *> hards_;
     std::vector<const Diagnostic *> fatals_;
-
-    void report(
-        DiagnosticCode code,
-        Issue::Type type,
-        std::string desc,
-        SourceLocation loc,
-        std::list<Note> &&note_list = std::list<Note>());
 
     void emit(
         DiagnosticCode code,

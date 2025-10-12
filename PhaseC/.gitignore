@@ -4,3 +4,5 @@ debug-build/
 .idea/
 ./tests/Tree.asc
 *.swap
+
+__pycache__/

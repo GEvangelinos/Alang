@@ -1,3 +1,5 @@
+0) ADD ASCII ART BANNER ON HELP, OR ANY other menus
+
 1) DONT FORGET FOR PHASE 1 of the project do detect invalid escape codes and reject them.
 2) You do this the right way in phase 2.. So instead of visiting old PhaseA, maybe at the ability to print
 3) tokens as is in phaseB and re use that... Or even in phase C and add a mode that only runs the lexer.

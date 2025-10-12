@@ -3,8 +3,8 @@
 
 namespace alpha
 {
-Suggestion::Suggestion(const std::string_view text, const SourceLocation insert_after)
-    : desc(text), insert_after(insert_after) {}
+Suggestion::Suggestion(const std::string_view desc, const SourceLocation insert_after)
+    : desc(desc), insert_after(insert_after) {}
 
 u32
 Suggestion::compute_printing_span() const

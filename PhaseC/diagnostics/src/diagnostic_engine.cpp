@@ -31,17 +31,12 @@ DiagnosticEngine::report_syntax_error(Issue primary, std::list<Note> &&note_list
 
 void
 DiagnosticEngine::report(
+    ReportKey,
     const DiagnosticCode code,
-    const Issue::Type type,
-    std::string desc,
-    const SourceLocation loc,
+    Issue &&primary,
     std::list<Note> &&note_list)
 {
-    emit(
-        code,
-        Issue(type, std::move(desc), loc),
-        std::move(note_list)
-    );
+    emit(code, std::move(primary),std::move(note_list));
 }
 
 void

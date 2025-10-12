@@ -1,5 +1,7 @@
 import os
 import utils
+from models import IssueEntry, DiagnosticIssue
+from typing import Optional
 from models import Diagnostic
 
 _generated_file_header = (
@@ -19,8 +21,6 @@ _diagnostic_reporter_class_name = 'DiagnosticReporter'
 _tab = "    "  # 4 spaces
 
 
-
-
 class CppGenerator:
     TO_STRING_DISPATCHER = "convert_to_string"
 
@@ -34,20 +34,40 @@ class CppGenerator:
 
     @staticmethod
     def _extract_unique(arg_list: list[str]) -> list[str]:
-        result = []
-        for arg in arg_list:
-            if arg not in result:
-                result.append(arg)
-        return result
+        return list(dict.fromkeys(arg_list))
 
     @staticmethod
     def _merge_message_args(diagnostic: Diagnostic) -> list[str]:
-        all_args = diagnostic.primary.args + [arg for note in diagnostic.notes for arg in note.args]
+        all_args = diagnostic.primary.main_issue.args.copy()
+        if diagnostic.primary.suggestion is not None:
+            all_args.extend(diagnostic.primary.suggestion.args)
+        for hl in diagnostic.primary.highlights:
+            all_args.extend(hl.args)
+
+        for note in diagnostic.notes:
+            all_args.extend(note.main_issue.args)
+            if note.suggestion is not None:
+                all_args.extend(note.suggestion.args)
+            for hl in note.highlights:
+                all_args.extend(hl.args)
+
         return CppGenerator._extract_unique(all_args)
 
     @staticmethod
     def _merge_locations_args(diagnostic: Diagnostic) -> list[str]:
-        all_locs = [diagnostic.primary.location] + [note.location for note in diagnostic.notes]
+        all_locs = [diagnostic.primary.main_issue.location]
+        if diagnostic.primary.suggestion is not None:
+            all_locs.append(diagnostic.primary.suggestion.location)
+        for hl in diagnostic.primary.highlights:
+            all_locs.append(hl.location)
+
+        for note in diagnostic.notes:
+            all_locs.append(note.main_issue.location)
+            if note.suggestion is not None:
+                all_locs.append(note.suggestion.location)
+            for hl in note.highlights:
+                all_locs.append(hl.location)
+
         return CppGenerator._extract_unique(all_locs)
 
     @staticmethod
@@ -55,9 +75,11 @@ class CppGenerator:
         string_arg_list = CppGenerator._merge_message_args(diagnostic)
         location_arg_list = CppGenerator._merge_locations_args(diagnostic)
         return (
-            ', '.join(f"const std::string &{arg}" for arg in string_arg_list) +
-            (', ' if string_arg_list else '') +  # We put comma after string are (if there are any args)
-            ', '.join(f"{'const ' if for_definition else ''}SourceLocation {loc}" for loc in location_arg_list)
+                ', '.join(f"const std::string &{arg}" for arg in string_arg_list) +
+                (
+                    ', ' if string_arg_list else '') +  # We put comma after string are (if there are any args)
+                ', '.join(f"{'const ' if for_definition else ''}SourceLocation {loc}" for loc in
+                          location_arg_list)
         )
 
     @staticmethod
@@ -65,9 +87,10 @@ class CppGenerator:
         string_arg_list = CppGenerator._merge_message_args(diagnostic)
         location_arg_list = CppGenerator._merge_locations_args(diagnostic)
         return (
-            ', '.join(f"const T{i} &{arg}" for i, arg in enumerate(string_arg_list)) +
-            (', ' if string_arg_list else '') +  # We put comma after string are (if there are any args)
-            ', '.join(f"const SourceLocation {loc}" for loc in location_arg_list)
+                ', '.join(f"const T{i} &{arg}" for i, arg in enumerate(string_arg_list)) +
+                (
+                    ', ' if string_arg_list else '') +  # We put comma after string are (if there are any args)
+                ', '.join(f"const SourceLocation {loc}" for loc in location_arg_list)
         )
 
     @staticmethod
@@ -96,7 +119,8 @@ class CppGenerator:
             ret_type = "void"
             impl_func_name = "report_" + d.name.lower() + "_impl"
             func_name = "report_" + d.name.lower()
-            message_args = ', '.join(f"this->{CppGenerator.TO_STRING_DISPATCHER}({arg})" for arg in CppGenerator._merge_message_args(d))
+            message_args = ', '.join(f"this->{CppGenerator.TO_STRING_DISPATCHER}({arg})" for arg in
+                                     CppGenerator._merge_message_args(d))
             location_args = ', '.join(CppGenerator._merge_locations_args(d))
             definition = f"\t{template}\n" if typenames else ""  # If typename list is empty (aka. no message args) we don't template the function
             definition += f"\t{ret_type} {func_name}({templated_arg_list})\n"
@@ -108,30 +132,129 @@ class CppGenerator:
 
     @staticmethod
     def _generate_impl_definitions(diagnostics: list[Diagnostic]) -> list[str]:
-        definitions = []
-        for d in diagnostics:
+        def make_signature(diagnostic: Diagnostic) -> str:
             ret_type = "void"
-            func_name = "report_" + d.name.lower() + "_impl"
-            arg_list = CppGenerator._generate_arg_list(d, True)
-            definition = f"{ret_type} {_diagnostic_reporter_class_name}::{func_name}({arg_list})\n"
-            definition += f"{{\n"
-            definition += f'\tconst std::string primary = FMT::format("{d.primary.message}"{", " if d.primary.args else ''}{", ".join(d.primary.args)});\n'
-            for i, note in enumerate(d.notes):
-                definition += f'\tconst std::string note{i} = FMT::format("{note.message}"{", " if note.args else ''}{", ".join(note.args)});\n'
-            definition += f"\tdiagnostic_engine_->report(DiagnosticCode::{d.name}, Issue::Type::{d.type}, primary, {d.primary.location}"
+            func_name = "report_" + diagnostic.name.lower() + "_impl"
+            arg_list = CppGenerator._generate_arg_list(diagnostic, True).split(',')
+            arg_list = ['\t' + arg.strip() for arg in arg_list]
 
-            if d.notes:
-                definition += f", std::list{{"
+            code = ""
+            code += f'{ret_type} {_diagnostic_reporter_class_name}::{func_name}(\n'
+            code += f'{",\n".join(arg_list)}\n'
+            code += f')\n'
+            return code
+
+        def make_message(issue: IssueEntry, varname: str) -> str:
+            code = ""
+            code += f'\tconst std::string {varname} = FMT::format(\n'
+            code += f'\t\t"{issue.message}"{", " if issue.args else ''}\n'
+            code += f'\t\t{", ".join(issue.args)}\n'
+            code += f'\t);\n'
+            return code
+
+        def make_issue(d_issue: DiagnosticIssue, d_type: Diagnostic.Type, suffix: str) -> tuple[
+            str, str]:
+            if d_type == Diagnostic.Type.NOTE:
+                issue_varname = "note" + suffix
+            else:
+                issue_varname = "primary" + suffix
+
+            header_name = f"{issue_varname}_header"
+            suggestion_name = f"{issue_varname}_suggestion"
+            code = make_message(d_issue.main_issue, header_name)
+            if d_issue.suggestion:
+                code += make_message(d_issue.suggestion, suggestion_name)
+            for hl_idx, hl in enumerate(d_issue.highlights):
+                code += make_message(hl, f"{issue_varname}_hl{hl_idx}")
+
+            # Open Issue/Note
+            if d_type == Diagnostic.Type.NOTE:
+                code += f"\tNote {issue_varname}(\n"
+            else:
+                code += f"\tIssue {issue_varname}(\n"
+                code += f"\t\tIssue::Type::{d_type},\n"
+            code += f"\t\t{header_name},\n"
+            code += f"\t\t{d_issue.main_issue.location},\n"
+            if d_issue.suggestion:
+                code += f"\t\tSuggestion({suggestion_name}, {d_issue.suggestion.location}),\n"
+            else:
+                code += f"\t\tstd::nullopt,\n"
+
+            highlight_list = []
+            for hl_idx, hl in enumerate(d_issue.highlights):
+                highlight_list.append(
+                    f"\t\t\tHighlight{{{issue_varname}_hl{hl_idx}, {hl.location}}}")
+
+            if highlight_list:
+                code += f"\t\tstd::list{{\n"
+                code += f"{",\n".join(highlight_list)}\n"
+                code += f"\t\t}}\n"
+            else:
+                code += f"\t\tstd::nullopt\n"
+
+            # Close Issue/Note
+            code += f"\t);\n"
+
+            return code, issue_varname
+
+        # void report(
+        # 	DiagnosticCode code,
+        # 	Issue &&primary,
+        # 	std::list<Note> &&note_list = std::list<Note>(),
+        # 	ReporterKey);
+
+        def make_report_call(d_name: str, primary_varname: str, note_varnames: list[str]) -> str:
+            code = f"\tdiagnostic_engine_->report(\n"
+            code += f"\t\tDiagnosticEngine::ReportKey{{}},\n"  # A "key" is required to report
+            code += f"\t\tDiagnosticCode::{d_name},\n"
+
+            # Primary issue
+            code += f"\t\tstd::move({primary_varname}),\n"
+
+            # List construction of notes.
+            note_varnames = [f"std::move({n})" for n in note_varnames]
+            if note_varnames:
+                code += f"\t\tstd::list<Note>{{{", ".join(note_varnames)}}}\n"
+            else:
+                code += f"\t\tstd::list<Note>{{}}\n"
+
+            code += f"\t);\n"
+
+            return code
+
+        definitions = []
+
+        for d in diagnostics:
+            funcdef_code = make_signature(d)
+            funcdef_code += f"{{\n"  # open function
+            issue_code, primary_varname = make_issue(d.primary, d.type, "")
+            funcdef_code += issue_code
+            note_varnames = []
             for i, note in enumerate(d.notes):
-                if i != 0:
-                    definition += ", "
-                definition += f"Note{{note{i}, {note.location}}}"
-            if d.notes:
-                definition += f"}}"
-            definition += f");\n"
-            definition += f"}}\n"
-            definitions.append(definition)
+                note_code, note_varname = make_issue(note, Diagnostic.Type.NOTE, f"{i}")
+                funcdef_code += note_code
+                note_varnames.append(note_varname)
+
+            funcdef_code += make_report_call(d.name, primary_varname, note_varnames)
+
+            funcdef_code += f"}}\n"  # close function
+
+            definitions.append(funcdef_code)
         return definitions
+
+        #     definition += f'\tconst std::string note{i} = FMT::format("{note.main_issue.message}"{", " if note.main_issue.args else ''}{", ".join(note.main_issue.args)});\n'
+        # definition += f"\tdiagnostic_engine_->report(DiagnosticCode::{d.name}, Issue::Type::{d.type}, primary, {d.primary.main_issue.location}"
+        #
+        # if d.notes:
+        #     definition += f", std::list{{"
+        # for i, note in enumerate(d.notes):
+        #     if i != 0:
+        #         definition += ", "
+        #     definition += f"Note{{note{i}, {note.main_issue.location}}}"
+        # if d.notes:
+        #     definition += f"}}"
+        # definition += f");\n"
+        # definition += f"}}\n"
 
     def generate_codes_header_file(self) -> None:
         temp_filename = utils.temp_version(self.codes_header_filename)
@@ -142,7 +265,6 @@ class CppGenerator:
         # They represent fundamental categories like SYNTAX_ERROR that
         # must always exist for parser/lexer reporting and regression tests.
         # If more specials are needed add them here directly.
-
 
         x_macro_name = "DIAGNOSTIC_CODES"
         enum_class_name = "DiagnosticCode"

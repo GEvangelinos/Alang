@@ -2,6 +2,8 @@ import argparse
 import os
 import sys
 from typing import NamedTuple
+
+from macro_preprocessor import MacroPreprocessor
 from fsm_parsers import Diagnostic, DiagnosticFSM, LineTracker
 from cpp_generator import CppGenerator
 from pathlib import Path
@@ -59,7 +61,13 @@ def main():
     try:
         cli_args = parse_cli_args()
         yaml_lines = load_diagnostics_file(cli_args.spec_filepath)
+        mpp =  MacroPreprocessor(yaml_lines)
+        yaml_lines = mpp.run()
         diagnostics = load_diagnostics(yaml_lines)
+        for d in diagnostics:
+            for n in d.notes:
+                if n.suggestion is not None:
+                    print(n.suggestion.message)
         cpp_generator = CppGenerator(cli_args, diagnostics)
         cpp_generator.generate_all_files()
     except(RuntimeError, ValueError) as e:

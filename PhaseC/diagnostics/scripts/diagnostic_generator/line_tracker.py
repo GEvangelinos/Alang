@@ -3,7 +3,7 @@ class LineTracker:
         self.lines = lines
         self._line_index = 0
 
-    def linenum(self) -> int:
+    def lineno(self) -> int:
         return self._line_index + 1
 
     def line(self) -> str:

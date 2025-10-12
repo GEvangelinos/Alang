@@ -1,14 +1,28 @@
 from enum import Enum, auto
+from typing import Optional
 
-class DiagnosticEntry:
+
+class IssueEntry:
     def __init__(self, message: str, args: list[str], location: str):
         self.message = message
         self.args = args
         self.location = location
 
 
+class DiagnosticIssue:
+    def __init__(
+            self,
+            main_issue: IssueEntry,
+            suggestion: Optional[IssueEntry],
+            highlights: list[IssueEntry]):
+        self.main_issue = main_issue
+        self.suggestion = suggestion
+        self.highlights = highlights
+
+
 class Diagnostic:
     class Type(Enum):
+        NOTE = auto()
         WARNING = auto()
         SOFT_ERROR = auto()
         HARD_ERROR = auto()
@@ -18,11 +32,11 @@ class Diagnostic:
             return f"{self.name}"
 
     def __init__(
-        self,
-        name: str,
-        type_: Type,
-        primary: DiagnosticEntry,
-        notes: list[DiagnosticEntry]
+            self,
+            name: str,
+            type_: Type,
+            primary: DiagnosticIssue,
+            notes: list[DiagnosticIssue]
     ):
         self.name = name
         self.type = type_
