@@ -34,13 +34,11 @@ class TestfileExecutor:
 
     def run(self):
         self.prepare_test_dir()
-        os.chdir(self.test_dirpath)
         self.prepare_test_samples()
         self.testfile.substitute_self_placeholder(self.test_dirpath / self.testfile.name)
         if self.execute_run_line() == _EXIT_SUCCESS_RETURNCODE:
             self.flatten_exports()
             self.validate_testfile()
-        os.chdir(Path(TestfileExecutor.workdir_path))
 
     @property
     def status_line(self) -> str:
@@ -54,17 +52,17 @@ class TestfileExecutor:
         os.makedirs(self.test_dirpath, exist_ok=True)
 
     def prepare_test_samples(self):
-        with open(self.testfile.name, 'w') as fout:
+        with open(self.test_dirpath / self.testfile.name, 'w') as fout:
             fout.write("\n".join(self.testfile.source_section))
-        with open(self.gold_diagnostics_filename, 'w') as fout:
+        with open(self.test_dirpath / self.gold_diagnostics_filename, 'w') as fout:
             fout.write("\n".join(self.testfile.gold_diagnostic_section))
 
         if self.testfile.error_mode:
             return
 
-        with open(self.gold_ir_filename, 'w') as fout:
+        with open(self.test_dirpath / self.gold_ir_filename, 'w') as fout:
             fout.write("\n".join(self.testfile.gold_ir_section))
-        with open(self.gold_symbol_table_filename, 'w') as fout:
+        with open(self.test_dirpath / self.gold_symbol_table_filename, 'w') as fout:
             fout.write("\n".join(self.testfile.gold_symbol_table_section))
 
     def execute_run_line(self) -> int:

@@ -35,7 +35,7 @@ Issue::Issue(
       highlights(std::move(highlights))
 {
     // Assert highlights underline correct code regions.
-    if (highlights.has_value())
+    if (!highlights.has_value())
         return;
     for (const Highlight &h : *highlights)
     {

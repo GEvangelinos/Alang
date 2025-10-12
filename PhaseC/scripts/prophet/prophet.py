@@ -1,9 +1,9 @@
 import argparse
 import os
 import shutil
-import threading
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+
+from regression_utils import visible_len
 from _colours import *
 
 from executor import TestfileExecutor
@@ -73,21 +73,49 @@ def parser_startup_arguments() -> argparse.Namespace:
 
 
 def ensure_driver_executable(alpha_compiler_path: Path) -> None:
-    if not os.path.isfile(alpha_compiler_path):
-        raise ValueError("Compiler executable file not found.")
-    if not os.access(alpha_compiler_path, os.X_OK):
+    p = Path(alpha_compiler_path)
+    if not os.path.isfile(p):
+        raise ValueError(f"Compiler executable file not found at {p.resolve()} . ")
+    if not os.access(p, os.X_OK):
         raise ValueError("Compiler file is not executable.")
 
 
-def print_progress_bar(completed: int, total: int, move_cursor_up: bool, bar_width: int = 40):
+def print_arrow_progress_bar(completed: int, total: int, move_cursor_up: bool):
+    def get_funny_comment(percent: int) -> str:
+        if percent < 10:
+            return "Starting optimistic..."
+        elif percent < 20:
+            return "Already regretting this build..."
+        elif percent < 30:
+            return "Pretending the parser works..."
+        elif percent < 40:
+            return "Gaslighting the optimizer again..."
+        elif percent < 50:
+            return "Blaming it on undefined behavior..."
+        elif percent < 60:
+            return "Asserting confidence. Failing assert."
+        elif percent < 70:
+            return "Bribing the linker with coffee..."
+        elif percent < 80:
+            return "Counting warnings as features..."
+        elif percent < 90:
+            return "Sacrificing another test to the CI gods..."
+        elif percent < 100:
+            return "Almost done... compiling hope."
+        return "Regression passed."
+
+    terminal_columns = shutil.get_terminal_size().columns
     progress_ratio = completed / total
+    percent = int(progress_ratio * 100)
+    status_text = f" {percent}% ({completed}/{total}) {get_funny_comment(percent)}"
+    bar_width = terminal_columns - visible_len(status_text) - 2  # -2 for [] for kernel of bar
+
     filled = int(progress_ratio * bar_width)
     pointer = '>' if filled < bar_width else '='
     bar = '=' * (filled - 1 if filled > 0 else 0) + pointer
     spaces = ' ' * (bar_width - len(bar))
-    percent = int(progress_ratio * 100)
     print(
-        f"[{bar}{spaces}] {percent}% ({completed}/{total})",
+        f"[{bar}{spaces}]{status_text}",
         end='\n\r', flush=True
     )
     if move_cursor_up:
@@ -105,16 +133,17 @@ def gather_test_filepaths(dirname: str) -> list[Path]:
 
 def run_testfiles(driver_path: Path, test_filepaths: list[Path]):
     test_filepaths.sort()
-    print_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
-    #
+    print_arrow_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
+    os.chdir(_workdir_path)
     for test_filepath in test_filepaths:
         run_testfile(driver_path, test_filepath)
-        os.chdir(_workdir_path)
-    print(end="\n" * 2) # Required to move cursor past script's output and progress bar
+    print(end="\n" * 2)  # Required to move cursor past script's output and progress bar
+
 
 def clean_work_dir():
     assert _workdir_path.exists() and _workdir_path.is_dir()
     shutil.rmtree(_workdir_path)
+
 
 def run_testfile(driver_path: Path, testfile_path: Path) -> str:
     global _completed_tests
@@ -123,12 +152,14 @@ def run_testfile(driver_path: Path, testfile_path: Path) -> str:
         testfile = parser.assemble_testfile()
         executor = TestfileExecutor(testfile)
         executor.run()
-        print(executor.status_line)
+        status_line = executor.status_line
+        terminal_columns = shutil.get_terminal_size().columns
+        status_line = status_line + " " * (terminal_columns - visible_len(status_line))
+        print(status_line)
         _completed_tests += 1
-        print_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
+        print_arrow_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
     except StageError as e:
         print(f"{COLOR_RED}Prophet: Testfile-error:{SGR_RESET} {e}")
-
 
 
 def main():

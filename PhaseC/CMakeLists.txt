@@ -1,39 +1,4 @@
 cmake_minimum_required(VERSION 3.18)
-
-##########################################--==>> CONFIGURABLE <<==--###########################################
-set(COMPILER_NAME "alang" CACHE STRING "Name of the main compiler")
-set(COMPILER_EXE_NAME ${COMPILER_NAME} CACHE STRING "Name of the produced executable")
-
-set(AUTOGEN_DIRNAME "AUTOGEN" CACHE STRING "Name of the directory where auto-generated files are stored")
-
-set(FLEX_OUTPUT_FILENAME "alpha_scanner.gen.cpp" CACHE STRING "Filename of the Flex-generated C++ source file")
-set(FLEX_HEADER_FILENAME "alpha_scanner.gen.hpp" CACHE STRING "Filename of the Flex-generated header file")
-
-set(BISON_OUTPUT_FILENAME "alpha_parser.gen.cpp" CACHE STRING "Filename of the Bison-generated C++ source file")
-set(BISON_HEADER_FILENAME "alpha_parser.gen.hpp" CACHE STRING "Filename of the Bison-generated header file")
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/executables" CACHE PATH "Directory where compiled executables will be placed")
-
-set(IR_OPCODE_HEADER_FILENAME "ir_opcode.gen.hpp" CACHE STRING "Filename of the IR opcode header file")
-set(IR_OPCODE_SOURCE_FILENAME "ir_opcode.gen.cpp" CACHE STRING "Filename of the IR opcode source file")
-set(IR_OPCODE_INFO_TRAITS_HEADER_FILENAME "ir_opcode_info_traits.gen.hpp" CACHE STRING "Filename of the IR opcode info traits header file")
-set(IR_OPCODE_OPT_TRAITS_HEADER_FILENAME "ir_opcode_opt_traits.gen.hpp" CACHE STRING "Filename of the IR opcode opt traits header file")
-###############################################################################################################
-
-set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l")          # <-- Modifying filename requires manual change.
-set(BISON_SPEC_FILENAME "alpha_parser_spec.y")          # <-- Modifying filename requires manual change.
-set(DIAGNOSTICS_SPEC_FILENAME "diagnostics_spec.yaml")  # <-- Modifying filename requires manual change.
-set(IR_OPCODE_SPEC_FILENAME "ir_opcode_spec.yaml")      # <-- Modifying filename requires manual change.
-
-# Create directory that hosts code from CODE-GENERATORS (e.g. {log_injector, diagnostic_generator})
-set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/${AUTOGEN_DIRNAME}" CACHE PATH "Path to the root directory for auto-generated components")
-
-
-##########################################--==>> NORMAL-TESTS <<==--###########################################
-set(GOSPEL_DIR "${CMAKE_SOURCE_DIR}/.GOSPEL")
-set(WORK_DIR "REGRESSION_WORK_DIR")
-set(WORK_DIR_PATH "${CMAKE_BINARY_DIR}/${WORK_DIR}" CACHE PATH "Path to the root directory for auto-generated components")
-
 # Simple ANSI color helpers
 string(ASCII 27 Esc)
 
@@ -79,6 +44,48 @@ else ()
 endif ()
 
 project(Alpha VERSION 1.2 LANGUAGES CXX)
+
+
+# === Configurable build options ===
+option(ENABLE_IWYU "Enable include-what-you-use integration" OFF)
+option(DEBUG_MODE "DEBUG_MODE: enables extra sanity checking inside the code" OFF)
+option(OPTIMIZED_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable parser trace" OFF)
+
+
+##########################################--==>> CONFIGURABLE <<==--###########################################
+set(COMPILER_NAME "alang" CACHE STRING "Name of the main compiler")
+set(COMPILER_EXE_NAME ${COMPILER_NAME} CACHE STRING "Name of the produced executable")
+
+set(AUTOGEN_DIRNAME "AUTOGEN" CACHE STRING "Name of the directory where auto-generated files are stored")
+
+set(FLEX_OUTPUT_FILENAME "alpha_scanner.gen.cpp" CACHE STRING "Filename of the Flex-generated C++ source file")
+set(FLEX_HEADER_FILENAME "alpha_scanner.gen.hpp" CACHE STRING "Filename of the Flex-generated header file")
+
+set(BISON_OUTPUT_FILENAME "alpha_parser.gen.cpp" CACHE STRING "Filename of the Bison-generated C++ source file")
+set(BISON_HEADER_FILENAME "alpha_parser.gen.hpp" CACHE STRING "Filename of the Bison-generated header file")
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/executables" CACHE PATH "Directory where compiled executables will be placed")
+
+set(IR_OPCODE_HEADER_FILENAME "ir_opcode.gen.hpp" CACHE STRING "Filename of the IR opcode header file")
+set(IR_OPCODE_SOURCE_FILENAME "ir_opcode.gen.cpp" CACHE STRING "Filename of the IR opcode source file")
+set(IR_OPCODE_INFO_TRAITS_HEADER_FILENAME "ir_opcode_info_traits.gen.hpp" CACHE STRING "Filename of the IR opcode info traits header file")
+set(IR_OPCODE_OPT_TRAITS_HEADER_FILENAME "ir_opcode_opt_traits.gen.hpp" CACHE STRING "Filename of the IR opcode opt traits header file")
+###############################################################################################################
+
+set(FLEX_SPEC_FILENAME "alpha_scanner_spec.l")          # <-- Modifying filename requires manual change.
+set(BISON_SPEC_FILENAME "alpha_parser_spec.y")          # <-- Modifying filename requires manual change.
+set(DIAGNOSTICS_SPEC_FILENAME "diagnostics_spec.yaml")  # <-- Modifying filename requires manual change.
+set(IR_OPCODE_SPEC_FILENAME "ir_opcode_spec.yaml")      # <-- Modifying filename requires manual change.
+
+# Create directory that hosts code from CODE-GENERATORS (e.g. {log_injector, diagnostic_generator})
+set(AUTOGEN_ROOT_DIR_PATH "${CMAKE_BINARY_DIR}/${AUTOGEN_DIRNAME}" CACHE PATH "Path to the root directory for auto-generated components")
+
+
+##########################################--==>> NORMAL-TESTS <<==--###########################################
+set(GOSPEL_DIR "${CMAKE_SOURCE_DIR}/.GOSPEL")
+set(WORK_DIR "REGRESSION_WORK_DIR")
+set(WORK_DIR_PATH "${CMAKE_BINARY_DIR}/${WORK_DIR}" CACHE PATH "Path to the root directory for auto-generated components")
+
 
 find_package(Python3 QUIET)
 if (Python3_FOUND AND NOT HATE_PYTHON_MODE)
@@ -138,14 +145,14 @@ endif ()
 if (DEBUG_MODE)
     message(WARNING "CMAKE: Configuring with `" DEBUG_MODE "` ON")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        message(WARNING "Enabling _GLIBCXX debugging")
+        message(WARNING "CMAKE: Enabling libstdc++ debug instrumentation for extended runtime checks.")
         add_compile_definitions(
-            _GLIBCXX_ASSERTIONS
-            _GLIBCXX_DEBUG
-            _GLIBCXX_DEBUG_PEDANTIC
+            _GLIBCXX_ASSERTIONS=1
+            _GLIBCXX_DEBUG=1
+            _GLIBCXX_DEBUG_PEDANTIC=1
         )
     elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-        message(WARNING "Enabling _LIBCPP debugging")
+        message(WARNING "CMAKE: Enabling libc++ debug instrumentation for extended runtime checks.")
         add_compile_definitions(
             _LIBCPP_DEBUG=2
             _LIBCPP_ENABLE_ASSERTIONS=1
@@ -203,12 +210,6 @@ if (HATE_PYTHON_MODE)
     )
 
 endif ()
-
-
-# === Configurable build options ===
-option(ENABLE_IWYU "Enable include-what-you-use integration" OFF)
-option(DEBUG_MODE "DEBUG_MODE: enables extra sanity checking inside the code" OFF)
-option(DEBUG_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable parser trace" OFF)
 
 function(dot_gen_applier [filename])
     get_filename_component(basename filename NAME_WLE)
@@ -283,8 +284,8 @@ endfunction()
 
 if (NOT HATE_PYTHON_MODE)
     if (Python3_FOUND)
-            add_regression_test(regression_check OFF)
-            add_regression_test(regression_check_full ON)
+        add_regression_test(regression_check OFF)
+        add_regression_test(regression_check_full ON)
     else ()
         message(WARNING "Regression check targets not available, as `Python3` was not found.")
     endif ()
