@@ -50,14 +50,14 @@ public:
     const std::string desc;
     const SourceLocation loc;
     const std::optional<Suggestion> suggestion;
-    const std::optional<std::list<Highlight>> highlights;
+    const std::optional<std::vector<Highlight>> highlights;
 
     Issue(
         Type type,
         std::string description,
         SourceLocation loc,
         std::optional<Suggestion> suggestion = std::nullopt,
-        std::optional<std::list<Highlight>> highlights = std::nullopt);
+        std::optional<std::vector<Highlight>> highlights = std::nullopt);
 
     [[nodiscard]] u32 line(const LocationTracker &loc_tracker) const;
     [[nodiscard]] u32 column(const LocationTracker &loc_tracker) const;
@@ -75,7 +75,7 @@ public:
         std::string desc,
         const SourceLocation loc,
         std::optional<Suggestion> suggestion,
-        std::optional<std::list<Highlight>> highlights)
+        std::optional<std::vector<Highlight>> highlights)
         : Issue(Type::NOTE, std::move(desc), loc, std::move(suggestion), std::move(highlights)) {}
 
     Note(

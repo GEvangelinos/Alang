@@ -273,17 +273,17 @@ or_op:
 expr[out]:
   assign_expr { $out = $assign_expr; }
 | term        { $out = $term; }
-| expr[lhs] PLUS  expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::ADD,    $lhs, $rhs, @out); }
-| expr[lhs] MINUS expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::SUB,    $lhs, $rhs, @out); }
-| expr[lhs] MUL   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::MUL,    $lhs, $rhs, @out); }
-| expr[lhs] DIV   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::DIV,    $lhs, $rhs, @out); }
-| expr[lhs] MOD   expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::MOD,    $lhs, $rhs, @out); }
-| expr[lhs] EQ    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_EQ,  $lhs, $rhs, @out); }
-| expr[lhs] NEQ   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_NEQ, $lhs, $rhs, @out); }
-| expr[lhs] LT    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_LT,  $lhs, $rhs, @out); }
-| expr[lhs] LTE   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_LTE, $lhs, $rhs, @out); }
-| expr[lhs] GT    expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_GT,  $lhs, $rhs, @out); }
-| expr[lhs] GTE   expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_GTE, $lhs, $rhs, @out); }
+| expr[lhs]  PLUS[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::ADD,    $lhs, $rhs, @op); }
+| expr[lhs] MINUS[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::SUB,    $lhs, $rhs, @op); }
+| expr[lhs]   MUL[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::MUL,    $lhs, $rhs, @op); }
+| expr[lhs]   DIV[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::DIV,    $lhs, $rhs, @op); }
+| expr[lhs]   MOD[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::MOD,    $lhs, $rhs, @op); }
+| expr[lhs]    EQ[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_EQ,  $lhs, $rhs, @op); }
+| expr[lhs]   NEQ[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_NEQ, $lhs, $rhs, @op); }
+| expr[lhs]    LT[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_LT,  $lhs, $rhs, @op); }
+| expr[lhs]   LTE[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_LTE, $lhs, $rhs, @op); }
+| expr[lhs]    GT[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_GT,  $lhs, $rhs, @op); }
+| expr[lhs]   GTE[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_GTE, $lhs, $rhs, @op); }
 | and_op { $out = $and_op; }
 | or_op  { $out = $or_op; }
 ;

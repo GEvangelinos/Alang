@@ -1,3 +1,4 @@
+#TODO: Add did you mean with levenstein distance!
 # MacroDefinition
 #  ├── Name: str
 #  └── Body: list[MacroBodyLine]             # literal text / template lines (expanded inline)
@@ -20,12 +21,14 @@
 #  └──Location: SourceLocation (C++ custom type)
 
 # ======================================================================================
+# ======================================================================================
 # NOTE: SPECIAL DIAGNOSTIC CODE
 # --------------------------------------------------------------------------------------
 # SYNTAX_ERROR is special and hardcoded in the generator. It does NOT appear below in
 # this YAML, since it has no template definition or reporter.
 # It exists ONLY in the DiagnosticCode enum so the parser can tag generic syntax errors
 # for diagnostics and regression testing.
+# ======================================================================================
 # ======================================================================================
 
 - Diagnostic: CALL_ARGUMENT_MISMATCH
@@ -51,28 +54,19 @@
     - Message: "integer to floating-point implicit conversion results in integral precision loss"
       Location: conversion_loc
 
-# TODO: Fucking ADD highlight system!!! Per Primary and per each Note!
-#      Highlights:
-#        - Message: "{0}"
-#        - Args: [ lhs_expr_type ]
-#        - Location: lhs_loc
-#        - Message: "{0}"
-#        - Args: [ rhs_expr_type ]
-#        - Location: rhs_loc
-
-#TODO: ADD macro system.. like
-
-# MACRO(x):
-# [space] [space] - [space] Message: "bla bla"
-
-#TODO: Add did you mean with levenstein distance!
-
 - Diagnostic: EQUALITY_REL_OP_OPERAND_MISMATCH
   Type: SOFT_ERROR
   Primary:
-    - Message: "equality operator operands are uncomparable\n(left: `{0}`, right: `{1}`)"
-      Args: [ lhs_expr_type, rhs_expr_type ]
-      Location: comparison_loc
+    - Message: "Operands of `operator{0}` are not comparable"
+      Args: [ op_symbol ]
+      Location: comp_operator_loc
+      Highlights:
+        - Message: "{0}"
+          Args: [ lhs_expr_type ]
+          Location: lhs_expr_loc
+        - Message: "{0}"
+          Args: [ rhs_expr_type ]
+          Location: rhs_expr_loc
 
 - Diagnostic: INVALID_CHARACTER
   Type: SOFT_ERROR
@@ -156,14 +150,14 @@
       Args: [ func_name ]
       Location: var_def_loc
 
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 # NOTE ON UNCLOSED TOKENS
 # --------------------------------------------------------------------------------------
 # UNCLOSED_COMMENT and UNCLOSED_STRING are marked as SOFT_ERROR. They act like "blackholes":
 # once triggered, the lexer may still hit EOF. Making them SOFT allows the EOF diagnostic
 # to also be reported, which is helpful if a prior statement was left unfinished. If they
 # were HARD_ERROR, parsing would stop immediately, blocking EOF from being shown.
-# --------------------------------------------------------------------------------------
+# ======================================================================================
 - Diagnostic: UNCLOSED_COMMENT
   Type: SOFT_ERROR
   Primary:

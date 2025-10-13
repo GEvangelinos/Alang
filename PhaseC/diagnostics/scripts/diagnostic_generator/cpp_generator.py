@@ -186,7 +186,7 @@ class CppGenerator:
                     f"\t\t\tHighlight{{{issue_varname}_hl{hl_idx}, {hl.location}}}")
 
             if highlight_list:
-                code += f"\t\tstd::list{{\n"
+                code += f"\t\tstd::vector{{\n"
                 code += f"{",\n".join(highlight_list)}\n"
                 code += f"\t\t}}\n"
             else:
@@ -196,12 +196,6 @@ class CppGenerator:
             code += f"\t);\n"
 
             return code, issue_varname
-
-        # void report(
-        # 	DiagnosticCode code,
-        # 	Issue &&primary,
-        # 	std::list<Note> &&note_list = std::list<Note>(),
-        # 	ReporterKey);
 
         def make_report_call(d_name: str, primary_varname: str, note_varnames: list[str]) -> str:
             code = f"\tdiagnostic_engine_->report(\n"
@@ -241,20 +235,6 @@ class CppGenerator:
 
             definitions.append(funcdef_code)
         return definitions
-
-        #     definition += f'\tconst std::string note{i} = FMT::format("{note.main_issue.message}"{", " if note.main_issue.args else ''}{", ".join(note.main_issue.args)});\n'
-        # definition += f"\tdiagnostic_engine_->report(DiagnosticCode::{d.name}, Issue::Type::{d.type}, primary, {d.primary.main_issue.location}"
-        #
-        # if d.notes:
-        #     definition += f", std::list{{"
-        # for i, note in enumerate(d.notes):
-        #     if i != 0:
-        #         definition += ", "
-        #     definition += f"Note{{note{i}, {note.main_issue.location}}}"
-        # if d.notes:
-        #     definition += f"}}"
-        # definition += f");\n"
-        # definition += f"}}\n"
 
     def generate_codes_header_file(self) -> None:
         temp_filename = utils.temp_version(self.codes_header_filename)

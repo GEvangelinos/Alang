@@ -27,7 +27,7 @@ Issue::Issue(
     std::string description,
     const SourceLocation loc,
     std::optional<Suggestion> suggestion,
-    std::optional<std::list<Highlight>> highlights)
+    std::optional<std::vector<Highlight>> highlights)
     : type(type),
       desc(std::move(description)),
       loc(loc),
@@ -64,17 +64,25 @@ Issue::compute_printing_span(const LocationTracker &loc_tracker) const
         .end_line = loc_tracker.find_last_line(loc)
     };
 
-    // Expand span if the suggestion lies outside the issue location.
-    if (suggestion.has_value())
+    auto adjust_to_fit_span = [&result, &loc_tracker](const SourceLocation loc_target)
     {
-        const u32 suggestion_start_line = loc_tracker.find_first_line(suggestion->insert_after);
-        const u32 suggestion_end_line = loc_tracker.find_last_line(suggestion->insert_after);
+        const u32 suggestion_start_line = loc_tracker.find_first_line(loc_target);
+        const u32 suggestion_end_line = loc_tracker.find_last_line(loc_target);
 
         if (suggestion_start_line < result.start_line)
             result.start_line = suggestion_start_line;
         if (suggestion_end_line > result.end_line)
             result.end_line = suggestion_end_line;
-    }
+    };
+
+    // Expand span if the suggestion lies outside the issue location.
+    if (suggestion.has_value())
+        adjust_to_fit_span(suggestion->insert_after);
+
+    // Expand span if the highlights lie outside the rendering span.
+    if (highlights.has_value())
+        for (const Highlight &hl : *highlights)
+            adjust_to_fit_span(hl.loc);
 
     DEBUG_SMART_ASSERT(result.start_line <= result.end_line);
     return result;

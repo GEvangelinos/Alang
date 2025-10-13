@@ -9,7 +9,26 @@ from _colours import *
 from executor import TestfileExecutor
 from parser import TestfileParser
 from model import StageError
+import time
 
+PROPHET_BANNER = r"""
+░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░      ░▒▓███████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░▒▓████████▓▒░      
+   ░▒▓█▓▒░   ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░         ░▒▓█▓▒░          
+   ░▒▓█▓▒░   ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░         ░▒▓█▓▒░          
+   ░▒▓█▓▒░   ░▒▓████████▓▒░▒▓██████▓▒░        ░▒▓███████▓▒░░▒▓███████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓███████▓▒░░▒▓████████▓▒░▒▓██████▓▒░    ░▒▓█▓▒░          
+   ░▒▓█▓▒░   ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░         ░▒▓█▓▒░          
+   ░▒▓█▓▒░   ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░         ░▒▓█▓▒░          
+   ░▒▓█▓▒░   ░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░      ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░  ░▒▓█▓▒░          
+                                                                                                                                                
+                                                                                                                                                
+░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░▒▓████████▓▒░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░░▒▓███████▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░  ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░             ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░  ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░             ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░ ░▒▓█▓▒░  ░▒▓█▓▒░      ░▒▓████████▓▒░▒▓██████▓▒░  ░▒▓██████▓▒░        ░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░  ░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░         ░▒▓█▓▒░   ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░  ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░         ░▒▓█▓▒░   ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░ 
+ ░▒▓█████████████▓▒░░▒▓█▓▒░░▒▓█▓▒░ ░▒▓█▓▒░   ░▒▓██████▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░▒▓███████▓▒░          ░▒▓█▓▒░    ░▒▓██████▓▒░ ░▒▓██████▓▒░  
+"""
 ASC_EXT = ".asc"
 
 _total_tests = 0
@@ -73,14 +92,16 @@ def parser_startup_arguments() -> argparse.Namespace:
 
 
 def ensure_driver_executable(alpha_compiler_path: Path) -> None:
-    p = Path(alpha_compiler_path)
-    if not os.path.isfile(p):
-        raise ValueError(f"Compiler executable file not found at {p.resolve()} . ")
-    if not os.access(p, os.X_OK):
+    if not os.path.isfile(alpha_compiler_path):
+        raise ValueError("Compiler executable file not found.")
+    if not os.access(alpha_compiler_path, os.X_OK):
         raise ValueError("Compiler file is not executable.")
 
 
-def print_arrow_progress_bar(completed: int, total: int, move_cursor_up: bool):
+def print_simple_progress_bar(completed: int, total: int, move_cursor_up: bool):
+    # if regression time is negligible.. then we assume 5 second for whole animation...
+    animation_slot_delay = 5 / _total_tests
+
     def get_funny_comment(percent: int) -> str:
         if percent < 10:
             return "Starting optimistic..."
@@ -107,7 +128,8 @@ def print_arrow_progress_bar(completed: int, total: int, move_cursor_up: bool):
     terminal_columns = shutil.get_terminal_size().columns
     progress_ratio = completed / total
     percent = int(progress_ratio * 100)
-    status_text = f" {percent}% ({completed}/{total}) {get_funny_comment(percent)}"
+    funny_comment = get_funny_comment(percent)
+    status_text = f" {percent}% ({completed}/{total}) {funny_comment + " " * (42 - len(funny_comment))}"
     bar_width = terminal_columns - visible_len(status_text) - 2  # -2 for [] for kernel of bar
 
     filled = int(progress_ratio * bar_width)
@@ -120,6 +142,8 @@ def print_arrow_progress_bar(completed: int, total: int, move_cursor_up: bool):
     )
     if move_cursor_up:
         print("\033[2F\r")
+    # TODO: enable before committing :D
+    # time.sleep(animation_slot_delay)
 
 
 def gather_test_filepaths(dirname: str) -> list[Path]:
@@ -133,10 +157,11 @@ def gather_test_filepaths(dirname: str) -> list[Path]:
 
 def run_testfiles(driver_path: Path, test_filepaths: list[Path]):
     test_filepaths.sort()
-    print_arrow_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
-    os.chdir(_workdir_path)
+    print_simple_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
+    #
     for test_filepath in test_filepaths:
         run_testfile(driver_path, test_filepath)
+        os.chdir(_workdir_path)
     print(end="\n" * 2)  # Required to move cursor past script's output and progress bar
 
 
@@ -157,12 +182,15 @@ def run_testfile(driver_path: Path, testfile_path: Path) -> str:
         status_line = status_line + " " * (terminal_columns - visible_len(status_line))
         print(status_line)
         _completed_tests += 1
-        print_arrow_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
+        print_simple_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
     except StageError as e:
         print(f"{COLOR_RED}Prophet: Testfile-error:{SGR_RESET} {e}")
 
 
 def main():
+    print(PROPHET_BANNER)
+    # TODO: enable before committing :D
+    # time.sleep(3) # Just to scary the reader :D
     try:
         global _total_tests
         global _workdir_path

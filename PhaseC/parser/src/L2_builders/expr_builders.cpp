@@ -579,7 +579,7 @@ BasicBuilder::Restricted::build_relational(
     const ir::Opcode opc,
     const Expr *lhs,
     const Expr *rhs,
-    const SourceLocation result_loc)
+    const SourceLocation operator_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
 
@@ -591,25 +591,25 @@ BasicBuilder::Restricted::build_relational(
     expr_normalizer_->resolve_bool_short_circuit(rhs);
 
     // Always build IR. On validation errors we report error diagnostics and never export bad IR.
-    if (!validate_relational_operation(opc, lhs, rhs))
+    if (!validate_relational_operation(opc, lhs, rhs, operator_loc))
         goto skip_opt;
 
-    if (const auto optimized = this->try_optimize_relational_expr(opc, lhs, rhs, result_loc))
+    if (const auto optimized = this->try_optimize_relational_expr(opc, lhs, rhs, operator_loc))
         return optimized;
 
 skip_opt:
-    auto hook = [result_loc, this]()
+    auto hook = [operator_loc, this]()
     {
-        const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
+        const BoolExpr *result_expr = expr_maker_->make_bool_expr(operator_loc);
         result_expr->true_list.push_back(quad_emitter_->next_quad_label());
         result_expr->false_list.push_back(quad_emitter_->next_quad_label() + 1); // +1 for jump quad
         return result_expr;
     };
 
     const auto hook_result = quad_yielder_->yield_returning_hook_result(
-        opc, nullptr, lhs, rhs, result_loc, k_no_label, hook
+        opc, nullptr, lhs, rhs, operator_loc, k_no_label, hook
     );
-    quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, result_loc);
+    quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, operator_loc);
     return hook_result;
 }
 
@@ -684,7 +684,7 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
 
     // Patching left side.
     DEBUG_SMART_ASSERT(!short_circuit_jump_stack_.empty());
-    for (const LabelID quad_label: Policy::backpatch_list(lhs_bool))
+    for (const LabelID quad_label : Policy::backpatch_list(lhs_bool))
         quad_emitter_->labelPatch_quad(quad_label, short_circuit_jump_stack_.top());
     short_circuit_jump_stack_.pop();
     Policy::backpatch_list(lhs_bool).clear();
@@ -770,7 +770,8 @@ bool
 BasicBuilder::Restricted::validate_relational_operation(
     const ir::Opcode opc,
     const Expr *const lhs,
-    const Expr *const rhs)
+    const Expr *const rhs,
+    const SourceLocation operator_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs, SemUtils::is_relational_iropcode(opc));
 
@@ -787,7 +788,7 @@ BasicBuilder::Restricted::validate_relational_operation(
         return false;
     };
 
-    const auto validate_equality = [opc, lhs, rhs, this]() -> bool
+    const auto validate_equality = [opc, lhs, rhs, operator_loc, this]() -> bool
     {
         using ET = Expr::Type;
         DEBUG_SMART_ASSERT(SemUtils::is_relational_equality_iropcode(opc));
@@ -812,8 +813,10 @@ BasicBuilder::Restricted::validate_relational_operation(
         }();
         if (passes_mask)
             return true;
+
+        const auto opc_str = SemUtils::relop_str(opc);
         dr_->report_equality_rel_op_operand_mismatch(
-            lhs->type, rhs->type, merge(lhs->loc, rhs->loc)
+            opc_str, lhs->type, rhs->type, operator_loc, lhs->loc, rhs->loc
         );
         return false;
     };
@@ -1104,7 +1107,7 @@ FunctionBuilder::Restricted::register_function_parameters()
     constexpr auto space = VarSymbol::Space::FORMAL_ARGUMENT;
     DEBUG_SMART_ASSERT(parse_ctx_->space_handler.space() == VarSymbol::Space::FORMAL_ARGUMENT);
 
-    for (const Parameter &p: function_draft_.parameter_list)
+    for (const Parameter &p : function_draft_.parameter_list)
         if (validate_formal_param_name(p))
             symbol_table_->insert_variable(
                 p.name,
