@@ -3,19 +3,19 @@
 
 #include <string>
 // TODO: use the static SourceLocation function to do the merge.. (both merges) (make a second static func if necessary).
-#define YYLLOC_DEFAULT(Current, Rhs, N)                             \
-    do                                                              \
-    {                                                               \
-        if ((N))                                                    \
-        {                                                           \
-            (Current).first_index = YYRHSLOC((Rhs), 1).first_index; \
-            (Current).last_index = YYRHSLOC((Rhs), N).last_index;   \
-        }                                                           \
-        else                                                        \
-        {                                                           \
-            (Current).first_index = YYRHSLOC((Rhs), 0).last_index;  \
-            (Current).last_index = YYRHSLOC((Rhs), 0).last_index;   \
-        }                                                           \
+#define YYLLOC_DEFAULT(Current, Rhs, N)                 \
+    do                                                  \
+    {                                                   \
+        if ((N))                                        \
+        {                                               \
+            (Current).begin = YYRHSLOC((Rhs), 1).begin; \
+            (Current).end = YYRHSLOC((Rhs), N).end;     \
+        }                                               \
+        else                                            \
+        {                                               \
+            (Current).begin = YYRHSLOC((Rhs), 0).end;   \
+            (Current).end = YYRHSLOC((Rhs), 0).end;     \
+        }                                               \
     } while (0)
 
 #define CLEAR_ERROR(local_semantic_driver) \
@@ -23,37 +23,37 @@
     {                                      \
         local_semantic_driver.recover();   \
         yyerrok;                           \
-    }while (0)
+    } while (0)
 
-#define CLEAR_ERROR_IF_IN_FUNC_PARAM_LIST(local_semantic_driver)                \
-    do                                                                          \
-    {                                                                           \
+#define CLEAR_ERROR_IF_IN_FUNC_PARAM_LIST(local_semantic_driver)              \
+    do                                                                        \
+    {                                                                         \
         if (local_semantic_driver.context_inspector->is_in_func_param_list()) \
-        {                                                                       \
-            local_semantic_driver.recover();                                    \
-            yyerrok;                                                            \
-        }                                                                       \
-    }while(0)
+        {                                                                     \
+            local_semantic_driver.recover();                                  \
+            yyerrok;                                                          \
+        }                                                                     \
+    } while (0)
 
-#define CLEAR_ERROR_IF_NOT_IN_FORLOOP_CLAUSE(local_semantic_driver)             \
-    do                                                                          \
-    {                                                                           \
+#define CLEAR_ERROR_IF_NOT_IN_FORLOOP_CLAUSE(local_semantic_driver)           \
+    do                                                                        \
+    {                                                                         \
         if (!local_semantic_driver.context_inspector->is_in_forloop_clause()) \
-        {                                                                       \
-            local_semantic_driver.recover();                                    \
-            yyerrok;                                                            \
-        }                                                                       \
-    }while(0)
+        {                                                                     \
+            local_semantic_driver.recover();                                  \
+            yyerrok;                                                          \
+        }                                                                     \
+    } while (0)
 
-#define CLEAR_ERROR_IF_NOT_IN_TABLEDICT(local_semantic_driver)              \
-    do                                                                      \
-    {                                                                       \
+#define CLEAR_ERROR_IF_NOT_IN_TABLEDICT(local_semantic_driver)            \
+    do                                                                    \
+    {                                                                     \
         if (!local_semantic_driver.context_inspector->is_in_table_dict()) \
-        {                                                                   \
-            local_semantic_driver.recover();                                \
-            yyerrok;                                                        \
-        }                                                                   \
-    }while (0)
+        {                                                                 \
+            local_semantic_driver.recover();                              \
+            yyerrok;                                                      \
+        }                                                                 \
+    } while (0)
 
 namespace alpha
 {

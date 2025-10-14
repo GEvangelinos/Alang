@@ -39,17 +39,17 @@ Issue::Issue(
         return;
     for (const Highlight &h : *highlights)
     {
-        if (h.loc.first_index < loc.first_index)
+        if (h.loc.begin < loc.begin)
             throw std::logic_error(ATTACH_CONTEXT("Highlight points before Issue's location"));
-        if (h.loc.last_index > loc.last_index)
+        if (h.loc.end > loc.end)
             throw std::logic_error(ATTACH_CONTEXT("Highlight points after  Issue's location"));
     }
 }
 
-u32
+SrcLineIdx
 Issue::line(const LocationTracker &loc_tracker) const { return loc_tracker.find_first_line(loc); }
 
-u32
+SrcColumnIdx
 Issue::column(const LocationTracker &loc_tracker) const
 {
     return loc_tracker.find_first_column(loc);
@@ -60,17 +60,17 @@ Issue::compute_printing_span(const LocationTracker &loc_tracker) const
 {
     // Start with the span of the issue itself.
     RenderingLineSpan result{
-        .start_line = loc_tracker.find_first_line(loc),
+        .begin_line = loc_tracker.find_first_line(loc),
         .end_line = loc_tracker.find_last_line(loc)
     };
 
     auto adjust_to_fit_span = [&result, &loc_tracker](const SourceLocation loc_target)
     {
-        const u32 suggestion_start_line = loc_tracker.find_first_line(loc_target);
-        const u32 suggestion_end_line = loc_tracker.find_last_line(loc_target);
+        const SrcLineIdx suggestion_start_line = loc_tracker.find_first_line(loc_target);
+        const SrcLineIdx suggestion_end_line = loc_tracker.find_last_line(loc_target);
 
-        if (suggestion_start_line < result.start_line)
-            result.start_line = suggestion_start_line;
+        if (suggestion_start_line < result.begin_line)
+            result.begin_line = suggestion_start_line;
         if (suggestion_end_line > result.end_line)
             result.end_line = suggestion_end_line;
     };
@@ -84,7 +84,7 @@ Issue::compute_printing_span(const LocationTracker &loc_tracker) const
         for (const Highlight &hl : *highlights)
             adjust_to_fit_span(hl.loc);
 
-    DEBUG_SMART_ASSERT(result.start_line <= result.end_line);
+    DEBUG_SMART_ASSERT(result.begin_line <= result.end_line);
     return result;
 }
 

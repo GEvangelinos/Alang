@@ -1242,9 +1242,9 @@ FunctionBuilder::Restricted::build_program_function_exit(
         quad_yielder_->yield_next(
             ir::Opcode::FUNCEND,
             nullptr,
-            expr_maker_->make_prog_func_expr(block_loc.end, fbi.func_symbol),
+            expr_maker_->make_prog_func_expr(block_loc.end_raw_loc, fbi.func_symbol),
             nullptr,
-            block_loc.end);
+            block_loc.end_raw_loc);
     }
     quad_emitter_->labelPatch_quad(fbi.funcdef_skip_jump, quad_emitter_->next_quad_label());
     parse_ctx_->space_handler.exit_space();

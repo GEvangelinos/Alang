@@ -22,7 +22,7 @@ private:
         void exit_block() noexcept;
 
         [[nodiscard ]] static BlockSourceLocation
-        make_block_location(SourceLocation begin, SourceLocation end) noexcept;
+        make_block_location(SourceLocation begin_loc, SourceLocation end_loc) noexcept;
     };
 
     Restricted DISPATCH_TARGET;
@@ -48,12 +48,18 @@ BlockManager::Restricted::exit_block() noexcept
 
 inline BlockSourceLocation
 BlockManager::Restricted::make_block_location(
-    const SourceLocation begin,
-    const SourceLocation end) noexcept
+    const SourceLocation begin_loc,
+    const SourceLocation end_loc) noexcept
 {
-    return {
-        .begin = begin,
-        .end = end,
+    return BlockSourceLocation{
+        .begin_raw_loc = SourceLocationRaw{
+            .begin = begin_loc.begin.value,
+            .end = begin_loc.end.value,
+        },
+        .end_raw_loc = SourceLocationRaw{
+            .begin = end_loc.begin.value,
+            .end = end_loc.end.value,
+        },
     };
 }
 } // namespace alpha

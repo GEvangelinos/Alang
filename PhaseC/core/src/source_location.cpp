@@ -8,79 +8,76 @@
 
 namespace alpha
 {
-SourceLocation
-merge(const SourceLocation left, const SourceLocation right)
+SrcBufferIdx sizeT_to_srcBufferIdx(const std::size_t num)
 {
-    DEBUG_SMART_ASSERT(
-        left.first_index < right.first_index,
-        left.last_index < right.first_index,
-        left.first_index < right.last_index,
-    );
-    return {
-        .first_index = left.first_index,
-        .last_index = right.last_index
-    };
+    if (!support::is_in_numeric_range<SrcBufferIdx::UnderlyingType>(num))
+        throw std::length_error(ATTACH_CONTEXT("`num` value can not be stored `SrcBufferIdx`"));
+    return SrcBufferIdx{static_cast<SrcBufferIdx::UnderlyingType>(num)};
 }
 
-LocationTracker::LocationTracker(const u32 max_valid_index)
-    : max_valid_index_(max_valid_index)
+LocationTracker::LocationTracker(const std::size_t max_valid_index)
+    : max_valid_index_(sizeT_to_srcBufferIdx(max_valid_index))
 {
-    line_start_indices_.push_back(k_no_line); // Pushes virtual line 0.
+    linestart_buffer_indices_.emplace_back(SrcBufferIdx::none); // Sets virtual line 0 at idx 0.
 }
 
 void
-LocationTracker::append_line(const u32 start_index) { line_start_indices_.push_back(start_index); }
-
-u32
-LocationTracker::find_first_line(const SourceLocation location) const
+LocationTracker::append_line(const SrcBufferIdx linestart_index)
 {
-    if (location == k_no_loc)
-        return k_no_line;
-    return find_line(location.first_index);
+    linestart_buffer_indices_.push_back(linestart_index);
 }
 
-u32
-LocationTracker::find_last_line(const SourceLocation location) const
+SrcLineIdx
+LocationTracker::find_first_line(const SourceLocation loc) const
 {
-    if (location == k_no_loc)
-        return k_no_line;
-    return find_line(location.last_index);
+    if (loc == k_no_loc)
+        return SrcLineIdx(SrcLineIdx::none);
+    return find_line(loc.begin);
 }
 
-u32
-LocationTracker::find_symbol_line(const SourceLocation location) const
+SrcLineIdx
+LocationTracker::find_last_line(const SourceLocation loc) const
 {
-    if (location == k_no_loc)
-        return k_no_line;
-    return find_lines(location).first_line;
+    if (loc == k_no_loc)
+        return SrcLineIdx{SrcLineIdx::none};
+    return find_line(loc.end);
 }
 
-u32
-LocationTracker::find_index_of_line(const u32 line) const
+SrcLineIdx
+LocationTracker::find_symbol_line(const SourceLocation loc) const
 {
-    if (line == k_no_line)
+    if (loc == k_no_loc)
+        return SrcLineIdx{SrcLineIdx::none};
+    return find_lines(loc).begin_line;
+}
+
+SrcBufferIdx
+LocationTracker::find_index_of_line(const SrcLineIdx line) const
+{
+    if (line.value == SrcLineIdx::none)
         throw std::logic_error(ATTACH_CONTEXT(FMT::format(
-            "BUG: LocationTracker was asked to find index of k_no_line = `{}`)", k_no_line)));
-    DEBUG_SMART_ASSERT(line <= line_start_indices_.size());
-    return line_start_indices_[line - 1]; // -1 as line starts at pos 0.
+            "BUG: LocationTracker was asked to find index of k_no_line = `{}`)",
+            SrcLineIdx::none
+        )));
+    DEBUG_SMART_ASSERT(line.value <= linestart_buffer_indices_.size());
+    return linestart_buffer_indices_[line.value - 1]; // -1 as line starts at pos 0.
 }
 
-u32
-LocationTracker::find_first_column(const SourceLocation location) const
+SrcColumnIdx
+LocationTracker::find_first_column(const SourceLocation loc) const
 {
-    if (location == k_no_loc)
+    if (loc == k_no_loc)
         throw std::logic_error(ATTACH_CONTEXT(
             "BUG: LocationTracker was asked to find column of k_no_loc"));
 
-    const u32 starting_line = find_first_line(location);
-    // TODO: is this problematic? (the assertion, what do we even try to assert).
-    DEBUG_SMART_ASSERT(starting_line <= line_start_indices_.size());
+    const SrcLineIdx starting_line = find_first_line(loc);
+    DEBUG_SMART_ASSERT(starting_line.value <= linestart_buffer_indices_.size());
     // -1 as line starts at pos 0.
-    const u32 index_at_starting_line = line_start_indices_[starting_line - 1];
-    DEBUG_SMART_ASSERT(location.first_index >= index_at_starting_line);
+    const SrcBufferIdx index_at_starting_line = linestart_buffer_indices_[starting_line.value - 1];
+    DEBUG_SMART_ASSERT(loc.begin >= index_at_starting_line);
 
     // +1 to convert index offset to columns.
-    const u32 starting_column = location.first_index - index_at_starting_line + 1;
+    const SrcColumnIdx starting_column{loc.begin.value - index_at_starting_line.value + 1};
     return starting_column;
 }
 
@@ -92,34 +89,46 @@ LocationTracker::find_first_column(const SourceLocation location) const
  * No normalization is performed; the caller must ensure
  */
 LineRange
-LocationTracker::find_lines(const u32 first_index, const u32 last_index) const
+LocationTracker::find_lines(const SrcBufferIdx begin_idx, const SrcBufferIdx end_idx) const
 {
     // LIBFUNCs -- Only libfuncs are defined at Location{0,0}
-    if (first_index == 0 && last_index == 0)
-        return {k_no_line, k_no_line};
-    return {find_line(first_index), find_line(last_index)};
+    if (begin_idx.value == SrcBufferIdx::none && end_idx.value == SrcBufferIdx::none)
+        return {
+            .begin_line = SrcLineIdx{SrcLineIdx::none},
+            .end_line = SrcLineIdx{SrcLineIdx::none}
+        };
+
+    return {find_line(begin_idx), find_line(end_idx)};
 }
 
 LineRange
-LocationTracker::find_lines(const SourceLocation location) const
+LocationTracker::find_lines(const SourceLocation loc) const
 {
-    return find_lines(location.first_index, location.last_index);
+    return find_lines(loc.begin, loc.end);
 }
 
-u32
-LocationTracker::find_line(const u32 index) const
+SrcLineIdx
+LocationTracker::find_line(const SrcBufferIdx idx) const
 {
-    DEBUG_SMART_ASSERT(std::is_sorted(line_start_indices_.begin(), line_start_indices_.end()));
+    DEBUG_SMART_ASSERT(
+        std::is_sorted(linestart_buffer_indices_.begin(), linestart_buffer_indices_.end())
+    );
 
-    if (index > max_valid_index_)
+    if (idx.value > max_valid_index_.value)
         throw std::logic_error(ATTACH_CONTEXT(
             "BUG: LocationTracker received out-of-bounds index."));
 
-    const auto it = std::upper_bound(line_start_indices_.begin(), line_start_indices_.end(), index);
+    const auto it = std::upper_bound(
+        linestart_buffer_indices_.begin(),
+        linestart_buffer_indices_.end(),
+        idx
+    );
 
-    const std::ptrdiff_t line = std::distance(line_start_indices_.begin(), it);
-    if (line < 0 || line > static_cast<std::ptrdiff_t>(line_start_indices_.size()))
+    const std::ptrdiff_t lineno = std::distance(linestart_buffer_indices_.begin(), it);
+    if (lineno < 0 || lineno > static_cast<std::ptrdiff_t>(linestart_buffer_indices_.size()))
         throw std::logic_error(ATTACH_CONTEXT("BUG: Invalid computed line index."));
-    return static_cast<u32>(line);
+
+    DEBUG_SMART_ASSERT(support::is_in_numeric_range<SrcLineIdx::UnderlyingType>(lineno));
+    return SrcLineIdx{static_cast<SrcLineIdx::UnderlyingType>(lineno)};
 }
 } // namespace alpha

@@ -8,21 +8,8 @@
         #include "scanner/scanner_context.hpp"
         #include "support/format_adapter.hpp"           // for format, FMT
         #include <diagnostics/diagnostic_reporter.gen.hpp>
+        #include "scanner_prologue.hpp"
 
-        #define YY_USER_ACTION                                                \
-                do                                                            \
-                {                                                             \
-                        yylloc->first_index = lexer_ctx.index_;               \
-                        yylloc->last_index = lexer_ctx.index_ + yyleng;       \
-                                                                              \
-                        lexer_ctx.index_ += yyleng;                           \
-                } while (0); /* Semi-Colon is not placed by flex, we place it manually. */
-        #define EMIT(TOK_ID)                                                                      \
-                do                                                                                \
-                {                                                                                 \
-                        lexer_ctx.register_token(alpha::TokenInfo{.id = TOK_ID, .loc = *yylloc}); \
-                        return TOK_ID;                                                            \
-                } while(0)
 %}
 
 %option reentrant

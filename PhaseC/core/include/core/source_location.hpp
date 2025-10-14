@@ -4,6 +4,7 @@
 #include <vector>               // for vector
 #include "core/basics.hpp"
 #include "core/numeric_types.hpp" // for u32
+#include "core/source_location_types.hpp"
 
 namespace alpha
 {
@@ -12,49 +13,105 @@ struct SourceLocation; // IWYU pragma: keep
 struct LineRange;      // IWYU pragma: keep
 class LocationTracker; // IWYU pragma: keep
 
-struct SourceLocation
+struct SourceLocationRaw
 {
-    u32 first_index;
-    u32 last_index;
-
-    bool operator==(const SourceLocation &) const noexcept = default;
-    bool operator!=(const SourceLocation &) const noexcept = default;
+    SrcBufferIdx::UnderlyingType begin;
+    SrcBufferIdx::UnderlyingType end;
 };
 
+struct SourceLocation
+{
+    SrcBufferIdx begin; // Inclusive
+    SrcBufferIdx end;   // Exclusive
+
+    constexpr SourceLocation();
+    constexpr SourceLocation(SrcBufferIdx begin, SrcBufferIdx end);
+    constexpr SourceLocation(SourceLocationRaw raw_loc);
+
+    [[nodiscard]] SourceLocationRaw to_raw();
+    [[nodiscard]] bool operator==(SourceLocation rhs) const noexcept;
+    [[nodiscard]] bool operator!=(SourceLocation rhs) const noexcept;
+};
+
+// ======================================================================================
+// Core inline utilities for SourceLocation.
+// These are used heavily throughout expression builders in the parser and kept inline
+// to minimize call overhead in hot parsing paths.
+// ======================================================================================
+constexpr
+SourceLocation::SourceLocation()
+    : SourceLocation(
+        SrcBufferIdx{SrcBufferIdx::none},
+        SrcBufferIdx{SrcBufferIdx::none}
+    ) {}
+
+constexpr
+SourceLocation::SourceLocation(SrcBufferIdx begin, SrcBufferIdx end)
+    : begin(begin), end(end) {}
+
+constexpr
+SourceLocation::SourceLocation(const SourceLocationRaw raw_loc)
+    : begin(SrcBufferIdx{raw_loc.begin}), end(SrcBufferIdx{raw_loc.end}) {}
+
+inline SourceLocationRaw
+SourceLocation::to_raw() { return {.begin = begin.value, .end = end.value}; }
+
+inline bool
+SourceLocation::operator==(const SourceLocation rhs) const noexcept
+{
+    return this->begin.value == rhs.begin.value &&
+           this->end.value == rhs.end.value;
+}
+
+inline bool
+SourceLocation::operator!=(const SourceLocation rhs) const noexcept { return !(*this == rhs); }
+
 // Promoted to free function, instead of static inside the SourceLocation, so we can enable Argument-Dependent-Lookup
-SourceLocation merge(SourceLocation left, SourceLocation right);
+inline SourceLocation
+merge(const SourceLocation left, const SourceLocation right)
+{
+    DEBUG_SMART_ASSERT(
+        left.begin.value < right.begin.value,
+        left.end.value < right.begin.value,
+        left.begin.value < right.end.value && "Location overlap detected"
+    );
+    return SourceLocation{left.begin, right.end};
+}
+
+// ======================================================================================
+// ======================================================================================
 
 struct BlockSourceLocation
 {
-    SourceLocation begin;
-    SourceLocation end;
+    SourceLocationRaw begin_raw_loc;
+    SourceLocationRaw end_raw_loc;
 };
 
 struct LineRange
 {
-    const u32 first_line;
-    const u32 last_line;
+    const SrcLineIdx begin_line;
+    const SrcLineIdx end_line;
 };
 
 class LocationTracker : private Immobile
 {
 public:
-    explicit LocationTracker(u32 max_valid_index);
+    explicit LocationTracker(std::size_t max_valid_index);
 
-    void append_line(u32 start_index);
-    [[nodiscard]] u32 find_first_line(SourceLocation location) const;
-    [[nodiscard]] u32 find_last_line(SourceLocation location) const;
-    [[nodiscard]] u32 find_symbol_line(SourceLocation location) const;
-    [[nodiscard]] u32 find_index_of_line(u32 line) const;
-    [[nodiscard]] u32 find_first_column(SourceLocation location) const;
-    [[nodiscard]] LineRange find_lines(u32 first_index, u32 last_index) const;
-    [[nodiscard]] LineRange find_lines(SourceLocation location) const;
+    void append_line(SrcBufferIdx linestart_index);
+    [[nodiscard]] SrcLineIdx find_first_line(SourceLocation loc) const;
+    [[nodiscard]] SrcLineIdx find_last_line(SourceLocation loc) const;
+    [[nodiscard]] SrcLineIdx find_symbol_line(SourceLocation loc) const;
+    [[nodiscard]] SrcBufferIdx find_index_of_line(SrcLineIdx line) const;
+    [[nodiscard]] SrcColumnIdx find_first_column(SourceLocation loc) const;
+    [[nodiscard]] LineRange find_lines(SrcBufferIdx begin_idx, SrcBufferIdx end_idx) const;
+    [[nodiscard]] LineRange find_lines(SourceLocation loc) const;
 
 private:
-    const u32 max_valid_index_;
-    std::vector<u32> line_start_indices_;
+    const SrcBufferIdx max_valid_index_;
+    std::vector<SrcBufferIdx> linestart_buffer_indices_;
 
-    [[nodiscard]] u32 find_line(u32 index) const;
+    [[nodiscard]] SrcLineIdx find_line(SrcBufferIdx idx) const;
 };
 } // namespace alpha
 #endif // SOURCE_LOCATION_HPP

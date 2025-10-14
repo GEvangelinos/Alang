@@ -42,8 +42,8 @@ public:
 
     struct RenderingLineSpan
     {
-        u32 start_line;
-        u32 end_line;
+        SrcLineIdx begin_line;
+        SrcLineIdx end_line;
     };
 
     const Type type;
@@ -59,8 +59,8 @@ public:
         std::optional<Suggestion> suggestion = std::nullopt,
         std::optional<std::vector<Highlight>> highlights = std::nullopt);
 
-    [[nodiscard]] u32 line(const LocationTracker &loc_tracker) const;
-    [[nodiscard]] u32 column(const LocationTracker &loc_tracker) const;
+    [[nodiscard]] SrcLineIdx line(const LocationTracker &loc_tracker) const;
+    [[nodiscard]] SrcColumnIdx column(const LocationTracker &loc_tracker) const;
 
     [[nodiscard]] RenderingLineSpan compute_printing_span(const LocationTracker &loc_tracker) const;
 };

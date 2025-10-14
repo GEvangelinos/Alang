@@ -110,7 +110,7 @@ void handle_shows(const arguinator::Parser &cli_parser, const alpha::Driver &dri
 }
 
 const char *
-fatal_header() { return COMPILER_NAME ": " COLOR_ASCII_BOLD_RED "fatal: " SGR_RESET; }
+fatal_header() { return COMPILER_NAME ": " COLOR_FG_ASCII_BOLD_RED "fatal: " SGR_RESET; }
 
 void
 fatal_impl(const std::string_view error_message)

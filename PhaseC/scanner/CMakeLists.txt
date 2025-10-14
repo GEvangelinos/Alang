@@ -58,6 +58,11 @@ add_library(alpha_scanner_impl STATIC
 target_compile_options(alpha_scanner_impl PRIVATE
     -Wno-unused-function
 )
+
+target_include_directories(alpha_scanner_impl PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
 target_link_libraries(alpha_scanner_impl PRIVATE
     alpha_scanner_api
     alpha_parser_api

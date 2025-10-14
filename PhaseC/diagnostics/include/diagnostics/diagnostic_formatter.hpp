@@ -18,10 +18,6 @@ class LocationTracker;
 class DiagnosticFormatter
 {
 public:
-    static constexpr u32 max_shown_lines = 10;
-    static constexpr char pointer_marker = '^';
-    static constexpr char underline_marker = '~';
-    static constexpr char highlight_marker = '.';
     DiagnosticFormatter(
         const std::filesystem::path &source_path,
         const LocationTracker &loc_tracker,
@@ -30,70 +26,105 @@ public:
     [[nodiscard]] std::string format_diagnostic(const Diagnostic &diagnostic, bool colorize) const;
 
 private:
-    struct HighlightMeta
+    class HighlightMeta
     {
-        const Highlight *highlight;
-        std::size_t id;
-
+    public:
         HighlightMeta(const Highlight *highlight, std::size_t id);
+        auto highlight() const noexcept { return DEBUG_REQUIRE_PTR(highlight_); }
+        auto id() const noexcept { return id_; }
+
+    private:
+        const Highlight *highlight_;
+        std::size_t id_;
     };
 
+    static constexpr u8 max_shown_lines = 10;
+
+    struct Markers
+    {
+        static constexpr char decorator = '`';
+        static constexpr char highlight = '.';
+        static constexpr char pointer = '^';
+        static constexpr char suggestion = '^';
+        static constexpr char underline = '~';
+    };
+
+    struct Colors
+    {
+        static constexpr const char *comment_color = COLOR_FG_SOFT_BROWN;
+        static constexpr const char *error_fg = COLOR_FG_ASCII_BOLD_RED;
+        static constexpr const char *note_fg = COLOR_FG_ASCII_BOLD_CYAN;
+        static constexpr const char *warning_fg = COLOR_FG_ASCII_BOLD_MAGENTA;
+    };
+
+    struct Tokens
+    {
+        static constexpr const char *line_comment = "//";
+    };
+
+    static constexpr char ellipsis_block[] = "\t...\n\t...\n\t...\n";
     static constexpr u32 k_linebox_width_ = 8;
     static constexpr u32 k_tab_width_ = 8;
     const std::string source_filename_;
     const char *const source_buffer_;
     const LocationTracker &loc_tracker_;
     mutable bool underline_pointer_flag = false;
-    static constexpr const char * comment_color = COLOR_FG_SOFT_BROWN;
 
     void build_issue_header(std::stringstream &out, const Issue &issue, bool colorize) const;
-    [[nodiscard]] std::string build_codeline(const Issue &issue, u32 line_no) const;
-    [[nodiscard]] std::string build_underline(const Issue &issue, u32 line_no) const;
+    [[nodiscard]] std::string make_codeline(const Issue &issue, SrcLineIdx line_no) const;
+    [[nodiscard]] std::string make_underline(const Issue &issue, SrcLineIdx line_no) const;
     [[nodiscard, deprecated]] static std::string colorize_underline(
         const std::string &underline, const char *underline_color);
-    [[nodiscard]] static std::string colorize_codeline(const std::string &codeline);
-    static void swap_highlight_marker(std::string &underline);
+    [[nodiscard]] static std::string colorize_line_comment(std::string_view codeline);
 
     [[nodiscard]] std::vector<std::string>
-    build_highlight_labels(const Issue &issue, u32 line_no) const;
+    build_highlight_labels(const Issue &issue, SrcLineIdx line_no) const;
     [[nodiscard]] u32 compute_visual_suggestion_indent_width(const Suggestion &suggestion) const;
     void format_issue_line(
-        std::stringstream &out, const Issue &issue, u32 line_no, bool colorize) const;
+        std::stringstream &out, const Issue &issue, SrcLineIdx line_no, bool colorize) const;
     [[nodiscard]] std::string format_issue(const Issue &issue, bool colorize) const;
 
-    template<typename Predicate>
-    [[nodiscard]] std::vector<HighlightMeta >
-    filter_highlights(const Issue &issue, Predicate pred) const;
+    SrcBufferIdx line_index_of_last_code_char(SrcBufferIdx linestart_index) const;
 
+    static void swap_markers(std::string &str, char old_marker, char new_marker);
     [[nodiscard]] static const char *get_underline_color(Issue::Type type) noexcept;
     [[nodiscard]] static const char *get_highlight_color(std::size_t highlight_index) noexcept;
     [[nodiscard]] static std::string apply_sgr(
         std::string_view prefix, std::string_view text, std::string_view suffix);
+    [[nodiscard]] static std::string decorate_sections(
+        std::string_view str,
+        char marker,
+        std::string_view sgr_section_prefix,
+        std::string_view sgr_section_suffix);
+
+    template<typename Predicate>
+    [[nodiscard]] static std::vector<HighlightMeta>
+    filter_highlights(const Issue &issue, Predicate pred);
 };
 
 template<typename Predicate>
 [[nodiscard]] std::vector<DiagnosticFormatter::HighlightMeta>
 DiagnosticFormatter::filter_highlights(
     const Issue &issue,
-    const Predicate pred) const
+    const Predicate pred)
 {
     static_assert(
         std::is_invocable_r_v<bool, Predicate, const Highlight &>,
         "Predicate must be callable with (const Highlight &) and return bool"
     );
 
-    std::vector<HighlightMeta> line_highlights;
+    std::vector<HighlightMeta> filtered_highlights;
     if (issue.highlights.has_value())
     {
-        std::size_t hl_id = 0;
-        for (const Highlight &hl : *issue.highlights)
+        std::size_t hid = 0;
+        for (const Highlight &h : *issue.highlights)
         {
-            if (std::move(pred(hl)))
-                line_highlights.emplace_back(&hl, hl_id);
-            ++hl_id;
+            if (std::move(pred(h)))
+                filtered_highlights.emplace_back(&h, hid);
+            ++hid;
         }
     }
-    return line_highlights;
+    return filtered_highlights;
 }
 } // namespace alpha
 

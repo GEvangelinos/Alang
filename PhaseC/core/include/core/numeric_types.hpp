@@ -33,6 +33,8 @@ using if64 = std::int_fast64_t;
 using f32 = float;
 using f64 = double;
 
+using Word = u32;
+
 static_assert(sizeof(f32) == 4, "Type `f32` is not 4 bytes on current system");
 static_assert(sizeof(f64) == 8, "Type `f64` is not 8 bytes on current system");
 } // namespace alpha

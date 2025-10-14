@@ -6,6 +6,8 @@
 #include <sstream>   // for basic_ostream, basic_stringstream, operator<<
 #include <stdexcept> // for overflow_error, runtime_error, underflow_error
 
+#include "core/konstants.hpp"
+
 namespace alpha
 {
 /*** STARTOF: Local to the file (static) definitions: ***/
@@ -65,13 +67,13 @@ std::string Token::to_string() const
 {
     std::stringstream string_buffer;
     string_buffer << line_number_
-            << ":\t"
-            << "#"
-            << token_number_
-            << "\t"
-            << "\""
-            << token_content_
-            << "\"";
+        << ":\t"
+        << "#"
+        << token_number_
+        << "\t"
+        << "\""
+        << token_content_
+        << "\"";
     return string_buffer.str();
 }
 
@@ -89,10 +91,10 @@ std::string TokenKeyword::to_string() const
 {
     std::stringstream string_buffer;
     string_buffer << Token::to_string()
-            << "\t"
-            << "KEYWORD"
-            << "\t"
-            << token_code_name_;
+        << "\t"
+        << "KEYWORD"
+        << "\t"
+        << token_code_name_;
     return string_buffer.str();
 }
 
@@ -111,10 +113,10 @@ std::string TokenOperator::to_string() const
 {
     std::stringstream string_buffer;
     string_buffer << Token::to_string()
-            << "\t"
-            << "OPERATOR"
-            << "\t"
-            << token_code_name_;
+        << "\t"
+        << "OPERATOR"
+        << "\t"
+        << token_code_name_;
     return string_buffer.str();
 }
 
@@ -133,10 +135,10 @@ std::string TokenPunctuation::to_string() const
 {
     std::stringstream string_buffer;
     string_buffer << Token::to_string()
-            << "\t"
-            << "PUNCTUATION"
-            << "\t"
-            << token_code_name_;
+        << "\t"
+        << "PUNCTUATION"
+        << "\t"
+        << token_code_name_;
     return string_buffer.str();
 }
 
@@ -155,10 +157,10 @@ std::string TokenIntegerNumber::to_string() const
 {
     std::stringstream string_buffer;
     string_buffer << Token::to_string()
-            << "\t"
-            << "INTCONST"
-            << "\t"
-            << number_of_token_;
+        << "\t"
+        << "INTCONST"
+        << "\t"
+        << number_of_token_;
     return string_buffer.str();
 }
 
@@ -177,10 +179,10 @@ std::string TokenRealNumber::to_string() const
 {
     std::stringstream string_buffer;
     string_buffer << Token::to_string()
-            << "\t"
-            << "REALCONST"
-            << "\t"
-            << number_of_token_;
+        << "\t"
+        << "REALCONST"
+        << "\t"
+        << number_of_token_;
     return string_buffer.str();
 }
 
@@ -215,19 +217,19 @@ std::string TokenID::to_string() const
 {
     std::stringstream string_buffer;
     string_buffer << Token::to_string()
-            << "\t"
-            << "ID"
-            << "\t"
-            << "\""
-            << id_name_
-            << "\"";
+        << "\t"
+        << "ID"
+        << "\t"
+        << "\""
+        << id_name_
+        << "\"";
     return string_buffer.str();
 }
 
 /*** ENDOF: class TokenID definitions. ***/
 
 /*** STARTOF: class TokenComment definitions. ***/
-SourceLocation TokenComment::comment_starting_location_;
+SourceLocation TokenComment::comment_starting_location_ = k_no_loc;
 
 void TokenComment::set_starting_location(const SourceLocation location)
 {
@@ -250,10 +252,10 @@ std::string TokenComment::to_string() const
 {
     std::stringstream string_buffer;
     string_buffer << Token::to_string()
-            << "\t"
-            << "COMMENT"
-            << "\t"
-            << comment_type_;
+        << "\t"
+        << "COMMENT"
+        << "\t"
+        << comment_type_;
     return string_buffer.str();
 }
 
@@ -261,7 +263,7 @@ std::string TokenComment::to_string() const
 
 /*** STARTOF: class TokenString definitions. ***/
 std::stringstream TokenString::string_assembling_buffer_;
-SourceLocation TokenString::string_starting_location_;
+SourceLocation TokenString::string_starting_location_ = k_no_loc;
 std::string TokenString::latest_assembled_string_;
 
 void TokenString::set_starting_location(const SourceLocation location)
@@ -344,12 +346,12 @@ std::string TokenString::to_string() const
 {
     std::stringstream string_buffer;
     string_buffer << Token::to_string()
-            << "\t"
-            << "STRING"
-            << "\t"
-            << "\""
-            << Token::get_token_content()
-            << "\"";
+        << "\t"
+        << "STRING"
+        << "\t"
+        << "\""
+        << Token::get_token_content()
+        << "\"";
     return string_buffer.str();
 }
 
@@ -369,10 +371,10 @@ std::string TokenInvalid::to_string() const
 {
     std::stringstream string_buffer;
     string_buffer << Token::to_string()
-            << "\t"
-            << "TOKEN_INVALID"
-            << "\t"
-            << Token::get_token_content();
+        << "\t"
+        << "TOKEN_INVALID"
+        << "\t"
+        << Token::get_token_content();
     return string_buffer.str();
 }
 

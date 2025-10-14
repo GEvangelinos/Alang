@@ -51,7 +51,27 @@
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/.testbed.asc.swp" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/.testbed.asc.swp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/konstants.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/konstants.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/numeric_types.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/numeric_types.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/source_location.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/source_location.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/src/source_location.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/source_location.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_formatter.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_formatter.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_types.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/include/diagnostics/diagnostic_types.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/diagnostics/src/diagnostic_formatter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/diagnostic_formatter.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/src/diagnostic_types.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/diagnostic_types.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/translation_unit.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/block_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/block_manager.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/trace_logger.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/trace_logger.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_prologue_code.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/include/scanner/scanner_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/include/scanner/scanner_context.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_token.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_token.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/support/include/support/cli_color.h" beforeDir="false" afterPath="$PROJECT_DIR$/support/include/support/cli_color.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/support/include/support/debug_tools.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/support/include/support/debug_tools.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -605,7 +625,7 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "CMake Application.alang.executor": "Debug",
+    "CMake Application.alang.executor": "Run",
     "CMake Application.alang.out.executor": "Run",
     "CMake Application.alpha_driver.out.executor": "Run",
     "CMake Debug.Alpha.executor": "Debug",
@@ -621,7 +641,7 @@
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
     "git-widget-placeholder": "non__cya__mode/ir-gen",
-    "last_opened_file_path": "/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/diagnostics/config",
+    "last_opened_file_path": "/home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/core/include/core",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -640,11 +660,11 @@
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/core/include/core" />
       <recent name="$PROJECT_DIR$/diagnostics/config" />
       <recent name="$PROJECT_DIR$/.GOSPEL" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/parser/src" />
-      <recent name="$PROJECT_DIR$/scripts/old_regression_runner" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator" />
@@ -838,7 +858,7 @@
       <workItem from="1759960159751" duration="58345000" />
       <workItem from="1760181159541" duration="204000" />
       <workItem from="1760191954982" duration="85000" />
-      <workItem from="1760206109126" duration="91069000" />
+      <workItem from="1760206109126" duration="120820000" />
     </task>
     <servers />
   </component>
@@ -941,11 +961,6 @@
           <url>file://$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp</url>
           <line>136</line>
           <option name="timeStamp" value="302" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/diagnostics/src/diagnostic_formatter.cpp</url>
-          <line>166</line>
-          <option name="timeStamp" value="314" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

@@ -222,7 +222,7 @@ struct VariableExpr final : public ExprWVarSymbol
 
 struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
 {
-    SourceLocation loc = {};
+    SourceLocation loc;
     LabelID label = {};
     const Expr *result;
     const Expr *arg1;

@@ -15,7 +15,7 @@ static void display_trace(const std::string &lhs, const std::string &rhs)
 {
     if (!g_show_parser_trace)
         return;
-    std::cout << COLOR_ASCII_BOLD_GREEN
+    std::cout << COLOR_FG_ASCII_BOLD_GREEN
               << std::setw(20)
               << lhs
               << SGR_RESET

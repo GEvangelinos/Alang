@@ -10,7 +10,7 @@
 #include "scanner/alpha_scanner.gen.hpp"
 #include "support/cli_color.h"
 
-#define WARNING_BANNER_PREFIX COLOR_ASCII_MAGENTA SGR_BOLD "Warning" SGR_BLINK "❗" SGR_RESET ": "
+#define WARNING_BANNER_PREFIX COLOR_FG_ASCII_MAGENTA SGR_BOLD "Warning" SGR_BLINK "❗" SGR_RESET ": "
 inline constexpr auto k_reescaped_warning_banner =
     WARNING_BANNER_PREFIX
     "Special characters are escaped; Ex.: \"\\n\" prints literally (not a newline) to keep the table aligned.\n"
@@ -122,14 +122,14 @@ std::string color_column(T &&value)
     static_assert(Column < column_count, "So far we support a maximum of 7 columns");
 
     const char *ascii_color;
-    if constexpr (Column == 0) ascii_color = COLOR_ASCII_WHITE;
-    else if constexpr (Column == 1) ascii_color = COLOR_ASCII_RED;
-    else if constexpr (Column == 2) ascii_color = COLOR_ASCII_GREEN;
-    else if constexpr (Column == 3) ascii_color = COLOR_ASCII_BLUE;
-    else if constexpr (Column == 4) ascii_color = COLOR_ASCII_CYAN;
-    else if constexpr (Column == 5) ascii_color = COLOR_ASCII_YELLOW;
-    else if constexpr (Column == 6) ascii_color = COLOR_ASCII_MAGENTA;
-    else ascii_color = COLOR_ASCII_DEFAULT;
+    if constexpr (Column == 0) ascii_color = COLOR_FG_ASCII_WHITE;
+    else if constexpr (Column == 1) ascii_color = COLOR_FG_ASCII_RED;
+    else if constexpr (Column == 2) ascii_color = COLOR_FG_ASCII_GREEN;
+    else if constexpr (Column == 3) ascii_color = COLOR_FG_ASCII_BLUE;
+    else if constexpr (Column == 4) ascii_color = COLOR_FG_ASCII_CYAN;
+    else if constexpr (Column == 5) ascii_color = COLOR_FG_ASCII_YELLOW;
+    else if constexpr (Column == 6) ascii_color = COLOR_FG_ASCII_MAGENTA;
+    else ascii_color = COLOR_FG_ASCII_DEFAULT;
     return FMT::format("{}{:<{}}{}", ascii_color, std::forward<T>(value), ColumnWidth, SGR_RESET);
 }
 
@@ -186,8 +186,8 @@ void print_ir(Stream &out, const std::vector<alpha::Quad> &quads, const alpha::L
 
         const auto [first_line, last_line] = lt.find_lines(q.loc);
         std::string quad_line_str = first_line == last_line
-                                    ? std::to_string(first_line)
-                                    : FMT::format("{}-{}", first_line, last_line);
+                                    ? std::to_string(first_line.value)
+                                    : FMT::format("{}-{}", first_line.value, last_line.value);
 
         out << FMT::format(
             "{} {} {} {} {} {} {}\n",
@@ -388,7 +388,7 @@ TranslationUnit::notify_max_errors_reached() { throw exception::DiagnosticLimitE
 void
 TranslationUnit::show_symbol_table() const
 {
-    std::cout << COLOR_ASCII_BLUE;
+    std::cout << COLOR_FG_ASCII_BLUE;
     const auto &symbol_per_scope_vector = symbol_table_.symbols_per_scope();
     for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
     {
@@ -401,7 +401,7 @@ TranslationUnit::show_symbol_table() const
             std::cout << FMT::format("{:<30} {:<20} (line {:>5}) (scope {:>4})\n",
                                      FMT::format("\"{}\"", symbol_ptr->name),
                                      FMT::format("[{}]", symbol_ptr->type_to_string()),
-                                     loc_tracker_.find_symbol_line(symbol_ptr->loc),
+                                     loc_tracker_.find_symbol_line(symbol_ptr->loc).value,
                                      symbol_ptr->scope);
         std::cout << '\n';
     }
@@ -483,7 +483,7 @@ TranslationUnit::export_symbol_table_impl(const bool export_temps) const
             "{0},{1},{2},{3}\n",
             symbol_ptr->name,
             symbol_ptr->type_to_string(),
-            loc_tracker_.find_symbol_line(symbol_ptr->loc),
+            loc_tracker_.find_symbol_line(symbol_ptr->loc).value,
             symbol_ptr->scope
         );
     };
@@ -522,8 +522,8 @@ TranslationUnit::export_diagnostics_impl() const
         outfile << FMT::format(
             "{0},{1},{2},{3}\n",
             to_string(code),
-            issue.line(loc_tracker_),
-            issue.column(loc_tracker_),
+            issue.line(loc_tracker_).value,
+            issue.column(loc_tracker_).value,
             to_string(issue.type)
         );
     };
@@ -562,8 +562,8 @@ TranslationUnit::export_ir_impl() const
             expr_printer(q.arg1, k_not_available_marker),
             expr_printer(q.arg2, k_not_available_marker),
             quad_label_str,
-            first_line,
-            last_line
+            first_line.value,
+            last_line.value
         );
     };
 
