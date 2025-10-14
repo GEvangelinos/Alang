@@ -85,6 +85,17 @@ DiagnosticFormatter::get_underline_color(const Issue::Type type) noexcept
     }
 }
 
+const char *
+DiagnosticFormatter::get_highlight_color(const std::size_t highlight_index) noexcept
+{
+    static constexpr const char *highlight_colors[] = {
+        COLOR_FG_PINK,
+        COLOR_FG_SKY,
+        COLOR_FG_MINT,
+    };
+    return highlight_colors[highlight_index % std::size(highlight_colors)];
+}
+
 std::string DiagnosticFormatter::apply_sgr(
     const std::string_view prefix,
     const std::string_view text,
@@ -153,15 +164,52 @@ DiagnosticFormatter::build_issue_header(
     out << reset_sgr;
 }
 
-std::string DiagnosticFormatter::build_codeline(const u32 line_no) const
+std::string DiagnosticFormatter::build_codeline(const Issue &issue, const u32 line_no) const
 {
+    const auto touches_line = [line_no, this](const Highlight &hl)
+    {
+        const auto first = loc_tracker_.find_first_line(hl.loc);
+        const auto last = loc_tracker_.find_last_line(hl.loc);
+        return first <= line_no || line_no <= last;
+    };
+
+    std::vector<HighlightMeta> line_highlights = filter_highlights(issue, touches_line);
+
+    const u32 linestart_idx = loc_tracker_.find_index_of_line(line_no);
+    // We start from start of line
+    u32 j = linestart_idx; // We start from start of line
+    std::size_t idx_of_last_nonspace_in_line = std::string::npos;
+    std::string string_canvas;
+    for (char ch; ((ch = source_buffer_[j])) && ch != '\n'; ++j)
+    {
+        string_canvas.push_back(ch);
+        if (!std::isspace(static_cast<unsigned char>(ch)))
+            idx_of_last_nonspace_in_line = j;
+    }
+    const auto comment_pos = string_canvas.find("//"); // line comment token.
+    if (comment_pos != std::string::npos)
+        idx_of_last_nonspace_in_line = linestart_idx + comment_pos - 1; // -1 cause idx is inclusive
+
     // Build codeline and also expand tabs
     std::string line;
     u32 column = 0;
     // Get the buffer index at which this line starts
-    u32 i = loc_tracker_.find_index_of_line(line_no); // We start from start of line
+
+    u32 i = linestart_idx; // We start from start of line
     for (char ch; ((ch = source_buffer_[i])) && ch != '\n'; ++i)
     {
+        const char *curr_hl_color = nullptr;
+        const bool in_highlight_range = std::any_of(
+            line_highlights.begin(), line_highlights.end(),
+            [i, &curr_hl_color](const HighlightMeta &hl)
+            {
+                const bool result =
+                    i >= hl.highlight->loc.first_index && i < hl.highlight->loc.last_index;
+                if (result)
+                    curr_hl_color = get_highlight_color(hl.id);
+                return result;
+            }
+        );
         if (ch == '\t')
         {
             const int spaces = k_tab_width_ - column % k_tab_width_;
@@ -170,7 +218,14 @@ std::string DiagnosticFormatter::build_codeline(const u32 line_no) const
         }
         else
         {
-            line += ch;
+            if (in_highlight_range && i <= idx_of_last_nonspace_in_line)
+            {
+                line += curr_hl_color;
+                line += ch;
+                line += SGR_RESET;
+            }
+            else
+                line += ch;
             ++column;
         }
     }
@@ -180,32 +235,71 @@ std::string DiagnosticFormatter::build_codeline(const u32 line_no) const
 std::string
 DiagnosticFormatter::build_underline(const Issue &issue, const u32 line_no) const
 {
-    std::vector<const Highlight *> line_highlights = get_highlights_of_line(issue,line_no);
+    const auto touches_line = [line_no, this](const Highlight &hl)
+    {
+        const auto first = loc_tracker_.find_first_line(hl.loc);
+        const auto last = loc_tracker_.find_last_line(hl.loc);
+        return first <= line_no || line_no <= last;
+    };
+
+    std::vector<HighlightMeta> line_highlights = filter_highlights(issue, touches_line);
 
     // Walk characters underlining primary issue (also expand tabs).
     std::string underline;
     u32 column = 0;
-    u32 i = loc_tracker_.find_index_of_line(line_no); // Start index of line in source buffer.
+
+    // Start index of line in source buffer.
+    const u32 linestart_idx = loc_tracker_.find_index_of_line(line_no);
+    u32 i = linestart_idx;
+
 
     std::size_t idx_of_last_nonspace_in_line = std::string::npos;
-    for (char ch; ((ch = source_buffer_[i])) && ch != '\n'; ++i)
-        if (!std::isspace(static_cast<unsigned char>(ch)))
-            idx_of_last_nonspace_in_line = i;
-
-    bool seen_char = false;
-    i = loc_tracker_.find_index_of_line(line_no); // Start index of line in source buffer.
+    std::string string_canvas;
     for (char ch; ((ch = source_buffer_[i])) && ch != '\n'; ++i)
     {
+        string_canvas.push_back(ch);
+        if (!std::isspace(static_cast<unsigned char>(ch)))
+            idx_of_last_nonspace_in_line = i;
+    }
+
+    const auto comment_pos = string_canvas.find("//"); // line comment token.
+    if (comment_pos != std::string::npos)
+        idx_of_last_nonspace_in_line = linestart_idx + comment_pos - 1; // -1 cause idx is inclusive
+
+    bool seen_char = false;
+    i = linestart_idx;
+    for (char ch; ((ch = source_buffer_[i])) && ch != '\n'; ++i)
+    {
+        const char *curr_hl_color = nullptr;
         const bool in_highlight_range = std::any_of(
             line_highlights.begin(), line_highlights.end(),
-            [i](const Highlight *hl) { return i >= hl->loc.first_index && i < hl->loc.last_index; }
+            [i, &curr_hl_color](const HighlightMeta &hl)
+            {
+                const bool result =
+                    i >= hl.highlight->loc.first_index && i < hl.highlight->loc.last_index;
+                if (result)
+                    curr_hl_color = get_highlight_color(hl.id);
+                return result;
+            }
         );
 
         const bool in_primary_issue = i >= issue.loc.first_index && i < issue.loc.last_index;
         if (ch == '\t') // expand tab to spaces (based on its position)
         {
             const int spaces = k_tab_width_ - column % k_tab_width_;
-            underline.append(spaces, ' ');
+            if (in_highlight_range)
+            {
+                DEBUG_SMART_ASSERT(!!curr_hl_color);
+                underline.append(curr_hl_color);
+                if (seen_char && i <= idx_of_last_nonspace_in_line)
+                    underline.append(spaces, highlight_marker);
+                else
+                    underline.append(spaces, ' ');
+            }
+            else if (in_primary_issue)
+                underline.append(spaces, underline_marker);
+            else
+                underline.append(spaces, ' ');
             column += spaces;
         }
         else
@@ -215,7 +309,10 @@ DiagnosticFormatter::build_underline(const Issue &issue, const u32 line_no) cons
             if (!(seen_char && i <= idx_of_last_nonspace_in_line))
                 underline += ' ';
             else if (in_highlight_range)
+            {
+                underline += curr_hl_color;
                 underline += highlight_marker;
+            }
             else if (in_primary_issue)
             {
                 underline += !underline_pointer_flag ? pointer_marker : underline_marker;
@@ -229,9 +326,8 @@ DiagnosticFormatter::build_underline(const Issue &issue, const u32 line_no) cons
 }
 
 std::string
-DiagnosticFormatter::colorize_highlights(
+DiagnosticFormatter::colorize_underline(
     const std::string &underline,
-    const char *const highlight_color,
     const char *const underline_color)
 {
     std::string colorized;
@@ -241,8 +337,6 @@ DiagnosticFormatter::colorize_highlights(
     for (std::size_t i = 0; i < underline.size(); ++i)
     {
         const char curr = underline[i];
-        if (curr == highlight_marker && prev != highlight_marker)
-            colorized += highlight_color;
         if (prev == highlight_marker && curr != highlight_marker)
             colorized += underline_color;
         colorized += curr;
@@ -251,16 +345,87 @@ DiagnosticFormatter::colorize_highlights(
     return colorized;
 }
 
-    void
-DiagnosticFormatter:: build_highlight_labels(const Issue &issue, const u32 line_no)
+std::string
+DiagnosticFormatter::colorize_codeline(const std::string &codeline)
 {
-    std::vector<const Highlight *> line_highlights = get_highlights_of_line(issue,line_no);
+    const auto line_comment_pos = codeline.find("//");
+    if (line_comment_pos == std::string::npos)
+        return codeline;
+    std::string colored = codeline.substr(0, line_comment_pos);
+    colored += comment_color;
+    colored += codeline.substr(line_comment_pos);
+    colored += SGR_RESET;
+    return colored;
+}
 
-    std::sort(line_highlights.begin(), line_highlights.end(), [])
+void
+DiagnosticFormatter::swap_highlight_marker(std::string &underline)
+{
+    std::replace(underline.begin(), underline.end(), highlight_marker, underline_marker);
+}
 
+std::vector<std::string>
+DiagnosticFormatter::build_highlight_labels(const Issue &issue, const u32 line_no) const
+{
+    const auto starts_on_line = [line_no, this](const Highlight &hl)
+    {
+        return loc_tracker_.find_first_line(hl.loc) == line_no;
+    };
+    std::vector<HighlightMeta> line_highlights = filter_highlights(issue, starts_on_line);
 
-    // REMEMBER to expand TABS!
+    const auto leftmost_first = [](const HighlightMeta &a, const HighlightMeta &b)
+    {
+        return a.highlight->loc.first_index < b.highlight->loc.first_index;
+    };
 
+    std::sort(line_highlights.begin(), line_highlights.end(), leftmost_first);
+
+    std::vector<std::string> label_lines;
+
+    const auto initial_line_inx = loc_tracker_.find_index_of_line(line_no);
+    for (auto j = line_highlights.size() + 1; j > 0; --j)
+    {
+        auto line_idx = initial_line_inx;
+        std::string current_label_line{};
+        std::size_t hl_idx = 0;
+        std::size_t column = 0;
+        for (char ch; ((ch = source_buffer_[line_idx])) && ch != '\n'; ++line_idx)
+        {
+            if (hl_idx == line_highlights.size())
+                break;
+            const auto &curr_hl_meta = line_highlights[hl_idx];
+            const auto hl_meta_id = curr_hl_meta.id;
+            const bool is_under_highlight_start_col
+                = line_idx == curr_hl_meta.highlight->loc.first_index;
+            if (ch == '\t') // expand tab to spaces (based on its position)
+            {
+                const int spaces = k_tab_width_ - column % k_tab_width_;
+                current_label_line.append(spaces - 1, ' ');
+                column += spaces;
+            }
+            else
+                ++column;
+            if (is_under_highlight_start_col && hl_idx + 1 == j)
+            {
+                current_label_line +=
+                    apply_sgr(get_highlight_color(hl_meta_id), curr_hl_meta.highlight->desc,
+                              SGR_RESET);
+
+                break;
+            }
+            if (is_under_highlight_start_col)
+            {
+                current_label_line += apply_sgr(get_highlight_color(hl_meta_id), "|", SGR_RESET);
+                ++hl_idx;
+            }
+            else
+                current_label_line += ' ';
+        }
+        label_lines.push_back(std::move(current_label_line));
+        current_label_line.clear();
+    }
+
+    return label_lines;
 }
 
 // Number of columns (spaces) to indent the suggestion so its first char
@@ -300,12 +465,13 @@ DiagnosticFormatter::format_issue_line(
     const char *const suggestion_marker = " ";
     const char *const suggestion_color = colorize ? COLOR_ASCII_GREEN : "";
     const char *const underline_color = colorize ? get_underline_color(issue.type) : "";
-    const char *const highlight_color = colorize ? COLOR_ASCII_YELLOW : "";
     const char *const reset_sgr = colorize ? SGR_RESET : "";
 
-    const std::string codeline = build_codeline(line_no);
+    std::string codeline = build_codeline(issue, line_no);
+    codeline = colorize_codeline(codeline);
     std::string underline = build_underline(issue, line_no);
-    underline = colorize_highlights(underline, highlight_color, underline_color);
+    underline = colorize_underline(underline, underline_color);
+    swap_highlight_marker(underline);
     if (support::is_blank_str(codeline) &&
         support::is_blank_str(underline) &&
         !issue.suggestion.has_value())
@@ -316,12 +482,13 @@ DiagnosticFormatter::format_issue_line(
         suggestion_line_no = loc_tracker_.find_last_line(issue.suggestion->insert_after);
     if (!issue.suggestion.has_value() || suggestion_line_no != line_no)
     {
-        out << FMT::format("{:>{}} | {}\n", line_no, k_linebox_width_, codeline);
+        out << FMT::format("{0:>{1}} | {2}\n", line_no, k_linebox_width_, codeline);
         if (!underline.empty())
             out << FMT::format(
-                "{0} | {1}\n",
-                std::string(k_linebox_width_, ' '),              // {0}
-                apply_sgr(underline_color, underline, reset_sgr) // {1}
+                "{0:>{1}} | {2}\n",
+                "",                                              //{0}
+                k_linebox_width_,                                //{1}
+                apply_sgr(underline_color, underline, reset_sgr) // {2}
             );
     }
     else
@@ -334,17 +501,47 @@ DiagnosticFormatter::format_issue_line(
             line_no,                                                                           //{0}
             k_linebox_width_,                                                                  //{1}
             codeline.substr(0, split_point),                                                   //{2}
-            apply_sgr(suggestion_color, " " + issue.suggestion.value().desc + " ", reset_sgr), //{2}
+            apply_sgr(suggestion_color, " " + issue.suggestion.value().desc+ " ", reset_sgr), //{2}
             codeline.substr(split_point)                                                       //{4}
         );
 
         if (!underline.empty())
             out << FMT::format(
-                "{0} | {1}\n",
-                std::string(k_linebox_width_, ' '),                                      // {0}
-                apply_sgr(underline_color, underline, reset_sgr) // {1}
+                "{0:>{1}} | {2}\n",
+                "",                                              //{0}
+                k_linebox_width_,                                //{1}
+                apply_sgr(suggestion_color, std::string(split_point, ' ') + " ^", reset_sgr) // {2}
+            );
+        if (!underline.empty())
+            out << FMT::format(
+                "{0:>{1}} | {2}\n",
+                "",                                              //{0}
+                k_linebox_width_,                                //{1}
+                apply_sgr(suggestion_color, std::string(split_point, ' ') + " |", reset_sgr) // {2}
+            );
+        if (!underline.empty())
+            out << FMT::format(
+                "{0:>{1}} | {2}\n",
+                "",                                              //{0}
+                k_linebox_width_,                                //{1}
+                apply_sgr(suggestion_color, std::string(split_point, ' ') + " insert", reset_sgr) // {2}
             );
     }
+    const std::vector<std::string> label_lines = build_highlight_labels(issue, line_no);
+    std::string label_box{};
+    for (const auto &line : label_lines)
+    {
+        if (support::is_blank_str(line))
+            continue;
+
+        label_box += FMT::format(
+            "{0:>{1}} | {2}\n",
+            "",               //{0}
+            k_linebox_width_, //{1}
+            line              //{2}
+        );
+    }
+    out << label_box;
     out << reset_sgr;
 }
 
@@ -380,18 +577,6 @@ DiagnosticFormatter::format_issue(const Issue &issue, const bool colorize) const
     return out.str();
 }
 
- std::vector<const Highlight *>
-DiagnosticFormatter::get_highlights_of_line(const Issue &issue, const u32 line_no) const
-{
-    std::vector<const Highlight *> line_highlights;
-    if (issue.highlights.has_value())
-        for (const Highlight &hl : *issue.highlights)
-            if (loc_tracker_.find_first_line(hl.loc) == line_no || loc_tracker_.
-                find_last_line(hl.loc) == line_no)
-                line_highlights.push_back(&hl);
-    return line_highlights;
-}
-
 std::string
 DiagnosticFormatter::format_diagnostic(const Diagnostic &diagnostic, const bool colorize) const
 {
@@ -401,4 +586,9 @@ DiagnosticFormatter::format_diagnostic(const Diagnostic &diagnostic, const bool 
         ss << format_issue(note, colorize);
     return ss.str();
 }
+
+DiagnosticFormatter::HighlightMeta::HighlightMeta(
+    const Highlight *const highlight,
+    const std::size_t id)
+    : highlight(DEBUG_REQUIRE_PTR(highlight)), id(id) {}
 } // namespace alpha
