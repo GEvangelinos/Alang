@@ -462,7 +462,7 @@ DiagnosticFormatter::format_issue_line(
 {
     DEBUG_SMART_ASSERT(line_no > 0 && "Line number is invalid (lines start at 1).");
 
-    const char *const suggestion_marker = " ";
+    const char *const suggestion_marker = "^";
     const char *const suggestion_color = colorize ? COLOR_ASCII_GREEN : "";
     const char *const underline_color = colorize ? get_underline_color(issue.type) : "";
     const char *const reset_sgr = colorize ? SGR_RESET : "";
@@ -501,7 +501,7 @@ DiagnosticFormatter::format_issue_line(
             line_no,                                                                           //{0}
             k_linebox_width_,                                                                  //{1}
             codeline.substr(0, split_point),                                                   //{2}
-            apply_sgr(suggestion_color, " " + issue.suggestion.value().desc+ " ", reset_sgr), //{2}
+            apply_sgr(suggestion_color, "  ", reset_sgr), //{2}
             codeline.substr(split_point)                                                       //{4}
         );
 
@@ -510,8 +510,9 @@ DiagnosticFormatter::format_issue_line(
                 "{0:>{1}} | {2}\n",
                 "",                                              //{0}
                 k_linebox_width_,                                //{1}
-                apply_sgr(suggestion_color, std::string(split_point, ' ') + " ^", reset_sgr) // {2}
+                apply_sgr(suggestion_color, std::string(split_point, ' ') +" "+ "^" , reset_sgr) // {2}
             );
+
         if (!underline.empty())
             out << FMT::format(
                 "{0:>{1}} | {2}\n",
@@ -524,7 +525,7 @@ DiagnosticFormatter::format_issue_line(
                 "{0:>{1}} | {2}\n",
                 "",                                              //{0}
                 k_linebox_width_,                                //{1}
-                apply_sgr(suggestion_color, std::string(split_point, ' ') + " insert", reset_sgr) // {2}
+                apply_sgr(suggestion_color, std::string(split_point, ' ') +" " + issue.suggestion->desc, reset_sgr) // {2}
             );
     }
     const std::vector<std::string> label_lines = build_highlight_labels(issue, line_no);
