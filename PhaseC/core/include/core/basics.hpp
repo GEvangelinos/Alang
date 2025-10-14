@@ -38,6 +38,9 @@ public:
 class ToggleSwitch
 {
 public:
+    ToggleSwitch() : state_(false) {}
+    explicit ToggleSwitch(const bool init_state): state_(init_state) {}
+
     void enable() noexcept
     {
         DEBUG_SMART_ASSERT(is_disabled());

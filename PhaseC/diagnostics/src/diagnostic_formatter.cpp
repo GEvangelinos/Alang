@@ -9,54 +9,99 @@
 #include "support/misc_tools.hpp"
 #include "support/string_tools.hpp"
 
+using HighlightTagID = std::size_t;
+static_assert(
+    std::is_unsigned_v<HighlightTagID>,
+    "HighlightTagID must be unsigned: used in arithmetic operations (e.g. modulo for color selection)."
+);
+
 namespace
 {
-[[maybe_unused, deprecated("Used in old diagnostic system")]]
-std::string expand_tabs(const std::string_view line, const int tab_width = 8)
-{
-    std::string result;
-    result.reserve(line.size() + std::count(line.begin(), line.end(), '\t') * (tab_width - 1));
+using namespace alpha;
 
-    alpha::uf64 col = 0;
-    for (const char ch : line)
+class TaggedHighlight
+{
+public:
+    TaggedHighlight(const Highlight *ref, HighlightTagID tag);
+    auto ref() const noexcept { return DEBUG_REQUIRE_PTR(ref_); }
+    auto tag() const noexcept { return tag_; }
+
+private:
+    const Highlight *ref_;
+    HighlightTagID tag_;
+};
+
+TaggedHighlight::TaggedHighlight(
+    const Highlight *const ref,
+    const std::size_t tag)
+    : ref_(DEBUG_REQUIRE_PTR(ref)), tag_(tag) {}
+
+namespace sort_policy
+{
+    [[nodiscard]] bool
+    leftmost_first(const TaggedHighlight &a, const TaggedHighlight &b)
     {
-        if (ch == '\t')
-        {
-            const int spaces = tab_width - col % tab_width;
-            result.append(spaces, ' ');
-            col += spaces;
-        }
-        else
-        {
-            result += ch;
-            ++col;
-        }
+        return a.ref()->loc.begin < b.ref()->loc.begin;
     }
-    return result;
-} // namespace
 
-[[maybe_unused, deprecated("Used in old diagnostic system")]]
-std::string capture_next_line(const char *const buffer)
+    [[nodiscard]] bool
+    rightmost_first(const TaggedHighlight &a, const TaggedHighlight &b)
+    {
+        return a.ref()->loc.begin > b.ref()->loc.begin;
+    }
+} // namespace sort_policy
+
+template<typename Predicate, typename Compare>
+[[nodiscard]] std::vector<TaggedHighlight>
+collect_line_highlight_tags(const Issue &issue, const Predicate should_collect, const Compare cmp)
 {
-    std::string line;
-    for (auto idx = 0; buffer[idx] != '\n' && buffer[idx] != '\0'; ++idx)
-        line.push_back(buffer[idx]);
-    return line;
+    static_assert(
+        std::is_invocable_r_v<bool, Predicate, const Highlight &>,
+        "Predicate must be callable with (const Highlight &) and return bool"
+    );
+    static_assert(
+        std::is_invocable_r_v<bool, Compare, const TaggedHighlight &, const TaggedHighlight &>,
+        "Compare must be callable as bool(const TaggedHighlight&, const TaggedHighlight&)"
+    );
+
+    std::vector<TaggedHighlight> result;
+    if (!issue.highlights)
+        return result;
+
+    HighlightTagID tag = 0;
+    for (const Highlight &h : *issue.highlights)
+    {
+        if (should_collect(h))
+            result.emplace_back(&h, tag);
+        ++tag;
+    }
+
+    std::sort(result.begin(), result.end(), cmp);
+    return result;
 }
 
-// Compute the visual caret offset for a given line.
-// Tabs are tricky because their displayed width depends on the current column.
-// For each tab, we advance to the next multiple of `tab_width` columns.
-[[maybe_unused, deprecated("Used in old diagnostic system")]]
-int compute_visual_caret_offset(
-    const std::string_view line,
-    const alpha::uf64 raw_offset,
-    const int tab_width = 8)
+[[nodiscard]] bool
+is_index_on_highlight(const SrcBufferIdx idx, const TaggedHighlight &hl)
 {
-    alpha::uf64 col = 0;
-    for (alpha::uf64 i = 0; i < raw_offset; ++i)
-        col += line[i] == '\t' ? tab_width - col % tab_width : 1;
-    return col;
+    return hl.ref()->loc.begin <= idx && idx < hl.ref()->loc.end;
+}
+
+[[nodiscard]] std::optional<HighlightTagID>
+find_highlight_tag_at(const std::vector<TaggedHighlight> &highlights, const SrcBufferIdx idx)
+{
+    DEBUG_SMART_ASSERT(
+        std::is_sorted(highlights.begin(),highlights.end(), &sort_policy::leftmost_first)&&
+        "Invariant violation: 'highlights' must be sorted in ascending order by loc.begin\n"
+        "(per sort_policy::leftmost_first) before calling current function."
+    );
+
+    for (const TaggedHighlight &hl : highlights)
+    {
+        // Reminder: loc.end exclusive.
+        if (is_index_on_highlight(idx, hl))
+            return hl.tag();
+    }
+    return std::nullopt;
 }
 } // namespace
 
@@ -94,8 +139,8 @@ DiagnosticFormatter::build_issue_header(
         << FMT::format(
             "{0}:{1}:{2}: {3}: {4}",
             source_filename_,                                              // {0} file
-            issue.line(loc_tracker_).value,                                      // {1} line
-            issue.column(loc_tracker_).value,                                    // {2} col
+            issue.line(loc_tracker_).value,                                // {1} line
+            issue.column(loc_tracker_).value,                              // {2} col
             apply_sgr(issue_type_color, to_string(issue.type), reset_sgr), // {3} issue type text
             apply_sgr(header_message_sgr, decorated_desc, reset_sgr)       // {4} description
         )
@@ -103,32 +148,28 @@ DiagnosticFormatter::build_issue_header(
 }
 
 SrcBufferIdx
-DiagnosticFormatter::line_index_of_last_code_char(const SrcBufferIdx linestart_index) const
+DiagnosticFormatter::find_end_of_code_in_line(const SrcBufferIdx line_start_idx) const
 {
-    // We start from start of line
-    std::size_t idx_of_last_nonspace_in_line = std::string::npos;
-    SrcBufferIdx i = linestart_index; // We start from start of line
-    std::string string_canvas;
-    for (char ch; ((ch = source_buffer_[i.value])) && ch != '\n'; ++i.value)
+    SrcBufferIdx last_nonspace = line_start_idx;
+    std::string codeline_accumulator;
+    for (SrcBufferIdx idx = line_start_idx; ; ++idx)
     {
-        string_canvas.push_back(ch);
+        const char ch = source_buffer_[idx.value];
+        if (ch == '\0' || ch == '\n')
+            break;
+
+        codeline_accumulator.push_back(ch);
         if (!std::isspace(static_cast<unsigned char>(ch)))
-            idx_of_last_nonspace_in_line = i.value;
+            last_nonspace = idx;
     }
-    const auto comment_pos = string_canvas.find("//"); // line comment token.
-    if (comment_pos != std::string::npos)
-    {
-        // -1 cause idx is inclusive
-        const auto before_comment_index = linestart_index.value + comment_pos - 1;
-        DEBUG_SMART_ASSERT(
-            support::is_in_numeric_range<SrcBufferIdx::UnderlyingType>(before_comment_index)
-        );
-        return SrcBufferIdx{static_cast<SrcBufferIdx::UnderlyingType>(before_comment_index)};
-    }
-    DEBUG_SMART_ASSERT(
-        support::is_in_numeric_range<SrcBufferIdx::UnderlyingType>(idx_of_last_nonspace_in_line)
-    );
-    return SrcBufferIdx{static_cast<SrcBufferIdx::UnderlyingType>(idx_of_last_nonspace_in_line)};
+    const auto line_comment_pos = codeline_accumulator.find(Tokens::line_comment);
+    if (line_comment_pos == std::string::npos)
+        return last_nonspace;
+
+    // -1 to move 1 chars before line comment token '//'
+    const auto before_comment = line_start_idx.value + line_comment_pos - 1;
+    DEBUG_SMART_ASSERT(support::is_in_numeric_range<SrcBufferIdx::UnderlyingType>(before_comment));
+    return SrcBufferIdx{static_cast<SrcBufferIdx::UnderlyingType>(before_comment)};
 }
 
 std::string
@@ -138,67 +179,51 @@ DiagnosticFormatter::make_codeline(const Issue &issue, const SrcLineIdx line_no)
     {
         const SrcLineIdx first = loc_tracker_.find_first_line(hl.loc);
         const SrcLineIdx last = loc_tracker_.find_last_line(hl.loc);
-        return first <= line_no || line_no <= last;
+        return first <= line_no && line_no <= last;
     };
+    auto touching_highlights =
+        collect_line_highlight_tags(issue, touches_line, &sort_policy::rightmost_first);
 
-    std::vector<HighlightMeta> line_highlights = filter_highlights(issue, touches_line);
-
-    const SrcBufferIdx linestart_idx = loc_tracker_.find_index_of_line(line_no);
-    // We start from start of line
-    SrcBufferIdx j = linestart_idx; // We start from start of line
-    std::size_t idx_of_last_nonspace_in_line = std::string::npos;
-    std::string string_canvas;
-    for (char ch; ((ch = source_buffer_[j.value])) && ch != '\n'; ++j.value)
+    std::string codeline;
+    SrcColumnIdx column{SrcColumnIdx::none};
+    ToggleSwitch coloring{false};
+    const SrcBufferIdx line_start_idx = loc_tracker_.find_index_of_line(line_no);
+    for (SrcBufferIdx idx = line_start_idx; ; ++idx)
     {
-        string_canvas.push_back(ch);
-        if (!std::isspace(static_cast<unsigned char>(ch)))
-            idx_of_last_nonspace_in_line = j.value;
-    }
-    const auto comment_pos = string_canvas.find("//"); // line comment token.
-    if (comment_pos != std::string::npos)
-        idx_of_last_nonspace_in_line = linestart_idx.value + comment_pos - 1;
-    // -1 cause idx is inclusive
+        const char ch = source_buffer_[idx.value];
+        if (ch == '\0' || ch == '\n')
+            break;
 
-    // Build codeline and also expand tabs
-    std::string line;
-    u32 column = 0;
-    // Get the buffer index at which this line starts
-
-    SrcBufferIdx i = linestart_idx; // We start from start of line
-    for (char ch; ((ch = source_buffer_[i.value])) && ch != '\n'; ++i.value)
-    {
-        const char *curr_hl_color = nullptr;
-        const bool in_highlight_range = std::any_of(
-            line_highlights.begin(), line_highlights.end(),
-            [i, &curr_hl_color](const HighlightMeta &hl)
-            {
-                const bool result =
-                    i >= hl.highlight()->loc.begin && i < hl.highlight()->loc.end;
-                if (result)
-                    curr_hl_color = get_highlight_color(hl.id());
-                return result;
-            }
-        );
+        const bool should_start_coloring =
+            !touching_highlights.empty() &&
+            is_index_on_highlight(idx, touching_highlights.back()) &&
+            coloring.is_disabled();
+        if (should_start_coloring)
+        {
+            codeline += get_highlight_color(touching_highlights.back().tag());
+            coloring.enable();
+        }
+        const bool should_stop_coloring =
+            !touching_highlights.empty() && touching_highlights.back().ref()->loc.end == idx;
+        if (should_stop_coloring)
+        {
+            codeline += SGR_RESET;
+            coloring.disable();
+            touching_highlights.pop_back();
+        }
         if (ch == '\t')
         {
-            const int spaces = k_tab_width_ - column % k_tab_width_;
-            line.append(spaces, ' ');
-            column += spaces;
+            const auto spaces = k_tab_width_ - column.value % k_tab_width_;
+            codeline.append(spaces, ' ');
+            column.value += spaces;
         }
         else
         {
-            if (in_highlight_range && i.value <= idx_of_last_nonspace_in_line)
-            {
-                line += curr_hl_color;
-                line += ch;
-                line += SGR_RESET;
-            }
-            else
-                line += ch;
+            codeline.push_back(ch);
             ++column;
         }
     }
-    return support::rstrip(line); // We remove redundant suffix spaces.
+    return support::rstrip(codeline); // We remove redundant suffix spaces.
 }
 
 std::string
@@ -211,11 +236,12 @@ DiagnosticFormatter::make_underline(const Issue &issue, const SrcLineIdx line_no
         return first <= line_no || line_no <= last;
     };
 
-    std::vector<HighlightMeta> line_highlights = filter_highlights(issue, touches_line);
+    std::vector<TaggedHighlight> line_highlights =
+        collect_line_highlight_tags(issue, touches_line, &sort_policy::leftmost_first);
 
     // Walk characters underlining primary issue (also expand tabs).
     std::string underline;
-    u32 column = 0;
+    SrcColumnIdx column{SrcColumnIdx::none};
 
     // Start index of line in source buffer.
     const SrcBufferIdx linestart_idx = loc_tracker_.find_index_of_line(line_no);
@@ -242,12 +268,12 @@ DiagnosticFormatter::make_underline(const Issue &issue, const SrcLineIdx line_no
         const char *curr_hl_color = nullptr;
         const bool in_highlight_range = std::any_of(
             line_highlights.begin(), line_highlights.end(),
-            [i, &curr_hl_color](const HighlightMeta &hl)
+            [i, &curr_hl_color](const TaggedHighlight &hl)
             {
                 const bool result =
-                    i >= hl.highlight()->loc.begin && i < hl.highlight()->loc.end;
+                    i >= hl.ref()->loc.begin && i < hl.ref()->loc.end;
                 if (result)
-                    curr_hl_color = get_highlight_color(hl.id());
+                    curr_hl_color = get_highlight_color(hl.tag());
                 return result;
             }
         );
@@ -255,7 +281,7 @@ DiagnosticFormatter::make_underline(const Issue &issue, const SrcLineIdx line_no
         const bool in_primary_issue = i >= issue.loc.begin && i < issue.loc.end;
         if (ch == '\t') // expand tab to spaces (based on its position)
         {
-            const int spaces = k_tab_width_ - column % k_tab_width_;
+            const int spaces = k_tab_width_ - column.value % k_tab_width_;
             if (in_highlight_range)
             {
                 DEBUG_SMART_ASSERT(!!curr_hl_color);
@@ -269,7 +295,7 @@ DiagnosticFormatter::make_underline(const Issue &issue, const SrcLineIdx line_no
                 underline.append(spaces, Markers::underline);
             else
                 underline.append(spaces, ' ');
-            column += spaces;
+            column.value += spaces;
         }
         else
         {
@@ -349,7 +375,7 @@ DiagnosticFormatter::get_underline_color(const Issue::Type type) noexcept
 }
 
 const char *
-DiagnosticFormatter::get_highlight_color(const std::size_t highlight_index) noexcept
+DiagnosticFormatter::get_highlight_color(const HighlightTagID highlight_index) noexcept
 {
     static constexpr const char *highlight_colors[] = {
         COLOR_FG_PINK,
@@ -411,11 +437,12 @@ DiagnosticFormatter::build_highlight_labels(const Issue &issue, const SrcLineIdx
     {
         return loc_tracker_.find_first_line(hl.loc) == line_no;
     };
-    std::vector<HighlightMeta> line_highlights = filter_highlights(issue, starts_on_line);
+    std::vector<TaggedHighlight> line_highlights =
+        collect_line_highlight_tags(issue, starts_on_line, &sort_policy::leftmost_first);
 
-    const auto leftmost_first = [](const HighlightMeta &a, const HighlightMeta &b)
+    const auto leftmost_first = [](const TaggedHighlight &a, const TaggedHighlight &b)
     {
-        return a.highlight()->loc.begin < b.highlight()->loc.begin;
+        return a.ref()->loc.begin < b.ref()->loc.begin;
     };
 
     std::sort(line_highlights.begin(), line_highlights.end(), leftmost_first);
@@ -434,9 +461,9 @@ DiagnosticFormatter::build_highlight_labels(const Issue &issue, const SrcLineIdx
             if (hl_idx == line_highlights.size())
                 break;
             const auto &curr_hl_meta = line_highlights[hl_idx];
-            const auto hl_meta_id = curr_hl_meta.id();
+            const auto hl_meta_id = curr_hl_meta.tag();
             const bool is_under_highlight_start_col
-                = line_idx == curr_hl_meta.highlight()->loc.begin;
+                = line_idx == curr_hl_meta.ref()->loc.begin;
             if (ch == '\t') // expand tab to spaces (based on its position)
             {
                 const int spaces = k_tab_width_ - column % k_tab_width_;
@@ -448,7 +475,7 @@ DiagnosticFormatter::build_highlight_labels(const Issue &issue, const SrcLineIdx
             if (is_under_highlight_start_col && hl_idx + 1 == j)
             {
                 current_label_line +=
-                    apply_sgr(get_highlight_color(hl_meta_id), curr_hl_meta.highlight()->desc,
+                    apply_sgr(get_highlight_color(hl_meta_id), curr_hl_meta.ref()->desc,
                               SGR_RESET);
 
                 break;
@@ -537,7 +564,7 @@ DiagnosticFormatter::format_issue_line(
 
         out << FMT::format(
             "{0:>{1}} | {2}{3}{4}\n",
-            line_no.value,                                      //{0}
+            line_no.value,                                //{0}
             k_linebox_width_,                             //{1}
             codeline.substr(0, split_point),              //{2}
             apply_sgr(suggestion_color, "  ", reset_sgr), //{2}
@@ -635,9 +662,55 @@ DiagnosticFormatter::format_diagnostic(const Diagnostic &diagnostic, const bool 
         ss << format_issue(note, colorize);
     return ss.str();
 }
-
-DiagnosticFormatter::HighlightMeta::HighlightMeta(
-    const Highlight *const highlight,
-    const std::size_t id)
-    : highlight_(DEBUG_REQUIRE_PTR(highlight)), id_(id) {}
 } // namespace alpha
+
+namespace
+{
+[[maybe_unused, deprecated("Used in old diagnostic system")]]
+std::string expand_tabs(const std::string_view line, const int tab_width = 8)
+{
+    std::string result;
+    result.reserve(line.size() + std::count(line.begin(), line.end(), '\t') * (tab_width - 1));
+
+    alpha::uf64 col = 0;
+    for (const char ch : line)
+    {
+        if (ch == '\t')
+        {
+            const int spaces = tab_width - col % tab_width;
+            result.append(spaces, ' ');
+            col += spaces;
+        }
+        else
+        {
+            result += ch;
+            ++col;
+        }
+    }
+    return result;
+}
+
+[[maybe_unused, deprecated("Used in old diagnostic system")]]
+std::string capture_next_line(const char *const buffer)
+{
+    std::string line;
+    for (auto idx = 0; buffer[idx] != '\n' && buffer[idx] != '\0'; ++idx)
+        line.push_back(buffer[idx]);
+    return line;
+}
+
+// Compute the visual caret offset for a given line.
+// Tabs are tricky because their displayed width depends on the current column.
+// For each tab, we advance to the next multiple of `tab_width` columns.
+[[maybe_unused, deprecated("Used in old diagnostic system")]]
+int compute_visual_caret_offset(
+    const std::string_view line,
+    const alpha::uf64 raw_offset,
+    const int tab_width = 8)
+{
+    alpha::uf64 col = 0;
+    for (alpha::uf64 i = 0; i < raw_offset; ++i)
+        col += line[i] == '\t' ? tab_width - col % tab_width : 1;
+    return col;
+}
+} // namespace

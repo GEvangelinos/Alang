@@ -26,17 +26,6 @@ public:
     [[nodiscard]] std::string format_diagnostic(const Diagnostic &diagnostic, bool colorize) const;
 
 private:
-    class HighlightMeta
-    {
-    public:
-        HighlightMeta(const Highlight *highlight, std::size_t id);
-        auto highlight() const noexcept { return DEBUG_REQUIRE_PTR(highlight_); }
-        auto id() const noexcept { return id_; }
-
-    private:
-        const Highlight *highlight_;
-        std::size_t id_;
-    };
 
     static constexpr u8 max_shown_lines = 10;
 
@@ -84,7 +73,7 @@ private:
         std::stringstream &out, const Issue &issue, SrcLineIdx line_no, bool colorize) const;
     [[nodiscard]] std::string format_issue(const Issue &issue, bool colorize) const;
 
-    SrcBufferIdx line_index_of_last_code_char(SrcBufferIdx linestart_index) const;
+    SrcBufferIdx find_end_of_code_in_line(SrcBufferIdx line_start_idx) const;
 
     static void swap_markers(std::string &str, char old_marker, char new_marker);
     [[nodiscard]] static const char *get_underline_color(Issue::Type type) noexcept;
@@ -96,36 +85,8 @@ private:
         char marker,
         std::string_view sgr_section_prefix,
         std::string_view sgr_section_suffix);
-
-    template<typename Predicate>
-    [[nodiscard]] static std::vector<HighlightMeta>
-    filter_highlights(const Issue &issue, Predicate pred);
 };
 
-template<typename Predicate>
-[[nodiscard]] std::vector<DiagnosticFormatter::HighlightMeta>
-DiagnosticFormatter::filter_highlights(
-    const Issue &issue,
-    const Predicate pred)
-{
-    static_assert(
-        std::is_invocable_r_v<bool, Predicate, const Highlight &>,
-        "Predicate must be callable with (const Highlight &) and return bool"
-    );
-
-    std::vector<HighlightMeta> filtered_highlights;
-    if (issue.highlights.has_value())
-    {
-        std::size_t hid = 0;
-        for (const Highlight &h : *issue.highlights)
-        {
-            if (std::move(pred(h)))
-                filtered_highlights.emplace_back(&h, hid);
-            ++hid;
-        }
-    }
-    return filtered_highlights;
-}
 } // namespace alpha
 
 #endif // DIAGNOSTIC_FORMATTER_HPP
