@@ -3,6 +3,7 @@
 #include <cctype>
 #include <string>
 
+#include "../../arguinator/include/arguinator/arguinator.hpp"
 #include "core/source_location.hpp"
 #include "diagnostics/diagnostic_types.hpp"
 #include "support/cli_color.h"
@@ -83,7 +84,7 @@ collect_line_highlight_tags(const Issue &issue, const Predicate should_collect, 
 [[nodiscard]] bool
 is_index_on_highlight(const SrcBufferIdx idx, const TaggedHighlight &hl)
 {
-    return hl.ref()->loc.begin <= idx && idx < hl.ref()->loc.end;
+    return hl.ref()->loc.begin <= idx && idx < hl.ref()->loc.end; // Reminder: loc.end exclusive.
 }
 
 [[nodiscard]] std::optional<HighlightTagID>
@@ -96,11 +97,8 @@ find_highlight_tag_at(const std::vector<TaggedHighlight> &highlights, const SrcB
     );
 
     for (const TaggedHighlight &hl : highlights)
-    {
-        // Reminder: loc.end exclusive.
         if (is_index_on_highlight(idx, hl))
             return hl.tag();
-    }
     return std::nullopt;
 }
 } // namespace
@@ -181,12 +179,13 @@ DiagnosticFormatter::make_codeline(const Issue &issue, const SrcLineIdx line_no)
         const SrcLineIdx last = loc_tracker_.find_last_line(hl.loc);
         return first <= line_no && line_no <= last;
     };
-    auto touching_highlights =
+    std::vector<TaggedHighlight> touching_highlights =
         collect_line_highlight_tags(issue, touches_line, &sort_policy::rightmost_first);
 
     std::string codeline;
     SrcColumnIdx column{SrcColumnIdx::none};
-    ToggleSwitch coloring{false};
+    ToggleSwitch coloring_highlight{false};
+    OnceFlag used_color;
     const SrcBufferIdx line_start_idx = loc_tracker_.find_index_of_line(line_no);
     for (SrcBufferIdx idx = line_start_idx; ; ++idx)
     {
@@ -194,36 +193,34 @@ DiagnosticFormatter::make_codeline(const Issue &issue, const SrcLineIdx line_no)
         if (ch == '\0' || ch == '\n')
             break;
 
-        const bool should_start_coloring =
+        const bool should_start_coloring_highlight =
             !touching_highlights.empty() &&
             is_index_on_highlight(idx, touching_highlights.back()) &&
-            coloring.is_disabled();
-        if (should_start_coloring)
+            coloring_highlight.is_disabled();
+        const bool should_stop_coloring_highlight =
+            !touching_highlights.empty() &&
+            touching_highlights.back().ref()->loc.end == idx &&
+            coloring_highlight.is_enabled();
+        if (should_start_coloring_highlight)
         {
-            codeline += get_highlight_color(touching_highlights.back().tag());
-            coloring.enable();
+            codeline.append(get_highlight_color(touching_highlights.back().tag()));
+            coloring_highlight.enable();
+            if (!used_color) used_color.raise();
         }
-        const bool should_stop_coloring =
-            !touching_highlights.empty() && touching_highlights.back().ref()->loc.end == idx;
-        if (should_stop_coloring)
+        else if (should_stop_coloring_highlight)
         {
             codeline += SGR_RESET;
-            coloring.disable();
+            coloring_highlight.disable();
             touching_highlights.pop_back();
         }
-        if (ch == '\t')
-        {
-            const auto spaces = k_tab_width_ - column.value % k_tab_width_;
-            codeline.append(spaces, ' ');
-            column.value += spaces;
-        }
-        else
-        {
-            codeline.push_back(ch);
-            ++column;
-        }
+        const auto slots = ch == '\t' ? k_tab_width_ - column.value % k_tab_width_ : 1;
+        column.value += slots;
+        codeline.append(slots, ch == '\t' ? ' ' : ch);
     }
-    return support::rstrip(codeline); // We remove redundant suffix spaces.
+    auto result = support::rstrip(codeline); // We remove redundant suffix spaces.
+    if (used_color)
+        result.append(SGR_RESET);
+    return result;
 }
 
 std::string
@@ -233,11 +230,10 @@ DiagnosticFormatter::make_underline(const Issue &issue, const SrcLineIdx line_no
     {
         const SrcLineIdx first = loc_tracker_.find_first_line(hl.loc);
         const SrcLineIdx last = loc_tracker_.find_last_line(hl.loc);
-        return first <= line_no || line_no <= last;
+        return first <= line_no && line_no <= last;
     };
-
-    std::vector<TaggedHighlight> line_highlights =
-        collect_line_highlight_tags(issue, touches_line, &sort_policy::leftmost_first);
+    std::vector<TaggedHighlight> touching_highlights =
+        collect_line_highlight_tags(issue, touches_line, &sort_policy::rightmost_first);
 
     // Walk characters underlining primary issue (also expand tabs).
     std::string underline;
@@ -245,99 +241,73 @@ DiagnosticFormatter::make_underline(const Issue &issue, const SrcLineIdx line_no
 
     // Start index of line in source buffer.
     const SrcBufferIdx linestart_idx = loc_tracker_.find_index_of_line(line_no);
-    SrcBufferIdx i = linestart_idx;
+    const SrcBufferIdx end_of_code_idx = find_end_of_code_in_line(linestart_idx); // Inclusive
 
-    std::size_t idx_of_last_nonspace_in_line = std::string::npos;
-    std::string string_canvas;
-    for (char ch; ((ch = source_buffer_[i.value])) && ch != '\n'; ++i.value)
+    OnceFlag seen_char;
+    ToggleSwitch coloring_highlight{false};
+    ToggleSwitch coloring_primary{false};
+    OnceFlag used_color;
+    for (SrcBufferIdx idx = linestart_idx; ; ++idx.value)
     {
-        string_canvas.push_back(ch);
-        if (!std::isspace(static_cast<unsigned char>(ch)))
-            idx_of_last_nonspace_in_line = i.value;
-    }
+        const char ch = source_buffer_[idx.value];
+        if (ch == '\0' || ch == '\n' || idx > end_of_code_idx)
+            break;
 
-    const auto comment_pos = string_canvas.find("//"); // line comment token.
-    if (comment_pos != std::string::npos)
-        idx_of_last_nonspace_in_line = linestart_idx.value + comment_pos - 1;
-    // -1 cause idx is inclusive
-
-    bool seen_char = false;
-    i = linestart_idx;
-    for (char ch; ((ch = source_buffer_[i.value])) && ch != '\n'; ++i.value)
-    {
-        const char *curr_hl_color = nullptr;
-        const bool in_highlight_range = std::any_of(
-            line_highlights.begin(), line_highlights.end(),
-            [i, &curr_hl_color](const TaggedHighlight &hl)
-            {
-                const bool result =
-                    i >= hl.ref()->loc.begin && i < hl.ref()->loc.end;
-                if (result)
-                    curr_hl_color = get_highlight_color(hl.tag());
-                return result;
-            }
-        );
-
-        const bool in_primary_issue = i >= issue.loc.begin && i < issue.loc.end;
-        if (ch == '\t') // expand tab to spaces (based on its position)
+        const bool in_primary_issue = idx >= issue.loc.begin && idx < issue.loc.end;
+        const bool should_start_coloring_highlight =
+            !touching_highlights.empty() &&
+            is_index_on_highlight(idx, touching_highlights.back()) &&
+            coloring_highlight.is_disabled();
+        const bool should_stop_coloring_highlight =
+            !touching_highlights.empty() &&
+            touching_highlights.back().ref()->loc.end == idx &&
+            coloring_highlight.is_enabled();
+        DEBUG_SMART_ASSERT(!(should_start_coloring_highlight && should_stop_coloring_highlight));
+        const int slots = ch == '\t' ? k_tab_width_ - column.value % k_tab_width_ : 1;
+        column.value += slots;
+        if (should_start_coloring_highlight)
         {
-            const int spaces = k_tab_width_ - column.value % k_tab_width_;
-            if (in_highlight_range)
+
+            underline.append(get_highlight_color(touching_highlights.back().tag()));
+            coloring_highlight.enable();
+            if (coloring_primary.is_enabled())
+                coloring_primary.disable();
+            if (!used_color)
+                used_color.raise();
+        }
+        else if (should_stop_coloring_highlight)
+        {
+            underline += SGR_RESET;
+            coloring_highlight.disable();
+            touching_highlights.pop_back();
+        }
+        if (!seen_char && !std::isspace(static_cast<unsigned char>(ch)))
+            seen_char.raise();
+
+        const bool under_code_section = seen_char && idx <= end_of_code_idx;
+        if (coloring_highlight.is_enabled() && under_code_section)
+            underline.append(slots, Markers::highlight);
+        else if (in_primary_issue && under_code_section)
+        {
+            if (coloring_primary.is_disabled())
             {
-                DEBUG_SMART_ASSERT(!!curr_hl_color);
-                underline.append(curr_hl_color);
-                if (seen_char && i.value <= idx_of_last_nonspace_in_line)
-                    underline.append(spaces, Markers::highlight);
-                else
-                    underline.append(spaces, ' ');
+                underline.append(get_underline_color(issue.type));
+                coloring_primary.enable();
             }
-            else if (in_primary_issue)
-                underline.append(spaces, Markers::underline);
+            if (!underline_pointer_flag)
+            {
+                underline_pointer_flag = true;
+                underline.append(1, Markers::pointer);
+            }
             else
-                underline.append(spaces, ' ');
-            column.value += spaces;
+                underline.append(slots, Markers::underline);
         }
         else
-        {
-            ++column;
-            seen_char = seen_char || !std::isspace(static_cast<unsigned char>(ch));
-            if (!(seen_char && i.value <= idx_of_last_nonspace_in_line))
-                underline += ' ';
-            else if (in_highlight_range)
-            {
-                underline += curr_hl_color;
-                underline += Markers::highlight;
-            }
-            else if (in_primary_issue)
-            {
-                underline += !underline_pointer_flag ? Markers::pointer : Markers::underline;
-                underline_pointer_flag = true;
-            }
-            else
-                underline += ' ';
-        }
+            underline.append(slots, ' ');
     }
+    if (used_color)
+        underline.append(SGR_RESET);
     return underline;
-}
-
-std::string
-DiagnosticFormatter::colorize_underline(
-    const std::string &underline,
-    const char *const underline_color)
-{
-    std::string colorized;
-    colorized.reserve(underline.size() * 2); // Safe heuristic
-
-    char prev = '\0';
-    for (std::size_t i = 0; i < underline.size(); ++i)
-    {
-        const char curr = underline[i];
-        if (prev == Markers::highlight && curr != Markers::highlight)
-            colorized += underline_color;
-        colorized += curr;
-        prev = curr;
-    }
-    return colorized;
 }
 
 std::string
@@ -536,7 +506,6 @@ DiagnosticFormatter::format_issue_line(
     std::string codeline = make_codeline(issue, line_no);
     codeline = colorize_line_comment(codeline);
     std::string underline = make_underline(issue, line_no);
-    underline = colorize_underline(underline, underline_color);
     swap_markers(underline, Markers::highlight, Markers::underline);
     if (support::is_blank_str(codeline) &&
         support::is_blank_str(underline) &&

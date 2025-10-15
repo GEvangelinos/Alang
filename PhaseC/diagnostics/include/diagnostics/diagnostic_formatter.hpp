@@ -62,8 +62,6 @@ private:
     void build_issue_header(std::stringstream &out, const Issue &issue, bool colorize) const;
     [[nodiscard]] std::string make_codeline(const Issue &issue, SrcLineIdx line_no) const;
     [[nodiscard]] std::string make_underline(const Issue &issue, SrcLineIdx line_no) const;
-    [[nodiscard, deprecated]] static std::string colorize_underline(
-        const std::string &underline, const char *underline_color);
     [[nodiscard]] static std::string colorize_line_comment(std::string_view codeline);
 
     [[nodiscard]] std::vector<std::string>
