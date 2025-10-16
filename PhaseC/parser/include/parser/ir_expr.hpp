@@ -83,6 +83,8 @@ protected:
         : loc(loc), type(type), rvalue_casted() {}
 
 private:
+    mutable SourceLocation left_cast_region;
+    mutable SourceLocation right_cast_region;
     mutable OnceFlag rvalue_casted;
 };
 

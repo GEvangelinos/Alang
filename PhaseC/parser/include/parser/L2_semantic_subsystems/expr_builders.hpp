@@ -185,11 +185,20 @@ private:
 
         [[nodiscard]] const Expr *prepare_logical_operand_expr(const Expr *expr);
         void mark_short_circuit_jump_point();
-        [[nodiscard]] const Expr *build_uminus(const Expr *expr, SourceLocation result_loc);
+        [[nodiscard]] const Expr *build_uminus(
+            const Expr *expr, SourceLocation uminus_loc, SourceLocation result_loc);
         [[nodiscard]] const Expr *build_arithmetic(
-            ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
+            ir::Opcode opc,
+            const Expr *lhs,
+            const Expr *rhs,
+            SourceLocation arith_op_loc,
+            SourceLocation result_loc);
         [[nodiscard]] const Expr *build_relational(
-            ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation operator_loc);
+            ir::Opcode opc,
+            const Expr *lhs,
+            const Expr *rhs,
+            SourceLocation operator_loc,
+            SourceLocation result_loc);
         [[nodiscard]] const Expr *build_logical_not(const Expr *expr, SourceLocation result_loc);
         [[nodiscard]] const Expr *build_logical_and(
             const Expr *lhs, const Expr *rhs, SourceLocation result_loc);
@@ -201,9 +210,9 @@ private:
 
         [[nodiscard]] const Expr *normalize_to_bool_expr(const Expr *expr);
         [[nodiscard]] bool validate_arithmetic_expr(
-            ir::Opcode opc, const Expr *expr, OperandSide op_side);
+            OperandSide op_side, ir::Opcode opc, const Expr *expr, SourceLocation arith_op_loc);
         [[nodiscard]] bool validate_arithmetic_operation(
-            ir::Opcode opc, const Expr *lhs, const Expr *rhs);
+            ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation arith_op_loc);
         [[nodiscard]] bool validate_relational_operation(
             ir::Opcode opc, const Expr *lhs, const Expr *rhs, SourceLocation operator_loc);
         [[nodiscard]] bool validate_possible_division(

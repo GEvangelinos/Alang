@@ -47,11 +47,27 @@ SourceLocation::SourceLocation()
 
 constexpr
 SourceLocation::SourceLocation(SrcBufferIdx begin, SrcBufferIdx end)
-    : begin(begin), end(end) {}
+    : begin(begin), end(end)
+{
+    DEBUG_SMART_ASSERT(
+        ( begin.value == SrcBufferIdx::none &&
+          end.value   == SrcBufferIdx::none
+        )
+        || begin < end
+    );
+}
 
 constexpr
 SourceLocation::SourceLocation(const SourceLocationRaw raw_loc)
-    : begin(SrcBufferIdx{raw_loc.begin}), end(SrcBufferIdx{raw_loc.end}) {}
+    : begin(SrcBufferIdx{raw_loc.begin}), end(SrcBufferIdx{raw_loc.end})
+{
+    DEBUG_SMART_ASSERT(
+        ( begin.value == SrcBufferIdx::none &&
+          end.value   == SrcBufferIdx::none
+        )
+        || begin < end
+    );
+}
 
 inline SourceLocationRaw
 SourceLocation::to_raw() { return {.begin = begin.value, .end = end.value}; }

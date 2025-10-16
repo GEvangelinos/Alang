@@ -298,7 +298,7 @@ ScopeHandler::skip_next_scope_increment() noexcept { skip_next_scope_increment_.
 inline void
 ScopeHandler::enter_scope() noexcept
 {
-    if (skip_next_scope_increment_.is_enabled())
+    if (skip_next_scope_increment_)
     {
         skip_next_scope_increment_.disable();
         return;
@@ -317,7 +317,7 @@ ScopeHandler::exit_scope() noexcept
     // issue.
     DEBUG_SMART_ASSERT(
         scope_ > k_global_scope,
-        skip_next_scope_increment_.is_disabled()
+        !skip_next_scope_increment_
     );
     --scope_;
 }

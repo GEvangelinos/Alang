@@ -41,20 +41,19 @@ public:
     ToggleSwitch() : state_(false) {}
     explicit ToggleSwitch(const bool init_state): state_(init_state) {}
 
-    void enable() noexcept
+    constexpr void enable() noexcept
     {
-        DEBUG_SMART_ASSERT(is_disabled());
+        DEBUG_SMART_ASSERT(state_ == false);
         state_ = true;
     }
 
-    void disable() noexcept
+   constexpr  void disable() noexcept
     {
-        DEBUG_SMART_ASSERT(is_enabled());
+        DEBUG_SMART_ASSERT(state_ == true);
         state_ = false;
     }
 
-    [[nodiscard]] bool is_enabled() const noexcept { return state_; }
-    [[nodiscard]] bool is_disabled() const noexcept { return !state_; }
+    constexpr operator bool() const noexcept { return state_;}
 
 private:
     bool state_ = false; // Initially the switch is off.
@@ -201,13 +200,13 @@ class OnceFlag : private Immobile
 public:
     OnceFlag() = default;
 
-    [[nodiscard]] bool is_raised() const noexcept { return once_flag.is_assigned(); }
-    void raise() { if (!is_raised()) once_flag.set(true); }
+    [[nodiscard]] bool is_raised() const noexcept { return raised_; }
+    void raise() noexcept { raised_ = true; }
 
-    operator bool() { return is_raised(); }
+    constexpr operator bool() const noexcept { return is_raised(); }
 
 private:
-    Once<bool> once_flag;
+    bool raised_ = false;
 };
 } // namespace alpha
 

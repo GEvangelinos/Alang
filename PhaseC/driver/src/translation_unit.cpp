@@ -330,7 +330,7 @@ TranslationUnit::TranslationUnit(
       diagnostic_engine_(create_diagnostic_engine_policy(), max_errors),
       translation_unit_buffer_(source_path, k_scanner_eof_null_padding),
       loc_tracker_(translation_unit_buffer_.size() - translation_unit_buffer_.null_padding),
-      diagnostic_formatter_(source_path, loc_tracker_, translation_unit_buffer_.data()),
+      diagnostic_formatter_(source_path, loc_tracker_, translation_unit_buffer_.data(), true),
       symbol_table_(),
       pass_manager_(std::make_unique<PassManager>(
           expr_opts,
@@ -414,7 +414,7 @@ TranslationUnit::show_diagnostics() const
     const std::string source_filename = source_path_.filename().string();
 
     for (const auto &diagnostic: diagnostic_engine_.get_diagnostics())
-        std::cerr << diagnostic_formatter_.format_diagnostic(*diagnostic.get(), true);
+        std::cerr << diagnostic_formatter_.format(*diagnostic.get());
 
     std::cerr << std::endl;
 }

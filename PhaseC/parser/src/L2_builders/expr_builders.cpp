@@ -24,8 +24,10 @@ using namespace alpha;
     DEBUG_SMART_ASSERT(!!*op_name, !!*op_symbol, !!*lvalue_subject);
     if (expr->is_lvalue_type() && expr->is_rvalue_casted())
     {
+        const SourceLocation lhs_cast_loc{expr->loc.begin, SrcBufferIdx{expr->loc.begin.value + 1}};
+        const SourceLocation rhs_cast_loc{SrcBufferIdx{expr->loc.end.value - 1}, expr->loc.end};
         dr->report_operator_on_lvalue_casted_to_rvalue(
-            op_name, op_symbol, full_expr_loc, expr->loc);
+            op_name, op_symbol, full_expr_loc, lhs_cast_loc, rhs_cast_loc);
         return false;
     }
     if (!expr->is_lvalue())
@@ -52,14 +54,14 @@ using namespace alpha;
         "validate_direct_lvalue: TABLE_ITEM is not a direct lvalue (use table-item path)"
     );
 
-    if (!validate_lvalue(dr, expr, full_expr_loc, op_name, op_symbol, lvalue_subject))
-        return false;
     if (expr->has_active_temp())
     {
         dr->report_operator_requires_non_temp_lvalue(
             op_name, op_symbol, lvalue_subject, expr->type, full_expr_loc, expr->loc);
         return false;
     }
+    if (!validate_lvalue(dr, expr, full_expr_loc, op_name, op_symbol, lvalue_subject))
+        return false;
     return true;
 }
 } // namespace
@@ -530,10 +532,11 @@ BasicBuilder::Restricted::mark_short_circuit_jump_point()
 const Expr *
 BasicBuilder::Restricted::build_uminus(
     const Expr *expr,
+    const SourceLocation uminus_loc,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
-    if (!validate_arithmetic_expr(ir::Opcode::UMINUS, expr, OperandSide::UNARY))
+    if (!validate_arithmetic_expr(OperandSide::UNARY, ir::Opcode::UMINUS, expr, uminus_loc))
         goto skip_opt;
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::UMINUS>(result_loc, expr))
         return optimized;
@@ -550,11 +553,12 @@ BasicBuilder::Restricted::build_arithmetic(
     const ir::Opcode opc,
     const Expr *lhs,
     const Expr *rhs,
+    const SourceLocation arith_op_loc,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
     // Always build IR. On validation errors we report error diagnostics and never export bad IR.
-    if (!validate_arithmetic_operation(opc, lhs, rhs))
+    if (!validate_arithmetic_operation(opc, lhs, rhs, arith_op_loc))
         goto skip_opt;
 
     // We pre-propagate const (so we can catch div by zero)
@@ -579,7 +583,8 @@ BasicBuilder::Restricted::build_relational(
     const ir::Opcode opc,
     const Expr *lhs,
     const Expr *rhs,
-    const SourceLocation operator_loc)
+    const SourceLocation operator_loc,
+    const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
 
@@ -594,22 +599,22 @@ BasicBuilder::Restricted::build_relational(
     if (!validate_relational_operation(opc, lhs, rhs, operator_loc))
         goto skip_opt;
 
-    if (const auto optimized = this->try_optimize_relational_expr(opc, lhs, rhs, operator_loc))
+    if (const auto optimized = this->try_optimize_relational_expr(opc, lhs, rhs, result_loc))
         return optimized;
 
 skip_opt:
-    auto hook = [operator_loc, this]()
+    auto hook = [result_loc, this]()
     {
-        const BoolExpr *result_expr = expr_maker_->make_bool_expr(operator_loc);
+        const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
         result_expr->true_list.push_back(quad_emitter_->next_quad_label());
         result_expr->false_list.push_back(quad_emitter_->next_quad_label() + 1); // +1 for jump quad
         return result_expr;
     };
 
     const auto hook_result = quad_yielder_->yield_returning_hook_result(
-        opc, nullptr, lhs, rhs, operator_loc, k_no_label, hook
+        opc, nullptr, lhs, rhs, result_loc, k_no_label, hook
     );
-    quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, operator_loc);
+    quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, result_loc);
     return hook_result;
 }
 
@@ -734,9 +739,10 @@ BasicBuilder::Restricted::normalize_to_bool_expr(const Expr *const expr)
 
 bool
 BasicBuilder::Restricted::validate_arithmetic_expr(
+    const OperandSide op_side,
     const ir::Opcode opc,
     const Expr *expr,
-    const OperandSide op_side)
+    const SourceLocation arith_op_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
     if (expr->is_arithmetic_convertible())
@@ -744,10 +750,10 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
 
     if (SemUtils::is_binary_arithmetic_opcode(opc))
         dr_->report_nonarith_arith_op_operand(
-            op_side, SemUtils::arith_op_str(opc), expr->type, expr->loc
+            op_side, SemUtils::arith_op_str(opc), expr->type, arith_op_loc, expr->loc
         );
     else if (opc == ir::Opcode::UMINUS)
-        dr_->report_nonarith_uminus_operand(expr->type, expr->loc);
+        dr_->report_nonarith_uminus_operand(expr->type, arith_op_loc, expr->loc);
     else
         throw std::logic_error(ATTACH_CONTEXT(
             "Expected arithmetic ir::Opcode (bin arith or uminus)"
@@ -759,10 +765,11 @@ bool
 BasicBuilder::Restricted::validate_arithmetic_operation(
     const ir::Opcode opc,
     const Expr *const lhs,
-    const Expr *const rhs)
+    const Expr *const rhs,
+    const SourceLocation arith_op_loc)
 {
-    const bool valid_lhs = validate_arithmetic_expr(opc, lhs, OperandSide::LEFT);
-    const bool valid_rhs = validate_arithmetic_expr(opc, rhs, OperandSide::RIGHT);
+    const bool valid_lhs = validate_arithmetic_expr(OperandSide::LEFT, opc, lhs, arith_op_loc);
+    const bool valid_rhs = validate_arithmetic_expr(OperandSide::RIGHT, opc, rhs, arith_op_loc);
     return valid_lhs && valid_rhs;
 }
 
@@ -775,16 +782,20 @@ BasicBuilder::Restricted::validate_relational_operation(
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs, SemUtils::is_relational_iropcode(opc));
 
-    const auto validate_numeric = [opc, lhs, rhs, this]() -> bool
+    const auto validate_numeric = [opc, lhs, rhs, operator_loc, this]() -> bool
     {
         DEBUG_SMART_ASSERT(SemUtils::is_relational_numeric_iropcode(opc));
         if (lhs->is_arithmetic_convertible() && rhs->is_arithmetic_convertible())
             return true;
         const auto opc_str = SemUtils::relop_str(opc);
         if (!lhs->is_arithmetic_convertible())
-            dr_->report_nonarith_rel_op_operand(OperandSide::LEFT, opc_str, lhs->type, lhs->loc);
+            dr_->report_nonarith_rel_op_operand(
+                OperandSide::LEFT, opc_str, lhs->type, operator_loc, lhs->loc
+            );
         if (!rhs->is_arithmetic_convertible())
-            dr_->report_nonarith_rel_op_operand(OperandSide::RIGHT, opc_str, rhs->type, rhs->loc);
+            dr_->report_nonarith_rel_op_operand(
+                OperandSide::RIGHT, opc_str, rhs->type, operator_loc, rhs->loc
+            );
         return false;
     };
 

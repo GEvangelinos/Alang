@@ -25,7 +25,7 @@ ScopeHandler::ScopeHandler(const ParseCtx *host)
     DEBUG_SMART_ASSERT(
         scope_ == k_global_scope &&
         "Scope should always start from global scope",
-        skip_next_scope_increment_.is_disabled() &&
+        !skip_next_scope_increment_ &&
         "A ToggleSwitch must always be initialized as disabled."
     );
 }

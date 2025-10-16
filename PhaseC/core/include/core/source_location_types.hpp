@@ -22,6 +22,8 @@ namespace alpha
         constexpr StructName(const StructName & rhs) : value(rhs.value) {}          \
         constexpr auto operator<=>(const StructName &rhs) const = default;          \
         constexpr StructName &operator=(const StructName &rhs);                     \
+        constexpr StructName &operator+=(const StructName &rhs);                    \
+        constexpr StructName &operator-=(const StructName &rhs);                    \
         constexpr StructName &operator++();                                         \
         constexpr StructName operator++(int);                                       \
         constexpr StructName &operator--();                                         \
@@ -40,6 +42,18 @@ DEFINE_SRC_IDX_TYPE_STRUCT(SrcBufferIdx)
     constexpr StructName &StructName::operator=(const StructName &rhs)       \
     {                                                                        \
         value = rhs.value;                                                   \
+        return *this;                                                        \
+    }                                                                        \
+                                                                             \
+    constexpr StructName &StructName::operator+=(const StructName &rhs)      \
+    {                                                                        \
+        value += rhs.value;                                                  \
+        return *this;                                                        \
+    }                                                                        \
+                                                                             \
+    constexpr StructName &StructName::operator-=(const StructName &rhs)      \
+    {                                                                        \
+        value -= rhs.value;                                                  \
         return *this;                                                        \
     }                                                                        \
                                                                              \

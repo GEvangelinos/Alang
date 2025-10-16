@@ -94,6 +94,7 @@ made_diagnostic_based_on_semantic_heuristics(
     const SemanticSystem &ss,
     const LexerCtx &lexer_ctx,
     DiagnosticEngine &diagnostic_engine,
+    DiagnosticReporter &dr,
     const Info &info)
 {
     DEBUG_SMART_ASSERT(info.unexpected_token != YYSYMBOL_YYEMPTY &&
@@ -403,12 +404,13 @@ report_many_expected_diagnostic(
     const LocationTracker &loc_tracker,
     const LexerCtx &lexer_ctx,
     const Info &info,
-    DiagnosticEngine &diagnostic_engine)
+    DiagnosticEngine &diagnostic_engine,
+    DiagnosticReporter &dr)
 {
     DEBUG_SMART_ASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
     DEBUG_SMART_ASSERT(info.expected_tokens.size() > FEW_TOKENS);
-    const auto unexpected_str = get_formatted_unexpected_token_name(info);
+    const auto unexpected_token_str = get_formatted_unexpected_token_name(info);
     std::optional<Suggestion> suggestion;
     std::list<Note> notes;
 
@@ -420,15 +422,20 @@ report_many_expected_diagnostic(
 
     if (expected_primary_expression(info) && lexer_ctx.second_last_token_info().has_value())
     {
-        suggestion.emplace("expression", lexer_ctx.second_last_token_info().value().loc);
-        Issue primary = Issue(
-            SYNTAX_ERROR_ISSUE_TYPE,
-            FMT::format("expected expression, found ‘{}’", unexpected_str),
+        dr.report_syntax_error_expected_expression(
+            unexpected_token_str,
             info.unexpected_token_loc,
-            suggestion
+            lexer_ctx.second_last_token_info().value().loc
         );
-        diagnostic_engine.report_syntax_error(std::move(primary), std::move(notes));
         return;
+        // suggestion.emplace("expression", lexer_ctx.second_last_token_info().value().loc);
+        // Issue primary = Issue(
+        //     SYNTAX_ERROR_ISSUE_TYPE,
+        //     FMT::format("expected expression, found ‘{}’", unexpected_token_str),
+        //     info.unexpected_token_loc,
+        //     suggestion
+        // );
+        // diagnostic_engine.report_syntax_error(std::move(primary), std::move(notes));
     }
 
     const yysymbol_kind_t suggested_symbol =
@@ -462,7 +469,7 @@ report_many_expected_diagnostic(
             Issue primary = Issue(
                 SYNTAX_ERROR_ISSUE_TYPE,
                 FMT::format("expected `{}` but found `{}`",
-                            yysymbol_name(suggested_symbol), unexpected_str),
+                            yysymbol_name(suggested_symbol), unexpected_token_str),
                 info.unexpected_token_loc,
                 suggestion
             );
@@ -479,7 +486,7 @@ report_many_expected_diagnostic(
 
     Issue primary = Issue(
         SYNTAX_ERROR_ISSUE_TYPE,
-        FMT::format("invalid syntax, unexpected ‘{}’", unexpected_str),
+        FMT::format("invalid syntax, unexpected ‘{}’", unexpected_token_str),
         info.unexpected_token_loc,
         suggestion
     );
@@ -514,16 +521,17 @@ report_unexpected_diagnostic(
     const LexerCtx &lexer_ctx,
     const Info &info,
     DiagnosticEngine &diagnostic_engine,
+    DiagnosticReporter &dr,
     const SemanticSystem &ss)
 {
     if (info.expected_tokens.empty())
         report_no_expected_diagnostic(info, diagnostic_engine);
-    else if (made_diagnostic_based_on_semantic_heuristics(ss, lexer_ctx, diagnostic_engine, info))
+    else if (made_diagnostic_based_on_semantic_heuristics(ss, lexer_ctx, diagnostic_engine, dr, info))
         return;
     else if (info.expected_tokens.size() <= FEW_TOKENS)
         report_few_expected_diagnostic(lexer_ctx, info, diagnostic_engine);
     else
-        report_many_expected_diagnostic(ss, loc_tracker, lexer_ctx, info, diagnostic_engine);
+        report_many_expected_diagnostic(ss, loc_tracker, lexer_ctx, info, diagnostic_engine, dr);
 }
 
 /**
@@ -544,7 +552,7 @@ static int yyreport_syntax_error(
     LexerCtx &lexer_ctx,
     LocationTracker &loc_tracker,
     DiagnosticEngine &diagnostic_engine,
-    [[maybe_unused]] DiagnosticReporter &dr,
+    DiagnosticReporter &dr,
     SemanticSystem &ss)
 {
     const yysymbol_kind_t unexpected_token = yypcontext_token(yyctx);
@@ -562,7 +570,7 @@ static int yyreport_syntax_error(
             .unexpected_token_loc = unexpected_token_loc,
             .expected_tokens = collect_expected_tokens(yyctx)
         };
-        report_unexpected_diagnostic(loc_tracker, lexer_ctx, info, diagnostic_engine, ss);
+        report_unexpected_diagnostic(loc_tracker, lexer_ctx, info, diagnostic_engine, dr, ss);
     }
     return YYREPORT_SYNTAX_ERROR_RETVAL;
 }

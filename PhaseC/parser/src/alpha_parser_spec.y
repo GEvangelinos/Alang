@@ -273,17 +273,17 @@ or_op:
 expr[out]:
   assign_expr { $out = $assign_expr; }
 | term        { $out = $term; }
-| expr[lhs]  PLUS[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::ADD,    $lhs, $rhs, @op); }
-| expr[lhs] MINUS[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::SUB,    $lhs, $rhs, @op); }
-| expr[lhs]   MUL[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::MUL,    $lhs, $rhs, @op); }
-| expr[lhs]   DIV[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::DIV,    $lhs, $rhs, @op); }
-| expr[lhs]   MOD[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::MOD,    $lhs, $rhs, @op); }
-| expr[lhs]    EQ[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_EQ,  $lhs, $rhs, @op); }
-| expr[lhs]   NEQ[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_NEQ, $lhs, $rhs, @op); }
-| expr[lhs]    LT[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_LT,  $lhs, $rhs, @op); }
-| expr[lhs]   LTE[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_LTE, $lhs, $rhs, @op); }
-| expr[lhs]    GT[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_GT,  $lhs, $rhs, @op); }
-| expr[lhs]   GTE[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_GTE, $lhs, $rhs, @op); }
+| expr[lhs]  PLUS[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::ADD,    $lhs, $rhs, @op, @out); }
+| expr[lhs] MINUS[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::SUB,    $lhs, $rhs, @op, @out); }
+| expr[lhs]   MUL[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::MUL,    $lhs, $rhs, @op, @out); }
+| expr[lhs]   DIV[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::DIV,    $lhs, $rhs, @op, @out); }
+| expr[lhs]   MOD[op] expr[rhs] { $out = ss.call<"basic_builder.build_arithmetic">(Op::MOD,    $lhs, $rhs, @op, @out); }
+| expr[lhs]    EQ[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_EQ,  $lhs, $rhs, @op, @out); }
+| expr[lhs]   NEQ[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_NEQ, $lhs, $rhs, @op, @out); }
+| expr[lhs]    LT[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_LT,  $lhs, $rhs, @op, @out); }
+| expr[lhs]   LTE[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_LTE, $lhs, $rhs, @op, @out); }
+| expr[lhs]    GT[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_GT,  $lhs, $rhs, @op, @out); }
+| expr[lhs]   GTE[op] expr[rhs] { $out = ss.call<"basic_builder.build_relational">(Op::IF_GTE, $lhs, $rhs, @op, @out); }
 | and_op { $out = $and_op; }
 | or_op  { $out = $or_op; }
 ;
@@ -294,12 +294,10 @@ expr[out]:
  * leaving this docstring here so you won't try again in the future. ;p
  */
 term:
-  primary                     { $term = $primary; }
-| not_op                      { $term = $not_op; }
-| LEFT_PAREN
-  expr
-  RIGHT_PAREN { $term = ss.call<"force_rvalue_cast">($expr, @term); }
-| MINUS expr %prec UMINUS     { $term = ss.call<"basic_builder.build_uminus">($expr, @term); }
+  primary                       { $term = $primary; }
+| not_op                        { $term = $not_op; }
+| LEFT_PAREN  expr  RIGHT_PAREN { $term = ss.call<"force_rvalue_cast">($expr, @term); }
+| MINUS expr %prec UMINUS       { $term = ss.call<"basic_builder.build_uminus">($expr, @MINUS ,@term); }
 | INC expr { $term = ss.call<"assign_builder.build_pre_inc">($expr, @term); }
 | expr INC { $term = ss.call<"assign_builder.build_post_inc">($expr, @term); }
 | DEC expr { $term = ss.call<"assign_builder.build_pre_dec">($expr, @term); }

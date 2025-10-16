@@ -77,6 +77,7 @@ add_library(alpha_diagnostics_impl STATIC
     src/diagnostic_types.cpp
     src/diagnostic_formatter.cpp
     src/diagnostic_engine.cpp
+    src/issue_formatter.cpp
     ${DIAG_GEN_HPP1}
     ${DIAG_GEN_HPP2}
     ${DIAG_GEN_CPP}
