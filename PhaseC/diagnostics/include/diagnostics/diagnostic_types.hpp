@@ -62,7 +62,7 @@ public:
     [[nodiscard]] SrcLineIdx line(const LocationTracker &loc_tracker) const;
     [[nodiscard]] SrcColumnIdx column(const LocationTracker &loc_tracker) const;
 
-    [[nodiscard]] RenderingLineSpan compute_printing_span(const LocationTracker &loc_tracker) const;
+    [[nodiscard]] RenderingLineSpan compute_rendering_span(const LocationTracker &loc_tracker) const;
 };
 
 [[nodiscard]] const char *to_string(Issue::Type type) noexcept;

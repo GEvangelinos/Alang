@@ -4,9 +4,10 @@
 #include <memory>
 #include <scanner/scanner_context.hpp>
 
+#include "translation_unit_buffer.hpp"
 #include "core/basics.hpp"
-#include "L1_driver/semantic_system.hpp"
 #include "diagnostics/diagnostic_formatter.hpp"
+#include "L1_driver/semantic_system.hpp"
 #include "settings/compiler_settings.hpp"
 
 // Forward declaration instead of including the <parser/alpha_parser.gen.hpp> header
@@ -18,30 +19,11 @@ class LocationTracker;
 class DiagnosticReporter;
 class SymbolTable;
 
-class TranslationUnitBuffer
-{
-public:
-    const std::size_t null_padding;
-
-    explicit TranslationUnitBuffer(const std::filesystem::path &path, std::size_t null_padding);
-    ~TranslationUnitBuffer() = default;
-
-    [[nodiscard]] char *data() { return data_.get(); }
-    [[nodiscard]] const char *data() const { return data_.get(); }
-    [[nodiscard]] std::size_t size() const { return size_; }
-
-private:
-    std::unique_ptr<char[]> data_;
-    std::size_t size_ = 0;
-
-    [[nodiscard]] static std::ifstream open_source(const std::filesystem::path &path);
-};
-
 class PassManager : private Immobile
 {
 public:
     PassManager(
-        const settings::ExprOpts& expr_opts,
+        const settings::ExprOpts &expr_opts,
         TranslationUnitBuffer &tu_buffer,
         LocationTracker &lt,
         DiagnosticEngine &diagnostic_engine,
@@ -108,11 +90,13 @@ private:
     const std::filesystem::path source_path_;
     const alpha::settings::ExprOpts expr_opts_;
     DiagnosticEngine diagnostic_engine_;
-    TranslationUnitBuffer translation_unit_buffer_;
+    // Using a pointer (unique_ptr) to guard against wrong initialization order
+    std::unique_ptr<TranslationUnitBuffer> translation_unit_buffer_;
     LocationTracker loc_tracker_;
     DiagnosticFormatter diagnostic_formatter_;
     SymbolTable symbol_table_;
     std::unique_ptr<PassManager> pass_manager_;
+    OnceFlag tried_compiling;
     bool execution_completed_ = false;
 
     void export_within_dir(

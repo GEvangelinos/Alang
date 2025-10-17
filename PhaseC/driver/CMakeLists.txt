@@ -18,6 +18,7 @@ add_library(alpha_driver_impl STATIC
     src/alpha_driver.cpp
     src/translation_unit.cpp
     src/exception.cpp
+    src/translation_unit_buffer.cpp
 )
 target_include_directories(alpha_driver_impl PRIVATE
     "${GENERATED_INCLUDE_DIR}"

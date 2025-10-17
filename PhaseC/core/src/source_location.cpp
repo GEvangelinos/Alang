@@ -24,6 +24,12 @@ LocationTracker::LocationTracker(const std::size_t max_valid_index)
 void
 LocationTracker::append_line(const SrcBufferIdx linestart_index)
 {
+    DEBUG_SMART_ASSERT(
+        !lines_frozen &&
+        "Lines are frozen, meaning scanning of the source file should have ended."
+        "Therefore there should be no extra lines to add."
+    );
+
     linestart_buffer_indices_.push_back(linestart_index);
 }
 
@@ -107,6 +113,19 @@ LocationTracker::find_lines(const SourceLocation loc) const
     return find_lines(loc.begin, loc.end);
 }
 
+bool
+LocationTracker::is_virtual_line(const SrcLineIdx line) const noexcept
+{
+    DEBUG_SMART_ASSERT(
+        lines_frozen &&
+        "Querying if a line is virtual is only possible after lines are frozen. "
+        "(aka after whole source file is scanned)"
+    );
+    DEBUG_SMART_ASSERT(!linestart_buffer_indices_.empty() && "There must be at least phony line 0");
+    const auto current_existing_line_count = linestart_buffer_indices_.size() - 1;
+    return line.value == SrcLineIdx::none || line.value > current_existing_line_count;
+}
+
 SrcLineIdx
 LocationTracker::find_line(const SrcBufferIdx idx) const
 {
@@ -124,7 +143,9 @@ LocationTracker::find_line(const SrcBufferIdx idx) const
         idx
     );
 
+    DEBUG_SMART_ASSERT(!linestart_buffer_indices_.empty() && "There must be at least phony line 0");
     const std::ptrdiff_t lineno = std::distance(linestart_buffer_indices_.begin(), it);
+
     if (lineno < 0 || lineno > static_cast<std::ptrdiff_t>(linestart_buffer_indices_.size()))
         throw std::logic_error(ATTACH_CONTEXT("BUG: Invalid computed line index."));
 

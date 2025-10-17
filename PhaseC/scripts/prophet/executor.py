@@ -71,12 +71,20 @@ class TestfileExecutor:
         completed_subprocess = subprocess.run(
             shlex.split(self.testfile.run_line),
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.PIPE,       # capture stderr
+            text=True                     # decode bytes -> str automatically
         )
         self._status_line.append(f"--Testing: {self.testfile.name:<60} ")
         if completed_subprocess.returncode != _EXIT_SUCCESS_RETURNCODE:
             self._status_line.append(
                 f"{COLOR_RED}Failure, test produced errors.{SGR_RESET}")
+            if completed_subprocess.stderr:
+                self._status_line.append("\n\n--- STDERR-BEGIN ---\n")
+                self._status_line.append(completed_subprocess.stderr)
+                self._status_line.append("\n--- STDERR-END   ---\n\n")
+
+
+
         return completed_subprocess.returncode
 
     def flatten_exports(self):

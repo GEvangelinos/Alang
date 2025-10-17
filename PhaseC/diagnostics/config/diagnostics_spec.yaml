@@ -66,11 +66,11 @@
       Location: comp_operator_loc
       Highlights:
         # @use TYPE_MESSAGE
-          Args: [ lhs_expr_type ]
-          Location: lhs_expr_loc
+        Args: [ lhs_expr_type ]
+        Location: lhs_expr_loc
         # @use TYPE_MESSAGE
-          Args: [ rhs_expr_type ]
-          Location: rhs_expr_loc
+        Args: [ rhs_expr_type ]
+        Location: rhs_expr_loc
 
 - Diagnostic: INVALID_CHARACTER
   Type: SOFT_ERROR
@@ -101,8 +101,8 @@
       Location: operator_loc
       Highlights:
         # @use TYPE_MESSAGE
-          Args: [ operand_expr_type]
-          Location: operand_loc
+        Args: [ operand_expr_type ]
+        Location: operand_loc
 
 - Diagnostic: NONARITH_REL_OP_OPERAND
   Type: SOFT_ERROR
@@ -112,8 +112,8 @@
       Location: operator_loc
       Highlights:
         # @use TYPE_MESSAGE
-          Args: [ operand_expr_type]
-          Location: operand_loc
+        Args: [ operand_expr_type ]
+        Location: operand_loc
 
 - Diagnostic: NONARITH_UMINUS_OPERAND
   Type: SOFT_ERROR
@@ -122,8 +122,8 @@
       Location: uminus_loc
       Highlights:
         # @use TYPE_MESSAGE
-          Args: [ operand_expr_type]
-          Location: operand_loc
+        Args: [ operand_expr_type ]
+        Location: operand_loc
 
 - Diagnostic: REDEFINITION_OF_FORMAL_PARAMETER
   Type: SOFT_ERROR
@@ -266,7 +266,7 @@
       Args: [ lvalue_subject, found_type ]
       Location: rvalue_loc
       Highlights:
-        # @use TYPE_MESSAGE
+        - Message: "type: temporary {0}"
           Args: [ found_type ]
           Location: rvalue_loc
 
@@ -288,22 +288,100 @@
     - Message: "`return` outside of function"
       Location: return_keyword_loc
 
+- Diagnostic: SYNTAX_ERROR_EXPECTED
+  Type: HARD_ERROR
+  Primary:
+    - Message: "expected `{0}`"
+      Args: [ expected_token ]
+      Location: unexpected_token_loc
+      Suggestion:
+        - Message: "{0}"
+          Args: [ expected_token ]
+          Location: insert_hint_loc
+
+- Diagnostic: SYNTAX_ERROR_EXPECTED_BEFORE
+  Type: HARD_ERROR
+  Primary:
+    - Message: "expected `{0}`, before `{1}`"
+      Args: [ expected_token, unexpected_token ]
+      Location: unexpected_token_loc
+      Suggestion:
+        - Message: "{0}"
+          Args: [ expected_token ]
+          Location: insert_hint_loc
+
+- Diagnostic: SYNTAX_ERROR_EXPECTED_CLOSER
+  Type: HARD_ERROR
+  Primary:
+    - Message: "expected `{0}` but found `{1}`"
+      Args: [ closer_token, unexpected_token ]
+      Location: unexpected_token_loc
+      Suggestion:
+        - Message: "{0}"
+          Args: [ closer_token ]
+          Location: insert_after_loc
+
+  Notes:
+    - Message: "to match this `{0}`"
+      Args: [ opener_token ]
+      Location: opener_loc
+
+- Diagnostic: SYNTAX_ERROR_EXPECTED_EXPRESSION
+  Type: HARD_ERROR
+  Primary:
+    - Message: "expected expression, found `{0}`"
+      Args: [ unexpected_token ]
+      Location: unexpected_token_loc
+      Suggestion:
+        - Message: "expr"
+          Location: insert_hint_loc
+
+- Diagnostic: SYNTAX_ERROR_EXPECTED_INSTEAD_OF
+  Type: HARD_ERROR
+  Primary:
+    - Message: "expected `{0}` instead of `{1}`"
+      Args: [ expected_tokens_sep_with_or, unexpected_token ]
+      Location: unexpected_token_loc
+      Suggestion:
+        - Message: "{0}"
+          Args: [ expected_tokens_sep_with_newline ]
+          Location: insert_hint_loc
+
+- Diagnostic: SYNTAX_ERROR_EXPECTED_INSTEAD_OF_WITHOUT_SUGGESTION
+  Type: HARD_ERROR
+  Primary:
+    - Message: "expected `{0}` instead of `{1}`"
+      Args: [ expected_tokens_sep_with_or, unexpected_token ]
+      Location: unexpected_token_loc
+
+- Diagnostic: SYNTAX_ERROR_REMOVE_OR_ADD
+  Type: HARD_ERROR
+  Primary:
+    - Message: "remove `{0}`"
+      Args: [ token_to_remove ]
+      Location: remove_loc
+  Notes:
+    - Message: "you could instead add an `{0}`"
+      Args: [ entity_to_add ]
+      Location: remove_loc
+      Suggestion:
+        - Message: "{0}"
+          Args: [ entity_to_add ]
+          Location: remove_loc
+
+- Diagnostic: SYNTAX_ERROR_UNEXPECTED
+  Type: HARD_ERROR
+  Primary:
+    - Message: "unexpected `{0}`"
+      Args: [unexpected_token]
+      Location: unexpected_token_loc
+
 - Diagnostic: UNRESOLVED_GLOBAL_SYMBOL
   Type: HARD_ERROR
   Primary:
     - Message: "symbol `{0}` not found in global scope"
       Args: [ symbol_name ]
       Location: symbol_use_loc
-
-- Diagnostic: SYNTAX_ERROR_EXPECTED_EXPRESSION
-  Type: HARD_ERROR
-  Primary:
-    - Message: "Expected expression, found `{0}`"
-      Args: [unexpected_token_str]
-      Location: unexpected_token_loc
-      Suggestion:
-        - Message: "expr"
-          Location: insert_hint_loc
 
 - Diagnostic: PARSER_STACK_EXHAUSTED
   Type: FATAL_ERROR
@@ -312,3 +390,9 @@
       Args: [ stack_limit ]
       Location: fatal_loc
 
+- Diagnostic: __WTF__
+  Type: FATAL_ERROR
+  Primary:
+    - Message: "`{0}`"
+      Args: [ message ]
+      Location: loc

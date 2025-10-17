@@ -3,6 +3,8 @@
 
 #include <cstring>
 #include <string>
+#include <vector>
+
 #include "support/debug_tools.hpp"
 
 namespace alpha::support
@@ -12,7 +14,8 @@ namespace alpha::support
 std::string &lstrip(std::string &str);
 std::string &rstrip(std::string &str);
 std::string &strip(std::string &str);
-bool is_blank_str(const std::string &str);
+[[nodiscard]] bool is_blank_str(const std::string &str);
+[[nodiscard]] std::vector<std::string> split_lines(const std::string &str);
 
 [[nodiscard]] inline char *cstrdup(const char *const src)
 {
@@ -25,5 +28,6 @@ bool is_blank_str(const std::string &str);
     std::memcpy(dest, src, src_size);
     return dest;
 }
+
 } // namespace alpha::support
 #endif // SUPPORT_STRING_TOOLS_HPP

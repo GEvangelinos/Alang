@@ -86,6 +86,7 @@ add_library(alpha_diagnostics_impl STATIC
 target_link_libraries(alpha_diagnostics_impl PRIVATE
     alpha_diagnostics_api
     alpha_core_api
+    alpha_driver_api
 )
 
 # The alpha_diagnostics_api also contains the templated diagnostic method from DiagnosticReporter.

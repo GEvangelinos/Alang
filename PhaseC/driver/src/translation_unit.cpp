@@ -105,7 +105,8 @@ std::string expr_printer(const alpha::Expr *expr, const char *const missing_mark
     case ET::BOOL: return static_cast<const BoolExpr *>(expr)->var_symbol->name;
     case ET::LIBRARY_FUNCTION: return static_cast<const LibFuncExpr *>(expr)->libfunc_symbol->name;
     case ET::NEW_TABLE: return static_cast<const NewTableExpr *>(expr)->var_symbol->name;
-    case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr *>(expr)->progfunc_symbol->name;
+    case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr *>(expr)->progfunc_symbol->
+            name;
     case ET::TABLE_ITEM: return static_cast<const TableItemExpr *>(expr)->var_symbol->name;
     case ET::VARIABLE: return static_cast<const VariableExpr *>(expr)->var_symbol->name;
     default:
@@ -284,43 +285,6 @@ TranslationUnit::create_diagnostic_engine_policy()
     };
 }
 
-TranslationUnitBuffer::TranslationUnitBuffer(
-    const std::filesystem::path &path,
-    const std::size_t null_padding)
-    : null_padding(null_padding)
-{
-    std::ifstream ifs = open_source(path);
-    const auto filesize = std::filesystem::file_size(path);
-    const auto tub_size = filesize + null_padding;
-    data_ = std::make_unique<char[]>(tub_size);
-    size_ = tub_size;
-
-    if (!ifs.read(data_.get(), filesize))
-        throw alpha::exception::FileReadError(path.string());
-
-    // Flex requires two NULL-bytes at the end of the buffer (End-Of-Buffer marker).
-    for (auto i = filesize; i < tub_size; ++i)
-        data_[i] = '\0';
-}
-
-std::ifstream
-TranslationUnitBuffer::open_source(const std::filesystem::path &path)
-{
-    using FOMode = alpha::exception::FileOpenError::Mode;
-    if (!std::filesystem::exists(path))
-        throw alpha::exception::FileNotFoundError(path.string());
-    if (std::filesystem::is_directory(path))
-        throw alpha::exception::FileIsADirectoryError(path.string());
-    if (!std::filesystem::is_regular_file(path))
-        throw alpha::exception::FileNotRegularError(path.string());
-    if (const auto filesize = std::filesystem::file_size(path); filesize > k_max_source_filesize)
-        throw alpha::exception::FileTooLargeError(path.string(), filesize, k_max_source_filesize);
-    std::ifstream ifs(path);
-    if (!ifs)
-        throw alpha::exception::FileOpenError(path.string(), FOMode::READ);
-    return ifs;
-}
-
 TranslationUnit::TranslationUnit(
     const std::filesystem::path &source_path,
     const std::size_t max_errors,
@@ -328,13 +292,17 @@ TranslationUnit::TranslationUnit(
     : source_path_(source_path),
       expr_opts_(expr_opts),
       diagnostic_engine_(create_diagnostic_engine_policy(), max_errors),
-      translation_unit_buffer_(source_path, k_scanner_eof_null_padding),
-      loc_tracker_(translation_unit_buffer_.size() - translation_unit_buffer_.null_padding),
-      diagnostic_formatter_(source_path, loc_tracker_, translation_unit_buffer_.data(), true),
+      translation_unit_buffer_(std::make_unique<TranslationUnitBuffer>(
+          source_path, k_scanner_eof_null_padding
+      )),
+      loc_tracker_(translation_unit_buffer_->size() - translation_unit_buffer_->null_padding),
+      diagnostic_formatter_(
+          source_path, loc_tracker_, *support::require_ptr(translation_unit_buffer_.get()), true
+      ),
       symbol_table_(),
       pass_manager_(std::make_unique<PassManager>(
           expr_opts,
-          translation_unit_buffer_,
+          *support::require_ptr(translation_unit_buffer_.get()),
           loc_tracker_,
           diagnostic_engine_,
           &symbol_table_
@@ -364,6 +332,14 @@ PassManager::ScannerHandle::~ScannerHandle()
 void
 TranslationUnit::compile()
 {
+    struct FreezeOnExit // A way to run code before function frame collapses (return, throw)
+    {
+        LocationTracker &loc_tracker;
+        explicit FreezeOnExit(LocationTracker &loc_tracker) : loc_tracker(loc_tracker) {}
+        ~FreezeOnExit() { loc_tracker.lines_frozen.raise(); }
+    } freeze_on_exit(loc_tracker_);
+
+    tried_compiling.raise();
     try
     {
         pass_manager_->execute();
@@ -388,6 +364,8 @@ TranslationUnit::notify_max_errors_reached() { throw exception::DiagnosticLimitE
 void
 TranslationUnit::show_symbol_table() const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     std::cout << COLOR_FG_ASCII_BLUE;
     const auto &symbol_per_scope_vector = symbol_table_.symbols_per_scope();
     for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
@@ -397,7 +375,7 @@ TranslationUnit::show_symbol_table() const
         std::cout << FMT::format(
             "----------------------------     Scope #{:<4}     ----------------------------\n",
             scope);
-        for (const auto symbol_ptr: symbol_per_scope_vector[scope])
+        for (const auto symbol_ptr : symbol_per_scope_vector[scope])
             std::cout << FMT::format("{:<30} {:<20} (line {:>5}) (scope {:>4})\n",
                                      FMT::format("\"{}\"", symbol_ptr->name),
                                      FMT::format("[{}]", symbol_ptr->type_to_string()),
@@ -411,23 +389,28 @@ TranslationUnit::show_symbol_table() const
 void
 TranslationUnit::show_diagnostics() const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     const std::string source_filename = source_path_.filename().string();
 
-    for (const auto &diagnostic: diagnostic_engine_.get_diagnostics())
-        std::cerr << diagnostic_formatter_.format(*diagnostic.get());
-
+    for (const auto &diagnostic : diagnostic_engine_.get_diagnostics())
+        std::cerr << diagnostic_formatter_.format(*diagnostic);
     std::cerr << std::endl;
 }
 
 void
 TranslationUnit::show_ir() const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     print_ir<true>(std::cout, pass_manager_->get_quads(), loc_tracker_);
 }
 
 void
 TranslationUnit::export_symbol_table() const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     export_within_dir(k_symbol_table_exports_dirname,
                       &TranslationUnit::export_symbol_table_dispatch);
 }
@@ -435,6 +418,8 @@ TranslationUnit::export_symbol_table() const
 void
 TranslationUnit::export_symbol_table_without_temps() const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     export_within_dir(k_symbol_table_exports_dirname,
                       &TranslationUnit::export_symbol_table_without_temps_dispatch);
 }
@@ -442,6 +427,8 @@ TranslationUnit::export_symbol_table_without_temps() const
 void
 TranslationUnit::export_diagnostics() const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     export_within_dir(k_diagnostic_exports_dirname,
                       &TranslationUnit::export_diagnostics_impl);
 }
@@ -449,26 +436,39 @@ TranslationUnit::export_diagnostics() const
 void
 TranslationUnit::export_ir() const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     export_within_dir(k_ir_exports_dirname, &TranslationUnit::export_ir_impl);
 }
 
 bool TranslationUnit::compiled_ok() const noexcept
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     return execution_completed_ && !diagnostic_engine_.has_errors();
 }
 
 void
-TranslationUnit::export_symbol_table_dispatch() const { export_symbol_table_impl(true); }
+TranslationUnit::export_symbol_table_dispatch() const
+{
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
+    export_symbol_table_impl(true);
+}
 
 void
 TranslationUnit::export_symbol_table_without_temps_dispatch() const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     export_symbol_table_impl(false);
 }
 
 void
 TranslationUnit::export_symbol_table_impl(const bool export_temps) const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     const std::string outfile_name = source_path_.filename().string() + k_symbol_table_export_ext;
     std::ofstream outfile(outfile_name);
     if (!outfile)
@@ -490,7 +490,7 @@ TranslationUnit::export_symbol_table_impl(const bool export_temps) const
 
     const auto &symbol_per_scope_vector = symbol_table_.symbols_per_scope();
     for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
-        for (const Symbol *symbol_ptr: symbol_per_scope_vector[scope])
+        for (const Symbol *symbol_ptr : symbol_per_scope_vector[scope])
             if (export_temps || !symbol_ptr->is_temp_variable())
                 write_symbol_line(symbol_ptr);
 }
@@ -500,6 +500,8 @@ TranslationUnit::export_within_dir(
     const std::string_view dirname,
     void (TranslationUnit::*export_func)() const) const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     const auto original_path = std::filesystem::current_path();
     create_export_directory(dirname);
     enter_export_directory(dirname);
@@ -510,6 +512,8 @@ TranslationUnit::export_within_dir(
 void
 TranslationUnit::export_diagnostics_impl() const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     const std::string outfile_name = source_path_.filename().string() + k_diagnostic_export_ext;
     std::ofstream outfile(outfile_name);
     if (!outfile)
@@ -528,10 +532,10 @@ TranslationUnit::export_diagnostics_impl() const
         );
     };
 
-    for (const auto &d: diagnostic_engine_.get_diagnostics())
+    for (const auto &d : diagnostic_engine_.get_diagnostics())
     {
         write_issue_line(d->code, d->primary);
-        for (const Issue &note: d->note_list)
+        for (const Issue &note : d->note_list)
             write_issue_line(d->code, note);
     }
 }
@@ -539,6 +543,8 @@ TranslationUnit::export_diagnostics_impl() const
 void
 TranslationUnit::export_ir_impl() const
 {
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+
     const std::string outfile_name = source_path_.filename().string() + k_ir_export_ext;
     std::ofstream outfile(outfile_name);
     if (!outfile)

@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "driver/translation_unit_buffer.hpp"
 #include "support/cli_color.h"
 #include "support/misc_tools.hpp"
 #include "support/string_tools.hpp"
@@ -47,7 +48,7 @@ class IssueFormatterImpl final
 {
 public:
     IssueFormatterImpl(
-        const char *source_buffer,
+        const TranslationUnitBuffer &source_buffer,
         const LocationTracker &loc_tracker,
         const Issue &target,
         bool colorize);
@@ -55,7 +56,7 @@ public:
     [[nodiscard]] std::string format(std::filesystem::path source_path);
 
 private:
-    const char *const source_buffer_;
+    const TranslationUnitBuffer &source_buffer_;
     const LocationTracker &loc_tracker_;
     const Issue &target_;
     const Issue::RenderingLineSpan rendering_span_;
@@ -69,10 +70,16 @@ private:
     [[nodiscard]] std::string format_issue_line();
     [[nodiscard]] std::string make_issue_header(std::filesystem::path source_path) const;
     [[nodiscard]] std::string make_codeline();
+    [[nodiscard]] std::string format_issue_line_with_suggestion(
+        const std::string &codeline,
+        const std::string &underline,
+        const std::vector<std::string> &highlight_anchors,
+        const std::vector<std::string> &highlight_labels);
     [[nodiscard]] std::string make_underline();
     [[nodiscard]] std::vector<std::string> make_highlight_anchors(
         std::size_t root_height, char anchor_marker);
     [[nodiscard]] std::vector<std::string> make_highlight_labels();
+    [[nodiscard]] bool source_blank_afterwards(SrcBufferIdx idx) const noexcept;
 
     [[nodiscard]] SrcBufferIdx find_end_of_code_in_line(SrcBufferIdx line_start_idx) const;
     void ensure_primary_start_marked(std::string &underline);
@@ -112,11 +119,11 @@ private:
 
 IssueFormatter::IssueFormatter(
     const std::filesystem::path source_path,
-    const char *const source_buffer,
+    const TranslationUnitBuffer &source_buffer,
     const LocationTracker &loc_tracker,
     const bool colorize)
     : source_path_(source_path),
-      source_buffer_(support::require_ptr(source_buffer)),
+      source_buffer_(source_buffer),
       loc_tracker_(loc_tracker),
       colorize_(colorize) {}
 
@@ -159,14 +166,14 @@ IssueFormatter::get_highlight_color(const std::size_t highlight_index) noexcept
 }
 
 IssueFormatterImpl::IssueFormatterImpl(
-    const char *source_buffer,
+    const TranslationUnitBuffer &source_buffer,
     const LocationTracker &loc_tracker,
     const Issue &target,
     const bool colorize)
-    : source_buffer_(DEBUG_REQUIRE_PTR(source_buffer)),
+    : source_buffer_(source_buffer),
       loc_tracker_(loc_tracker),
       target_(target),
-      rendering_span_(target.compute_printing_span(loc_tracker)),
+      rendering_span_(target.compute_rendering_span(loc_tracker)),
       colorize_(colorize),
       working_line_(rendering_span_.begin_line)
 {
@@ -188,7 +195,7 @@ IssueFormatterImpl::compute_visual_suggestion_indent_width(const Suggestion &sug
     // we walk the input buffer in case there is a tab to expand.
     for (auto i = line_start_index; i < suggestion.insert_after.end; ++i)
     {
-        const char ch = source_buffer_[i.value];
+        const char ch = source_buffer_[i];
         if (ch == '\t')
             column.value += IssueFormatter::k_tab_width_ - column.value %
                 IssueFormatter::k_tab_width_;
@@ -206,20 +213,18 @@ IssueFormatterImpl::format(const std::filesystem::path source_path)
     out << make_issue_header(source_path);
     out << '\n';
 
-    const Issue::RenderingLineSpan span = target_.compute_printing_span(loc_tracker_);
-    for (auto line_no = span.begin_line; line_no <= span.end_line; ++line_no)
+    const Issue::RenderingLineSpan span = target_.compute_rendering_span(loc_tracker_);
+    for (SrcLineIdx line_no = span.begin_line; line_no <= span.end_line; ++line_no)
     {
         out << format_issue_line();
         ++working_line_;
     }
-
     return out.str();
 }
 
 std::string
 IssueFormatterImpl::format_issue_line()
 {
-    std::stringstream out;
     std::string codeline = make_codeline();
     codeline = colorize_line_comment(codeline);
     std::string underline = make_underline();
@@ -233,82 +238,113 @@ IssueFormatterImpl::format_issue_line()
     const std::vector<std::string> highlight_anchors =
         make_highlight_anchors(1, IssueFormatter::Markers::highlight_stem);
     const std::vector<std::string> highlight_labels = make_highlight_labels();
-    std::vector<std::string> label_lines;
+    const std::vector<std::string> label_lines;
+
+    if (target_.suggestion.has_value())
+    {
+        const auto insertion_line = loc_tracker_.find_last_line(target_.suggestion->insert_after);
+        if (working_line_ == insertion_line)
+            return format_issue_line_with_suggestion(
+                codeline, underline, highlight_anchors, highlight_labels
+            );
+    }
 
     constexpr auto linebox_width = IssueFormatter::k_linebox_width_;
+    std::stringstream out;
     out << FMT::format("{0:>{1}} | {2}\n", working_line_.value, linebox_width, codeline);
     if (!underline.empty())
         out << FMT::format("{0:>{1}} | {2}\n", "", linebox_width, underline);
 
     if (!highlight_anchors.empty())
     {
+        DEBUG_SMART_ASSERT(!highlight_labels.empty() && "There are anchors -> thee must be labels");
         for (const std::string &anchor : highlight_anchors)
             out << FMT::format("{0:>{1}} | {2}\n", "", linebox_width, anchor);
         for (const std::string &label : highlight_labels)
             out << FMT::format("{0:>{1}} | {2}\n", "", linebox_width, label);
     }
 
+    const std::string out_line = out.str();
+    if (target_.suggestion.has_value()) {}
+
     return out.str();
 }
 
-// SrcLineIdx suggestion_line_no{SrcLineIdx::none};
-// std::stringstream out;
-// if (target_.suggestion.has_value())
-//     suggestion_line_no = loc_tracker_.find_last_line(target_.suggestion->insert_after);
-// if (!target_.suggestion.has_value() || suggestion_line_no != working_line_)
-// {
-//     out << FMT::format("{0:>{1}} | {2}\n", working_line_.value, k_linebox_width_, codeline);
-//     if (!underline.empty())
-//         out << FMT::format(
-//             "{0:>{1}} | {2}\n",
-//             "",                                              //{0}
-//             k_linebox_width_,                                //{1}
-//             apply_sgr(underline_color, underline, reset_sgr) // {2}
-//         );
-// }
-// else
-// {
-//     DEBUG_SMART_ASSERT(target_.suggestion.has_value());
-//     const u32 split_point = compute_visual_suggestion_indent_width(issue.suggestion.value());
-//
-//     out << FMT::format(
-//         "{0:>{1}} | {2}{3}{4}\n",
-//         line_no.value,                                //{0}
-//         k_linebox_width_,                             //{1}
-//         codeline.substr(0, split_point),              //{2}
-//         apply_sgr(suggestion_color, "  ", reset_sgr), //{2}
-//         codeline.substr(split_point)                  //{4}
-//     );
-//
-//     if (!underline.empty())
-//         out << FMT::format(
-//             "{0:>{1}} | {2}\n",
-//             "",               //{0}
-//             k_linebox_width_, //{1}
-//             apply_sgr(suggestion_color, std::string(split_point, ' ') + " " + "^",
-//                       reset_sgr) // {2}
-//         );
-//
-//     if (!underline.empty())
-//         out << FMT::format(
-//             "{0:>{1}} | {2}\n",
-//             "",                                                                          //{0}
-//             k_linebox_width_,                                                            //{1}
-//             apply_sgr(suggestion_color, std::string(split_point, ' ') + " |", reset_sgr) // {2}
-//         );
-//     if (!underline.empty())
-//         out << FMT::format(
-//             "{0:>{1}} | {2}\n",
-//             "",               //{0}
-//             k_linebox_width_, //{1}
-//             apply_sgr(suggestion_color,
-//                       std::string(split_point, ' ') + " " + issue.suggestion->desc,
-//                       reset_sgr) // {2}
-//         );
-// }
-//
-// out << label_box;
-// out << reset_sgr;
+std::string
+IssueFormatterImpl::format_issue_line_with_suggestion(
+    const std::string &codeline,
+    const std::string &underline,
+    const std::vector<std::string> &highlight_anchors,
+    const std::vector<std::string> &highlight_labels)
+{
+    DEBUG_SMART_ASSERT(target_.suggestion.has_value() && " Shouldn't be called w/o suggestion");
+
+    const auto suggestion_line_no = loc_tracker_.find_last_line(target_.suggestion->insert_after);
+    const auto split_point = compute_visual_suggestion_indent_width(target_.suggestion.value());
+
+    std::stringstream out;
+
+    constexpr auto linebox_width = IssueFormatter::k_linebox_width_;
+
+    for (const std::string &line : support::split_lines(target_.suggestion->desc))
+        out << FMT::format(
+            "{0:{1}} | {2:{3}}{4}{5}{6}{7}\n",
+            "",                                        // {0}
+            linebox_width,                             // {1}
+            "",                                        // {2}
+            split_point.value,                         // {3}
+            IssueFormatter::Colors::suggestion_fg,     // {4}
+            IssueFormatter::Tokens::insert_suggestion, // {5}
+            line,                                      // {6}
+            SGR_RESET                                  // {7}
+        );
+    out << FMT::format(
+        "{0:{1}} | {2:{3}}{4}\n",
+        "",                                                              // {0}
+        linebox_width,                                                   // {1}
+        "",                                                              // {2}
+        split_point.value,                                               // {3}
+        apply_sgr(IssueFormatter::Colors::suggestion_fg, "|", SGR_RESET) // {4}
+    );
+    out << FMT::format(
+        "{0:{1}} | {2:{3}}{4}\n",
+        "",                                                              // {0}
+        linebox_width,                                                   // {1}
+        "",                                                              // {2}
+        split_point.value,                                               // {3}
+        apply_sgr(IssueFormatter::Colors::suggestion_fg, "V", SGR_RESET) // {4}
+    );
+
+    out << FMT::format(
+        "{0:>{1}} | {2}\n",
+        suggestion_line_no.value, // {0}
+        linebox_width,            // {1}
+        codeline                  // {2}
+    );
+    out << FMT::format(
+        "{0:{1}} | {2}\n",
+        "",            // {0}
+        linebox_width, // {1}
+        underline      // {2}
+    );
+    for (const std::string &line : highlight_anchors)
+        if (!underline.empty())
+            out << FMT::format(
+                "{0:{1}} | {2}\n",
+                "",            // {0}
+                linebox_width, // {1}
+                line           // {2}
+            );
+    for (const std::string &line : highlight_labels)
+        if (!underline.empty())
+            out << FMT::format(
+                "{0:{1}} | {2}\n",
+                "",            // {0}
+                linebox_width, // {1}
+                line           // {2}
+            );
+    return out.str();
+}
 
 std::string
 IssueFormatterImpl::make_issue_header(const std::filesystem::path source_path) const
@@ -357,7 +393,7 @@ IssueFormatterImpl::make_codeline()
     const SrcBufferIdx line_start_idx = loc_tracker_.find_index_of_line(working_line_);
     for (SrcBufferIdx idx = line_start_idx; ; ++idx)
     {
-        const char ch = source_buffer_[idx.value];
+        const char ch = source_buffer_[idx];
         if (ch == '\0' || ch == '\n')
             break;
 
@@ -387,13 +423,22 @@ IssueFormatterImpl::make_underline()
 
     const SrcBufferIdx line_start_idx = loc_tracker_.find_index_of_line(working_line_);
     const SrcBufferIdx end_of_code_idx = find_end_of_code_in_line(line_start_idx); // Inclusive
-
     OnceFlag seen_char;
     for (SrcBufferIdx idx = line_start_idx; ; ++idx.value)
     {
-        const char ch = source_buffer_[idx.value];
+        const char ch = source_buffer_[idx];
+        const bool in_primary_issue = idx >= target_.loc.begin && idx < target_.loc.end;
+
         if (ch == '\0' || ch == '\n' || idx > end_of_code_idx)
+        {
+            if (in_primary_issue && source_blank_afterwards(idx)) // for when you reach EOF
+            {
+                line_accumulator += IssueFormatter::get_underline_color(target_.type);
+                line_accumulator += IssueFormatter::Markers::underline;
+                if (!colored_working_line_) colored_working_line_.enable();
+            }
             break;
+        }
         if (!std::isspace(static_cast<unsigned char>(ch)))
             seen_char.raise();
 
@@ -402,7 +447,6 @@ IssueFormatterImpl::make_underline()
         handle_possible_coloring_stop(line_accumulator, crossed_highlights, idx);
         handle_possible_coloring_start(line_accumulator, crossed_highlights, idx, is_under_code);
 
-        const bool in_primary_issue = idx >= target_.loc.begin && idx < target_.loc.end;
         if (coloring_highlight_ && is_under_code)
             line_accumulator.append(slots, IssueFormatter::Markers::highlight);
         else if (in_primary_issue && is_under_code)
@@ -410,6 +454,7 @@ IssueFormatterImpl::make_underline()
         else
             line_accumulator.append(slots, ' ');
     }
+    // DEBUG_SMART_ASSERT(crossed_highlights.empty() && "Some highlight(s) wasn't shown correctly");
     finalize_colored_line_accumulator(line_accumulator);
     return line_accumulator;
 }
@@ -438,7 +483,7 @@ IssueFormatterImpl::make_highlight_anchors(
         const auto required_stems = initiating_highlights.size();
         for (SrcBufferIdx line_idx = line_start_idx; ; ++line_idx)
         {
-            const char ch = source_buffer_[line_idx.value];
+            const char ch = source_buffer_[line_idx];
             DEBUG_SMART_ASSERT(ch != '\0' && "all initiating highlights before end of buffer=");
             DEBUG_SMART_ASSERT(initiating_highlights.size() >= stems_printed);
             const TaggedHighlight &next_highlight = initiating_highlights[stems_printed];
@@ -485,7 +530,7 @@ IssueFormatterImpl::make_highlight_labels()
         std::size_t labels_printed = 0;
         for (SrcBufferIdx line_idx = initial_line_idx; ; ++line_idx)
         {
-            const char ch = source_buffer_[line_idx.value];
+            const char ch = source_buffer_[line_idx];
             DEBUG_SMART_ASSERT(ch != '\0' && "all initiating highlights before end of buffer=");
             DEBUG_SMART_ASSERT(initiating_highlights.size() > labels_printed);
             const TaggedHighlight &next_highlight = initiating_highlights[labels_printed];
@@ -511,6 +556,15 @@ IssueFormatterImpl::make_highlight_labels()
     }
 
     return label_lines;
+}
+
+bool
+IssueFormatterImpl::source_blank_afterwards(const SrcBufferIdx idx) const noexcept
+{
+    for (SrcBufferIdx i = idx; i.value < source_buffer_.source_size(); ++i)
+        if (!std::isspace(source_buffer_[i]))
+            return false;
+    return true;
 }
 
 void
@@ -594,10 +648,8 @@ IssueFormatterImpl::finalize_colored_line_accumulator(std::string &line_accumula
         line_accumulator += SGR_RESET;
         colored_working_line_.disable();
     }
-
     if (coloring_primary_)
         coloring_primary_.disable();
-
     if (coloring_highlight_)
         coloring_highlight_.disable();
 }
@@ -609,7 +661,7 @@ IssueFormatterImpl::find_end_of_code_in_line(const SrcBufferIdx line_start_idx) 
     std::string codeline_accumulator;
     for (SrcBufferIdx idx = line_start_idx; ; ++idx)
     {
-        const char ch = source_buffer_[idx.value];
+        const char ch = source_buffer_[idx];
         if (ch == '\0' || ch == '\n')
             break;
 
@@ -785,49 +837,3 @@ find_highlight_tag_at(const std::vector<TaggedHighlight> &highlights, const SrcB
     return std::nullopt;
 }
 } // namespace
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-     // if (issue.suggestion.has_value())
-     //     suggestion_line_no = loc_tracker_.find_last_line(issue.suggestion->insert_after);
-     //     DEBUG_SMART_ASSERT(issue.suggestion.has_value());
-     //     const u32 split_point = compute_visual_suggestion_indent_width(issue.suggestion.value());
-     //
-     //     out << FMT::format(
-     //         "{0:>{1}} | {2}{3}{4}\n",
-     //         line_no.value,                                //{0}
-     //         k_linebox_width_,                             //{1}
-     //         codeline.substr(0, split_point),              //{2}
-     //         apply_sgr(suggestion_color, "  ", reset_sgr), //{2}
-     //         codeline.substr(split_point)                  //{4}
-     //     );
-     //
-     //     if (!underline.empty())
-     //         out << FMT::format(
-     //             "{0:>{1}} | {2}\n",
-     //             "",               //{0}
-     //             k_linebox_width_, //{1}
-     //             apply_sgr(suggestion_color, std::string(split_point, ' ') + " " + "^",
-     //                       reset_sgr) // {2}
-     //         );
-     //
-     //     if (!underline.empty())
-     //         out << FMT::format(
-     //             "{0:>{1}} | {2}\n",
-     //             "",                                                                          //{0}
-     //             k_linebox_width_,                                                            //{1}
-     //             apply_sgr(suggestion_color, std::string(split_point, ' ') + " |", reset_sgr) // {2}
-     //         );
-     //     if (!underline.empty())
-     //         out << FMT::format(
-     //             "{0:>{1}} | {2}\n",
-     //             "",               //{0}
-     //             k_linebox_width_, //{1}
-     //             apply_sgr(suggestion_color,
-     //                       std::string(split_point, ' ') + " " + issue.suggestion->desc,
-     //                       reset_sgr) // {2}
-     //         );

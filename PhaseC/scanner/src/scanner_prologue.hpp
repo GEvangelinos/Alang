@@ -10,11 +10,11 @@
 #define YY_USER_ACTION                                                                                            \
     do                                                                                                            \
     {                                                                                                             \
-        yylloc->begin = lexer_ctx.index_;                                                                         \
-        const auto end_result = lexer_ctx.index_.value + yyleng;                                                  \
+        yylloc->begin = lexer_ctx.source_index;                                                                         \
+        const auto end_result = lexer_ctx.source_index.value + yyleng;                                                  \
         DEBUG_SMART_ASSERT(alpha::support::is_in_numeric_range<alpha::SrcBufferIdx::UnderlyingType>(end_result)); \
         yylloc->end = alpha::SrcBufferIdx{static_cast<alpha::SrcBufferIdx::UnderlyingType>(end_result)};          \
-        lexer_ctx.index_.value = end_result;                                                                      \
+        lexer_ctx.source_index.value = end_result;                                                                      \
     } while (0); /* Semi-Colon is not placed by flex, we place it manually. */
 
 #ifdef EMIT

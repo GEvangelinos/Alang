@@ -56,7 +56,7 @@ Issue::column(const LocationTracker &loc_tracker) const
 }
 
 Issue::RenderingLineSpan
-Issue::compute_printing_span(const LocationTracker &loc_tracker) const
+Issue::compute_rendering_span(const LocationTracker &loc_tracker) const
 {
     // Start with the span of the issue itself.
     RenderingLineSpan result{

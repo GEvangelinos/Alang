@@ -7,6 +7,8 @@
 
 namespace alpha
 {
+class TranslationUnitBuffer;
+
 class IssueFormatter
 {
     friend class IssueFormatterImpl;
@@ -14,13 +16,12 @@ class IssueFormatter
 public:
     IssueFormatter(
         std::filesystem::path source_path,
-        const char *source_buffer,
+        const TranslationUnitBuffer &source_buffer,
         const LocationTracker &loc_tracker,
         bool colorize);
 
     std::string format(const Issue &issue);
 
-private:
     struct Markers
     {
         static constexpr char decorator = '`';
@@ -44,16 +45,18 @@ private:
     struct Tokens
     {
         static constexpr const char *line_comment = "//";
+        static constexpr const char *insert_suggestion = "+";
     };
 
     static constexpr Word k_linebox_width_ = 8;
     static constexpr Word k_tab_width_ = 8;
 
+private:
     [[nodiscard]] static const char *get_underline_color(Issue::Type type) noexcept;
     [[nodiscard]] static const char *get_highlight_color(std::size_t highlight_index) noexcept;
 
     std::filesystem::path source_path_;
-    const char *source_buffer_;
+    const TranslationUnitBuffer &source_buffer_;
     const LocationTracker &loc_tracker_;
     const bool colorize_;
 };

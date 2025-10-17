@@ -10,6 +10,7 @@
 #include <limits>
 #include <sstream>
 #include <string>
+#include <variant>
 #include <vector>
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <scanner/alpha_scanner.gen.hpp>
@@ -59,8 +60,10 @@ determine_suggested_token_based_on_parsing_heuristics(
         return YYSYMBOL_YYEMPTY;
 
     const TokenInfo slast_token_info = lexer_ctx.second_last_token_info().value();
-    auto slast_last_line = loc_tracker.find_last_line(slast_token_info.loc);
-    auto unexpected_first_line = loc_tracker.find_first_line(info.unexpected_token_loc);
+    const auto slast_last_line = loc_tracker.find_last_line(slast_token_info.loc);
+    const TokenInfo last_token_info = lexer_ctx.last_token_info().value();
+    const auto last_last_line = loc_tracker.find_last_line(last_token_info.loc);
+    const auto unexpected_first_line = loc_tracker.find_first_line(info.unexpected_token_loc);
     // Suggestion priority:   `;`  `:`  `)`  `]`  `}`  `,`
     // NOTE: because there are likely too many option (this function is used in too_many_expected)
     // we only suggest semicolon if a newline is in between the second last token and last token..
@@ -68,6 +71,8 @@ determine_suggested_token_based_on_parsing_heuristics(
     // this rule, make suggestion awful as semicolon can be placed in many places that most of time
     // make no sense.
     if (has_expected(info, YYSYMBOL_SEMICOLON) &&
+        last_token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
+        last_token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE &&
         slast_token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
         slast_token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE &&
         slast_last_line < unexpected_first_line) { return YYSYMBOL_SEMICOLON; }
@@ -93,7 +98,6 @@ determine_suggested_token_based_on_parsing_heuristics(
 made_diagnostic_based_on_semantic_heuristics(
     const SemanticSystem &ss,
     const LexerCtx &lexer_ctx,
-    DiagnosticEngine &diagnostic_engine,
     DiagnosticReporter &dr,
     const Info &info)
 {
@@ -109,17 +113,14 @@ made_diagnostic_based_on_semantic_heuristics(
         info.unexpected_token == YYSYMBOL_LEFT_BRACE &&
         has_expected(info, YYSYMBOL_RIGHT_PAREN))
     {
-        auto expected = yysymbol_name(YYSYMBOL_RIGHT_PAREN);
+        const auto expected = yysymbol_name(YYSYMBOL_RIGHT_PAREN);
 
-        diagnostic_engine.report_syntax_error(Issue(
-            SYNTAX_ERROR_ISSUE_TYPE,
-            FMT::format("expected {} before `{}`",
-                        expected, info.unexpected_token_name),
+        dr.report_syntax_error_expected_before(
+            expected,
+            info.unexpected_token_name,
             info.unexpected_token_loc,
-            Suggestion(
-                expected,
-                lexer_ctx.second_last_token_info()->loc)
-        ));
+            lexer_ctx.second_last_token_info()->loc
+        );
         return true;
     }
     if (ss.context_inspector->is_in_func_param_list() &&
@@ -128,19 +129,19 @@ made_diagnostic_based_on_semantic_heuristics(
         auto expected = yysymbol_name(YYSYMBOL_COMMA);
         std::string error_message;
         if (info.unexpected_token == YYSYMBOL_ID)
-            error_message = FMT::format("expected `{}`", expected);
-        else
-            error_message = FMT::format(
-                "expected `{}` instead of `{}`", expected, info.unexpected_token_name);
-
-        diagnostic_engine.report_syntax_error(Issue(
-            SYNTAX_ERROR_ISSUE_TYPE,
-            error_message,
-            info.unexpected_token_loc,
-            Suggestion(
+            dr.report_syntax_error_expected(
                 expected,
-                lexer_ctx.second_last_token_info()->loc)
-        ));
+                info.unexpected_token_loc,
+                lexer_ctx.second_last_token_info()->loc
+            );
+        else
+            dr.report_syntax_error_expected_instead_of(
+                expected,
+                info.unexpected_token_name,
+                expected,
+                info.unexpected_token_loc,
+                lexer_ctx.second_last_token_info()->loc
+            );
         return true;
     }
     if (ss.context_inspector->is_in_func_param_list() &&
@@ -148,11 +149,11 @@ made_diagnostic_based_on_semantic_heuristics(
         lexer_ctx.second_last_token_info().has_value() &&
         lexer_ctx.second_last_token_info().value().id == COMMA)
     {
-        diagnostic_engine.report_syntax_error(Issue(
-            SYNTAX_ERROR_ISSUE_TYPE,
-            FMT::format("remove `{}`", yysymbol_name(YYSYMBOL_COMMA)),
+        dr.report_syntax_error_remove_or_add(
+            yysymbol_name(YYSYMBOL_COMMA),
+            yysymbol_name(YYSYMBOL_ID),
             lexer_ctx.second_last_token_info()->loc
-        ));
+        );
         return true;
     }
     return false;
@@ -254,80 +255,86 @@ get_formatted_unexpected_token_name(const Info &info)
 make_symbol_suggestion(const LexerCtx &lexer_ctx, yysymbol_kind_t suggested_symbol)
 {
     DEBUG_SMART_ASSERT(suggested_symbol != YYSYMBOL_YYEMPTY);
-    const TokenInfo token_info = lexer_ctx.second_last_token_info().value();
+    const TokenInfo token_info = lexer_ctx.last_token_info().value();
     return Suggestion{yysymbol_name(suggested_symbol), token_info.loc};
 }
 
 static void
-report_no_expected_diagnostic(const Info &info, DiagnosticEngine &diagnostic_engine)
+report_no_expected_diagnostic(const Info &info, DiagnosticReporter &dr)
 {
     DEBUG_SMART_ASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
     DEBUG_SMART_ASSERT(info.expected_tokens.empty());
 
-    return diagnostic_engine.report_syntax_error(Issue(
-        SYNTAX_ERROR_ISSUE_TYPE,
-        FMT::format("unexpected `{}`", get_formatted_unexpected_token_name(info)),
+    dr.report_syntax_error_unexpected(
+        get_formatted_unexpected_token_name(info),
         info.unexpected_token_loc
-    ));
+    );
 }
+
+#include "diagnostics/issue_formatter.hpp"
 
 static void
 report_few_expected_diagnostic(
     const LexerCtx &lexer_ctx,
     const Info &info,
-    DiagnosticEngine &diagnostic_engine
+    DiagnosticReporter &dr
 )
 {
     DEBUG_SMART_ASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
     DEBUG_SMART_ASSERT(info.expected_tokens.size() <= FEW_TOKENS);
-    auto join_expected = [&](const char *const sep, bool wrap_with_backsticks) -> std::string
+    const auto join_expected = [&](const char *const sep, const bool wrap_with_decorator)
     {
         std::string out;
         for (std::size_t i = 0; i < info.expected_tokens.size(); i++)
         {
             out += i != 0 ? sep : "";
-            out += wrap_with_backsticks ? "`" : "";
+            out += wrap_with_decorator ? "‘" : "";
             out += yysymbol_name(info.expected_tokens[i]);
-            out += wrap_with_backsticks ? "`" : "";
+            out += wrap_with_decorator ? "‘" : "";
         }
         return out;
     };
 
-    std::optional<Suggestion> suggestion;
-    if (const auto token_info = lexer_ctx.second_last_token_info(); token_info.has_value())
-        suggestion.emplace(join_expected("\n", false), token_info->loc);
+    const auto last_token_info = lexer_ctx.last_token_info();
+    const auto second_last_token_info = lexer_ctx.second_last_token_info();
 
-    diagnostic_engine.report_syntax_error(Issue(
-        SYNTAX_ERROR_ISSUE_TYPE,
-        FMT::format("expected {} instead of `{}`", join_expected(" or ", true),
-                    get_formatted_unexpected_token_name(info)),
-        info.unexpected_token_loc,
-        suggestion
-    ));
+    if (last_token_info.has_value() && second_last_token_info)
+        dr.report_syntax_error_expected_instead_of(
+            join_expected(" or ", true),
+            get_formatted_unexpected_token_name(info),
+            join_expected("\n", false),
+            info.unexpected_token_loc,
+            last_token_info->loc == info.unexpected_token_loc
+            ? second_last_token_info->loc
+            : last_token_info->loc
+        );
+    else
+        dr.report_syntax_error_expected_instead_of_without_suggestion(
+            join_expected(" or ", true),
+            get_formatted_unexpected_token_name(info),
+            info.unexpected_token_loc
+        );
 }
 
 static void report_unexpected_eof(
     const LexerCtx &lexer_ctx,
-    DiagnosticEngine &diagnostic_engine,
+    DiagnosticReporter &dr,
     const Info &info)
 {
     DEBUG_SMART_ASSERT(info.unexpected_token == YYSYMBOL_YYEOF);
     const std::optional<TokenInfo> last_token_info_opt = lexer_ctx.last_token_info();
     std::optional<Suggestion> suggestion;
-    if (last_token_info_opt.has_value())
-        suggestion.emplace("finish or remove statement", last_token_info_opt->loc);
-    const Issue generic_issue = Issue(
-        SYNTAX_ERROR_ISSUE_TYPE,
-        "unexpected EOF reached",
-        info.unexpected_token_loc,
-        suggestion
-    );
+
+    const auto report_generic_eof = [&dr, &info]()
+    {
+        dr.report_syntax_error_unexpected(info.unexpected_token_name, info.unexpected_token_loc);
+    };
 
     if (!last_token_info_opt.has_value())
     {
-        diagnostic_engine.report_syntax_error(generic_issue);
+        report_generic_eof();
         return;
     }
 
@@ -372,30 +379,27 @@ static void report_unexpected_eof(
         if (last_token_info_opt.has_value())
             suggestion.emplace(expected_name, last_token_info_opt->loc);
 
-        std::list<Note> notes;
         if (opener_loc.has_value())
         {
-            DEBUG_SMART_ASSERT(opener_loc.value() != k_no_loc);
-            notes.emplace_back(
-                FMT::format("to match this `{}`", DEBUG_REQUIRE_PTR(opener_name)),
-                opener_loc.value()
-            );
-        }
-
-        diagnostic_engine.report_syntax_error(
-            Issue(
-                SYNTAX_ERROR_ISSUE_TYPE,
-                FMT::format(
-                    "expected {} before reaching EOF",
-                    expected_name,
-                    get_formatted_unexpected_token_name(info)),
+            dr.report_syntax_error_expected_closer(
+                expected_name,
+                get_formatted_unexpected_token_name(info),
+                opener_name,
                 info.unexpected_token_loc,
-                suggestion
-            ),
-            std::move(notes));
+                lexer_ctx.last_token_info().value().loc,
+                *opener_loc
+            );
+            return;
+        }
+        dr.report_syntax_error_expected_before(
+            expected_name,
+            get_formatted_unexpected_token_name(info),
+            info.unexpected_token_loc,
+            lexer_ctx.last_token_info().value().loc
+        );
+        return;
     }
-    else
-        diagnostic_engine.report_syntax_error(generic_issue);
+    report_generic_eof();
 }
 
 static void
@@ -404,7 +408,6 @@ report_many_expected_diagnostic(
     const LocationTracker &loc_tracker,
     const LexerCtx &lexer_ctx,
     const Info &info,
-    DiagnosticEngine &diagnostic_engine,
     DiagnosticReporter &dr)
 {
     DEBUG_SMART_ASSERT(
@@ -414,37 +417,30 @@ report_many_expected_diagnostic(
     std::optional<Suggestion> suggestion;
     std::list<Note> notes;
 
-    if (info.unexpected_token == YYSYMBOL_YYEOF)
-    {
-        report_unexpected_eof(lexer_ctx, diagnostic_engine, info);
-        return;
-    }
-
-    if (expected_primary_expression(info) && lexer_ctx.second_last_token_info().has_value())
-    {
-        dr.report_syntax_error_expected_expression(
-            unexpected_token_str,
-            info.unexpected_token_loc,
-            lexer_ctx.second_last_token_info().value().loc
-        );
-        return;
-        // suggestion.emplace("expression", lexer_ctx.second_last_token_info().value().loc);
-        // Issue primary = Issue(
-        //     SYNTAX_ERROR_ISSUE_TYPE,
-        //     FMT::format("expected expression, found ‘{}’", unexpected_token_str),
-        //     info.unexpected_token_loc,
-        //     suggestion
-        // );
-        // diagnostic_engine.report_syntax_error(std::move(primary), std::move(notes));
-    }
-
     const yysymbol_kind_t suggested_symbol =
         determine_suggested_token_based_on_parsing_heuristics(ss, loc_tracker, lexer_ctx, info);
 
-    if (suggested_symbol != YYSYMBOL_YYEMPTY)
+    if (suggested_symbol == YYSYMBOL_YYEMPTY)
     {
-        suggestion.emplace(make_symbol_suggestion(lexer_ctx, suggested_symbol));
+        if (expected_primary_expression(info) && lexer_ctx.second_last_token_info().has_value())
+        {
+            dr.report_syntax_error_expected_expression(
+                unexpected_token_str,
+                info.unexpected_token_loc,
+                lexer_ctx.second_last_token_info().value().loc
+            );
+            return;
+        }
 
+        if (info.unexpected_token == YYSYMBOL_YYEOF)
+        {
+            report_unexpected_eof(lexer_ctx, dr, info);
+            return;
+        }
+        dr.report_syntax_error_unexpected(unexpected_token_str, info.unexpected_token_loc);
+    }
+    else
+    {
         const char *opener_name = nullptr;
         std::optional<SourceLocation> opener_loc;
         switch (suggested_symbol)
@@ -464,38 +460,33 @@ report_many_expected_diagnostic(
         default: break;
         }
 
-        if (opener_loc.has_value())
+        if (opener_loc.has_value() && lexer_ctx.last_token_info().has_value())
         {
-            Issue primary = Issue(
-                SYNTAX_ERROR_ISSUE_TYPE,
-                FMT::format("expected `{}` but found `{}`",
-                            yysymbol_name(suggested_symbol), unexpected_token_str),
-                info.unexpected_token_loc,
-                suggestion
-            );
-
             DEBUG_SMART_ASSERT(opener_loc.value() != k_no_loc);
-            notes.emplace_back(
-                FMT::format("to match this `{}`", DEBUG_REQUIRE_PTR(opener_name)),
-                opener_loc.value()
+            dr.report_syntax_error_expected_closer(
+                yysymbol_name(suggested_symbol),
+                unexpected_token_str,
+                opener_name,
+                info.unexpected_token_loc,
+                lexer_ctx.last_token_info().value().loc,
+                *opener_loc
             );
-            diagnostic_engine.report_syntax_error(std::move(primary), std::move(notes));
             return;
         }
     }
-
-    Issue primary = Issue(
-        SYNTAX_ERROR_ISSUE_TYPE,
-        FMT::format("invalid syntax, unexpected ‘{}’", unexpected_token_str),
-        info.unexpected_token_loc,
-        suggestion
-    );
-
-    diagnostic_engine.report_syntax_error(std::move(primary), std::move(notes));
+    if (lexer_ctx.second_last_token_info().has_value())
+        dr.report_syntax_error_expected_before(
+            yysymbol_name(suggested_symbol),
+            unexpected_token_str,
+            info.unexpected_token_loc,
+            lexer_ctx.second_last_token_info().value().loc
+            );
+    else
+        dr.report_syntax_error_unexpected(unexpected_token_str, info.unexpected_token_loc);
 }
 
 static void
-report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc, DiagnosticEngine &diagnostic_engine)
+report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc, DiagnosticReporter &dr)
 {
     DEBUG_SMART_ASSERT(false &&
         "HOLD YOUR HORSES... You just caused an error,\n"
@@ -504,15 +495,15 @@ report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc, DiagnosticEngine &
         "Basically if there is no unexpected, it must mean\n"
         "that there is NOTHING to cause an error... Right?\n"
     );
-    diagnostic_engine.report_syntax_error(Issue(
-        Issue::Type::FATAL_ERROR,
+
+    dr.report___wtf__(
         "Hey a syntax error occurred, PLEASE if you see this message, "
         "contact the developer and tell him you got this message."
         "Also if you are kind enough, provide him with the source-file "
         "that cause this error. Parser is deterministic,"
         "so he should be able to replicate. THANK YOU",
         unexpected_loc
-    ));
+    );
 }
 
 static void
@@ -520,18 +511,17 @@ report_unexpected_diagnostic(
     const LocationTracker &loc_tracker,
     const LexerCtx &lexer_ctx,
     const Info &info,
-    DiagnosticEngine &diagnostic_engine,
     DiagnosticReporter &dr,
     const SemanticSystem &ss)
 {
     if (info.expected_tokens.empty())
-        report_no_expected_diagnostic(info, diagnostic_engine);
-    else if (made_diagnostic_based_on_semantic_heuristics(ss, lexer_ctx, diagnostic_engine, dr, info))
+        report_no_expected_diagnostic(info, dr);
+    else if (made_diagnostic_based_on_semantic_heuristics(ss, lexer_ctx, dr, info))
         return;
     else if (info.expected_tokens.size() <= FEW_TOKENS)
-        report_few_expected_diagnostic(lexer_ctx, info, diagnostic_engine);
+        report_few_expected_diagnostic(lexer_ctx, info, dr);
     else
-        report_many_expected_diagnostic(ss, loc_tracker, lexer_ctx, info, diagnostic_engine, dr);
+        report_many_expected_diagnostic(ss, loc_tracker, lexer_ctx, info, dr);
 }
 
 /**
@@ -551,7 +541,7 @@ static int yyreport_syntax_error(
     const yyscan_t flex_ctx,
     LexerCtx &lexer_ctx,
     LocationTracker &loc_tracker,
-    DiagnosticEngine &diagnostic_engine,
+    [[maybe_unused]] DiagnosticEngine &diagnostic_engine,
     DiagnosticReporter &dr,
     SemanticSystem &ss)
 {
@@ -560,7 +550,7 @@ static int yyreport_syntax_error(
 
     if (unexpected_token == YYSYMBOL_YYEMPTY)
     // According to bison manual this mean NO-LOOKAHEAD
-        report_no_unexpected_diagnostic(unexpected_token_loc, diagnostic_engine);
+        report_no_unexpected_diagnostic(unexpected_token_loc, dr);
     else
     {
         const auto info = Info{
@@ -570,7 +560,7 @@ static int yyreport_syntax_error(
             .unexpected_token_loc = unexpected_token_loc,
             .expected_tokens = collect_expected_tokens(yyctx)
         };
-        report_unexpected_diagnostic(loc_tracker, lexer_ctx, info, diagnostic_engine, dr, ss);
+        report_unexpected_diagnostic(loc_tracker, lexer_ctx, info, dr, ss);
     }
     return YYREPORT_SYNTAX_ERROR_RETVAL;
 }

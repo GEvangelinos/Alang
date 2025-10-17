@@ -9,7 +9,6 @@
         #include "support/format_adapter.hpp"           // for format, FMT
         #include <diagnostics/diagnostic_reporter.gen.hpp>
         #include "scanner_prologue.hpp"
-
 %}
 
 %option reentrant
@@ -97,7 +96,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
 {float}         { yylval->const_float = std::stod(yytext); EMIT(FLOAT); }
 {int}           { yylval->const_int = std::stol(yytext); EMIT(INT); }
 {line_comment}   { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
-{newline}       { lt.append_line(lexer_ctx.index_); }
+{newline}       { lt.append_line(lexer_ctx.source_index); }
 {space}+        { /* Just eat up the spaces. */ }
 
 {comment_begin_rule} {
@@ -108,12 +107,12 @@ string_invalid_escape_code "\\"([^tnr"\\])
                 BEGIN(INITIAL);
 }
 <INSIDE_COMMENT_BLOCK>{newline} {
-        lt.append_line(lexer_ctx.index_);
+        lt.append_line(lexer_ctx.source_index);
 }
 <INSIDE_COMMENT_BLOCK>{any_character_but_newline} { /* Just eat up any character use see. */ }
 <INSIDE_COMMENT_BLOCK><<EOF>> {
         dr.report_unclosed_comment(alpha::TokenComment::get_starting_location());
-        return ALPHA_YYEOF;
+        EMIT(ALPHA_YYEOF);
 }
 
 {stringBeginRule} {
@@ -121,7 +120,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
         alpha::TokenString::set_starting_location(*yylloc);
 }
 <INSIDE_STRING>{newline} {
-        lt.append_line(lexer_ctx.index_);
+        lt.append_line(lexer_ctx.source_index);
 }
 <INSIDE_STRING>{string_valid_inner_part} {
         alpha::TokenString::append_to_assembling_buffer(yytext);
@@ -132,7 +131,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
 }
 <INSIDE_STRING><<EOF>> {
         dr.report_unclosed_string(alpha::TokenString::get_starting_location());
-        return ALPHA_YYEOF;
+        EMIT(ALPHA_YYEOF);
 }
 <INSIDE_STRING>{string_end_rule} {
         BEGIN(INITIAL);
@@ -144,5 +143,5 @@ string_invalid_escape_code "\\"([^tnr"\\])
         dr.report_invalid_character(yytext, *yylloc);
 }
 
-<<EOF>>          { return ALPHA_YYEOF; }
+<<EOF>>          { EMIT(ALPHA_YYEOF); }
 %%

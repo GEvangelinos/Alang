@@ -21,7 +21,7 @@ struct TokenInfo
 class LexerCtx : private Immobile
 {
 public:
-    SrcBufferIdx index_;
+    SrcBufferIdx source_index;
 
     LexerCtx() = default;
 

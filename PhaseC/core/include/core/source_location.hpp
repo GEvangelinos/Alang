@@ -112,6 +112,8 @@ struct LineRange
 class LocationTracker : private Immobile
 {
 public:
+    OnceFlag lines_frozen;
+
     explicit LocationTracker(std::size_t max_valid_index);
 
     void append_line(SrcBufferIdx linestart_index);
@@ -122,6 +124,7 @@ public:
     [[nodiscard]] SrcColumnIdx find_first_column(SourceLocation loc) const;
     [[nodiscard]] LineRange find_lines(SrcBufferIdx begin_idx, SrcBufferIdx end_idx) const;
     [[nodiscard]] LineRange find_lines(SourceLocation loc) const;
+    [[nodiscard]] bool is_virtual_line(SrcLineIdx line ) const noexcept;
 
 private:
     const SrcBufferIdx max_valid_index_;
