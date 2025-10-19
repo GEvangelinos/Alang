@@ -42,7 +42,7 @@ private:
     // These fields are used to improve diagnostic messages. For example, if a brace remains
     // unclosed, we can point to the exact source location of the most recent opening token.
 
-    using TokenLocStack = std::stack<SourceLocation, std::vector<SourceLocation>>;
+    using TokenLocStack = VectorStack<SourceLocation>;
     TokenLocStack open_left_parentheses_locs;
     TokenLocStack open_left_brackets_locs;
     TokenLocStack open_left_braces_locs;
@@ -53,6 +53,5 @@ LexerCtx::last_token_info() const noexcept { return last_token_info_; }
 
 inline std::optional<TokenInfo>
 LexerCtx::second_last_token_info() const noexcept { return second_last_token_info_; }
-
 } // namespace alpha
 #endif // SCANNER_CONTEXT_HPP

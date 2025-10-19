@@ -16,7 +16,7 @@ protected:
     SymbolTable *const symbol_table_ = nullptr;
     DiagnosticReporter *const dr_ = nullptr;
     ExprMaker *const expr_maker_ = nullptr;
-    QuadEmitter *const quad_emitter_ = nullptr;
+    QuadHandler *const quad_handler_ = nullptr;
     QuadYielder *const quad_yielder_ = nullptr;
     ExprNormalizer *const expr_normalizer_ = nullptr;
     ExprOptimizer *const expr_optimizer_ = nullptr;

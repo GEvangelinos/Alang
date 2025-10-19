@@ -336,6 +336,12 @@ const char *TokenString::export_string_token()
     return latest_assembled_string_.c_str();
 }
 
+SourceLocation
+TokenString::export_location(SourceLocation closing_quote_loc)
+{
+    return merge(get_starting_location(), closing_quote_loc);
+}
+
 TokenString::TokenString(
     const u32 line_number,
     const u32 token_number,

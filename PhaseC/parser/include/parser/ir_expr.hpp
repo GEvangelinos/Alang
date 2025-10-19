@@ -1,5 +1,5 @@
-#ifndef IR_HPP
-#define IR_HPP
+#ifndef IR_EXPR_HPP
+#define IR_EXPR_HPP
 #include <optional>
 #include <vector>
 #include <parser/konstants.hpp>
@@ -8,8 +8,8 @@
 #include "parser/symbols.hpp"
 
 #include "core/konstants.hpp"
-#include "support/misc_tools.hpp"
 #include "parser/ir_opcode.gen.hpp"
+#include "support/misc_tools.hpp"
 #include "support/string_tools.hpp"
 
 namespace alpha
@@ -80,7 +80,7 @@ struct Expr : private Immobile
 protected:
     // DO NOT explicitly initialize @param rvalue_casted!
     ALWAYS_INLINE Expr(const Type type, const SourceLocation loc)
-        : loc(loc), type(type), rvalue_casted() {}
+        : loc(loc), type(type) {}
 
 private:
     mutable SourceLocation left_cast_region;
@@ -222,16 +222,6 @@ struct VariableExpr final : public ExprWVarSymbol
         : ExprWVarSymbol(Type::VARIABLE, loc, var) { DEBUG_SMART_ASSERT(var->is_variable()); }
 };
 
-struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
-{
-    SourceLocation loc;
-    LabelID label = {};
-    const Expr *result;
-    const Expr *arg1;
-    const Expr *arg2;
-    const ir::Opcode opcode;
-};
-
 inline void
 Expr::rvalue_cast() const { rvalue_casted.raise(); }
 
@@ -242,4 +232,4 @@ inline static const ConstIntExpr k_static_int_1_expr{k_no_loc, 1};
 inline static const ConstBoolExpr k_static_true_expr{k_no_loc, true};
 inline static const ConstBoolExpr k_static_false_expr{k_no_loc, false};
 } // namespace alpha
-#endif // IR_HPP
+#endif // IR_EXPR_HPP

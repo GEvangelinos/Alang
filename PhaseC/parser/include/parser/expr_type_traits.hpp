@@ -72,7 +72,7 @@ inline constexpr ExprTypeMask libfunc =
 
 inline constexpr ExprTypeMask progfunc =
     LVALUE_MASK
-    | TO_BITMASK(LIBRARY_FUNCTION);
+    | TO_BITMASK(PROGRAM_FUNCTION);
 
 #undef TO_BITMASK
 #undef LVALUE_MASK

@@ -32,7 +32,7 @@
 #include "L2_semantic_subsystems/block_manager.hpp"
 #include "L2_semantic_subsystems/core/expr_maker.hpp"
 #include "L2_semantic_subsystems/core/expr_optimizer.hpp"
-#include "L2_semantic_subsystems/core/quad_emitter.hpp"
+#include "L2_semantic_subsystems/core/quad_handler.hpp"
 #include "L2_semantic_subsystems/core/expr_normalizer.hpp"
 #include "parser/parser_context.hpp"
 #include "parser/symbol_table.hpp"
@@ -52,7 +52,8 @@ class SemanticSystem : private Immobile
 
 public: // More public stuff at the end (check it out)
     SemanticSystem(
-        const settings::ExprOpts &opts,
+        const settings::ExprOpts &expr_opts,
+        const settings::IROpts &ir_opts,
         ParseCtx *parse_ctx,
         SymbolTable *symbol_table,
         DiagnosticReporter *dr);
@@ -93,7 +94,8 @@ private:
 
     // -- Layer 2 cor subsystems -- We use unique_ptr instead of normal vars, in order to detect wrong initialization order
     std::unique_ptr<ExprMaker> expr_maker_;
-    std::unique_ptr<QuadEmitter> quad_emitter_;
+    std::unique_ptr<QuadHandler> quad_handler_;
+    std::unique_ptr<QuadInterceptor> quad_interceptor_;
     std::unique_ptr<QuadYielder> quad_yielder_;
     std::unique_ptr<ExprNormalizer> expr_normalizer_;
     std::unique_ptr<ExprOptimizer> expr_optimizer_;
@@ -162,12 +164,13 @@ class SemanticSystem::Gateway
 
 private:
     SemanticSystem *const host_;
+    OnceFlag extracted_quads;
 
-    explicit Gateway(SemanticSystem *const ss)
-        : host_(support::require_ptr(ss)) {}
+    explicit Gateway(SemanticSystem *ss);
 
     void notify_hard_error() noexcept;
-    [[nodiscard]] const auto &get_quads() const noexcept { return host_->quad_emitter_->quads(); }
+
+    [[nodiscard]] std::vector<Quad> extract_quads() noexcept;
 };
 } // namespace alpha
 #endif // SEMANTIC_SYSTEM_HPP

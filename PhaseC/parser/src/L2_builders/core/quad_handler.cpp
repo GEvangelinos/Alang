@@ -1,18 +1,20 @@
-#include "L2_semantic_subsystems/core/quad_emitter.hpp"
+#include "L2_semantic_subsystems/core/quad_handler.hpp"
 
+#include "ir_expr.hpp"
+#include "ir_quad.hpp"
 #include "parser/ir_opcode_info_traits.gen.hpp"
 
 namespace alpha
 {
 void
-QuadEmitter::emit(
+QuadHandler::emit(
     const ir::Opcode opc,
     const Expr *const result,
     const Expr *const arg1,
     const Expr *const arg2,
     const SourceLocation loc,
     const LabelID label,
-    QuadEmitter::EmitterKey)
+    QuadHandler::EmitKey)
 {
     #ifdef DEBUG_MODE
     namespace ii = ir::info_traits;
@@ -44,10 +46,10 @@ QuadEmitter::emit(
 
     quads_.emplace_back(Quad{
         .loc = loc,
-        .label = label,
         .result = result,
         .arg1 = arg1,
         .arg2 = arg2,
+        .label = label,
         .opcode = opc,
 
     });
@@ -55,10 +57,10 @@ QuadEmitter::emit(
 }
 
 void
-QuadEmitter::labelPatch_quad(const LabelID target_quad_label, const LabelID destination_label)
+QuadHandler::labelPatch_quad(const LabelID target_quad_label, const LabelID destination_label)
 {
     // First quad at index 0, has quad with label 1.
-    const u32 idx = QuadEmitter::label_to_index(target_quad_label);
+    const u32 idx = Quad::label_to_index(target_quad_label);
     DEBUG_SMART_ASSERT(
         idx < quads_.size(),
         quads_[idx].label == k_no_label,
@@ -68,24 +70,24 @@ QuadEmitter::labelPatch_quad(const LabelID target_quad_label, const LabelID dest
 }
 
 void
-QuadEmitter::labelPatch_list(
+QuadHandler::labelPatch_list(
     const std::vector<LabelID> &patch_list,
     const LabelID destination_label)
 {
     DEBUG_SMART_ASSERT(destination_label != k_no_label);
-    for (const LabelID target_quad_label: patch_list)
+    for (const LabelID target_quad_label : patch_list)
         labelPatch_quad(target_quad_label, destination_label);
 }
 
 void
-QuadEmitter::locPatch_tablecreate(const LabelID target_quad_label, const SourceLocation new_loc)
+QuadHandler::locPatch_tablecreate(const LabelID target_quad_label, const SourceLocation new_loc)
 {
     DEBUG_SMART_ASSERT(
         target_quad_label != k_no_label && "Can't loc-patch quad without valid LabelID",
         new_loc != k_no_loc && "Can't loc-patch quad without valid SourceLocation"
     );
 
-    const u32 idx = QuadEmitter::label_to_index(target_quad_label);
+    const u32 idx = Quad::label_to_index(target_quad_label);
 
     // Keep asserts separate, as dereferencing might segfault
     DEBUG_SMART_ASSERT(idx < quads_.size());
@@ -95,5 +97,13 @@ QuadEmitter::locPatch_tablecreate(const LabelID target_quad_label, const SourceL
     );
 
     quads_[idx].loc = new_loc;
+}
+
+std::vector<Quad>
+QuadHandler::extract_quads() noexcept
+{
+    const auto result = std::move(quads_);
+    quads_.clear();
+    return result;
 }
 } // namespace alpha

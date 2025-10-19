@@ -2,14 +2,13 @@
 
 #include <set>
 
-#include "internal_typedefs.hpp"
-#include "core/konstants.hpp"
 #include "L2_semantic_subsystems/core/expr_normalizer.hpp"
 
 namespace alpha
 {
 SemanticSystem::SemanticSystem(
-    const settings::ExprOpts &opts,
+    const settings::ExprOpts &expr_opts,
+    const settings::IROpts &ir_opts,
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
     DiagnosticReporter *const dr)
@@ -21,25 +20,28 @@ SemanticSystem::SemanticSystem(
 
     // Private components, used by public submodules.
     expr_maker_(std::make_unique<ExprMaker>(parse_ctx)),
-    quad_emitter_(std::make_unique<QuadEmitter>()),
+    quad_handler_(std::make_unique<QuadHandler>()),
+    quad_interceptor_(std::make_unique<QuadInterceptor>(ir_opts, quad_handler_.get())),
     quad_yielder_(std::make_unique<QuadYielder>(
         parse_ctx,
         symbol_table,
         expr_maker_.get(),
-        quad_emitter_.get()
+        quad_handler_.get(),
+        quad_interceptor_.get()
     )),
     expr_normalizer_(std::make_unique<ExprNormalizer>(
         parse_ctx,
         expr_maker_.get(),
-        quad_emitter_.get(),
+        quad_handler_.get(),
+        quad_interceptor_.get(),
         quad_yielder_.get()
     )),
-    expr_optimizer_(std::make_unique<ExprOptimizer>(opts, expr_maker_.get())),
+    expr_optimizer_(std::make_unique<ExprOptimizer>(expr_opts, expr_maker_.get())),
 
     // public (through call() dispatcher) servicers, used by users of semantic driver.
     aggregate_builder(create_semantic_system_services()),
-    assign_builder(get_assign_builder_options(opts), create_semantic_system_services()),
-    basic_builder(get_basic_builder_options(opts), create_semantic_system_services()),
+    assign_builder(get_assign_builder_options(expr_opts), create_semantic_system_services()),
+    basic_builder(get_basic_builder_options(expr_opts), create_semantic_system_services()),
     block_manager(create_semantic_system_services()),
     call_builder(create_semantic_system_services()),
     const_builder(create_semantic_system_services()),
@@ -50,7 +52,12 @@ SemanticSystem::SemanticSystem(
 
     // public resources used by external components.
     gateway(std::unique_ptr<Gateway>(new Gateway(this))),
-    context_inspector(std::unique_ptr<ContextInspector>(new ContextInspector(this))) {}
+    context_inspector(std::unique_ptr<ContextInspector>(new ContextInspector(this)))
+{
+    // Two-phase initialization: ControlFlowManager constructed after QuadInterceptor.
+    // Bind interceptor to control flow manager post construction.
+    quad_interceptor_->attach_control_flow_manager(&control_flow_manager);
+}
 
 SemanticSystemServices
 SemanticSystem::create_semantic_system_services()
@@ -60,7 +67,7 @@ SemanticSystem::create_semantic_system_services()
         .parse_ctx = support::require_ptr(parse_ctx_),
         .dr = support::require_ptr(dr_),
         .expr_maker = support::require_ptr(expr_maker_.get()),
-        .quad_emitter = support::require_ptr(quad_emitter_.get()),
+        .quad_handler = support::require_ptr(quad_handler_.get()),
         .quad_yielder = support::require_ptr(quad_yielder_.get()),
         .expr_normalizer = support::require_ptr(expr_normalizer_.get()),
         .expr_optimizer = support::require_ptr(expr_optimizer_.get()),
@@ -128,11 +135,25 @@ SemanticSystem::force_rvalue_cast(const Expr *const expr, const SourceLocation c
     return result;
 }
 
+SemanticSystem::Gateway::Gateway(SemanticSystem *const ss)
+    : host_(support::require_ptr(ss)) {}
+
 void
 SemanticSystem::Gateway::notify_hard_error() noexcept
 {
     host_->ss_status_ = SemanticSystem::Status::ERROR;
     host_->parse_ctx_->hard_error_occurred_.raise();
+}
+
+std::vector<Quad>
+SemanticSystem::Gateway::extract_quads() noexcept
+{
+    if (extracted_quads)
+        throw std::logic_error(ATTACH_CONTEXT(
+            "Quad extraction must only happen once at the end of parsing"
+        ));
+    extracted_quads.raise();
+    return host_->quad_handler_->extract_quads();
 }
 
 SemanticSystem::ContextInspector::ContextInspector(SemanticSystem *const ss)

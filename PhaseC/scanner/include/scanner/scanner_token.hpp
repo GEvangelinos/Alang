@@ -5,6 +5,9 @@
 #include <string> // for string, basic_string
 #include "core/source_location.hpp"
 
+// TODO: if planning to scan multiple files and have multiple threads..
+// you need to remove the static buffer variables and either move to thread_local (for many threads)
+// or to private  (per class)
 namespace alpha
 {
 struct AlphaToken
@@ -134,6 +137,7 @@ public:
     static SourceLocation get_starting_location();
     static void append_to_assembling_buffer(std::string string_chunk);
     static const char *export_string_token();
+    [[nodiscard]] static SourceLocation export_location(SourceLocation closing_quote_loc);
     TokenString(u32 line_number, u32 token_number, const std::string &string_content);
     std::string to_string() const override;
 

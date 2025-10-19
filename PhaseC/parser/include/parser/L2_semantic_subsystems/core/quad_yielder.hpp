@@ -5,7 +5,8 @@
 #include "expr_optimizer.hpp"
 #include "ir_expr.hpp"
 #include "parser_context.hpp"
-#include "quad_emitter.hpp"
+#include "quad_handler.hpp"
+#include "quad_interceptor.hpp"
 
 namespace alpha
 {
@@ -26,7 +27,8 @@ public:
         ParseCtx *parse_ctx,
         SymbolTable *symbol_table,
         ExprMaker *expr_maker,
-        QuadEmitter *quad_emitter);
+        QuadHandler *quad_handler,
+        QuadInterceptor *quad_interceptor);
 
     void release_temp_handle_if_active(const Expr *expr);
 
@@ -98,7 +100,8 @@ private:
     ParseCtx *const parse_ctx_;
     SymbolTable *const symbol_table_;
     ExprMaker *const expr_maker_;
-    QuadEmitter *const quad_emitter_;
+    QuadHandler *const quad_handler_;
+    QuadInterceptor *const quad_interceptor_;
 };
 
 template<ExprFactory ResultFactory>
@@ -117,7 +120,7 @@ QuadYielder::yield(
     if (arg1) release_temp_handle_if_active(arg1);
 
     const Expr *const result = std::forward<ResultFactory>(result_factory)();
-    quad_emitter_->emit(opc, result, arg1, arg2, loc, label, QuadEmitter::EmitterKey{});
+    quad_interceptor_->emit(opc, result, arg1, arg2, loc, label, QuadInterceptor::EmitKey{});
     return result;
 }
 
@@ -140,7 +143,7 @@ QuadYielder::yield_returning_hook_result(
         release_temp_handle_if_active(arg1);
 
     const Expr *const hook_result = std::forward<PreEmitHook>(pre_emit_hook)();
-    quad_emitter_->emit(opc, result, arg1, arg2, loc, label, QuadEmitter::EmitterKey{});
+    quad_interceptor_->emit(opc, result, arg1, arg2, loc, label, QuadInterceptor::EmitKey{});
     return hook_result;
 }
 
@@ -160,7 +163,7 @@ QuadYielder::yield_next(
         arg1,
         arg2,
         loc,
-        quad_emitter_->next_quad_label() + label_offset
+        quad_handler_->next_quad_label() + label_offset
     );
 }
 

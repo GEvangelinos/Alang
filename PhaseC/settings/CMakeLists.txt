@@ -6,6 +6,9 @@ add_library(alpha_settings_api INTERFACE)
 target_include_directories(alpha_settings_api INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
+target_link_libraries(alpha_settings_api INTERFACE
+    alpha_core_api
+)
 
 
 # === alpha_settings_impl: Implementation (compiled source) ===

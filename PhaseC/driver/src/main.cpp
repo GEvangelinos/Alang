@@ -38,8 +38,9 @@ int main(const int argc, char **argv)
         g_show_parser_trace = cli_parser[alpha::settings::Jobs::show_parser_trace].is_provided();
 
         driver = std::make_unique<alpha::Driver>(
+            setting_manager.config_data_settings(),
             setting_manager.expr_opt_settings(),
-            setting_manager.config_data_settings()
+            setting_manager.ir_opt_settings()
         );
         driver->run();
         handle_exports(cli_parser, *driver);

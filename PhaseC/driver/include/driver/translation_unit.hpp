@@ -5,6 +5,7 @@
 #include <scanner/scanner_context.hpp>
 
 #include "translation_unit_buffer.hpp"
+#include "../../../ir_optimizer/include/ir_optimizer/ir_optimizer.hpp"
 #include "core/basics.hpp"
 #include "diagnostics/diagnostic_formatter.hpp"
 #include "L1_driver/semantic_system.hpp"
@@ -15,6 +16,7 @@ typedef void *yyscan_t;
 
 namespace alpha
 {
+class IROptimizer;
 class LocationTracker;
 class DiagnosticReporter;
 class SymbolTable;
@@ -24,6 +26,7 @@ class PassManager : private Immobile
 public:
     PassManager(
         const settings::ExprOpts &expr_opts,
+        const settings::IROpts &ir_opts,
         TranslationUnitBuffer &tu_buffer,
         LocationTracker &lt,
         DiagnosticEngine &diagnostic_engine,
@@ -32,11 +35,11 @@ public:
     void execute();
     void notify_hard_error();
 
-    [[nodiscard]] bool is_in_hard_error();
-    [[nodiscard]] const auto &get_quads() { return semantic_system_.gateway->get_quads(); }
+    [[nodiscard]] bool is_in_hard_error()const ;
+    [[nodiscard]] const std::vector<Quad> &get_quads() const noexcept;
 
 private:
-    enum class Phase { FRONTEND };
+    enum class Phase { FRONTEND, IR_OPTIMIZATION };
 
     class ScannerHandle : private alpha::Immobile
     {
@@ -59,6 +62,8 @@ private:
     ParseCtx parse_ctx_;
     LexerCtx lexer_ctx_;
     SemanticSystem semantic_system_;
+    IROptimizer ir_optimizer_;
+    std::vector<Quad> ir_quads_;
 
     Once<int> parser_retval_;
 
@@ -71,7 +76,8 @@ public:
     TranslationUnit(
         const std::filesystem::path &source_path,
         std::size_t max_errors,
-        const alpha::settings::ExprOpts &expr_opts);
+        const alpha::settings::ExprOpts &expr_opts,
+        const alpha::settings::IROpts &ir_opts);
 
     ~TranslationUnit() = default;
 

@@ -136,6 +136,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
 <INSIDE_STRING>{string_end_rule} {
         BEGIN(INITIAL);
         yylval->cstring =  alpha::TokenString::export_string_token();
+        *yylloc = alpha::TokenString::export_location(*yylloc);
         EMIT(STRING);
 }
 

@@ -7,7 +7,7 @@ class SymbolTable;
 class ParseCtx;
 class DiagnosticReporter;
 class ExprMaker;
-class QuadEmitter;
+class QuadHandler;
 class QuadYielder;
 class ExprNormalizer;
 class ExprOptimizer;
@@ -18,7 +18,7 @@ struct SemanticSystemServices
     ParseCtx *const parse_ctx = nullptr;
     DiagnosticReporter *const dr = nullptr;
     ExprMaker *const expr_maker = nullptr;
-    QuadEmitter *const quad_emitter = nullptr;
+    QuadHandler *const quad_handler = nullptr;
     QuadYielder *const quad_yielder = nullptr;
     ExprNormalizer *const expr_normalizer = nullptr;
     ExprOptimizer *const expr_optimizer = nullptr;

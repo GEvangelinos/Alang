@@ -78,6 +78,12 @@ if (NOT HATE_PYTHON_MODE)
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         VERBATIM
     )
+
+    add_custom_target(generate_ir_opcodes
+        DEPENDS
+        ${GENERATED_IR_OPCODE_SOURCES}
+    )
+
 endif ()
 
 find_package(BISON QUIET)
@@ -140,10 +146,11 @@ add_library(alpha_parser_impl STATIC
     src/L2_builders/expr_builders.cpp
     src/L2_builders/semantic_subsystem.cpp
     src/L2_builders/block_manager.cpp
+    src/L2_builders/core/quad_interceptor.cpp
     src/L2_builders/core/expr_maker.cpp
     src/L2_builders/core/expr_normalizer.cpp
     src/L2_builders/core/expr_optimizer.cpp
-    src/L2_builders/core/quad_emitter.cpp
+    src/L2_builders/core/quad_handler.cpp
     src/L2_builders/core/quad_yielder.cpp
     invariants/ir_opcode_static_invariants.cpp
 )
@@ -164,6 +171,7 @@ target_link_libraries(alpha_parser_impl PRIVATE
 )
 
 add_dependencies(alpha_parser_impl generate_parser_scanner)
+add_dependencies(alpha_parser_impl generate_ir_opcodes)
 
 if (NOT HATE_PYTHON_MODE)
     target_sources(alpha_parser_impl PRIVATE ${GENERATED_IR_OPCODE_SOURCES})

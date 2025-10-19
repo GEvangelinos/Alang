@@ -3,11 +3,12 @@
 
 namespace alpha
 {
+class QuadInterceptor;
 class QuadYielder;
 struct Expr;
 class ParseCtx;
 class ExprMaker;
-class QuadEmitter;
+class QuadHandler;
 
 class ExprNormalizer
 {
@@ -15,7 +16,8 @@ public:
     ExprNormalizer(
         ParseCtx *parse_ctx,
         ExprMaker *expr_maker,
-        QuadEmitter *quad_emitter,
+        QuadHandler *quad_handler,
+        QuadInterceptor *quad_interceptor,
         QuadYielder *quad_yielder);
 
     const Expr *materialize_if_table_item(const Expr *expr);
@@ -24,8 +26,9 @@ public:
 private:
     ParseCtx *const parse_ctx_;
     ExprMaker *const expr_maker_;
-    QuadEmitter *const quad_emitter_;
+    QuadHandler *const quad_handler_;
     QuadYielder *const quad_yielder_;
+    QuadInterceptor *const quad_interceptor_;
 };
 } // namespace alpha
 #endif //EXPR_NORMALIZER_HPP

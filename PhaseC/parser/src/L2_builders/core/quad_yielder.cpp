@@ -6,11 +6,13 @@ QuadYielder::QuadYielder(
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
     ExprMaker *const expr_maker,
-    QuadEmitter *const quad_emitter)
+    QuadHandler *const quad_handler,
+    QuadInterceptor *const quad_interceptor)
     : parse_ctx_(support::require_ptr(parse_ctx)),
       symbol_table_(support::require_ptr(symbol_table)),
       expr_maker_(support::require_ptr(expr_maker)),
-      quad_emitter_(support::require_ptr(quad_emitter)) {}
+      quad_handler_(support::require_ptr(quad_handler)),
+      quad_interceptor_(support::require_ptr(quad_interceptor)) {}
 
 void
 QuadYielder::release_temp_handle_if_active(const Expr *const expr)

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <driver/translation_unit.hpp>
 
+#include "ir_optimizer/ir_optimizer.hpp"
 #include "core/konstants.hpp"
 #include "driver/alpha_driver.hpp"
 #include "driver/exception.hpp"
@@ -212,6 +213,7 @@ inline constexpr auto k_scanner_eof_null_padding = 2; // For 2 consecutive NULL 
 
 PassManager::PassManager(
     const alpha::settings::ExprOpts &expr_opts,
+    const alpha::settings::IROpts &ir_opts,
     TranslationUnitBuffer &tu_buffer,
     LocationTracker &lt,
     DiagnosticEngine &diagnostic_engine,
@@ -223,13 +225,20 @@ PassManager::PassManager(
       lexer_ctx_(),
       semantic_system_(
           expr_opts,
+          ir_opts,
           &parse_ctx_,
           support::require_ptr(symbol_table),
           diagnostic_engine_.reporter.get()
-      ) {}
+      ),
+      ir_optimizer_(ir_opts) {}
 
 void
-PassManager::execute() { run_frontend(); }
+PassManager::execute()
+{
+    run_frontend();
+    ir_quads_ = semantic_system_.gateway->extract_quads();
+    ir_quads_ = ir_optimizer_.run(std::move(ir_quads_));
+}
 
 void
 PassManager::run_frontend()
@@ -251,14 +260,20 @@ PassManager::run_frontend()
 }
 
 bool
-PassManager::is_in_hard_error()
+PassManager::is_in_hard_error() const
 {
     switch (running_phase_)
     {
     case Phase::FRONTEND: return semantic_system_.good();
+    case Phase::IR_OPTIMIZATION:
+        DEBUG_SMART_ASSERT(false && "No such query should happen at this state (logically)");
+        return false;
     default: UNREACHABLE("Unknown `Phase`");
     }
 }
+
+const std::vector<Quad> &
+PassManager::get_quads() const noexcept { return ir_quads_; }
 
 void
 PassManager::notify_hard_error()
@@ -288,7 +303,8 @@ TranslationUnit::create_diagnostic_engine_policy()
 TranslationUnit::TranslationUnit(
     const std::filesystem::path &source_path,
     const std::size_t max_errors,
-    const settings::ExprOpts &expr_opts)
+    const settings::ExprOpts &expr_opts,
+    const settings::IROpts &ir_opts)
     : source_path_(source_path),
       expr_opts_(expr_opts),
       diagnostic_engine_(create_diagnostic_engine_policy(), max_errors),
@@ -302,6 +318,7 @@ TranslationUnit::TranslationUnit(
       symbol_table_(),
       pass_manager_(std::make_unique<PassManager>(
           expr_opts,
+          ir_opts,
           *support::require_ptr(translation_unit_buffer_.get()),
           loc_tracker_,
           diagnostic_engine_,

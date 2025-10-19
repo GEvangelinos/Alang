@@ -6,7 +6,7 @@
 #include "parser_context.hpp"
 #include "core/source_location.hpp"
 #include "L1_driver/semantic_system_support.hpp"
-#include "core/quad_emitter.hpp"
+#include "core/quad_handler.hpp"
 
 #include  <parser/ir_opcode.gen.hpp>
 #include "semantic_subsystem.hpp"
@@ -16,6 +16,9 @@ namespace alpha
 class ControlFlowManager
 {
     friend class SemanticSystem;
+
+public:
+    [[nodiscard]] bool is_in_dead_block() const noexcept;
 
 private:
     enum class LoopKeyword { CONTINUE, BREAK };
@@ -104,16 +107,16 @@ private:
 
         void mark_upcoming_forloop_sites();
         void manage_loop_keyword(LoopKeyword keyword, SourceLocation keyword_loc);
-        bool is_in_loop();
+        [[nodiscard]] bool is_in_loop();
 
-        static ForLoopSite next(ForLoopSite fls) noexcept;
+        [[nodiscard]] static ForLoopSite next(ForLoopSite fls) noexcept;
     };
 
     // Accessors exists to insulate call sites from the DISPATCH_TARGET macro
     // and to make the intended access point to Restricted state explicit.
     Restricted DISPATCH_TARGET;
-    Restricted &restricted() noexcept { return DISPATCH_TARGET; }
-    const Restricted &restricted() const noexcept { return DISPATCH_TARGET; }
+    [[nodiscard]] Restricted &restricted() noexcept { return DISPATCH_TARGET; }
+    [[nodiscard]] const Restricted &restricted() const noexcept { return DISPATCH_TARGET; }
 
     explicit ControlFlowManager(const SemanticSystemServices &ss_services);
 

@@ -24,8 +24,9 @@ target_include_directories(alpha_driver_impl PRIVATE
     "${GENERATED_INCLUDE_DIR}"
 )
 target_link_libraries(alpha_driver_impl PRIVATE
-    alpha_driver_api
     alpha_core_api
+    alpha_driver_api
+    alpha_ir_optimizer_api
     alpha_settings_api
     arguinator_api
 )
@@ -47,6 +48,7 @@ target_link_libraries("${COMPILER_EXE_NAME}" PRIVATE
     alpha_parser_impl
     alpha_scanner_impl
     alpha_settings_impl
+    alpha_ir_optimizer_impl
 )
 
 # === Custom generation step (scanner + parser) ===

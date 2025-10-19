@@ -103,7 +103,7 @@ ExprFolder::try_fold_relational_numeric(
     const Expr *const rhs,
     const SourceLocation result_loc)
 {
-    const auto fold_rel_op = [this, opc, result_loc](const auto l, const auto r) -> const Expr *
+    const auto fold_rel_num_op = [this, opc, result_loc](const auto l, const auto r) -> const Expr *
     {
         switch (opc)
         {
@@ -128,9 +128,9 @@ ExprFolder::try_fold_relational_numeric(
         return nullptr;
 
     return lhs->type == Expr::Type::CONST_INT && rhs->type == Expr::Type::CONST_INT
-           ? fold_rel_op(static_cast<const ConstIntExpr *>(lhs)->value,
+           ? fold_rel_num_op(static_cast<const ConstIntExpr *>(lhs)->value,
                          static_cast<const ConstIntExpr *>(rhs)->value)
-           : fold_rel_op(SemUtils::extract_alpha_float(lhs), SemUtils::extract_alpha_float(rhs));
+           : fold_rel_num_op(SemUtils::extract_alpha_float(lhs), SemUtils::extract_alpha_float(rhs));
 }
 
 const Expr *
@@ -148,30 +148,31 @@ ExprFolder::try_fold_relational_equality(
     if (!should_fold_relational_equality(lhs, rhs))
         return nullptr;
 
-    // const auto equality_check = [lhs, rhs]() -> bool
-    // {
-    //     using ET = Expr::Type;
-    //     if (lhs->type == Expr::Type::CONST_BOOL || rhs->type == Expr::Type::CONST_BOOL)
-    //         return SemUtils::as_bool(lhs) == SemUtils::as_bool(rhs);
-    //     if (lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
-    //         return SemUtils::extract_alpha_float(rhs) == SemUtils::extract_alpha_float(lhs);
-    //     if (lhs->type == Expr::Type::CONST_NIL && rhs->type == Expr::Type::CONST_NIL)
-    //         return true;
-    //     if (lhs->type == Expr::Type::CONST_STRING && rhs->type == Expr::Type::CONST_STRING)
-    //         return std::string_view(static_cast<const ConstStringExpr *>(lhs)->value) ==
-    //                std::string_view(static_cast<const ConstStringExpr *>(rhs)->value);
-    //     if (lhs->type == Expr::Type::LIBRARY_FUNCTION && rhs->type == Expr::Type::LIBRARY_FUNCTION)
-    //         return static_cast<const LibFuncExpr *>(lhs)->libfunc_symbol->name ==
-    //                static_cast<const LibFuncExpr *>(rhs)->libfunc_symbol->name;
-    //     if (lhs->type == Expr::Type::PROGRAM_FUNCTION && rhs->type == Expr::Type::PROGRAM_FUNCTION)
-    //         return static_cast<const ProgFuncExpr *>(lhs)->progfunc_symbol->address ==
-    //                static_cast<const ProgFuncExpr *>(rhs)->progfunc_symbol->address;
-    // };
-    //
-    // if (opc == ir::Opcode::IF_EQ)
-    //     return expr_maker_->make_const_bool_expr(result_loc, lhs_value == rhs_value);
-    // if (opc == ir::Opcode::IF_NEQ)
-    //     return expr_maker_->make_const_bool_expr(result_loc, lhs_value != rhs_value);
+const auto equality_check = [lhs, rhs]() -> bool
+    {
+        using ET = Expr::Type;
+        if (lhs->type == Expr::Type::CONST_BOOL || rhs->type == Expr::Type::CONST_BOOL)
+            return SemUtils::as_bool(lhs) == SemUtils::as_bool(rhs);
+        if (lhs->is_const_arithmetic() && rhs->is_const_arithmetic())
+            return SemUtils::extract_alpha_float(rhs) == SemUtils::extract_alpha_float(lhs);
+        if (lhs->type == Expr::Type::CONST_NIL && rhs->type == Expr::Type::CONST_NIL)
+            return true;
+        if (lhs->type == Expr::Type::CONST_STRING && rhs->type == Expr::Type::CONST_STRING)
+            return std::string_view(static_cast<const ConstStringExpr *>(lhs)->value) ==
+                   std::string_view(static_cast<const ConstStringExpr *>(rhs)->value);
+        if (lhs->type == Expr::Type::LIBRARY_FUNCTION && rhs->type == Expr::Type::LIBRARY_FUNCTION)
+            return static_cast<const LibFuncExpr *>(lhs)->libfunc_symbol->name ==
+                   static_cast<const LibFuncExpr *>(rhs)->libfunc_symbol->name;
+        if (lhs->type == Expr::Type::PROGRAM_FUNCTION && rhs->type == Expr::Type::PROGRAM_FUNCTION)
+            return static_cast<const ProgFuncExpr *>(lhs)->progfunc_symbol->address ==
+                   static_cast<const ProgFuncExpr *>(rhs)->progfunc_symbol->address;
+        UNREACHABLE("Some static combination is not handled");
+    };
+
+    if (opc == ir::Opcode::IF_EQ)
+        return expr_maker_->make_const_bool_expr(result_loc, equality_check());
+    if (opc == ir::Opcode::IF_NEQ)
+        return expr_maker_->make_const_bool_expr(result_loc, !equality_check());
     throw std::logic_error(ATTACH_CONTEXT("Needed equality ir::Opcode"));
 }
 

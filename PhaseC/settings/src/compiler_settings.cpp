@@ -38,6 +38,7 @@ SettingManager::SettingManager()
             CONFIG_FLAG_SETTINGS(MAKE_SETTING)
             CONFIG_DATA_SETTINGS(MAKE_SETTING_WITH_VALUE_TYPE)
             EXPR_OPT_SETTINGS(MAKE_SETTING)
+            IR_OPT_SETTINGS(MAKE_SETTING)
         }
     ) {}
 
@@ -47,9 +48,10 @@ SettingManager::SettingManager()
 void
 SettingManager::parse_settings(const arguinator::Parser &arg_parser)
 {
-    expr_opt_settings_.set(SettingManager::parse_expr_opt_settings(arg_parser));
     config_flag_settings_.set(SettingManager::parse_config_flag_settings(arg_parser));
     config_data_settings_.set(SettingManager::parse_config_data_settings(arg_parser));
+    expr_opt_settings_.set(SettingManager::parse_expr_opt_settings(arg_parser));
+    ir_opt_settings_.set(SettingManager::parse_ir_opt_settings(arg_parser));
 }
 
 const settings::ExprOpts &
@@ -58,6 +60,14 @@ SettingManager::expr_opt_settings() const
     if (!expr_opt_settings_.is_assigned())
         throw std::logic_error(ATTACH_CONTEXT("Tried to access unassigned expr_opt_settings_"));
     return expr_opt_settings_.get();
+}
+
+const settings::IROpts &
+SettingManager::ir_opt_settings() const
+{
+    if (!ir_opt_settings_.is_assigned())
+        throw std::logic_error(ATTACH_CONTEXT("Tried to access unassigned expr_opt_settings_"));
+    return ir_opt_settings_.get();
 }
 
 const settings::ConfigFlags &
@@ -76,17 +86,6 @@ SettingManager::config_data_settings() const
     return config_data_settings_.get();
 }
 
-settings::ExprOpts
-SettingManager::parse_expr_opt_settings(const arguinator::Parser &arg_parser)
-{
-    #define QUERY(REQUIRED, ARITY, NAME, HELP_MSG) \
-        .NAME = arg_parser[#NAME].is_provided(),
-    return {
-        EXPR_OPT_SETTINGS(QUERY)
-    };
-    #undef QUERY
-}
-
 settings::ConfigFlags
 SettingManager::parse_config_flag_settings(const arguinator::Parser &arg_parser)
 {
@@ -97,6 +96,7 @@ SettingManager::parse_config_flag_settings(const arguinator::Parser &arg_parser)
     };
     #undef QUERY
 }
+
 
 settings::ConfigData
 SettingManager::parse_config_data_settings(const arguinator::Parser &arg_parser)
@@ -125,5 +125,26 @@ SettingManager::parse_config_data_settings(const arguinator::Parser &arg_parser)
         .source = arg_parser[settings::ConfigDataNames::source].get_input(),
         .max_errors = max_error_extractor(),
     };
+}
+settings::ExprOpts
+SettingManager::parse_expr_opt_settings(const arguinator::Parser &arg_parser)
+{
+    #define QUERY(REQUIRED, ARITY, NAME, HELP_MSG) \
+    .NAME = arg_parser[#NAME].is_provided(),
+    return {
+        EXPR_OPT_SETTINGS(QUERY)
+    };
+    #undef QUERY
+}
+
+settings::IROpts
+SettingManager::parse_ir_opt_settings(const arguinator::Parser &arg_parser)
+{
+    #define QUERY(REQUIRED, ARITY, NAME, HELP_MSG) \
+    .NAME = arg_parser[#NAME].is_provided(),
+    return {
+        IR_OPT_SETTINGS(QUERY)
+    };
+    #undef QUERY
 }
 } // namespace alpha

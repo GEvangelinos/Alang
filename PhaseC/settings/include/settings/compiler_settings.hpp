@@ -17,8 +17,7 @@
     X(false, 0, no_show_diagnostics, "Disable diagnostic display (used for regression testing).")\
     X(false, 0, export_ir,           "Write the compiler's generated quads to <source_filename>.ir.csv.") \
     X(false, 0, show_ir,             "Pretty-prints the IR quads on console.") \
-    X(false, 0, export_symbol_table_without_temps, \
-        "Write the compiler's symbol table to a CSV file named <source_filename>.st.csv without the internal temp variables (used for regression testing).")
+    X(false, 0, export_symbol_table_without_temps, "Write the compiler's symbol table to a CSV file named <source_filename>.st.csv without the internal temp variables (used for regression testing).")
 
 // (REQUIRED, ARITY, NAME, HELP_MSG)
 #define EXPR_OPT_SETTINGS(X) \
@@ -28,6 +27,11 @@
 // X(false, 0, remove_dead_branches, "TBI")\
 // X(false, 0, remove_unused_vars, "TBI")\
 // X(false, 0, remove_unused_funcs, "TBI")\
+
+// (REQUIRED, ARITY, NAME, HELP_MSG)
+#define IR_OPT_SETTINGS(X) \
+X(false, 0, opt_jump_threading,        "Resolve and fast-forward chains of unconditional jumps (e.g. `goto A; A: goto B;` → `goto B;`) to shorten control-flow paths in the IR.") \
+X(false, 0, opt_dead_code_elimination, "Remove IR blocks and branches that are proven unreachable at compile time (e.g. eliminate `if (0)` branches).")
 
 // (REQUIRED, ARITY, NAME, HELP_MSG)
 #define CONFIG_FLAG_SETTINGS(X) \
@@ -52,6 +56,9 @@ struct Setting
 
 namespace settings
 {
+    #ifdef REGISTER_SETTING
+    #error "Macro collision will occur"
+    #endif
     struct Jobs
     {
         #define REGISTER_SETTING(REQUIRED, ARITY, NAME, HELP_MSG) \
@@ -64,6 +71,13 @@ namespace settings
     {
         #define REGISTER_SETTING(REQUIRED, ARITY, NAME, HELP) bool NAME = false;
         EXPR_OPT_SETTINGS(REGISTER_SETTING)
+        #undef  REGISTER_SETTING
+    };
+
+    struct IROpts
+    {
+        #define REGISTER_SETTING(REQUIRED, ARITY, NAME, HELP) bool NAME = false;
+        IR_OPT_SETTINGS(REGISTER_SETTING)
         #undef  REGISTER_SETTING
     };
 
@@ -91,20 +105,24 @@ public:
 
     [[nodiscard]] const auto &all_settings() const noexcept { return all_settings_; }
     [[nodiscard]] const settings::ExprOpts &expr_opt_settings() const;
+    [[nodiscard]] const settings::IROpts &ir_opt_settings() const;
     [[nodiscard]] const settings::ConfigFlags &config_flag_settings() const;
     [[nodiscard]] const settings::ConfigData &config_data_settings() const;
 
 private:
     const std::vector<Setting> all_settings_;
-    Once<settings::ExprOpts> expr_opt_settings_;
     Once<settings::ConfigFlags> config_flag_settings_;
     Once<settings::ConfigData> config_data_settings_;
+    Once<settings::ExprOpts> expr_opt_settings_;
+    Once<settings::IROpts> ir_opt_settings_;
 
-    [[nodiscard]] static settings::ExprOpts parse_expr_opt_settings(
-        const arguinator::Parser &arg_parser);
     [[nodiscard]] static settings::ConfigFlags parse_config_flag_settings(
         const arguinator::Parser &arg_parser);
     [[nodiscard]] static settings::ConfigData parse_config_data_settings(
+        const arguinator::Parser &arg_parser);
+    [[nodiscard]] static settings::ExprOpts parse_expr_opt_settings(
+        const arguinator::Parser &arg_parser);
+    [[nodiscard]] static settings::IROpts parse_ir_opt_settings(
         const arguinator::Parser &arg_parser);
 };
 } // namespace alpha

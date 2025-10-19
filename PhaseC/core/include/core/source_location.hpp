@@ -51,7 +51,7 @@ SourceLocation::SourceLocation(SrcBufferIdx begin, SrcBufferIdx end)
 {
     DEBUG_SMART_ASSERT(
         ( begin.value == SrcBufferIdx::none &&
-          end.value   == SrcBufferIdx::none
+            end.value == SrcBufferIdx::none
         )
         || begin < end
     );
@@ -63,7 +63,7 @@ SourceLocation::SourceLocation(const SourceLocationRaw raw_loc)
 {
     DEBUG_SMART_ASSERT(
         ( begin.value == SrcBufferIdx::none &&
-          end.value   == SrcBufferIdx::none
+            end.value == SrcBufferIdx::none
         )
         || begin < end
     );
@@ -87,9 +87,11 @@ inline SourceLocation
 merge(const SourceLocation left, const SourceLocation right)
 {
     DEBUG_SMART_ASSERT(
-        left.begin.value < right.begin.value,
-        left.end.value < right.begin.value,
-        left.begin.value < right.end.value && "Location overlap detected"
+        left.begin < left.end,   // Verify correct SourceLocation
+        right.begin < right.end, // Verify correct SourceLocation
+        left.begin < right.begin,
+        left.begin < right.end,
+        left.end <= right.begin && "Location overlap detected"
     );
     return SourceLocation{left.begin, right.end};
 }
@@ -124,7 +126,7 @@ public:
     [[nodiscard]] SrcColumnIdx find_first_column(SourceLocation loc) const;
     [[nodiscard]] LineRange find_lines(SrcBufferIdx begin_idx, SrcBufferIdx end_idx) const;
     [[nodiscard]] LineRange find_lines(SourceLocation loc) const;
-    [[nodiscard]] bool is_virtual_line(SrcLineIdx line ) const noexcept;
+    [[nodiscard]] bool is_virtual_line(SrcLineIdx line) const noexcept;
 
 private:
     const SrcBufferIdx max_valid_index_;

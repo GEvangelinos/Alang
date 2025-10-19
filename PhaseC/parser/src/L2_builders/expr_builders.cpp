@@ -144,7 +144,7 @@ AggregateBuilder::Restricted::init_table_literal()
     const NewTableExpr *const new_table = expr_maker_->make_new_table_expr(k_no_loc);
 
     // Store quad label, so I can loc-patch quad's location
-    draft_.table_literal_stack.emplace(new_table, quad_emitter_->next_quad_label());
+    draft_.table_literal_stack.emplace(new_table, quad_handler_->next_quad_label());
 
     quad_yielder_->yield_next(ir::Opcode::TABLECREATE, new_table, nullptr, nullptr, k_no_loc);
 }
@@ -161,7 +161,7 @@ AggregateBuilder::Restricted::finalize_table_literal(const SourceLocation table_
         expr_maker_->clone_with_updated_location(table_loc, tls.top().host_expr);
 
     // Backpatch the TABLECREATE quad with the correct source location
-    quad_emitter_->locPatch_tablecreate(tls.top().host_quad_label, table_loc);
+    quad_handler_->locPatch_tablecreate(tls.top().host_quad_label, table_loc);
 
     tls.pop();
     parse_ctx_->elist_ctx_handler.exit_region(DEBUG(ElistCtxHandler::Region::TABLE));
@@ -526,7 +526,7 @@ BasicBuilder::Restricted::prepare_logical_operand_expr(const Expr *expr)
 void
 BasicBuilder::Restricted::mark_short_circuit_jump_point()
 {
-    short_circuit_jump_stack_.push(quad_emitter_->next_quad_label());
+    short_circuit_jump_stack_.push(quad_handler_->next_quad_label());
 }
 
 const Expr *
@@ -606,8 +606,8 @@ skip_opt:
     auto hook = [result_loc, this]()
     {
         const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
-        result_expr->true_list.push_back(quad_emitter_->next_quad_label());
-        result_expr->false_list.push_back(quad_emitter_->next_quad_label() + 1); // +1 for jump quad
+        result_expr->true_list.push_back(quad_handler_->next_quad_label());
+        result_expr->false_list.push_back(quad_handler_->next_quad_label() + 1); // +1 for jump quad
         return result_expr;
     };
 
@@ -690,7 +690,7 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
     // Patching left side.
     DEBUG_SMART_ASSERT(!short_circuit_jump_stack_.empty());
     for (const LabelID quad_label : Policy::backpatch_list(lhs_bool))
-        quad_emitter_->labelPatch_quad(quad_label, short_circuit_jump_stack_.top());
+        quad_handler_->labelPatch_quad(quad_label, short_circuit_jump_stack_.top());
     short_circuit_jump_stack_.pop();
     Policy::backpatch_list(lhs_bool).clear();
 
@@ -725,8 +725,8 @@ BasicBuilder::Restricted::normalize_to_bool_expr(const Expr *const expr)
     const auto hook = [expr, this]()
     {
         const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
-        bool_expr->true_list.push_back(quad_emitter_->next_quad_label());
-        bool_expr->false_list.push_back(quad_emitter_->next_quad_label() + 1);
+        bool_expr->true_list.push_back(quad_handler_->next_quad_label());
+        bool_expr->false_list.push_back(quad_handler_->next_quad_label() + 1);
         return bool_expr;
     };
 
@@ -1080,8 +1080,7 @@ ConstBuilder::Restricted::build_float_expr(const AlphaFloat value, const SourceL
 }
 
 const Expr *
-ConstBuilder::Restricted::build_string_expr(const char *const value,
-                                            const SourceLocation loc)
+ConstBuilder::Restricted::build_string_expr(const char *const value, const SourceLocation loc)
 {
     return expr_maker_->make_const_string_expr(loc, value);
 }
@@ -1203,7 +1202,7 @@ const ProgFuncSymbol *
 FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation func_signature_loc)
 {
     const bool validated_funcname = validate_funcdef_name(function_draft_.id, func_signature_loc);
-    const u32 skip_func_jump_label = quad_emitter_->next_quad_label();
+    const u32 skip_func_jump_label = quad_handler_->next_quad_label();
     quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_signature_loc);
     const ProgFuncSymbol *func_symbol = nullptr;
     if (validated_funcname)
@@ -1240,9 +1239,9 @@ const ProgFuncSymbol *
 FunctionBuilder::Restricted::build_program_function_exit(
     const BlockSourceLocation block_loc)
 {
-    quad_emitter_->labelPatch_list(
+    quad_handler_->labelPatch_list(
         parse_ctx_->func_ctx_handler.return_list(),
-        quad_emitter_->next_quad_label()
+        quad_handler_->next_quad_label()
     );
 
     const auto fbi = parse_ctx_->func_ctx_handler.exit_function();
@@ -1257,7 +1256,7 @@ FunctionBuilder::Restricted::build_program_function_exit(
             nullptr,
             block_loc.end_raw_loc);
     }
-    quad_emitter_->labelPatch_quad(fbi.funcdef_skip_jump, quad_emitter_->next_quad_label());
+    quad_handler_->labelPatch_quad(fbi.funcdef_skip_jump, quad_handler_->next_quad_label());
     parse_ctx_->space_handler.exit_space();
 
     return fbi.func_symbol;

@@ -64,10 +64,6 @@ def main():
         mpp =  MacroPreprocessor(yaml_lines)
         yaml_lines = mpp.run()
         diagnostics = load_diagnostics(yaml_lines)
-        for d in diagnostics:
-            for n in d.notes:
-                if n.suggestion is not None:
-                    print(n.suggestion.message)
         cpp_generator = CppGenerator(cli_args, diagnostics)
         cpp_generator.generate_all_files()
     except(RuntimeError, ValueError) as e:
