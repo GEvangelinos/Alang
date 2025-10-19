@@ -89,7 +89,7 @@ namespace alpha::SemUtils
 [[nodiscard]] inline bool as_bool(const Expr *const e)
 {
     DEBUG_SMART_ASSERT(!!e);
-    DEBUG_SMART_ASSERT(e->is_static());
+    DEBUG_SMART_ASSERT(e->is_static() && "Can only evaluate as bool is given expr is static");
     using ET = Expr::Type;
     switch (e->type)
     {

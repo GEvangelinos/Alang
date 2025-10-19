@@ -83,6 +83,8 @@ private:
             void push_new_forloop_patch_point_frame() { for_loop_patch_points.emplace(); }
         } build_ctx_;
 
+        FlowManager flow_manager_;
+
         explicit Restricted(const SemanticSystemServices &ss_services);
 
         void manage_ifbranch_entry(const Expr *conditional, SourceLocation if_clause_loc);

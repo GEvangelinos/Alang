@@ -32,6 +32,7 @@
       <config projectName="Alpha" targetName="support_impl" />
       <config projectName="Alpha" targetName="regression_check_cya_full" />
       <config projectName="Alpha" targetName="alpha_core_impl" />
+      <config projectName="Alpha" targetName="generate_ir_opcodes" />
       <config projectName="Alpha" targetName="regression_check" />
       <config projectName="Alpha" targetName="alpha_settings_impl" />
       <config projectName="Alpha" targetName="alpha_diagnostics_impl" />
@@ -49,45 +50,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W__OPT=NONE__mine_111.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W__OPT=NONE__mine_111.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/.testbed.asc.swp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/source_location.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/source_location.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/driver/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/translation_unit.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/parser/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_support.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_support.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_manager.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_normalizer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_normalizer.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_emitter.hpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_yielder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_yielder.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/expr_type_traits.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/expr_type_traits.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/internal_typedefs.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/internal_typedefs.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/ir_expr.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/semantic_utils.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/semantic_utils.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/control_flow_manager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/control_flow_manager.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_normalizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_normalizer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/quad_emitter.cpp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/quad_yielder.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/quad_yielder.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/semantic_subsystem.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/semantic_subsystem.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/include/scanner/scanner_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/include/scanner/scanner_context.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/include/scanner/scanner_token.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/include/scanner/scanner_token.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_token.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_token.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/settings/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/settings/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/settings/include/settings/compiler_settings.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/settings/include/settings/compiler_settings.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/settings/src/compiler_settings.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/settings/src/compiler_settings.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -4267,6 +4234,11 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="generate_ir_opcodes" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="generate_ir_opcodes" CONFIG_NAME="Release">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="generate_parser" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="generate_parser" CONFIG_NAME="Release">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -4321,6 +4293,7 @@
       <item itemvalue="CMake Application.alpha_driver_impl" />
       <item itemvalue="CMake Application.alpha_driver.out" />
       <item itemvalue="CMake Application.alpha_parser_impl" />
+      <item itemvalue="CMake Application.generate_ir_opcodes" />
       <item itemvalue="CMake Application.alpha_scanner_impl" />
       <item itemvalue="CMake Application.alpha_settings_impl" />
       <item itemvalue="CMake Application.arguinator_impl" />
@@ -4392,7 +4365,7 @@
       <workItem from="1760181159541" duration="204000" />
       <workItem from="1760191954982" duration="85000" />
       <workItem from="1760206109126" duration="121710000" />
-      <workItem from="1760460273574" duration="204860000" />
+      <workItem from="1760460273574" duration="221417000" />
     </task>
     <servers />
   </component>

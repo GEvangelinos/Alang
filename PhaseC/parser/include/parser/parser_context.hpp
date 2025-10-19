@@ -88,6 +88,22 @@ private:
     u32 dict_entry_nesting_depth_ = 0;
 };
 
+class FlowManager
+{
+public:
+    enum class FlowState : u8 { ALIVE, DEAD, RUNTIME };
+
+    [[nodiscard]] bool is_flow_alive() const noexcept;
+    void push_if_flow_state(FlowState flow_state);
+    void push_else();
+    void push_loop_flow_state(FlowState flow_state);
+
+    void pop_flow_state();
+
+private:
+    std::vector<FlowState> flow_states_;
+};
+
 class FunctionCtxHandler : private Immobile
 {
 public:
@@ -137,19 +153,16 @@ private:
         const u32 scope;
         const SourceLocation loc;
         const ProgFuncSymbol *func_symbol; // Valid function ONLY IF NOT nullptr;
+        FlowManager flow_manager;
 
         u32 loop_nesting_count = 0;
-
         // This is labels of breaks per loop in function
         std::stack<std::vector<LabelID>> function_breaklist_stack;
         // This is labels of continue of loops per loop in function
         std::stack<std::vector<LabelID>> function_continuelist_stack;
-
         // This is labels returns per function (in this FunctionDataFrame).
         std::vector<LabelID> function_returnlist;
-
         const LabelID funcdef_skip_jump; // used to go over function definition in runtime.
-
         u32 local_variable_count = 0;
 
         FunctionDataFrame(
@@ -157,12 +170,12 @@ private:
             const u32 scope,
             const SourceLocation loc,
             const ProgFuncSymbol *const func_symbol,
-            const u32 label_of_jump)
+            const u32 funcdef_skip_jump)
             : name(std::move(name)),
               scope(scope),
               loc(loc),
               func_symbol(func_symbol),
-              funcdef_skip_jump(label_of_jump) {}
+              funcdef_skip_jump(funcdef_skip_jump) {}
     };
 
     std::stack<FunctionDataFrame> frame_stack_;
