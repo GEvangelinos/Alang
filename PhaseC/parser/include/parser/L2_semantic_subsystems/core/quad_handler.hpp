@@ -31,6 +31,7 @@ public:
         const Expr *arg2,
         SourceLocation loc,
         LabelID label,
+        bool is_dead,
         EmitKey);
 
     void labelPatch_quad(LabelID target_quad_label, LabelID destination_label);

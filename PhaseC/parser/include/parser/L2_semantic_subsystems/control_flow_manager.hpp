@@ -4,21 +4,16 @@
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 #include "parser_context.hpp"
+#include "semantic_subsystem.hpp"
+#include "core/quad_handler.hpp"
 #include "core/source_location.hpp"
 #include "L1_driver/semantic_system_support.hpp"
-#include "core/quad_handler.hpp"
-
-#include  <parser/ir_opcode.gen.hpp>
-#include "semantic_subsystem.hpp"
 
 namespace alpha
 {
 class ControlFlowManager
 {
     friend class SemanticSystem;
-
-public:
-    [[nodiscard]] bool is_in_dead_block() const noexcept;
 
 private:
     enum class LoopKeyword { CONTINUE, BREAK };
@@ -83,9 +78,7 @@ private:
             void push_new_forloop_patch_point_frame() { for_loop_patch_points.emplace(); }
         } build_ctx_;
 
-        FlowManager flow_manager_;
-
-        explicit Restricted(const SemanticSystemServices &ss_services);
+        Restricted(const SemanticSystemServices &ss_services);
 
         void manage_ifbranch_entry(const Expr *conditional, SourceLocation if_clause_loc);
         void manage_ifbranch_exit();
@@ -120,7 +113,7 @@ private:
     [[nodiscard]] Restricted &restricted() noexcept { return DISPATCH_TARGET; }
     [[nodiscard]] const Restricted &restricted() const noexcept { return DISPATCH_TARGET; }
 
-    explicit ControlFlowManager(const SemanticSystemServices &ss_services);
+    ControlFlowManager(const SemanticSystemServices &ss_services);
 
     // Defined outside Restricted, so it can be accessed by SemanticSystem's generalized expr collector
     void commit_forloop_header_expr(const Expr *header_expr);

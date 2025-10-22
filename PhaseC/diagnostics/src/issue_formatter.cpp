@@ -822,7 +822,7 @@ swap_markers(std::string &str, const char old_marker, const char new_marker)
     std::replace(str.begin(), str.end(), old_marker, new_marker);
 }
 
-std::optional<HighlightTag>
+[[maybe_unused]] std::optional<HighlightTag>
 find_highlight_tag_at(const std::vector<TaggedHighlight> &highlights, const SrcBufferIdx idx)
 {
     DEBUG_SMART_ASSERT(

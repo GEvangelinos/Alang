@@ -60,6 +60,79 @@ TableCtxHandler::~TableCtxHandler()
     )
 }
 
+bool
+FunctionCtxHandler::FlowLivenessTracker::is_in_dead_flow() const noexcept
+{
+    if (flow_states_.empty())
+        return false;
+    switch (flow_states_.back())
+    {
+    case FlowState::ALIVE:
+    case FlowState::RUNTIME: return false;
+    case FlowState::DEAD: return true;
+    default: UNREACHABLE("Unknown flow state");
+    }
+}
+
+bool
+FunctionCtxHandler::FlowLivenessTracker::is_in_runtime_flow() const noexcept
+{
+    return flow_states_.empty() || flow_states_.back() == FlowState::RUNTIME;
+}
+
+void
+FunctionCtxHandler::FlowLivenessTracker::push_if_flow_state(const FlowState flow_state)
+{
+    if (!flow_states_.empty() && flow_states_.back() == FlowState::DEAD)
+        flow_states_.push_back(FlowState::DEAD);
+    else
+        flow_states_.push_back(flow_state);
+}
+
+void
+FunctionCtxHandler::FlowLivenessTracker::switch_to_else()
+{
+    DEBUG_SMART_ASSERT(!flow_states_.empty() && "At least last if-branch must have pushed frame");
+
+    if (flow_states_.size() > 1) // Parent exists
+    {
+        const auto lastest_parent_index = flow_states_.size() - 2;
+        if (flow_states_[lastest_parent_index] == FlowState::DEAD)
+        {
+            DEBUG_SMART_ASSERT(flow_states_.back() == FlowState::DEAD && "dead parent==dead child");
+            return; // If parent is dead, then both if and else cases are dead.
+        }
+    }
+
+    switch (flow_states_.back())
+    {
+    case FlowState::ALIVE:
+        flow_states_.back() = FlowState::DEAD;
+        break;
+    case FlowState::DEAD:
+        flow_states_.back() = FlowState::ALIVE;
+        break;
+    case FlowState::RUNTIME: // We keep it runtime as its unknown at Compile Time.
+        break;
+    default: UNREACHABLE("Unknown FlowState");
+    }
+}
+
+void
+FunctionCtxHandler::FlowLivenessTracker::push_loop_flow_state(const FlowState flow_state)
+{
+    // Dead-code wise, loops are just like if branches... basically both "container" for code
+    // You enter at least once, only if their condition holds true at compile time.
+    push_if_flow_state(flow_state);
+}
+
+void
+FunctionCtxHandler::FlowLivenessTracker::pop_flow_state()
+{
+    DEBUG_SMART_ASSERT(!flow_states_.empty() && "Sync error occurred");
+    flow_states_.pop_back();
+}
+
 FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const host)
     : host_(support::require_ptr(host))
 {

@@ -84,7 +84,7 @@ public:
     void compile();
     void show_symbol_table() const;
     void show_diagnostics() const;
-    void show_ir() const;
+    void show_ir(bool detailed) const;
     void export_symbol_table() const;
     void export_symbol_table_without_temps() const;
     void export_diagnostics() const;

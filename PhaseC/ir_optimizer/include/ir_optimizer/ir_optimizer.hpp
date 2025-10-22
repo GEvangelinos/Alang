@@ -19,6 +19,7 @@ private:
     const settings::IROpts ir_opts_;
 
     static bool do_jump_threading(std::vector<Quad> &quads);
+    static bool do_unused_temp_removal(std::vector<Quad> &quads);
 };
 } // namespace alpha
 #endif // IR_OPTIMIZER_HPP

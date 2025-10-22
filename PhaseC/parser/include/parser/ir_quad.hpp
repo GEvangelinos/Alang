@@ -20,8 +20,9 @@ struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
     const Expr *result;
     const Expr *arg1;
     const Expr *arg2;
-    LabelID label = {};
+    LabelID label = k_no_label;
     const ir::Opcode opcode;
+    const bool is_dead;
 
     static std::size_t label_to_index(LabelID label);
     static LabelID index_to_label(std::size_t index);

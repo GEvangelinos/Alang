@@ -17,6 +17,7 @@
     X(false, 0, no_show_diagnostics, "Disable diagnostic display (used for regression testing).")\
     X(false, 0, export_ir,           "Write the compiler's generated quads to <source_filename>.ir.csv.") \
     X(false, 0, show_ir,             "Pretty-prints the IR quads on console.") \
+    X(false, 0, show_ir_detailed,    "Pretty-prints the IR quads on console, including liveness metadata (e.g., dead or live quads).") \
     X(false, 0, export_symbol_table_without_temps, "Write the compiler's symbol table to a CSV file named <source_filename>.st.csv without the internal temp variables (used for regression testing).")
 
 // (REQUIRED, ARITY, NAME, HELP_MSG)

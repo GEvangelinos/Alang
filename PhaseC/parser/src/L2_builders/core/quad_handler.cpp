@@ -14,6 +14,7 @@ QuadHandler::emit(
     const Expr *const arg2,
     const SourceLocation loc,
     const LabelID label,
+    const bool is_dead,
     QuadHandler::EmitKey)
 {
     #ifdef DEBUG_MODE
@@ -51,7 +52,7 @@ QuadHandler::emit(
         .arg2 = arg2,
         .label = label,
         .opcode = opc,
-
+        .is_dead = is_dead
     });
     ++next_quad_label_;
 }

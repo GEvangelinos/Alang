@@ -27,12 +27,12 @@ Driver::show_diagnostics() const
 }
 
 void
-Driver::show_ir() const
+Driver::show_ir(const bool detailed) const
 {
     if (!this->ok())
         return;
     for (const TranslationUnit &tu : translation_units_)
-        tu.show_ir();
+        tu.show_ir(detailed);
 }
 
 void

@@ -1439,3 +1439,13 @@ assign x 2
 you can't do x =2 and delete add and first assignment.. cause you dont know the scope of each x.
 
 first can be local, next can be global.. So you can do such further ops.. only when you know scope too!!
+
+238)
+Add a did you mean feature if you emit warnings or errors
+at compile time for certainly undefined variables, using levenstein distance (seems scary .. its just an algorithm..)
+
+
+
+239)
+if commands that can conditionally jump like IF_EQ or IF_LT
+jump to a JUMP command, do jump threading.

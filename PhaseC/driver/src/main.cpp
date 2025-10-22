@@ -105,7 +105,9 @@ void handle_shows(const arguinator::Parser &cli_parser, const alpha::Driver &dri
     if (cli_parser[ASD::show_symbol_table].is_provided())
         driver.show_symbol_table();
     if (cli_parser[ASD::show_ir].is_provided())
-        driver.show_ir();
+        driver.show_ir(false);
+    if (cli_parser[ASD::show_ir_detailed].is_provided())
+        driver.show_ir(true);
     if (!cli_parser[ASD::no_show_diagnostics].is_provided())
         driver.show_diagnostics(); // Used by regression-test tool.
 }

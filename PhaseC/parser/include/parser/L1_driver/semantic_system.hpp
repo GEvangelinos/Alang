@@ -53,7 +53,6 @@ class SemanticSystem : private Immobile
 public: // More public stuff at the end (check it out)
     SemanticSystem(
         const settings::ExprOpts &expr_opts,
-        const settings::IROpts &ir_opts,
         ParseCtx *parse_ctx,
         SymbolTable *symbol_table,
         DiagnosticReporter *dr);
@@ -121,9 +120,9 @@ private:
     [[nodiscard]] SemanticSystemServices create_semantic_system_services();
 
     [[nodiscard]] static AssignBuilder::Options get_assign_builder_options(
-        const settings::ExprOpts &opts);
+        const settings::ExprOpts &expr_opts);
     [[nodiscard]] static BasicBuilder::Options get_basic_builder_options(
-        const settings::ExprOpts &opts);
+        const settings::ExprOpts &expr_opts);
 
 public:
     // Gateway lets PassManager mark hard errors, but not clear them;
@@ -170,7 +169,7 @@ private:
 
     void notify_hard_error() noexcept;
 
-    [[nodiscard]] std::vector<Quad> extract_quads() noexcept;
+    [[nodiscard]] std::vector<Quad> extract_quads();
 };
 } // namespace alpha
 #endif // SEMANTIC_SYSTEM_HPP

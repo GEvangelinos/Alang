@@ -4,139 +4,60 @@
 
 namespace alpha
 {
-ControlFlowManager::ControlFlowManager(const SemanticSystemServices &ss_services)
-    :DISPATCH_TARGET(ss_services) {}
+ControlFlowManager::ControlFlowManager(
+    const SemanticSystemServices &ss_services)
+    : DISPATCH_TARGET(ss_services) {}
 
 ControlFlowManager::Restricted::Restricted(const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services) {}
-
-bool
-ControlFlowManager::FlowManager::is_flow_alive() const noexcept
-{
-    if (flow_states_.empty())
-        return true;
-    switch (flow_states_.back())
-    {
-    case FlowState::ALIVE:
-    case FlowState::RUNTIME: return true;
-    case FlowState::DEAD: return false;
-    default: UNREACHABLE("Unknown flow state");
-    }
-}
-
-void
-ControlFlowManager::FlowManager::push_if_flow_state(const FlowState flow_state)
-{
-    if (!flow_states_.empty() && flow_states_.back() == FlowState::DEAD)
-        flow_states_.push_back(FlowState::DEAD);
-    else
-        flow_states_.push_back(flow_state);
-}
-
-void
-ControlFlowManager::FlowManager::push_else()
-{
-    DEBUG_SMART_ASSERT(!flow_states_.empty() && "At least last if-branch must have pushed frame");
-
-    if (flow_states_.size() > 1) // Parent exists
-    {
-        const auto lastest_parent_index = flow_states_.size() - 2;
-        if (flow_states_[lastest_parent_index] == FlowState::DEAD)
-        {
-            DEBUG_SMART_ASSERT(flow_states_.back() == FlowState::DEAD);
-            return; // If parent is dead, then both if and else cases are dead.
-        }
-    }
-
-    switch (flow_states_.back())
-    {
-    case FlowState::ALIVE:
-        flow_states_.back() = FlowState::DEAD;
-        break;
-    case FlowState::DEAD:
-        flow_states_.back() = FlowState::ALIVE;
-        break;
-    case FlowState::RUNTIME: // We keep it runtime as its unknown at Compile Time.
-        break;
-    default: UNREACHABLE("Unknown FlowState");
-    }
-}
-
-void
-ControlFlowManager::FlowManager::push_loop_flow_state(const FlowState flow_state)
-{
-    // Dead-code wise, loops are just like if branches... basically both "container" for code
-    // You enter at least once, only if their condition holds true at compile time.
-    push_if_flow_state(flow_state);
-}
-
-void
-ControlFlowManager::FlowManager::pop_flow_state()
-{
-    DEBUG_SMART_ASSERT(!flow_states_.empty() && "Sync error occurred");
-    flow_states_.pop_back();
-}
-
-bool
-ControlFlowManager::is_in_dead_block() const noexcept
-{
-    UNIMPLEMENTED("");
-    return false;
-}
 
 void
 ControlFlowManager::Restricted::manage_ifbranch_entry(
     const Expr *conditional,
     const SourceLocation if_clause_loc)
 {
-    const auto emit_runtime_ifbranch = [&]()
-    {
-        flow_manager_.push_else_flow_state(FlowState::RUNTIME_EVALUATED);
-        // Offset = 2 the IF_EQ itself and the following unconditional jump which leads outside if block.
-        constexpr LabelID offset_to_if_branch = 2;
-        quad_yielder_->yield_next(
-            ir::Opcode::IF_EQ,
-            nullptr,
-            conditional,
-            &k_static_true_expr,
-            if_clause_loc,
-            offset_to_if_branch
-        );
-        // Record the placeholder label for the 'false' branch jump to be patched later.
-        build_ctx_.unpatched_if_bypass_jumps.push(quad_handler_->next_quad_label());
-        // Emit unconditional jump that will eventually point at the end of the if-block.
-        quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, if_clause_loc);
-    };
-
-    const auto prune_static_ifbranch = [&](const Expr *const static_conditional)
-    {
-        DEBUG_SMART_ASSERT(static_conditional->is_static());
-        const bool evaluated_conditional = SemUtils::as_bool(static_conditional);
-        if (evaluated_conditional)
-            flow_manager_.push_else_flow_state(FlowState::DEAD);
-        else
-            flow_manager_.push_else_flow_state(FlowState::ALIVE);
-    };
-
     DEBUG_SMART_ASSERT(!!conditional);
     conditional = expr_optimizer_->try_propagate_const(conditional);
     conditional = expr_normalizer_->materialize_if_table_item(conditional);
     expr_normalizer_->resolve_bool_short_circuit(conditional);
 
     if (conditional->is_static())
-        prune_static_ifbranch(conditional);
+    {
+        if (SemUtils::as_bool(conditional))
+            parse_ctx_->func_ctx_handler.flow_liveness().push_if_flow_state(
+                FunctionCtxHandler::FlowLivenessTracker::FlowState::ALIVE);
+        else
+            parse_ctx_->func_ctx_handler.flow_liveness().push_if_flow_state(
+                FunctionCtxHandler::FlowLivenessTracker::FlowState::DEAD);
+    }
     else
-        emit_runtime_ifbranch();
+        parse_ctx_->func_ctx_handler.flow_liveness().push_if_flow_state(
+            FunctionCtxHandler::FlowLivenessTracker::FlowState::RUNTIME);
+
+    // Offset = 2 the IF_EQ itself and the following unconditional jump which leads outside if block.
+    constexpr LabelID offset_to_if_branch = 2;
+    quad_yielder_->yield_next(
+        ir::Opcode::IF_EQ,
+        nullptr,
+        conditional,
+        &k_static_true_expr,
+        if_clause_loc,
+        offset_to_if_branch
+    );
+    // Record the placeholder label for the 'false' branch jump to be patched later.
+    build_ctx_.unpatched_if_bypass_jumps.push(quad_handler_->next_quad_label());
+    // Emit unconditional jump that will eventually point at the end of the if-block.
+    quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, if_clause_loc);
 }
 
 void
 ControlFlowManager::Restricted::manage_ifbranch_exit()
 {
     DEBUG_SMART_ASSERT(!build_ctx_.unpatched_if_bypass_jumps.empty());
-
     const LabelID bypass_jump_quad_label = build_ctx_.unpatched_if_bypass_jumps.top();
     build_ctx_.unpatched_if_bypass_jumps.pop();
     quad_handler_->labelPatch_quad(bypass_jump_quad_label, quad_handler_->next_quad_label());
+    parse_ctx_->func_ctx_handler.flow_liveness().pop_flow_state();
 }
 
 void
@@ -146,9 +67,9 @@ ControlFlowManager::Restricted::manage_elsebranch_entry(const SourceLocation els
         !build_ctx_.unpatched_if_bypass_jumps.empty() &&
         "For an 'else' statement to exist, there must be a preceding 'if'"
     );
-
     build_ctx_.unpatched_else_bypass_jumps.push(quad_handler_->next_quad_label());
     quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, else_clause_loc);
+    parse_ctx_->func_ctx_handler.flow_liveness().switch_to_else();
 }
 
 void
@@ -173,6 +94,7 @@ ControlFlowManager::Restricted::manage_elsebranch_exit()
 
     build_ctx_.unpatched_if_bypass_jumps.pop();
     build_ctx_.unpatched_else_bypass_jumps.pop();
+    parse_ctx_->func_ctx_handler.flow_liveness().pop_flow_state();
 }
 
 void

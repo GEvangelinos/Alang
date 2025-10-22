@@ -51,7 +51,10 @@ template<bool colorize, unsigned column, unsigned column_width, typename T>
 std::string format_column(T &&value);
 template<bool colorize, typename Stream>
 void print_ir(
-    Stream &out, const std::vector<alpha::Quad> &quads, const alpha::LocationTracker &lt);
+    Stream &out,
+    const std::vector<alpha::Quad> &quads,
+    const alpha::LocationTracker &lt,
+    bool print_detailed);
 
 void create_export_directory(const std::string_view dirname)
 {
@@ -120,8 +123,8 @@ std::string expr_printer(const alpha::Expr *expr, const char *const missing_mark
 template<unsigned Column, unsigned ColumnWidth, typename T>
 std::string color_column(T &&value)
 {
-    constexpr unsigned column_count = 7;
-    static_assert(Column < column_count, "So far we support a maximum of 7 columns");
+    constexpr unsigned column_count = 8;
+    static_assert(Column < column_count, "So far we support a maximum of 8 columns");
 
     const char *ascii_color;
     if constexpr (Column == 0) ascii_color = COLOR_FG_ASCII_WHITE;
@@ -131,6 +134,7 @@ std::string color_column(T &&value)
     else if constexpr (Column == 4) ascii_color = COLOR_FG_ASCII_CYAN;
     else if constexpr (Column == 5) ascii_color = COLOR_FG_ASCII_YELLOW;
     else if constexpr (Column == 6) ascii_color = COLOR_FG_ASCII_MAGENTA;
+    else if constexpr (Column == 7) ascii_color = COLOR_FG_MATRIX;
     else ascii_color = COLOR_FG_ASCII_DEFAULT;
     return FMT::format("{}{:<{}}{}", ascii_color, std::forward<T>(value), ColumnWidth, SGR_RESET);
 }
@@ -145,9 +149,13 @@ std::string format_column(T &&value)
 }
 
 template<bool Colorize, typename Stream>
-void print_ir(Stream &out, const std::vector<alpha::Quad> &quads, const alpha::LocationTracker &lt)
+void print_ir(
+    Stream &out,
+    const std::vector<alpha::Quad> &quads,
+    const alpha::LocationTracker &lt,
+    const bool print_detailed)
 {
-    constexpr alpha::u32 widths[] = {10, 15, 20, 20, 20, 10, 10};
+    constexpr alpha::u32 widths[] = {10, 15, 20, 20, 20, 10, 10, 10};
     constexpr alpha::u32 quad_header_width = [&widths]() constexpr
     {
         alpha::u32 width = 0;
@@ -163,14 +171,15 @@ void print_ir(Stream &out, const std::vector<alpha::Quad> &quads, const alpha::L
 
     // Write export header.
     out << FMT::format(
-        "{0} {1} {2} {3} {4} {5} {6}\n",
+        "{0} {1} {2} {3} {4} {5} {6} {7}\n",
         format_column<Colorize, 0, widths[0]>("quad#"),
         format_column<Colorize, 1, widths[1]>("opcode"),
         format_column<Colorize, 2, widths[2]>("result"),
         format_column<Colorize, 3, widths[3]>("arg1"),
         format_column<Colorize, 4, widths[4]>("arg2"),
         format_column<Colorize, 5, widths[5]>("label"),
-        format_column<Colorize, 6, widths[6]>("line")
+        format_column<Colorize, 6, widths[6]>("line"),
+        format_column<Colorize, 7, widths[7]>(print_detailed ? "LIVENESS" : "")
     );
 
     // Write separating dash line.
@@ -192,14 +201,15 @@ void print_ir(Stream &out, const std::vector<alpha::Quad> &quads, const alpha::L
                                     : FMT::format("{}-{}", first_line.value, last_line.value);
 
         out << FMT::format(
-            "{} {} {} {} {} {} {}\n",
+            "{0} {1} {2} {3} {4} {5} {6} {7}\n",
             format_column<Colorize, 0, widths[0]>(i + 1), // +1 as, 0 is indicating no-address
             format_column<Colorize, 1, widths[1]>(to_string(q.opcode)),
             format_column<Colorize, 2, widths[2]>(expr_printer(q.result)),
             format_column<Colorize, 3, widths[3]>(expr_printer(q.arg1)),
             format_column<Colorize, 4, widths[4]>(expr_printer(q.arg2)),
             format_column<Colorize, 5, widths[5]>(quad_label_str),
-            format_column<Colorize, 6, widths[6]>(quad_line_str)
+            format_column<Colorize, 6, widths[6]>(quad_line_str),
+            format_column<Colorize, 7, widths[7]>(print_detailed  && q.is_dead? "DEAD" : "")
         );
     }
     if constexpr (Colorize)
@@ -225,7 +235,6 @@ PassManager::PassManager(
       lexer_ctx_(),
       semantic_system_(
           expr_opts,
-          ir_opts,
           &parse_ctx_,
           support::require_ptr(symbol_table),
           diagnostic_engine_.reporter.get()
@@ -416,11 +425,11 @@ TranslationUnit::show_diagnostics() const
 }
 
 void
-TranslationUnit::show_ir() const
+TranslationUnit::show_ir(const bool detailed) const
 {
     DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
 
-    print_ir<true>(std::cout, pass_manager_->get_quads(), loc_tracker_);
+    print_ir<true>(std::cout, pass_manager_->get_quads(), loc_tracker_, detailed);
 }
 
 void

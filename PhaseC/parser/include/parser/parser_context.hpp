@@ -88,22 +88,6 @@ private:
     u32 dict_entry_nesting_depth_ = 0;
 };
 
-class FlowManager
-{
-public:
-    enum class FlowState : u8 { ALIVE, DEAD, RUNTIME };
-
-    [[nodiscard]] bool is_flow_alive() const noexcept;
-    void push_if_flow_state(FlowState flow_state);
-    void push_else();
-    void push_loop_flow_state(FlowState flow_state);
-
-    void pop_flow_state();
-
-private:
-    std::vector<FlowState> flow_states_;
-};
-
 class FunctionCtxHandler : private Immobile
 {
 public:
@@ -115,6 +99,23 @@ public:
         const u32 local_var_count;
         const ProgFuncSymbol *func_symbol;
         const LabelID funcdef_skip_jump;
+    };
+
+    class FlowLivenessTracker
+    {
+    public:
+        enum class FlowState : u8 { ALIVE, DEAD, RUNTIME };
+
+        [[nodiscard]] bool is_in_dead_flow() const noexcept;
+        [[nodiscard]] bool is_in_runtime_flow() const noexcept;
+        void push_if_flow_state(FlowState flow_state);
+        void switch_to_else();
+        void push_loop_flow_state(FlowState flow_state);
+
+        void pop_flow_state();
+
+    private:
+        std::vector<FlowState> flow_states_;
     };
 
     explicit FunctionCtxHandler(ParseCtx *host);
@@ -133,8 +134,8 @@ public:
         LabelID label_of_jump);
     [[nodiscard]] FunctionBackpatchInfo exit_function() noexcept;
     [[nodiscard]] u32 function_nesting_depth() const noexcept;
-    [[nodiscard]] u32 current_function_scope() const noexcept;
     [[nodiscard]] const std::string &current_function_name() const noexcept;
+    [[nodiscard]] u32 current_function_scope() const noexcept;
     [[nodiscard]] SourceLocation current_function_location() const noexcept;
     [[nodiscard]] u32 loop_depth() const noexcept;
     [[nodiscard]] const std::vector<Parameter> &function_parameters() const noexcept;
@@ -145,6 +146,8 @@ public:
     void add_label_to_returnlist(LabelID jump_label);
     [[nodiscard]] const std::vector<LabelID> &continue_list();
     [[nodiscard]] const std::vector<LabelID> &return_list();
+    [[nodiscard]] const FlowLivenessTracker &flow_liveness() const;
+    [[nodiscard]] FlowLivenessTracker &flow_liveness();
 
 private:
     struct FunctionDataFrame
@@ -153,7 +156,8 @@ private:
         const u32 scope;
         const SourceLocation loc;
         const ProgFuncSymbol *func_symbol; // Valid function ONLY IF NOT nullptr;
-        FlowManager flow_manager;
+        const LabelID funcdef_skip_jump;   // used to go over function definition in runtime.
+        FlowLivenessTracker flow_liveness_tracker;
 
         u32 loop_nesting_count = 0;
         // This is labels of breaks per loop in function
@@ -162,7 +166,6 @@ private:
         std::stack<std::vector<LabelID>> function_continuelist_stack;
         // This is labels returns per function (in this FunctionDataFrame).
         std::vector<LabelID> function_returnlist;
-        const LabelID funcdef_skip_jump; // used to go over function definition in runtime.
         u32 local_variable_count = 0;
 
         FunctionDataFrame(
@@ -178,7 +181,7 @@ private:
               funcdef_skip_jump(funcdef_skip_jump) {}
     };
 
-    std::stack<FunctionDataFrame> frame_stack_;
+    VectorStack<FunctionDataFrame> frame_stack_;
     std::vector<Parameter> function_parameters_;
     u32 next_function_address_ = 1; // Function addresses are positive integers, so we start from 1.
 
@@ -486,10 +489,22 @@ FunctionCtxHandler::add_label_to_continuelist(const LabelID jump_label)
 inline const std::vector<LabelID> &
 FunctionCtxHandler::return_list()
 {
-    // We must be in a function. // Note at size 1. it global dataframe
-    // So calling this function while there is only 1 framestack is a logic issue.
-    DEBUG_SMART_ASSERT(frame_stack_.size() > 1);
+    DEBUG_SMART_ASSERT(!frame_stack_.empty());
     return frame_stack_.top().function_returnlist;
+}
+
+inline const FunctionCtxHandler::FlowLivenessTracker &
+FunctionCtxHandler::flow_liveness() const
+{
+    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    return frame_stack_.top().flow_liveness_tracker;
+}
+
+inline FunctionCtxHandler::FlowLivenessTracker &
+FunctionCtxHandler::flow_liveness()
+{
+    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    return frame_stack_.top().flow_liveness_tracker;
 }
 
 inline void

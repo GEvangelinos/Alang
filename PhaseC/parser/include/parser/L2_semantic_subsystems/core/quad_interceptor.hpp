@@ -20,8 +20,7 @@ public:
         EmitKey() = default;
     };
 
-    QuadInterceptor(settings::IROpts ir_opts, QuadHandler *quad_handler);
-    void attach_control_flow_manager(ControlFlowManager * control_flow_manger);
+    QuadInterceptor(QuadHandler *quad_handler, ParseCtx *parse_ctx);
 
     void emit(
         ir::Opcode opc,
@@ -33,9 +32,8 @@ public:
         QuadInterceptor::EmitKey);
 
 private:
-    const bool eliminate_dead_code_;
     QuadHandler *const quad_handler_;
-    Once<ControlFlowManager *> control_flow_manager_;
+    ParseCtx *const parse_ctx_;
 };
 } // namespace alpha
 #endif // QUAD_INTERCEPTOR_HPP

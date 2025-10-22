@@ -8,7 +8,6 @@ namespace alpha
 {
 SemanticSystem::SemanticSystem(
     const settings::ExprOpts &expr_opts,
-    const settings::IROpts &ir_opts,
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
     DiagnosticReporter *const dr)
@@ -21,7 +20,7 @@ SemanticSystem::SemanticSystem(
     // Private components, used by public submodules.
     expr_maker_(std::make_unique<ExprMaker>(parse_ctx)),
     quad_handler_(std::make_unique<QuadHandler>()),
-    quad_interceptor_(std::make_unique<QuadInterceptor>(ir_opts, quad_handler_.get())),
+    quad_interceptor_(std::make_unique<QuadInterceptor>(quad_handler_.get(), parse_ctx)),
     quad_yielder_(std::make_unique<QuadYielder>(
         parse_ctx,
         symbol_table,
@@ -52,12 +51,7 @@ SemanticSystem::SemanticSystem(
 
     // public resources used by external components.
     gateway(std::unique_ptr<Gateway>(new Gateway(this))),
-    context_inspector(std::unique_ptr<ContextInspector>(new ContextInspector(this)))
-{
-    // Two-phase initialization: ControlFlowManager constructed after QuadInterceptor.
-    // Bind interceptor to control flow manager post construction.
-    quad_interceptor_->attach_control_flow_manager(&control_flow_manager);
-}
+    context_inspector(std::unique_ptr<ContextInspector>(new ContextInspector(this))) {}
 
 SemanticSystemServices
 SemanticSystem::create_semantic_system_services()
@@ -75,19 +69,19 @@ SemanticSystem::create_semantic_system_services()
 }
 
 AssignBuilder::Options
-SemanticSystem::get_assign_builder_options(const settings::ExprOpts &opts)
+SemanticSystem::get_assign_builder_options(const settings::ExprOpts &expr_opts)
 {
     return {
         // constant propagation requires recording of constants inside Expr(essions)
-        .record_constant_variables = opts.opt_const_propagation
+        .record_constant_variables = expr_opts.opt_const_propagation
     };
 }
 
 BasicBuilder::Options
-SemanticSystem::get_basic_builder_options(const settings::ExprOpts &opts)
+SemanticSystem::get_basic_builder_options(const settings::ExprOpts &expr_opts)
 {
     return {
-        .fold_static_bools = opts.opt_const_eval
+        .fold_static_bools = expr_opts.opt_const_eval
     };
 }
 
@@ -146,11 +140,11 @@ SemanticSystem::Gateway::notify_hard_error() noexcept
 }
 
 std::vector<Quad>
-SemanticSystem::Gateway::extract_quads() noexcept
+SemanticSystem::Gateway::extract_quads()
 {
     if (extracted_quads)
         throw std::logic_error(ATTACH_CONTEXT(
-            "Quad extraction must only happen once at the end of parsing"
+            "Quad extraction must only happen once at the end of parsing (Quads are already extracted)"
         ));
     extracted_quads.raise();
     return host_->quad_handler_->extract_quads();

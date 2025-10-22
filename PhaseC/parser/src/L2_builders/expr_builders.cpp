@@ -77,7 +77,7 @@ AssignBuilder::Restricted::Restricted(
     AssignBuilder::Options &&options,
     const SemanticSystemServices &ss_services)
     : SemanticSubsystem(ss_services),
-      options_(options) {}
+      options_(std::move(options)) {}
 
 BasicBuilder::BasicBuilder(
     BasicBuilder::Options &&options,
@@ -87,7 +87,7 @@ BasicBuilder::BasicBuilder(
 BasicBuilder::Restricted::Restricted(
     BasicBuilder::Options &&options,
     const SemanticSystemServices &ss_services)
-    : SemanticSubsystem(ss_services), options_(options) {}
+    : SemanticSubsystem(ss_services), options_(std::move(options)) {}
 
 CallBuilder::CallBuilder(const SemanticSystemServices &ss_services)
     : DISPATCH_TARGET(ss_services) {}

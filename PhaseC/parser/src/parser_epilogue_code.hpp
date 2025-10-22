@@ -62,7 +62,6 @@ determine_suggested_token_based_on_parsing_heuristics(
     const TokenInfo slast_token_info = lexer_ctx.second_last_token_info().value();
     const auto slast_last_line = loc_tracker.find_last_line(slast_token_info.loc);
     const TokenInfo last_token_info = lexer_ctx.last_token_info().value();
-    const auto last_last_line = loc_tracker.find_last_line(last_token_info.loc);
     const auto unexpected_first_line = loc_tracker.find_first_line(info.unexpected_token_loc);
     // Suggestion priority:   `;`  `:`  `)`  `]`  `}`  `,`
     // NOTE: because there are likely too many option (this function is used in too_many_expected)
@@ -251,7 +250,7 @@ get_formatted_unexpected_token_name(const Info &info)
     return out;
 }
 
-[[nodiscard]] static Suggestion
+[[maybe_unused]][[nodiscard]] static Suggestion
 make_symbol_suggestion(const LexerCtx &lexer_ctx, yysymbol_kind_t suggested_symbol)
 {
     DEBUG_SMART_ASSERT(suggested_symbol != YYSYMBOL_YYEMPTY);

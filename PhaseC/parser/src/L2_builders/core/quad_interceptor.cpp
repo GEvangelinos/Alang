@@ -6,18 +6,10 @@
 namespace alpha
 {
 QuadInterceptor::QuadInterceptor(
-    const settings::IROpts ir_opts,
-    QuadHandler *const quad_handler)
-    : eliminate_dead_code_(ir_opts.opt_dead_code_elimination),
-      quad_handler_(support::require_ptr(quad_handler)),
-    control_flow_manager_()
-      {}
-
-void
-QuadInterceptor::attach_control_flow_manager(ControlFlowManager *const control_flow_manger)
-{
-    control_flow_manager_ = support::require_ptr(control_flow_manger);
-}
+    QuadHandler *const quad_handler,
+    ParseCtx *const parse_ctx)
+    : quad_handler_(support::require_ptr(quad_handler)),
+      parse_ctx_(support::require_ptr(parse_ctx)) {}
 
 void
 QuadInterceptor::emit(
@@ -29,12 +21,7 @@ QuadInterceptor::emit(
     const LabelID label,
     QuadInterceptor::EmitKey)
 {
-    DEBUG_SMART_ASSERT(control_flow_manager_.is_assigned() && "ControlFlowManager is not bind yet");
-
-    if (eliminate_dead_code_)
-        if (control_flow_manager_->is_in_dead_block())
-            return;
-
-    quad_handler_->emit(opc, result, arg1, arg2, loc, label, QuadHandler::EmitKey{});
+    const bool is_dead_quad = parse_ctx_->func_ctx_handler.flow_liveness().is_in_dead_flow();
+    quad_handler_->emit(opc, result, arg1, arg2, loc, label, is_dead_quad, QuadHandler::EmitKey{});
 }
 } // namespace alpha
