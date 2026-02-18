@@ -115,7 +115,7 @@ def print_simple_progress_bar(completed: int, total: int, move_cursor_up: bool):
             return "Sacrificing another test to the CI gods..."
         elif percent < 100:
             return "Almost done... compiling hope."
-        return "Regression passed."
+        return "Regression completed."
 
     terminal_columns = shutil.get_terminal_size().columns
     progress_ratio = completed / total
@@ -150,7 +150,6 @@ def gather_test_filepaths(dirname: str) -> list[Path]:
 def run_testfiles(driver_path: Path, test_filepaths: list[Path]):
     test_filepaths.sort()
     print_simple_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
-    #
     for test_filepath in test_filepaths:
         run_testfile(driver_path, test_filepath)
         os.chdir(_workdir_path)
@@ -182,7 +181,7 @@ def run_testfile(driver_path: Path, testfile_path: Path) -> str:
 def main():
     print(PROPHET_BANNER)
     # TODO: enable before committing :D
-    # time.sleep(3) # Just to scary the reader :D
+    time.sleep(1) # Just to scary the reader :D
     try:
         global _total_tests
         global _workdir_path

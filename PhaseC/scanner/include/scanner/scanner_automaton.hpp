@@ -36,7 +36,8 @@ public:
     };
 
     // We require at least this much, to avoid eof checks in certain scenarios (like peeking) so we can speed things up.
-    static inline u64 k_minimum_source_buffer_null_padding = 2;
+    static constexpr u64 k_minimum_source_buffer_null_padding = 2;
+    static constexpr LexerReturnType TKN_INTERNAL_SKIP = 0x7FFFFFFF;
 
     ScannerAutomaton(
         LexerCtx& lexer_ctx,
@@ -46,7 +47,7 @@ public:
         u64 source_buffer_null_padding
     );
 
-    [[nodiscard]] LexerReturnType yield_token(LexerCtx& lexer_ctx);
+    [[nodiscard]] LexerReturnType yield_token();
 
 private:
     LexerCtx& lexer_ctx_;
@@ -63,7 +64,12 @@ private:
     [[nodiscard]] LexerReturnType register_and_return(LexerReturnType token_id) noexcept;
     [[nodiscard]] LexerReturnType handle_equal_char() noexcept;
     [[nodiscard]] LexerReturnType handle_exclamation_char() noexcept;
-    [[nodiscard]] LexerReturnType handle_plus_sign() noexcept;
+    [[nodiscard]] LexerReturnType handle_plus_char() noexcept;
+    [[nodiscard]] LexerReturnType handle_minus_char() noexcept;
+    [[nodiscard]] LexerReturnType handle_left_angle_bracket_char() noexcept;
+    [[nodiscard]] LexerReturnType handle_right_angle_bracket_char() noexcept;
+    [[nodiscard]] LexerReturnType handle_dot_char() noexcept;
+    [[nodiscard]] LexerReturnType handle_colon_char() noexcept;
 };
 } // namespace alpha
 #endif // SCANNER_AUTOMATON_HPP
