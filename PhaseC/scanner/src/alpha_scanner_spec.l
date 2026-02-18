@@ -31,7 +31,7 @@ comment_begin_rule        "/\*"
 comment_end_rule          "\*/"
 
 stringBeginRule         \"
-string_end_rule           \"
+string_end_rule         \"
 
 /* Newlines are valid inside strings, but we exclude '\n' here */
 /* so that it matches a separate {newline} rule, allowing us */
@@ -47,54 +47,53 @@ string_invalid_escape_code "\\"([^tnr"\\])
 
 %%
 
-"if"            { EMIT(IF); } 
-"else"          { EMIT(ELSE); } 
-"while"         { EMIT(WHILE); }
-"for"           { EMIT(FOR); } 
-"function"      { EMIT(FUNCTION); } 
-"return"        { EMIT(RETURN); } 
-"break"         { EMIT(BREAK); } 
-"continue"      { EMIT(CONTINUE); } 
-"and"           { EMIT(AND); } 
-"not"           { EMIT(NOT); } 
-"or"            { EMIT(OR); } 
-"local"         { EMIT(LOCAL); } 
-"true"          { EMIT(TRUE); } 
-"false"         { EMIT(FALSE); } 
-"nil"           { EMIT(NIL); } 
+"if"            { YIELD_TOKEN(TKN_IF); }
+"else"          { YIELD_TOKEN(TKN_ELSE); }
+"while"         { YIELD_TOKEN(TKN_WHILE); }
+"for"           { YIELD_TOKEN(TKN_FOR); }
+"function"      { YIELD_TOKEN(TKN_FUNCTION); }
+"return"        { YIELD_TOKEN(TKN_RETURN); }
+"break"         { YIELD_TOKEN(TKN_BREAK); }
+"continue"      { YIELD_TOKEN(TKN_CONTINUE); }
+"not"           { YIELD_TOKEN(TKN_NOT); }
+"and"           { YIELD_TOKEN(TKN_AND); }
+"or"            { YIELD_TOKEN(TKN_OR); }
+"local"         { YIELD_TOKEN(TKN_LOCAL); }
+"true"          { YIELD_TOKEN(TKN_TRUE); }
+"false"         { YIELD_TOKEN(TKN_FALSE); }
+"nil"           { YIELD_TOKEN(TKN_NIL); }
 
+"="             { YIELD_TOKEN(TKN_ASSIGN); }
+"+"             { YIELD_TOKEN(TKN_PLUS); }
+"-"             { YIELD_TOKEN(TKN_MINUS); }
+"*"             { YIELD_TOKEN(TKN_MUL); }
+"/"             { YIELD_TOKEN(TKN_DIV); }
+"%"             { YIELD_TOKEN(TKN_MOD); }
+"=="            { YIELD_TOKEN(TKN_EQ); }
+"!="            { YIELD_TOKEN(TKN_NEQ); }
+"++"            { YIELD_TOKEN(TKN_INC); }
+"--"            { YIELD_TOKEN(TKN_DEC); }
+">"             { YIELD_TOKEN(TKN_GT); }
+"<"             { YIELD_TOKEN(TKN_LT); }
+">="            { YIELD_TOKEN(TKN_GTE); }
+"<="            { YIELD_TOKEN(TKN_LTE); }
 
-"="             { EMIT(ASSIGN); } 
-"+"             { EMIT(PLUS); } 
-"-"             { EMIT(MINUS); } 
-"*"             { EMIT(MUL); } 
-"/"             { EMIT(DIV); } 
-"%"             { EMIT(MOD); } 
-"=="            { EMIT(EQ); } 
-"!="            { EMIT(NEQ); } 
-"++"            { EMIT(INC); } 
-"--"            { EMIT(DEC); } 
-">"             { EMIT(GT); } 
-"<"             { EMIT(LT); } 
-">="            { EMIT(GTE); } 
-"<="            { EMIT(LTE); } 
+"{"             { YIELD_TOKEN(TKN_LEFT_BRACE); }
+"}"             { YIELD_TOKEN(TKN_RIGHT_BRACE); }
+"["             { YIELD_TOKEN(TKN_LEFT_BRACKET); }
+"]"             { YIELD_TOKEN(TKN_RIGHT_BRACKET); }
+"("             { YIELD_TOKEN(TKN_LEFT_PAREN); }
+")"             { YIELD_TOKEN(TKN_RIGHT_PAREN); }
+";"             { YIELD_TOKEN(TKN_SEMICOLON); }
+","             { YIELD_TOKEN(TKN_COMMA); }
+":"             { YIELD_TOKEN(TKN_COLON); }
+"::"            { YIELD_TOKEN(TKN_GLOBAL); }
+"."             { YIELD_TOKEN(TKN_DOT); }
+".."            { YIELD_TOKEN(TKN_METHOD_CALL); }
 
-"{"             { EMIT(LEFT_BRACE); }
-"}"             { EMIT(RIGHT_BRACE); }
-"["             { EMIT(LEFT_BRACKET); }
-"]"             { EMIT(RIGHT_BRACKET); }
-"("             { EMIT(LEFT_PAREN); }
-")"             { EMIT(RIGHT_PAREN); }
-";"             { EMIT(SEMICOLON); }
-","             { EMIT(COMMA); }
-":"             { EMIT(COLON); }
-"::"            { EMIT(GLOBAL); }
-"."             { EMIT(DOT); }
-".."            { EMIT(METHOD_CALL); }
-
-{id}            { yylval->cstring = alpha::TokenID::refresh_last_id(yytext); EMIT(ID); } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
-{float}         { yylval->const_float = std::stod(yytext); EMIT(FLOAT); }
-{int}           { yylval->const_int = std::stol(yytext); EMIT(INT); }
+{id}            { yylval->cstring = alpha::TokenID::refresh_last_id(yytext); YIELD_TOKEN(TKN_ID); } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
+{float}         { yylval->const_float = std::stod(yytext); YIELD_TOKEN(TKN_FLOAT); }
+{int}           { yylval->const_int = std::stol(yytext); YIELD_TOKEN(TKN_INT); }
 {line_comment}   { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
 {newline}       { lt.append_line(lexer_ctx.source_index); }
 {space}+        { /* Just eat up the spaces. */ }
@@ -112,7 +111,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
 <INSIDE_COMMENT_BLOCK>{any_character_but_newline} { /* Just eat up any character use see. */ }
 <INSIDE_COMMENT_BLOCK><<EOF>> {
         dr.report_unclosed_comment(alpha::TokenComment::get_starting_location());
-        EMIT(ALPHA_YYEOF);
+        YIELD_TOKEN(TKN_YYEOF);
 }
 
 {stringBeginRule} {
@@ -131,18 +130,18 @@ string_invalid_escape_code "\\"([^tnr"\\])
 }
 <INSIDE_STRING><<EOF>> {
         dr.report_unclosed_string(alpha::TokenString::get_starting_location());
-        EMIT(ALPHA_YYEOF);
+        YIELD_TOKEN(TKN_YYEOF);
 }
 <INSIDE_STRING>{string_end_rule} {
         BEGIN(INITIAL);
         yylval->cstring =  alpha::TokenString::export_string_token();
         *yylloc = alpha::TokenString::export_location(*yylloc);
-        EMIT(STRING);
+        YIELD_TOKEN(TKN_STRING);
 }
 
 {any_character_but_newline} { /* Any other character past this point is considered invalid. */
         dr.report_invalid_character(yytext, *yylloc);
 }
 
-<<EOF>>          { EMIT(ALPHA_YYEOF); }
+<<EOF>>          { YIELD_TOKEN(TKN_YYEOF); }
 %%

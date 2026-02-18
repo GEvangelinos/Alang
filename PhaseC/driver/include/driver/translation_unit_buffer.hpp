@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <filesystem>
 
-#include "../../../core/include/core/source_location_types.hpp"
+#include "core/source_location_types.hpp"
 
 namespace alpha
 {

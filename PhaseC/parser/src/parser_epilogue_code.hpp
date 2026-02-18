@@ -70,10 +70,10 @@ determine_suggested_token_based_on_parsing_heuristics(
     // this rule, make suggestion awful as semicolon can be placed in many places that most of time
     // make no sense.
     if (has_expected(info, YYSYMBOL_SEMICOLON) &&
-        last_token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
-        last_token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE &&
-        slast_token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
-        slast_token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE &&
+        last_token_info.id != alpha_yytoken_kind_t::TKN_SEMICOLON &&
+        last_token_info.id != alpha_yytoken_kind_t::TKN_RIGHT_BRACE &&
+        slast_token_info.id != alpha_yytoken_kind_t::TKN_SEMICOLON &&
+        slast_token_info.id != alpha_yytoken_kind_t::TKN_RIGHT_BRACE &&
         slast_last_line < unexpected_first_line) { return YYSYMBOL_SEMICOLON; }
     if (has_expected(info, YYSYMBOL_COLON)) return YYSYMBOL_COLON;
     if (has_expected(info, YYSYMBOL_COMMA) &&
@@ -88,8 +88,8 @@ determine_suggested_token_based_on_parsing_heuristics(
 
     // if nothing else matches .. we revisit semicolon
     if (has_expected(info, YYSYMBOL_SEMICOLON) &&
-        slast_token_info.id != alpha_yytoken_kind_t::SEMICOLON &&
-        slast_token_info.id != alpha_yytoken_kind_t::RIGHT_BRACE) { return YYSYMBOL_SEMICOLON; }
+        slast_token_info.id != alpha_yytoken_kind_t::TKN_SEMICOLON &&
+        slast_token_info.id != alpha_yytoken_kind_t::TKN_RIGHT_BRACE) { return YYSYMBOL_SEMICOLON; }
     return YYSYMBOL_YYEMPTY;
 }
 
@@ -146,7 +146,7 @@ made_diagnostic_based_on_semantic_heuristics(
     if (ss.context_inspector->is_in_func_param_list() &&
         info.unexpected_token == YYSYMBOL_RIGHT_PAREN &&
         lexer_ctx.second_last_token_info().has_value() &&
-        lexer_ctx.second_last_token_info().value().id == COMMA)
+        lexer_ctx.second_last_token_info().value().id == TKN_COMMA)
     {
         dr.report_syntax_error_remove_or_add(
             yysymbol_name(YYSYMBOL_COMMA),
@@ -341,8 +341,8 @@ static void report_unexpected_eof(
     // Suggestion priority:   `;`  `:`  `)`  `]`  `}`  `,`
     if (has_expected(info, YYSYMBOL_SEMICOLON) &&
         last_token_info_opt.has_value() &&
-        last_token_info_opt->id != alpha_yytoken_kind_t::SEMICOLON &&
-        last_token_info_opt->id != alpha_yytoken_kind_t::RIGHT_BRACE)
+        last_token_info_opt->id != alpha_yytoken_kind_t::TKN_SEMICOLON &&
+        last_token_info_opt->id != alpha_yytoken_kind_t::TKN_RIGHT_BRACE)
     {
         expected = YYSYMBOL_SEMICOLON;
     }

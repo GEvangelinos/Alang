@@ -7,22 +7,22 @@ LexerCtx::register_token(TokenInfo token_info)
 {
     switch (token_info.id)
     {
-    case alpha_yytoken_kind_t::LEFT_PAREN:
+    case alpha_yytoken_kind_t::TKN_LEFT_PAREN:
         open_left_parentheses_locs.push(token_info.loc);
         break;
-    case alpha_yytoken_kind_t::LEFT_BRACKET:
+    case alpha_yytoken_kind_t::TKN_LEFT_BRACKET:
         open_left_brackets_locs.push(token_info.loc);
         break;
-    case alpha_yytoken_kind_t::LEFT_BRACE:
+    case alpha_yytoken_kind_t::TKN_LEFT_BRACE:
         open_left_braces_locs.push(token_info.loc);
         break;
-    case alpha_yytoken_kind_t::RIGHT_PAREN:
+    case alpha_yytoken_kind_t::TKN_RIGHT_PAREN:
         if (!open_left_parentheses_locs.empty()) open_left_parentheses_locs.pop();
         break;
-    case alpha_yytoken_kind_t::RIGHT_BRACKET:
+    case alpha_yytoken_kind_t::TKN_RIGHT_BRACKET:
         if (!open_left_brackets_locs.empty()) open_left_brackets_locs.pop();
         break;
-    case alpha_yytoken_kind_t::RIGHT_BRACE:
+    case alpha_yytoken_kind_t::TKN_RIGHT_BRACE:
         if (!open_left_braces_locs.empty()) open_left_braces_locs.pop();
         break;
     default:

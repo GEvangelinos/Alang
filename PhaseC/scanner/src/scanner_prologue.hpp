@@ -17,10 +17,10 @@
         lexer_ctx.source_index.value = end_result;                                                                      \
     } while (0); /* Semi-Colon is not placed by flex, we place it manually. */
 
-#ifdef EMIT
+#ifdef YIELD_TOKEN
 #error "Macro collision detected"
 #endif
-#define EMIT(TOK_ID)                                                                \
+#define YIELD_TOKEN(TOK_ID)                                                                \
     do                                                                              \
     {                                                                               \
         lexer_ctx.register_token(alpha::TokenInfo{.id = (TOK_ID), .loc = *yylloc}); \

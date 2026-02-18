@@ -34,6 +34,7 @@
 
 %define api.pure full
 %define api.prefix {alpha_yy}
+%define api.token.prefix{TKN_}
 %define parse.lac full
 %define parse.error custom /* Enables custom syntax error composer (yyreport_syntax_error)*/
 %define api.location.type { alpha::SourceLocation }
@@ -234,7 +235,7 @@ not_op:
 
 /**
  * @note: bool exprs *must* be prepared here, before marking jumps.
- * Tried hiding it inside build_* more than once → instant chaos.
+ * Tried hiding it inside build_* more than once and it's instant chaos.
  * Don’t repeat past-me’s mistake. ;)
  */
 and_op:

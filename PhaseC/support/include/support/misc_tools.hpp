@@ -10,30 +10,30 @@
 
 namespace alpha::support
 {
-template<typename N>
+template <typename N>
     requires std::is_integral_v<N>
 [[nodiscard]] constexpr bool is_odd(N n) noexcept { return n % 2; }
 
-template<typename N>
+template <typename N>
     requires std::is_integral_v<N>
 [[nodiscard]] constexpr bool is_even(N n) noexcept { return !is_odd(n); }
 
 // Utility function used to mainly assert pointers
 // in initialization lists of constructors.
-template<typename T>
-[[nodiscard]] T *require_ptr(T *const ptr,
-                             const std::source_location loc = std::source_location::current())
+template <typename T>
+[[nodiscard]] T* require_ptr(
+    T* const ptr, const std::source_location loc = std::source_location::current())
 {
     if (ptr) [[likely]]
-            return ptr;
+        return ptr;
     std::cerr << FMT::format(
-                "ERROR: nullptr caught (expected valid pointer)\n"
-                "{}:{}:{} -> {}: ",
-                loc.file_name(),
-                loc.line(),
-                loc.column(),
-                loc.function_name())
-            << std::endl;
+            "ERROR: nullptr caught (expected valid pointer)\n"
+            "{}:{}:{} -> {}: ",
+            loc.file_name(),
+            loc.line(),
+            loc.column(),
+            loc.function_name())
+        << std::endl;
     std::abort();
 }
 
@@ -43,7 +43,7 @@ template<typename T>
 #define DEBUG_REQUIRE_PTR(ptr) (ptr)
 #endif
 
-template<typename FloatType, typename IntType>
+template <typename FloatType, typename IntType>
     requires std::is_floating_point_v<FloatType> && std::is_integral_v<IntType>
 bool is_lossless_int_to_float(IntType i)
 {

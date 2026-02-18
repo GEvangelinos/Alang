@@ -29,11 +29,12 @@ using if16 = std::int_fast16_t;
 using if32 = std::int_fast32_t;
 using if64 = std::int_fast64_t;
 
+using Word = u32;
+
 /* Floating-point types. */
 using f32 = float;
 using f64 = double;
 
-using Word = u32;
 
 static_assert(sizeof(f32) == 4, "Type `f32` is not 4 bytes on current system");
 static_assert(sizeof(f64) == 8, "Type `f64` is not 8 bytes on current system");

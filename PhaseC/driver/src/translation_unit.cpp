@@ -339,6 +339,7 @@ PassManager::ScannerHandle::ScannerHandle(TranslationUnitBuffer &tu_buffer)
     if (alpha_yylex_init(&scanner_) != 0)
         throw std::runtime_error(ATTACH_CONTEXT("Failed to initializing scanner"));
 
+    DEBUG_SMART_ASSERT(!!tu_buffer.data());
     if (alpha_yy_scan_buffer(tu_buffer.data(), tu_buffer.size(), scanner_) == nullptr)
     {
         std::string error =
