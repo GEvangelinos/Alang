@@ -11,11 +11,13 @@ namespace alpha
 {
 ScannerAutomaton::ScannerAutomaton(
     LexerCtx& lexer_ctx,
+    LocationTracker& lt,
     DiagnosticReporter& dr,
     const char* const source_buffer,
     const u64 source_size,
     const u64 source_buffer_null_padding)
     : lexer_ctx_(lexer_ctx),
+      lt_(lt),
       dr_(dr),
       source_buffer_(support::require_ptr(source_buffer)),
       source_size_(source_size),
@@ -154,6 +156,74 @@ ScannerAutomaton::handle_colon_char() noexcept
     return register_and_return(TKN_COLON);
 }
 
+void
+ScannerAutomaton::register_newline_char() noexcept { lt_.append_line(lexer_ctx_.source_index); }
+
+
+ScannerAutomaton::LexerReturnType
+ScannerAutomaton::handle_comment_line() noexcept
+{
+    DEBUG_SMART_ASSERT(get_curr_char() == '/', peek_next_char() == '/');
+    while (!has_reached_eof() && peek_next_char() != '\n')
+        advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
+    return ScannerAutomaton::TKN_INTERNAL_SKIP;
+}
+
+ScannerAutomaton::LexerReturnType
+ScannerAutomaton::handle_comment_block() noexcept
+{
+    DEBUG_SMART_ASSERT(get_curr_char() == '/', peek_next_char() == '*'); // Still at beginning.
+    u64 block_comment_depth = 0;
+    while (true)
+    {
+        const char ch1 = get_curr_char();
+        const char ch2 = peek_next_char();
+        if (has_reached_eof())
+            return TKN_YYEOF;
+        if (ch1 == '\n')
+            register_newline_char();
+
+        if (ch1 == '/' && ch2 == '*')
+        {
+            advance_cursor(); // consume '/' now, consume '*' at end.
+            ++block_comment_depth;
+        }
+        else if (ch1 == '*' && ch2 == '/')
+        {
+            advance_cursor(); // consume '*' now, consume '/' at end.
+            --block_comment_depth;
+        }
+
+        if (block_comment_depth == 0)
+            return ScannerAutomaton::TKN_INTERNAL_SKIP;
+        advance_cursor(); // Only advance if not on final closing '/'. (for caller to consume)
+    }
+}
+
+ScannerAutomaton::LexerReturnType
+ScannerAutomaton::handle_slash_char() noexcept
+{
+    DEBUG_SMART_ASSERT(get_curr_char() == '/');
+    const char next_ch = peek_next_char();
+    if (next_ch == '/')
+        return handle_comment_line();
+    if (next_ch == '*')
+        return handle_comment_block();
+    return register_and_return(TKN_DIV);
+}
+
+#define CASE_LIST_FOR_SPACES  \
+    case ' ': case '\r': case '\t': case '\v'
+#define CASE_LIST_FOR_NUMBERS \
+    case '0': case '1': case '2': case '3': case '4': \
+    case '5': case '6': case '7': case '8': case '9'
+#define CASE_LIST_FOR_LETTERS \
+    case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': \
+    case 'j': case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': \
+    case 's': case 't': case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':           \
+    case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': \
+    case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': \
+    case 'S': case 'T': case 'U':case 'V': case 'W': case 'X': case 'Y': case 'Z'
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::yield_token()
@@ -163,39 +233,42 @@ ScannerAutomaton::yield_token()
 
     while (true)
     {
-        LexerReturnType result;
-        const char curr_ch = get_curr_char();
-        switch (curr_ch)
+        LexerReturnType result = ScannerAutomaton::TKN_INTERNAL_SKIP;
+        switch (get_curr_char())
         { // clang-format off
-        case '=': result = handle_equal_char();               break;
-        case '!': result = handle_exclamation_char();         break;
-        case '+': result = handle_plus_char();                break;
-        case '-': result = handle_minus_char();               break;
-        case '<': result = handle_left_angle_bracket_char();  break;
-        case '>': result = handle_right_angle_bracket_char(); break;
-        case '.': result = handle_dot_char();                 break;
-        case ':': result = handle_colon_char();               break;
-        case '*': return TKN_MUL;
-        case '/': return TKN_DIV;
-        case '%': return TKN_MOD;
-        case '{': return TKN_LEFT_BRACE;
-        case '}': return TKN_RIGHT_BRACE;
-        case '[': return TKN_LEFT_BRACKET;
-        case ']': return TKN_RIGHT_BRACKET;
-        case '(': return TKN_LEFT_PAREN;
-        case ')': return TKN_RIGHT_PAREN;
-        case ';': return TKN_SEMICOLON;
-        case ',': return TKN_COMMA;
-        case ' ': case '\r': case '\t': case '\v': result = ScannerAutomaton::TKN_INTERNAL_SKIP; break;
-
-        default:
-            {
-                // if (std::isdigit(curr_ch))
-
-            }
+        case '=':  result = handle_equal_char();               break;
+        case '!':  result = handle_exclamation_char();         break;
+        case '+':  result = handle_plus_char();                break;
+        case '-':  result = handle_minus_char();               break;
+        case '<':  result = handle_left_angle_bracket_char();  break;
+        case '>':  result = handle_right_angle_bracket_char(); break;
+        case '.':  result = handle_dot_char();                 break;
+        case ':':  result = handle_colon_char();               break;
+        case '*':  result = TKN_MUL;                           break;
+        case '/':  result = handle_slash_char();               break;
+        case '%':  result = TKN_MOD;                           break;
+        case '{':  result = TKN_LEFT_BRACE;                    break;
+        case '}':  result = TKN_RIGHT_BRACE;                   break;
+        case '[':  result = TKN_LEFT_BRACKET;                  break;
+        case ']':  result = TKN_RIGHT_BRACKET;                 break;
+        case '(':  result = TKN_LEFT_PAREN;                    break;
+        case ')':  result = TKN_RIGHT_PAREN;                   break;
+        case ';':  result = TKN_SEMICOLON;                     break;
+        case ',':  result = TKN_COMMA;                         break;
+        case '\"': result = handle_double_quote_char();        break;
+        case '\n': register_newline_char();                    break;
+        CASE_LIST_FOR_SPACES:                                  break;
+        CASE_LIST_FOR_NUMBERS: result = handle_number_char();  break;
+        CASE_LIST_FOR_LETTERS: result = handle_alpha_char();   break;
+        default: UNIMPLEMENTED("MUST handle invalid chars and shit");
         } // clang-format on
+
+        advance_cursor(); // Main dispatching function always advance final token character.
         if (result != ScannerAutomaton::TKN_INTERNAL_SKIP)
             return result;
     }
 }
+#undef CASE_LIST_FOR_SPACES
+#undef CASE_LIST_FOR_NUMBERS
+#undef CASE_LIST_FOR_LETTERS
 } // namespace alpha

@@ -41,6 +41,7 @@ public:
 
     ScannerAutomaton(
         LexerCtx& lexer_ctx,
+        LocationTracker & lt,
         DiagnosticReporter& dr,
         const char* source_buffer,
         u64 source_size,
@@ -51,6 +52,7 @@ public:
 
 private:
     LexerCtx& lexer_ctx_;
+    LocationTracker &lt_;
     DiagnosticReporter& dr_;
     const char* const source_buffer_ = nullptr;
     const u64 source_size_ = 0;
@@ -70,6 +72,10 @@ private:
     [[nodiscard]] LexerReturnType handle_right_angle_bracket_char() noexcept;
     [[nodiscard]] LexerReturnType handle_dot_char() noexcept;
     [[nodiscard]] LexerReturnType handle_colon_char() noexcept;
+    [[nodiscard]] LexerReturnType handle_slash_char() noexcept;
+    [[nodiscard]] LexerReturnType handle_comment_line() noexcept;
+    [[nodiscard]] LexerReturnType handle_comment_block() noexcept;
+    void register_newline_char() noexcept;
 };
 } // namespace alpha
 #endif // SCANNER_AUTOMATON_HPP
