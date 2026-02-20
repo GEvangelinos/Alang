@@ -11,23 +11,32 @@ namespace alpha::support
 {
 [[nodiscard]] std::string tolower_str(std::string str);
 [[nodiscard]] std::string toupper_str(std::string str);
-std::string &lstrip(std::string &str);
-std::string &rstrip(std::string &str);
-std::string &strip(std::string &str);
-[[nodiscard]] bool is_blank_str(const std::string &str);
-[[nodiscard]] std::vector<std::string> split_lines(const std::string &str);
+std::string& lstrip(std::string& str);
+std::string& rstrip(std::string& str);
+std::string& strip(std::string& str);
+[[nodiscard]] bool is_blank_str(const std::string& str);
+[[nodiscard]] std::vector<std::string> split_lines(const std::string& str);
 
-[[nodiscard]] inline char *cstrdup(const char *const src)
+[[nodiscard]] inline char* cstrdup(const char* const src)
 {
     DEBUG_SMART_ASSERT(!!src);
     if (!src)
         return nullptr;
 
     const auto src_size = std::strlen(src) + 1; // +1 for NULL-byte
-    char *dest = new char[src_size];
+    char* dest = new char[src_size];
     std::memcpy(dest, src, src_size);
     return dest;
 }
 
+[[nodiscard]] inline bool isdigit(const char c) noexcept { return c >= '0' && c <= '9'; }
+
+[[nodiscard]] inline bool isxdigit(const unsigned char c) noexcept
+{
+    // Fold uppercase into lowercase by setting bit 5
+    constexpr unsigned char mask = 0b0010'0000;
+    const unsigned char lower = c | mask;
+    return (c >= '0' && c <= '9') || (lower >= 'a' && lower <= 'f');
+}
 } // namespace alpha::support
 #endif // SUPPORT_STRING_TOOLS_HPP

@@ -5,6 +5,7 @@
 #include "scanner_prologue.hpp"
 #include "scanner/scanner_context.hpp"
 #include "support/misc_tools.hpp"
+#include "support/string_tools.hpp"
 
 
 namespace alpha
@@ -250,17 +251,17 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_number_char() noexcept
 {
     const char curr_ch = get_curr_char();
-    DEBUG_SMART_ASSERT(!!std::isdigit(curr_ch));
+    DEBUG_SMART_ASSERT(!!support::isdigit(curr_ch));
     const char next_ch = get_next_char();
 
-    if (curr_ch == '0' && (next_ch == 'x' || next_ch == 'X') && std::isxdigit(get_nth_char<2>()))
+    if (curr_ch == '0' && (next_ch == 'x' || next_ch == 'X') && support::isxdigit(get_nth_char<2>()))
     {
         advance_cursor<2>(); // We consume 0 and 'x'
-        DEBUG_SMART_ASSERT(!!std::isxdigit(get_curr_char()));
+        DEBUG_SMART_ASSERT(!!support::isxdigit(get_curr_char()));
         while (const char next_ch = get_next_char())
-            if (std::isxdigit(next_ch))
+            if (support::isxdigit(next_ch))
                 advance_cursor();
-        DEBUG_SMART_ASSERT(!!std::isxdigit(get_curr_char()));
+        DEBUG_SMART_ASSERT(!!support::isxdigit(get_curr_char()));
         return TKN_INT;
     }
     // Find if float or decimal or scientific...
