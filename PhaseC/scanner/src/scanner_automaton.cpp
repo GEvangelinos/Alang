@@ -34,16 +34,15 @@ char
 ScannerAutomaton::get_curr_char() noexcept
 {
     DEBUG_SMART_ASSERT(!has_reached_eof());
-    return source_buffer_[cursor_];
+    return get_nth_char<0>();
 }
 
 char
-ScannerAutomaton::peek_next_char() noexcept
+ScannerAutomaton::get_next_char() noexcept
 {
     DEBUG_SMART_ASSERT(!has_reached_eof());
-    return source_buffer_[cursor_ + 1];
+    return get_nth_char<1>();
 }
-
 
 bool
 ScannerAutomaton::has_reached_eof() const noexcept { return cursor_ == source_size_; }
@@ -63,7 +62,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_equal_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '=');
-    if (peek_next_char() == '=')
+    if (get_next_char() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_EQ);
@@ -75,7 +74,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_exclamation_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '!');
-    if (peek_next_char() == '=') // Only place we support '!', is a part of != token.
+    if (get_next_char() == '=') // Only place we support '!', is a part of != token.
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_NEQ);
@@ -88,7 +87,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_plus_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '+');
-    if (peek_next_char() == '+')
+    if (get_next_char() == '+')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_INC);
@@ -100,7 +99,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_minus_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '-');
-    if (peek_next_char() == '-')
+    if (get_next_char() == '-')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_DEC);
@@ -112,7 +111,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_left_angle_bracket_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '<');
-    if (peek_next_char() == '=')
+    if (get_next_char() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_LTE);
@@ -124,7 +123,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_right_angle_bracket_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '>');
-    if (peek_next_char() == '=')
+    if (get_next_char() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_GTE);
@@ -136,7 +135,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_dot_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '.');
-    if (peek_next_char() == '.')
+    if (get_next_char() == '.')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_METHOD_CALL);
@@ -148,7 +147,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_colon_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == ':');
-    if (peek_next_char() == ':')
+    if (get_next_char() == ':')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_GLOBAL);
@@ -163,8 +162,8 @@ ScannerAutomaton::register_newline_char() noexcept { lt_.append_line(lexer_ctx_.
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_comment_line() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '/', peek_next_char() == '/');
-    while (!has_reached_eof() && peek_next_char() != '\n')
+    DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '/');
+    while (!has_reached_eof() && get_next_char() != '\n')
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
     return ScannerAutomaton::TKN_INTERNAL_SKIP;
 }
@@ -172,14 +171,13 @@ ScannerAutomaton::handle_comment_line() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_comment_block() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '/', peek_next_char() == '*'); // Still at beginning.
+    DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '*'); // Still at beginning.
     u64 block_comment_depth = 0;
-    while (true)
+    while (!has_reached_eof())
     {
+        // Reminder even if ch2 is after last valid CHAR (so its after EOF), its still valid due to padding requirement (in ctor)
         const char ch1 = get_curr_char();
-        const char ch2 = peek_next_char();
-        if (has_reached_eof())
-            return TKN_YYEOF;
+        const char ch2 = get_next_char();
         if (ch1 == '\n')
             register_newline_char();
 
@@ -198,18 +196,75 @@ ScannerAutomaton::handle_comment_block() noexcept
             return ScannerAutomaton::TKN_INTERNAL_SKIP;
         advance_cursor(); // Only advance if not on final closing '/'. (for caller to consume)
     }
+    return TKN_YYEOF;
 }
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_slash_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '/');
-    const char next_ch = peek_next_char();
+    const char next_ch = get_next_char();
     if (next_ch == '/')
         return handle_comment_line();
     if (next_ch == '*')
         return handle_comment_block();
     return register_and_return(TKN_DIV);
+}
+
+ScannerAutomaton::LexerReturnType
+ScannerAutomaton::handle_double_quote_char() noexcept
+{
+    DEBUG_SMART_ASSERT(get_curr_char() == '\"');
+    // Just started handling string, so we first things first consume the initialization marker.
+    advance_cursor();
+    while (!has_reached_eof())
+    {
+        // Reminder even if ch2 is after last valid CHAR (so its after EOF), its still valid due to padding requirement (in ctor)
+        const char ch1 = get_curr_char();
+        if (ch1 == '\"')       // Handle matching "
+            return TKN_STRING; // Let Main dispatcher consume the matching " char.
+        if (ch1 == '\\')       // Handle potential escape code
+        {
+            const char ch2 = get_next_char();
+            switch (ch2)
+            {
+            case 'n':
+            case 'r':
+            case 't':
+            case 'v':
+            case 'f':
+            case '\\':
+            case '\"':
+                advance_cursor(); // Consume ch1 here, and at end consume ch2.
+                DEBUG_SMART_ASSERT(!has_reached_eof() && "If ch2 past EOF, ch2 must be NULL-byte");
+                break;
+            default: break; // Do nothing
+            }
+        }
+        advance_cursor();
+    }
+    return TKN_YYEOF;
+}
+
+ScannerAutomaton::LexerReturnType
+ScannerAutomaton::handle_number_char() noexcept
+{
+    const char curr_ch = get_curr_char();
+    DEBUG_SMART_ASSERT(!!std::isdigit(curr_ch));
+    const char next_ch = get_next_char();
+
+    if (curr_ch == '0' && (next_ch == 'x' || next_ch == 'X') && std::isxdigit(get_nth_char<2>()))
+    {
+        advance_cursor<2>(); // We consume 0 and 'x'
+        DEBUG_SMART_ASSERT(!!std::isxdigit(get_curr_char()));
+        while (const char next_ch = get_next_char())
+            if (std::isxdigit(next_ch))
+                advance_cursor();
+        DEBUG_SMART_ASSERT(!!std::isxdigit(get_curr_char()));
+        return TKN_INT;
+    }
+    // Find if float or decimal or scientific...
+
 }
 
 #define CASE_LIST_FOR_SPACES  \
@@ -223,10 +278,10 @@ ScannerAutomaton::handle_slash_char() noexcept
     case 's': case 't': case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':           \
     case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': \
     case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': \
-    case 'S': case 'T': case 'U':case 'V': case 'W': case 'X': case 'Y': case 'Z'
+    case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z'
 
 ScannerAutomaton::LexerReturnType
-ScannerAutomaton::yield_token()
+ScannerAutomaton::yield_token() noexcept
 {
     if (cursor_ == source_size_)
         return TKN_YYEOF;
@@ -234,7 +289,8 @@ ScannerAutomaton::yield_token()
     while (true)
     {
         LexerReturnType result = ScannerAutomaton::TKN_INTERNAL_SKIP;
-        switch (get_curr_char())
+        const char curr_ch = get_curr_char();
+        switch (curr_ch)
         { // clang-format off
         case '=':  result = handle_equal_char();               break;
         case '!':  result = handle_exclamation_char();         break;
@@ -259,8 +315,12 @@ ScannerAutomaton::yield_token()
         case '\n': register_newline_char();                    break;
         CASE_LIST_FOR_SPACES:                                  break;
         CASE_LIST_FOR_NUMBERS: result = handle_number_char();  break;
-        CASE_LIST_FOR_LETTERS: result = handle_alpha_char();   break;
-        default: UNIMPLEMENTED("MUST handle invalid chars and shit");
+        // CASE_LIST_FOR_LETTERS: result = handle_alpha_char();   break;
+        default:
+            {
+                const char chartext[] = {curr_ch, 0};
+                dr_.report_invalid_character(chartext, k_no_loc); break;
+            }
         } // clang-format on
 
         advance_cursor(); // Main dispatching function always advance final token character.

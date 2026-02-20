@@ -30,7 +30,7 @@ any_character_but_newline  .
 comment_begin_rule        "/\*"
 comment_end_rule          "\*/"
 
-stringBeginRule         \"
+string_begin_rule         \"
 string_end_rule         \"
 
 /* Newlines are valid inside strings, but we exclude '\n' here */
@@ -114,7 +114,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
         YIELD_TOKEN(TKN_YYEOF);
 }
 
-{stringBeginRule} {
+{string_begin_rule} {
         BEGIN(INSIDE_STRING);
         alpha::TokenString::set_starting_location(*yylloc);
 }
@@ -134,7 +134,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
 }
 <INSIDE_STRING>{string_end_rule} {
         BEGIN(INITIAL);
-        yylval->cstring =  alpha::TokenString::export_string_token();
+        yylval->cstring = alpha::TokenString::export_string_token();
         *yylloc = alpha::TokenString::export_location(*yylloc);
         YIELD_TOKEN(TKN_STRING);
 }

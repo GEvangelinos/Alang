@@ -4,6 +4,8 @@
 #include <array>
 #include <core/numeric_types.hpp>
 
+#include "support/misc_tools.hpp"
+
 namespace alpha
 {
 class ScannerAutomaton
@@ -41,28 +43,37 @@ public:
 
     ScannerAutomaton(
         LexerCtx& lexer_ctx,
-        LocationTracker & lt,
+        LocationTracker& lt,
         DiagnosticReporter& dr,
         const char* source_buffer,
         u64 source_size,
         u64 source_buffer_null_padding
     );
 
-    [[nodiscard]] LexerReturnType yield_token();
+    [[nodiscard]] LexerReturnType yield_token() noexcept;
 
 private:
     LexerCtx& lexer_ctx_;
-    LocationTracker &lt_;
+    LocationTracker& lt_;
     DiagnosticReporter& dr_;
     const char* const source_buffer_ = nullptr;
     const u64 source_size_ = 0;
     const u64 source_buffer_null_padding_ = 0;
     u64 cursor_ = 0; // Index based (points on source_buffer)
 
-    [[nodiscard]] bool has_reached_eof() const noexcept;
+    template <i64 n>
+    [[nodiscard]] char get_nth_char() noexcept
+    {
+        return DEBUG_REQUIRE_PTR(source_buffer_)[cursor_ + n];
+    }
+
     [[nodiscard]] char get_curr_char() noexcept;
-    [[nodiscard]] char peek_next_char() noexcept;
-    void advance_cursor() noexcept { ++cursor_; }
+    [[nodiscard]] char get_next_char() noexcept;
+    [[nodiscard]] bool has_reached_eof() const noexcept;
+
+    template <u64 n = 1>
+    void advance_cursor() noexcept { cursor_ += n; }
+
     [[nodiscard]] LexerReturnType register_and_return(LexerReturnType token_id) noexcept;
     [[nodiscard]] LexerReturnType handle_equal_char() noexcept;
     [[nodiscard]] LexerReturnType handle_exclamation_char() noexcept;
@@ -73,6 +84,8 @@ private:
     [[nodiscard]] LexerReturnType handle_dot_char() noexcept;
     [[nodiscard]] LexerReturnType handle_colon_char() noexcept;
     [[nodiscard]] LexerReturnType handle_slash_char() noexcept;
+    [[nodiscard]] LexerReturnType handle_double_quote_char() noexcept;
+    [[nodiscard]] LexerReturnType handle_number_char() noexcept;
     [[nodiscard]] LexerReturnType handle_comment_line() noexcept;
     [[nodiscard]] LexerReturnType handle_comment_block() noexcept;
     void register_newline_char() noexcept;
