@@ -248,24 +248,124 @@ ScannerAutomaton::handle_double_quote_char() noexcept
 }
 
 ScannerAutomaton::LexerReturnType
+ScannerAutomaton::handle_hex_number() noexcept
+{
+    DEBUG_SMART_ASSERT(
+        get_nth_char<0>() == '0',
+        get_nth_char<1>() == 'x' || get_nth_char<1>() == 'X',
+        support::is_xdigit(get_nth_char<2>())
+    );
+    advance_cursor<2>(); // We consume 0 and 'x'
+    while (const char next_ch = get_next_char())
+    {
+        DEBUG_SMART_ASSERT(
+            !has_reached_eof() &&
+            "To reach EOF here it would mean curr is at EOF (so NULL-BYTE) "
+            "and that also means next_ch on previous iterations was NULL-BYTE "
+            "and pass the isxdigit() check and advance cursor with a NULL-BYTE"
+        );
+        if (support::is_xdigit(next_ch))
+            advance_cursor();
+    }
+    DEBUG_SMART_ASSERT(support::is_xdigit(get_curr_char()));
+    return TKN_INT;
+}
+
+ScannerAutomaton::LexerReturnType
+ScannerAutomaton::handle_float_number() noexcept
+{
+    DEBUG_SMART_ASSERT(get_curr_char() == '.' && support::is_digit(get_next_char()));
+    advance_cursor(); // To consume '.'
+
+    // --- Prefix digits consumption loop --- //
+    while (support::is_digit(get_next_char()))
+        advance_cursor();
+    DEBUG_SMART_ASSERT(!has_reached_eof(), support::is_digit(get_curr_char()));
+
+    // --- Handle potential scientific floats --- //
+    const char next_ch = get_next_char();
+    DEBUG_SMART_ASSERT(!support::is_digit(next_ch) && "Prefix digit loop should consume that");
+    if (next_ch == 'e' || next_ch == 'E') // Handle Scientific floats
+    {
+        static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 1);
+        DEBUG_SMART_ASSERT(source_buffer_null_padding_ >= 1);
+        const char next_next_ch = get_nth_char<2>(); // Valid cause <1> was non null-byte.
+        if (next_next_ch == '+' || next_next_ch == '-')
+        {
+            static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 2);
+            DEBUG_SMART_ASSERT(source_buffer_null_padding_ >= 2);
+            const char next_next_next_ch = get_nth_char<3>();
+            if (support::is_digit(next_next_next_ch))
+            {
+                DEBUG_SMART_ASSERT(
+                    support::is_digit(get_nth_char<0>()),
+                    get_nth_char<1>() == 'e' || get_nth_char<1>() == 'E',
+                    get_nth_char<2>() == '+' || get_nth_char<2>() == '-',
+                    support::is_digit(get_nth_char<3>())
+                );
+                advance_cursor<3>(); // Consume digit before E, consume E, consume +-
+            }
+            // else "This case is for something like 1.2e+myid, which is not scientific notation ... just a `1.2` float"
+        }
+        else if (support::is_digit(next_next_ch))
+        {
+            DEBUG_SMART_ASSERT(
+                support::is_digit(get_nth_char<0>()),
+                get_nth_char<1>() == 'e' || get_nth_char<1>() == 'E',
+                support::is_digit(get_nth_char<2>())
+            );
+            advance_cursor<2>(); // Consume digit before E and consume E.
+        }
+        // else "next_ch was e or E but without digit suffix e or E is just an ID fragment, not part of float"
+    }
+    DEBUG_SMART_ASSERT(support::is_digit(get_curr_char()));
+
+    // --- Suffix digits consumption loop --- //
+    while (support::is_digit(get_next_char()))
+        advance_cursor();
+    DEBUG_SMART_ASSERT(!has_reached_eof(), support::is_digit(get_curr_char()));
+
+    // Last digit is consumed by main dispatch loop (our caller).
+    return TKN_FLOAT;
+}
+
+ScannerAutomaton::LexerReturnType
+ScannerAutomaton::handle_decimal_number() noexcept
+{
+    DEBUG_SMART_ASSERT(support::is_digit(get_curr_char()));
+    while (true)
+    {
+        DEBUG_SMART_ASSERT(!has_reached_eof());
+        if (get_curr_char() == '.' && support::is_digit(get_next_char()))
+            return handle_float_number();
+        if (support::is_digit(get_next_char()))
+            advance_cursor();
+        else
+            break;
+    }
+    DEBUG_SMART_ASSERT(support::is_digit(get_curr_char()), !support::is_digit(get_next_char()));
+    return TKN_INT;
+}
+
+
+ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_number_char() noexcept
 {
     const char curr_ch = get_curr_char();
-    DEBUG_SMART_ASSERT(!!support::isdigit(curr_ch));
-    const char next_ch = get_next_char();
+    DEBUG_SMART_ASSERT(support::is_digit(curr_ch));
 
-    if (curr_ch == '0' && (next_ch == 'x' || next_ch == 'X') && support::isxdigit(get_nth_char<2>()))
+    // For HEX nums we require at least a hex digit after 0x as without it, 0x is just a decimal 0 and an id x.
+    if (curr_ch == '0')
     {
-        advance_cursor<2>(); // We consume 0 and 'x'
-        DEBUG_SMART_ASSERT(!!support::isxdigit(get_curr_char()));
-        while (const char next_ch = get_next_char())
-            if (support::isxdigit(next_ch))
-                advance_cursor();
-        DEBUG_SMART_ASSERT(!!support::isxdigit(get_curr_char()));
-        return TKN_INT;
+        const char next_ch = get_next_char();
+        if ((next_ch == 'x' || next_ch == 'X') && support::is_xdigit(get_nth_char<2>()))
+            return handle_hex_number();
     }
-    // Find if float or decimal or scientific...
 
+    // If here then the number isn't HEX, So we need to check if integer or float.
+    return handle_decimal_number(); // This functions also handle floats starting with decimals.
+
+    // Note float without decimal (ex: `.15`) are not detected here (but most likely on '.' handler).
 }
 
 #define CASE_LIST_FOR_SPACES  \

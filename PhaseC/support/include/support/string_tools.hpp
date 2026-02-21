@@ -29,14 +29,32 @@ std::string& strip(std::string& str);
     return dest;
 }
 
-[[nodiscard]] inline bool isdigit(const char c) noexcept { return c >= '0' && c <= '9'; }
+// Basic implementation, so we can avoid using the slower std::isdigit() that looks up for locale.
+[[nodiscard]] constexpr bool is_digit(const unsigned char c) noexcept
+{
+    const bool result = c >= '0' && c <= '9';
+    if (!std::is_constant_evaluated()) // std::isdigit() is not constexpr at the time of writing.
+        DEBUG_SMART_ASSERT(result == !!std::isdigit(c));
+    return result;
+}
 
-[[nodiscard]] inline bool isxdigit(const unsigned char c) noexcept
+// Basic implementation, so we can avoid using the slower std::isxdigit() that looks up for locale.
+[[nodiscard]] constexpr bool is_xdigit(const unsigned char c) noexcept
 {
     // Fold uppercase into lowercase by setting bit 5
     constexpr unsigned char mask = 0b0010'0000;
-    const unsigned char lower = c | mask;
-    return (c >= '0' && c <= '9') || (lower >= 'a' && lower <= 'f');
+    const unsigned char lower = c | mask; // Destructive operation. Only works for a-zA-Z .
+
+    DEBUG(
+        if (!std::is_constant_evaluated())
+        if (std::isalpha(c))
+        DEBUG_SMART_ASSERT(lower == static_cast<decltype(c)>(std::tolower(c)));
+    )
+
+    const bool result = (c >= '0' && c <= '9') || (lower >= 'a' && lower <= 'f');
+    if (!std::is_constant_evaluated()) // std::isxdigit() is not constexpr at the time of writing.
+        DEBUG_SMART_ASSERT(result == !!std::isxdigit(c));
+    return result;
 }
 } // namespace alpha::support
 #endif // SUPPORT_STRING_TOOLS_HPP

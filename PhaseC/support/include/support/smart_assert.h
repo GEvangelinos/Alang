@@ -42,6 +42,34 @@ extern "C"
 #ifdef __cplusplus
 [[maybe_unused]]
 #endif
+
+static unsigned long long _get_nth_comma_position(const char *str, const unsigned long long target_comma_count)
+{
+        // Obviously the opener/closer system ain't perfect... as such tokens inside string or comment
+        // will still fuck up the order.. but for an assert macro it will do for now...
+        unsigned long long str_index = 0;
+        unsigned long long found_commas = 0;
+        long long openers = 0;
+        for (; str[str_index] != '\0'; str_index++)
+        {
+                if (str[str_index] == '(' || str[str_index] == '[' || str[str_index] == '{')
+                {
+                        ++openers;
+                        continue;
+                }
+                if (str[str_index] == ')' || str[str_index] == ']' || str[str_index] == '}')
+                {
+                        --openers;
+                        continue;
+                }
+                if (str[str_index] == ',' && openers == 0)
+                        ++found_commas;
+                if (found_commas == target_comma_count)
+                        break;
+        }
+        return found_commas == target_comma_count ? str_index : 0;
+}
+
 static int _get_nth_comma_position(const char *string, const int target_comma_count)
 {
     int string_index = 0;
@@ -114,7 +142,7 @@ static int _get_leading_spaces(const char *_string)
                                 int prefix_comma_position = _get_nth_comma_position(assertion_text, assertion_index);                                       \
                                 int leading_spaces = _get_leading_spaces(assertion_text + prefix_comma_position + 1);                                       \
                                 const char *assertion_address = assertion_text + prefix_comma_position + 1 + leading_spaces; /* +1 to skip comma itself. */ \
-                                _PRINT_SMART_ASSERT("Condition %d: `%s` failed.", assertion_index + 1, assertion_address)                                   \
+                                _PRINT_SMART_ASSERT("Condition %d: `%s` failed.", assertion_index + 1, assertion_address);                                  \
                                 continue;                                                                                                                   \
                         }                                                                                                                                   \
                         /*Not first not last... --> Intermidiate */                                                                                         \

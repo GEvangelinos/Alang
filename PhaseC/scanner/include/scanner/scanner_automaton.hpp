@@ -61,18 +61,15 @@ private:
     const u64 source_buffer_null_padding_ = 0;
     u64 cursor_ = 0; // Index based (points on source_buffer)
 
-    template <i64 n>
-    [[nodiscard]] char get_nth_char() noexcept
-    {
-        return DEBUG_REQUIRE_PTR(source_buffer_)[cursor_ + n];
-    }
+    template <u64 n>
+    [[nodiscard]] char get_nth_char() noexcept; // Forward only lookup.
 
     [[nodiscard]] char get_curr_char() noexcept;
     [[nodiscard]] char get_next_char() noexcept;
     [[nodiscard]] bool has_reached_eof() const noexcept;
 
     template <u64 n = 1>
-    void advance_cursor() noexcept { cursor_ += n; }
+    void advance_cursor() noexcept;
 
     [[nodiscard]] LexerReturnType register_and_return(LexerReturnType token_id) noexcept;
     [[nodiscard]] LexerReturnType handle_equal_char() noexcept;
@@ -83,12 +80,36 @@ private:
     [[nodiscard]] LexerReturnType handle_right_angle_bracket_char() noexcept;
     [[nodiscard]] LexerReturnType handle_dot_char() noexcept;
     [[nodiscard]] LexerReturnType handle_colon_char() noexcept;
-    [[nodiscard]] LexerReturnType handle_slash_char() noexcept;
     [[nodiscard]] LexerReturnType handle_double_quote_char() noexcept;
+
     [[nodiscard]] LexerReturnType handle_number_char() noexcept;
+    [[nodiscard]] LexerReturnType handle_hex_number() noexcept;
+    [[nodiscard]] LexerReturnType handle_decimal_number() noexcept;
+    [[nodiscard]] LexerReturnType handle_float_number() noexcept;
+
+    [[nodiscard]] LexerReturnType handle_slash_char() noexcept;
     [[nodiscard]] LexerReturnType handle_comment_line() noexcept;
     [[nodiscard]] LexerReturnType handle_comment_block() noexcept;
+
     void register_newline_char() noexcept;
 };
+
+template <u64 n>
+char
+ScannerAutomaton::get_nth_char() noexcept
+{
+    const auto index = cursor_ + n;
+    DEBUG_SMART_ASSERT(index < source_size_ + source_buffer_null_padding_ && "Illegal access");
+    return DEBUG_REQUIRE_PTR(source_buffer_)[index];
+}
+
+template <u64 n = 1>
+void
+ScannerAutomaton::advance_cursor() noexcept
+{
+    DEBUG_SMART_ASSERT(cursor_ < source_size_); // Is OK before.
+    cursor_ += n;
+    DEBUG_SMART_ASSERT(cursor_ < source_size_); // Is OK after.
+}
 } // namespace alpha
 #endif // SCANNER_AUTOMATON_HPP
