@@ -52,10 +52,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/support/invariants/ascii_encoding_verification.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scanner/include/scanner/scanner_automaton.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/include/scanner/scanner_automaton.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scanner/src/scanner_automaton.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_automaton.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/support/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/support/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/support/include/support/smart_assert.h" beforeDir="false" afterPath="$PROJECT_DIR$/support/include/support/smart_assert.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/support/include/support/string_tools.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/support/include/support/string_tools.hpp" afterDir="false" />
     </list>
@@ -157,14 +160,19 @@
       <recent name="$PROJECT_DIR$/core/include/core" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/support" />
       <recent name="$PROJECT_DIR$/driver/src" />
       <recent name="$PROJECT_DIR$/driver/include/driver" />
       <recent name="$PROJECT_DIR$/core/src" />
       <recent name="$PROJECT_DIR$/core/include/core" />
-      <recent name="$PROJECT_DIR$/diagnostics/scripts/diagnostic_generator" />
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.alang">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="alang" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--source  ./.tests/testbed.asc  --show_ir_detailed --show_symbol_table  --opt_dead_code_elimination" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang" CONFIG_NAME="Release" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -368,7 +376,7 @@
       <workItem from="1771335907554" duration="33942000" />
       <workItem from="1771505559229" duration="615000" />
       <workItem from="1771582320685" duration="23000" />
-      <workItem from="1771587449993" duration="34824000" />
+      <workItem from="1771587449993" duration="40316000" />
     </task>
     <servers />
   </component>

@@ -70,20 +70,6 @@ static unsigned long long _get_nth_comma_position(const char *str, const unsigne
         return found_commas == target_comma_count ? str_index : 0;
 }
 
-static int _get_nth_comma_position(const char *string, const int target_comma_count)
-{
-    int string_index = 0;
-    int found_commas = 0;
-    for (; (string)[string_index] != '\0'; string_index++)
-    {
-        if (string[string_index] == ',')
-            found_commas++;
-        if (found_commas == (target_comma_count))
-            break;
-    }
-    return (found_commas == target_comma_count) ? string_index : 0;
-}
-
 #ifdef __cplusplus
 [[maybe_unused]]
 #endif

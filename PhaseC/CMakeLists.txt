@@ -138,7 +138,7 @@ check_cxx_source_compiles("
 " STD_FORMAT_SUPPORTED)
 
 if (STD_FORMAT_SUPPORTED)
-    log_info("Compilation test on std::format() succeeded. Adding compile time definition `" STD_FORMAT_SUPPORTED "`")
+    log_info("Compilation test on std::format() succeeded. Adding compile time definition 'STD_FORMAT_SUPPORTED'")
     add_compile_definitions(STD_FORMAT_SUPPORTED)
 endif ()
 

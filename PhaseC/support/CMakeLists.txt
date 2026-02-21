@@ -5,6 +5,7 @@ target_link_libraries(support_api INTERFACE fmt_api)
 add_library(support_impl STATIC
     src/string_tools.cpp
     src/size_format_tools.cpp
+    invariants/ascii_encoding_verification.cpp
 )
 target_link_libraries(support_impl PRIVATE support_api)
 

@@ -103,7 +103,7 @@ ScannerAutomaton::get_nth_char() noexcept
     return DEBUG_REQUIRE_PTR(source_buffer_)[index];
 }
 
-template <u64 n = 1>
+template <u64 n>
 void
 ScannerAutomaton::advance_cursor() noexcept
 {

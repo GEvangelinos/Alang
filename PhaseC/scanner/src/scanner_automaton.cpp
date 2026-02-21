@@ -136,7 +136,10 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_dot_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '.');
-    if (get_next_char() == '.')
+    const char next_ch = get_next_char();
+    if (support::is_digit(next_ch))
+        return handle_float_number();
+    if (next_ch == '.')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_METHOD_CALL);
@@ -274,7 +277,7 @@ ScannerAutomaton::handle_hex_number() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_float_number() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '.' && support::is_digit(get_next_char()));
+    DEBUG_SMART_ASSERT(get_curr_char() == '.', support::is_digit(get_next_char()));
     advance_cursor(); // To consume '.'
 
     // --- Prefix digits consumption loop --- //
@@ -336,9 +339,13 @@ ScannerAutomaton::handle_decimal_number() noexcept
     while (true)
     {
         DEBUG_SMART_ASSERT(!has_reached_eof());
-        if (get_curr_char() == '.' && support::is_digit(get_next_char()))
+        const char next_ch = get_next_char();
+        if (next_ch == '.' && support::is_digit(get_nth_char<2>()))
+        {
+            advance_cursor();
             return handle_float_number();
-        if (support::is_digit(get_next_char()))
+        }
+        if (support::is_digit(next_ch))
             advance_cursor();
         else
             break;
