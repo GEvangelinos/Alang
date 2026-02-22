@@ -4,10 +4,11 @@
 
 #include "ir_optimizer/ir_optimizer.hpp"
 #include "core/konstants.hpp"
-#include "driver/alpha_driver.hpp"
 #include "driver/exception.hpp"
 #include "driver/konstants.hpp"
 #include "core/exception.hpp"
+#include "core/translation_unit_buffer.hpp"
+#include "driver/translation_unit_buffer_loader.hpp"
 #include "scanner/alpha_scanner.gen.hpp"
 #include "support/cli_color.h"
 
@@ -42,18 +43,18 @@ namespace
 {
 void create_export_directory(std::string_view dirname);
 void enter_export_directory(std::string_view dirname);
-void exit_export_directory(const std::filesystem::path &original_path);
-std::string expr_printer(const alpha::Expr *expr, const char *missing_marker = "");
+void exit_export_directory(const std::filesystem::path& original_path);
+std::string expr_printer(const alpha::Expr* expr, const char* missing_marker = "");
 
-template<unsigned column, unsigned column_width, typename T>
-std::string color_column(T &&value);
-template<bool colorize, unsigned column, unsigned column_width, typename T>
-std::string format_column(T &&value);
-template<bool colorize, typename Stream>
+template <unsigned column, unsigned column_width, typename T>
+std::string color_column(T&& value);
+template <bool colorize, unsigned column, unsigned column_width, typename T>
+std::string format_column(T&& value);
+template <bool colorize, typename Stream>
 void print_ir(
-    Stream &out,
-    const std::vector<alpha::Quad> &quads,
-    const alpha::LocationTracker &lt,
+    Stream& out,
+    const std::vector<alpha::Quad>& quads,
+    const alpha::LocationTracker& lt,
     bool print_detailed);
 
 void create_export_directory(const std::string_view dirname)
@@ -63,12 +64,12 @@ void create_export_directory(const std::string_view dirname)
 
 void enter_export_directory(std::string_view dirname) { std::filesystem::current_path(dirname); }
 
-void exit_export_directory(const std::filesystem::path &original_path)
+void exit_export_directory(const std::filesystem::path& original_path)
 {
     std::filesystem::current_path(original_path);
 }
 
-std::string escape(const char *const str)
+std::string escape(const char* const str)
 {
     std::string out;
     char ch;
@@ -90,7 +91,7 @@ std::string escape(const char *const str)
     return out;
 }
 
-std::string expr_printer(const alpha::Expr *expr, const char *const missing_marker)
+std::string expr_printer(const alpha::Expr* expr, const char* const missing_marker)
 {
     using namespace alpha;
     if (!expr)
@@ -98,21 +99,21 @@ std::string expr_printer(const alpha::Expr *expr, const char *const missing_mark
     using ET = Expr::Type;
     switch (expr->type)
     {
-    case ET::CONST_BOOL: return static_cast<const ConstBoolExpr *>(expr)->value ? "true" : "false";
-    case ET::CONST_INT: return std::to_string(static_cast<const ConstIntExpr *>(expr)->value);
-    case ET::CONST_FLOAT: return std::to_string(static_cast<const ConstFloatExpr *>(expr)->value);
+    case ET::CONST_BOOL: return static_cast<const ConstBoolExpr*>(expr)->value ? "true" : "false";
+    case ET::CONST_INT: return std::to_string(static_cast<const ConstIntExpr*>(expr)->value);
+    case ET::CONST_FLOAT: return std::to_string(static_cast<const ConstFloatExpr*>(expr)->value);
     case ET::CONST_STRING:
-        return FMT::format("\"{}\"", escape(static_cast<const ConstStringExpr *>(expr)->value));
+        return FMT::format("\"{}\"", escape(static_cast<const ConstStringExpr*>(expr)->value));
     case ET::CONST_NIL: return "nil";
-    case ET::ARITHMETIC: return static_cast<const ArithmeticExpr *>(expr)->var_symbol->name;
-    case ET::ASSIGN: return static_cast<const AssignExpr *>(expr)->var_symbol->name;
-    case ET::BOOL: return static_cast<const BoolExpr *>(expr)->var_symbol->name;
-    case ET::LIBRARY_FUNCTION: return static_cast<const LibFuncExpr *>(expr)->libfunc_symbol->name;
-    case ET::NEW_TABLE: return static_cast<const NewTableExpr *>(expr)->var_symbol->name;
-    case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr *>(expr)->progfunc_symbol->
+    case ET::ARITHMETIC: return static_cast<const ArithmeticExpr*>(expr)->var_symbol->name;
+    case ET::ASSIGN: return static_cast<const AssignExpr*>(expr)->var_symbol->name;
+    case ET::BOOL: return static_cast<const BoolExpr*>(expr)->var_symbol->name;
+    case ET::LIBRARY_FUNCTION: return static_cast<const LibFuncExpr*>(expr)->libfunc_symbol->name;
+    case ET::NEW_TABLE: return static_cast<const NewTableExpr*>(expr)->var_symbol->name;
+    case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr*>(expr)->progfunc_symbol->
             name;
-    case ET::TABLE_ITEM: return static_cast<const TableItemExpr *>(expr)->var_symbol->name;
-    case ET::VARIABLE: return static_cast<const VariableExpr *>(expr)->var_symbol->name;
+    case ET::TABLE_ITEM: return static_cast<const TableItemExpr*>(expr)->var_symbol->name;
+    case ET::VARIABLE: return static_cast<const VariableExpr*>(expr)->var_symbol->name;
     default:
         UNREACHABLE(FMT::format("Unhandled Expr::Type: int({}) = {}",
             TO_STRING(expr->type), static_cast<int>(expr->type)
@@ -120,13 +121,13 @@ std::string expr_printer(const alpha::Expr *expr, const char *const missing_mark
     }
 }
 
-template<unsigned Column, unsigned ColumnWidth, typename T>
-std::string color_column(T &&value)
+template <unsigned Column, unsigned ColumnWidth, typename T>
+std::string color_column(T&& value)
 {
     constexpr unsigned column_count = 8;
     static_assert(Column < column_count, "So far we support a maximum of 8 columns");
 
-    const char *ascii_color;
+    const char* ascii_color;
     if constexpr (Column == 0) ascii_color = COLOR_FG_ASCII_WHITE;
     else if constexpr (Column == 1) ascii_color = COLOR_FG_ASCII_RED;
     else if constexpr (Column == 2) ascii_color = COLOR_FG_ASCII_GREEN;
@@ -139,8 +140,8 @@ std::string color_column(T &&value)
     return FMT::format("{}{:<{}}{}", ascii_color, std::forward<T>(value), ColumnWidth, SGR_RESET);
 }
 
-template<bool Colorize, unsigned Column, unsigned ColumnWidth, typename T>
-std::string format_column(T &&value)
+template <bool Colorize, unsigned Column, unsigned ColumnWidth, typename T>
+std::string format_column(T&& value)
 {
     if constexpr (Colorize)
         return color_column<Column, ColumnWidth>(std::forward<T>(value));
@@ -148,11 +149,11 @@ std::string format_column(T &&value)
         return FMT::format("{:<{}}", std::forward<T>(value), ColumnWidth);
 }
 
-template<bool Colorize, typename Stream>
+template <bool Colorize, typename Stream>
 void print_ir(
-    Stream &out,
-    const std::vector<alpha::Quad> &quads,
-    const alpha::LocationTracker &lt,
+    Stream& out,
+    const std::vector<alpha::Quad>& quads,
+    const alpha::LocationTracker& lt,
     const bool print_detailed)
 {
     constexpr alpha::u32 widths[] = {10, 15, 20, 20, 20, 10, 10, 10};
@@ -189,7 +190,7 @@ void print_ir(
     const auto quads_size = quads.size();
     for (alpha::u32 i = 0; i < quads_size; i++)
     {
-        const alpha::Quad &q = quads[i];
+        const alpha::Quad& q = quads[i];
 
         std::string quad_label_str = alpha::ir::info_traits::is_branching(quads[i].opcode)
                                      ? std::to_string(q.label)
@@ -209,7 +210,7 @@ void print_ir(
             format_column<Colorize, 4, widths[4]>(expr_printer(q.arg2)),
             format_column<Colorize, 5, widths[5]>(quad_label_str),
             format_column<Colorize, 6, widths[6]>(quad_line_str),
-            format_column<Colorize, 7, widths[7]>(print_detailed  && q.is_dead? "DEAD" : "")
+            format_column<Colorize, 7, widths[7]>(print_detailed && q.is_dead ? "DEAD" : "")
         );
     }
     if constexpr (Colorize)
@@ -222,48 +223,51 @@ namespace alpha
 inline constexpr auto k_scanner_eof_null_padding = 2; // For 2 consecutive NULL bytes.
 
 PassManager::PassManager(
-    const alpha::settings::ExprOpts &expr_opts,
-    const alpha::settings::IROpts &ir_opts,
-    TranslationUnitBuffer &tu_buffer,
-    LocationTracker &lt,
-    DiagnosticEngine &diagnostic_engine,
-    SymbolTable *const symbol_table)
+    const alpha::settings::ExprOpts& expr_opts,
+    const alpha::settings::IROpts& ir_opts,
+    TranslationUnitBuffer& tu_buffer,
+    LocationTracker& lt,
+    DiagnosticEngine& diagnostic_engine,
+    SymbolTable* const symbol_table)
     : lt_(lt),
       diagnostic_engine_(diagnostic_engine),
-      scanner_handle_(tu_buffer),
       parse_ctx_(support::require_ptr(symbol_table)),
       lexer_ctx_(),
+      scanner_(lexer_ctx_, lt, *support::require_ptr(diagnostic_engine.reporter.get()), tu_buffer),
       semantic_system_(
           expr_opts,
           &parse_ctx_,
           support::require_ptr(symbol_table),
           diagnostic_engine_.reporter.get()
       ),
-      ir_optimizer_(ir_opts) {}
+      ir_optimizer_(std::make_unique<IROptimizer>(ir_opts)) { DEBUG_SMART_ASSERT(!!ir_optimizer_); }
 
 void
 PassManager::execute()
 {
     run_frontend();
     ir_quads_ = semantic_system_.gateway->extract_quads();
-    ir_quads_ = ir_optimizer_.run(std::move(ir_quads_));
+    ir_quads_ = ir_optimizer_->run(std::move(ir_quads_));
 }
 
 void
 PassManager::run_frontend()
 {
     // The following are the possible return values yyparse can return (based on bison's manual).
-    [[maybe_unused]] constexpr auto successful_parsing = 0;
-    [[maybe_unused]] constexpr auto invalid_input = 1;
-    [[maybe_unused]] constexpr auto memory_exhaustion = 2;
+    /* [[maybe_unused]] */
+    constexpr auto successful_parsing = 0;
+    /* [[maybe_unused]] */
+    constexpr auto invalid_input = 1;
+    /* [[maybe_unused]] */
+    constexpr auto memory_exhaustion = 2;
 
     running_phase_ = Phase::FRONTEND;
     parser_retval_ = alpha_yyparse(
-        scanner_handle_.get(),
+        scanner_,
         lexer_ctx_,
         lt_,
         diagnostic_engine_,
-        *diagnostic_engine_.reporter.get(),
+        *DEBUG_REQUIRE_PTR(diagnostic_engine_.reporter.get()),
         semantic_system_
     );
 }
@@ -281,7 +285,7 @@ PassManager::is_in_hard_error() const
     }
 }
 
-const std::vector<Quad> &
+const std::vector<Quad>&
 PassManager::get_quads() const noexcept { return ir_quads_; }
 
 void
@@ -310,17 +314,17 @@ TranslationUnit::create_diagnostic_engine_policy()
 }
 
 TranslationUnit::TranslationUnit(
-    const std::filesystem::path &source_path,
+    const std::filesystem::path& source_path,
     const std::size_t max_errors,
-    const settings::ExprOpts &expr_opts,
-    const settings::IROpts &ir_opts)
+    const settings::ExprOpts& expr_opts,
+    const settings::IROpts& ir_opts)
     : source_path_(source_path),
       expr_opts_(expr_opts),
       diagnostic_engine_(create_diagnostic_engine_policy(), max_errors),
-      translation_unit_buffer_(std::make_unique<TranslationUnitBuffer>(
-          source_path, k_scanner_eof_null_padding
-      )),
-      loc_tracker_(translation_unit_buffer_->size() - translation_unit_buffer_->null_padding),
+      translation_unit_buffer_(
+          TranslationUnitBufferLoader::load_tub(source_path, k_scanner_eof_null_padding)
+      ),
+      loc_tracker_((translation_unit_buffer_->size - translation_unit_buffer_->null_padding).value),
       diagnostic_formatter_(
           source_path, loc_tracker_, *support::require_ptr(translation_unit_buffer_.get()), true
       ),
@@ -334,35 +338,16 @@ TranslationUnit::TranslationUnit(
           &symbol_table_
       )) {}
 
-PassManager::ScannerHandle::ScannerHandle(TranslationUnitBuffer &tu_buffer)
-{
-    if (alpha_yylex_init(&scanner_) != 0)
-        throw std::runtime_error(ATTACH_CONTEXT("Failed to initializing scanner"));
+TranslationUnit::~TranslationUnit() = default;
 
-    DEBUG_SMART_ASSERT(!!tu_buffer.data());
-    if (alpha_yy_scan_buffer(tu_buffer.data(), tu_buffer.size(), scanner_) == nullptr)
-    {
-        std::string error =
-            "Failed to load Flex buffer. A common cause is forgetting "
-            "to append two null bytes for padding in at end of the buffer.";
-        if (alpha_yylex_destroy(scanner_) != 0)
-            error += " | Additionally, cleanup of the scanner failed.";
-        throw std::runtime_error(ATTACH_CONTEXT(error));
-    }
-}
-
-PassManager::ScannerHandle::~ScannerHandle()
-{
-    DEBUG_SMART_ASSERT_EVAL(alpha_yylex_destroy(scanner_) == 0);
-}
 
 void
 TranslationUnit::compile()
 {
     struct FreezeOnExit // A way to run code before function frame collapses (return, throw)
     {
-        LocationTracker &loc_tracker;
-        explicit FreezeOnExit(LocationTracker &loc_tracker) : loc_tracker(loc_tracker) {}
+        LocationTracker& loc_tracker;
+        explicit FreezeOnExit(LocationTracker& loc_tracker) : loc_tracker(loc_tracker) {}
         ~FreezeOnExit() { loc_tracker.lines_frozen.raise(); }
     } freeze_on_exit(loc_tracker_);
 
@@ -373,7 +358,7 @@ TranslationUnit::compile()
         // If we reach this point, execute() completed without throwing any exceptions.
         execution_completed_ = true;
     }
-    catch (exception::SanityLimitError &e)
+    catch (exception::SanityLimitError& e)
     {
         std::cerr << FMT::format("Sanity limit exceeded: {}", e.what()) << std::endl;
         std::exit(EXIT_FAILURE);
@@ -394,14 +379,15 @@ TranslationUnit::show_symbol_table() const
     DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
 
     std::cout << COLOR_FG_ASCII_BLUE;
-    const auto &symbol_per_scope_vector = symbol_table_.symbols_per_scope();
+    const auto& symbol_per_scope_vector = symbol_table_.symbols_per_scope();
     for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
     {
         if (symbol_per_scope_vector[scope].empty())
             continue;
         std::cout << FMT::format(
             "----------------------------     Scope #{:<4}     ----------------------------\n",
-            scope);
+            scope
+        );
         for (const auto symbol_ptr : symbol_per_scope_vector[scope])
             std::cout << FMT::format("{:<30} {:<20} (line {:>5}) (scope {:>4})\n",
                                      FMT::format("\"{}\"", symbol_ptr->name),
@@ -420,7 +406,7 @@ TranslationUnit::show_diagnostics() const
 
     const std::string source_filename = source_path_.filename().string();
 
-    for (const auto &diagnostic : diagnostic_engine_.get_diagnostics())
+    for (const auto& diagnostic : diagnostic_engine_.get_diagnostics())
         std::cerr << diagnostic_formatter_.format(*diagnostic);
     std::cerr << std::endl;
 }
@@ -504,7 +490,7 @@ TranslationUnit::export_symbol_table_impl(const bool export_temps) const
 
     outfile << k_symbol_table_csv_export_header; // Write CSV header.
 
-    auto write_symbol_line = [&](const Symbol *symbol_ptr)
+    auto write_symbol_line = [&](const Symbol* symbol_ptr)
     {
         outfile << FMT::format(
             "{0},{1},{2},{3}\n",
@@ -515,9 +501,9 @@ TranslationUnit::export_symbol_table_impl(const bool export_temps) const
         );
     };
 
-    const auto &symbol_per_scope_vector = symbol_table_.symbols_per_scope();
+    const auto& symbol_per_scope_vector = symbol_table_.symbols_per_scope();
     for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
-        for (const Symbol *symbol_ptr : symbol_per_scope_vector[scope])
+        for (const Symbol* symbol_ptr : symbol_per_scope_vector[scope])
             if (export_temps || !symbol_ptr->is_temp_variable())
                 write_symbol_line(symbol_ptr);
 }
@@ -548,7 +534,7 @@ TranslationUnit::export_diagnostics_impl() const
             "Failed opening file {} to export compile errors", outfile_name));
 
     outfile << k_diagnostic_csv_export_header; // Write CSV header.
-    auto write_issue_line = [&](const DiagnosticCode code, const Issue &issue)
+    auto write_issue_line = [&](const DiagnosticCode code, const Issue& issue)
     {
         outfile << FMT::format(
             "{0},{1},{2},{3}\n",
@@ -559,10 +545,10 @@ TranslationUnit::export_diagnostics_impl() const
         );
     };
 
-    for (const auto &d : diagnostic_engine_.get_diagnostics())
+    for (const auto& d : diagnostic_engine_.get_diagnostics())
     {
         write_issue_line(d->code, d->primary);
-        for (const Issue &note : d->note_list)
+        for (const Issue& note : d->note_list)
             write_issue_line(d->code, note);
     }
 }
@@ -580,7 +566,7 @@ TranslationUnit::export_ir_impl() const
 
     outfile << k_ir_csv_export_header; // Write CSV header.
 
-    auto write_ir_line = [&](const std::size_t quad_no, const Quad &q)
+    auto write_ir_line = [&](const std::size_t quad_no, const Quad& q)
     {
         const auto [first_line, last_line] = loc_tracker_.find_lines(q.loc);
         std::string quad_label_str = alpha::ir::info_traits::is_branching(q.opcode)
@@ -600,7 +586,7 @@ TranslationUnit::export_ir_impl() const
         );
     };
 
-    const auto &quads = pass_manager_->get_quads();
+    const auto& quads = pass_manager_->get_quads();
     for (std::size_t i = 0; i < quads.size(); ++i)
         write_ir_line(i + 1, quads[i]); // +1 cause quad address 0 is indicating no-address
 }

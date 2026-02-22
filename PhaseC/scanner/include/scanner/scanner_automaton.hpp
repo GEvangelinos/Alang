@@ -4,10 +4,13 @@
 #include <array>
 #include <core/numeric_types.hpp>
 
-#include "support/misc_tools.hpp"
+#include "core/translation_unit_buffer.hpp"
+#include "parser/alpha_parser.gen.hpp"
 
 namespace alpha
 {
+class LocationTracker;
+
 class ScannerAutomaton
 {
 public:
@@ -21,9 +24,7 @@ public:
         LexerCtx& lexer_ctx,
         LocationTracker& lt,
         DiagnosticReporter& dr,
-        const char* source_buffer,
-        u64 source_size,
-        u64 source_buffer_null_padding
+        const TranslationUnitBuffer& tub
     );
 
     [[nodiscard]] LexerReturnType yield_token() noexcept;
@@ -31,6 +32,7 @@ public:
     [[nodiscard]] SrcBuffIdx last_token_begin() const noexcept;
     [[nodiscard]] SrcBuffIdx last_token_end() const noexcept;
     [[nodiscard]] u64 last_token_length() const noexcept;
+    [[nodiscard]] std::string_view last_token_text() const noexcept;
 
 private:
     enum class KeywordId : i8
@@ -83,9 +85,7 @@ private:
     LexerCtx& lexer_ctx_;
     LocationTracker& lt_;
     DiagnosticReporter& dr_;
-    const char* const source_buffer_ = nullptr;
-    const SrcBuffIdx source_size_{0};
-    const SrcBuffIdx source_buffer_null_padding_{0};
+    const TranslationUnitBuffer& tub_;
     SrcBuffIdx last_token_begin_{0}; // inclusive
     SrcBuffIdx cursor_{0};           // Index based (points on source_buffer)
 
@@ -137,6 +137,12 @@ inline u64
 ScannerAutomaton::last_token_length() const noexcept
 {
     return last_token_end().value - last_token_begin().value + 1;
+}
+
+inline std::string_view
+ScannerAutomaton::last_token_text() const noexcept
+{
+    return std::string_view{tub_.address_at(last_token_begin()), last_token_length()};
 }
 } // namespace alpha
 #endif // SCANNER_AUTOMATON_HPP

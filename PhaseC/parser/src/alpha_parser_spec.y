@@ -29,6 +29,7 @@
         class LexerCtx;
         class ParseCtx;
         class SemanticSystem;
+        class ScannerAdapter;
     } // namespace alpha
 }
 
@@ -40,24 +41,22 @@
 %define api.location.type { alpha::SourceLocation }
 %code
 {
-   #include "core/shared_interface.hpp"
-   YY_DECL;
    #include <scanner/alpha_scanner.gen.hpp>
    #include "parser_prologue_code.hpp"     // THIS MUST STAY in parser's.cpp not parser's .hpp
 }
 %locations
 
-%parse-param { yyscan_t yyscanner }
-%parse-param { alpha::LexerCtx &lexer_ctx }
-%parse-param { alpha::LocationTracker &location_tracker }
-%parse-param { alpha::DiagnosticEngine &diagnostic_engine }
-%parse-param { alpha::DiagnosticReporter &dr }
-%parse-param { alpha::SemanticSystem &ss }
+%parse-param { alpha::ScannerAdapter& scanner }
+%parse-param { alpha::LexerCtx& lexer_ctx }
+%parse-param { alpha::LocationTracker& location_tracker }
+%parse-param { alpha::DiagnosticEngine& diagnostic_engine }
+%parse-param { alpha::DiagnosticReporter& dr }
+%parse-param { alpha::SemanticSystem& ss }
 
-%lex-param { yyscan_t yyscanner }
-%lex-param { alpha::LexerCtx &lexer_ctx }
-%lex-param { alpha::LocationTracker &location_tracker }
-%lex-param { alpha::DiagnosticReporter &dr }
+%lex-param { alpha::LexerCtx& lexer_ctx }
+%lex-param { alpha::LocationTracker& location_tracker }
+%lex-param { alpha::DiagnosticReporter& dr }
+%lex-param { alpha::ScannerAdapter& scanner }
 
 // Here I declare the trivial types that can be used in union.
 // More complex types are stores in ParseCache of ParseCtx.
@@ -532,5 +531,3 @@ return_stmt:
 
 %%
 #include "parser_epilogue_code.hpp"
-
-

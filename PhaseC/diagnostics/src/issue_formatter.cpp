@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-#include "driver/translation_unit_buffer.hpp"
+#include "core/translation_unit_buffer.hpp"
 #include "support/cli_color.h"
 #include "support/misc_tools.hpp"
 #include "support/string_tools.hpp"
@@ -561,7 +561,7 @@ IssueFormatterImpl::make_highlight_labels()
 bool
 IssueFormatterImpl::source_blank_afterwards(const SrcBuffIdx idx) const noexcept
 {
-    for (SrcBuffIdx i = idx; i.value < source_buffer_.source_size(); ++i)
+    for (SrcBuffIdx i = idx; i < source_buffer_.source_size; ++i)
         if (!std::isspace(source_buffer_[i]))
             return false;
     return true;

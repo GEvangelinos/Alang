@@ -3,12 +3,22 @@
         #include <parser/alpha_parser.gen.hpp>                   // for alpha_yylloc, alpha_yyt...
         #include "diagnostics/diagnostic_engine.hpp"               // for CTError, ErrorTracker
         #include "core/source_location.hpp"            // for LocationTracker
-        #include "core/shared_interface.hpp"    // for ALPHA_YYLEX_SIGNATURE
         #include "scanner/scanner_token.hpp"            // for TokenString, TokenComment
         #include "scanner/scanner_context.hpp"
         #include "support/format_adapter.hpp"           // for format, FMT
         #include <diagnostics/diagnostic_reporter.gen.hpp>
         #include "scanner_prologue.hpp"
+
+        #define YY_DECL                                \
+                int alpha_yylex(                       \
+                        YYSTYPE * yylval_param,        \
+                        YYLTYPE *yylloc_param,         \
+                        yyscan_t yyscanner ,           \
+                        alpha::LexerCtx &lexer_ctx,    \
+                        alpha::LocationTracker &lt,    \
+                        alpha::DiagnosticReporter &dr)
+
+
 %}
 
 %option reentrant

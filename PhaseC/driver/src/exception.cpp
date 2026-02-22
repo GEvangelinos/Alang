@@ -1,5 +1,7 @@
 #include "driver/exception.hpp"
 #include <iostream>
+
+#include "support/debug_tools.hpp"
 #include "support/format_adapter.hpp"
 #include "support/size_format_tools.hpp"
 
@@ -23,7 +25,7 @@ FileOpenError::FileOpenError(const std::string_view filename, const Mode mode)
             {
             case Mode::READ: return "reading";
             case Mode::WRITE: return "writing";
-            default: throw std::logic_error("Unknown file opening mode");
+            default: UNREACHABLE("Unknown file opening mode");
             }
         }(),
         filename

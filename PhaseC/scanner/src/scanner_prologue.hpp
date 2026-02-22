@@ -1,7 +1,7 @@
 #ifndef SCANNER_PROLOGUE_HPP
 #define SCANNER_PROLOGUE_HPP
 
-#include "core//source_location_types.hpp"
+#include "core/source_location_types.hpp"
 #include "support/debug_tools.hpp"
 
 #ifdef YY_USER_ACTION

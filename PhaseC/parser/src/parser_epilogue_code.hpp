@@ -29,14 +29,14 @@ constexpr int YYREPORT_SYNTAX_ERROR_RETVAL = 0;
 struct Info
 {
     const yysymbol_kind_t unexpected_token;
-    const char *const unexpected_token_name;
-    const char *const unexpected_token_source_text;
+    const char* const unexpected_token_name;
+    const std::string_view unexpected_token_source_text;
     const YYLTYPE unexpected_token_loc;
     std::vector<yysymbol_kind_t> expected_tokens;
 };
 
 [[nodiscard]] static bool
-has_expected(const Info &info, const yysymbol_kind_t s)
+has_expected(const Info& info, const yysymbol_kind_t s)
 {
     for (std::size_t i = 0; i < info.expected_tokens.size(); ++i)
         if (info.expected_tokens[i] == s)
@@ -46,10 +46,10 @@ has_expected(const Info &info, const yysymbol_kind_t s)
 
 [[nodiscard]] static yysymbol_kind_t
 determine_suggested_token_based_on_parsing_heuristics(
-    const SemanticSystem &ss,
-    const LocationTracker &loc_tracker,
-    const LexerCtx &lexer_ctx,
-    const Info &info)
+    const SemanticSystem& ss,
+    const LocationTracker& loc_tracker,
+    const LexerCtx& lexer_ctx,
+    const Info& info)
 {
     DEBUG_SMART_ASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY &&
@@ -95,10 +95,10 @@ determine_suggested_token_based_on_parsing_heuristics(
 
 [[nodiscard]] bool
 made_diagnostic_based_on_semantic_heuristics(
-    const SemanticSystem &ss,
-    const LexerCtx &lexer_ctx,
-    DiagnosticReporter &dr,
-    const Info &info)
+    const SemanticSystem& ss,
+    const LexerCtx& lexer_ctx,
+    DiagnosticReporter& dr,
+    const Info& info)
 {
     DEBUG_SMART_ASSERT(info.unexpected_token != YYSYMBOL_YYEMPTY &&
         "Should not be called without unexpected symbol");
@@ -159,7 +159,7 @@ made_diagnostic_based_on_semantic_heuristics(
 }
 
 // Expression Heuristic, basically an educated guess, that we expected upcoming expression.
-bool expected_primary_expression(const Info &info)
+bool expected_primary_expression(const Info& info)
 {
     // All the symbols below can be a starter of expr... the more symbol we check are valid
     // the stronger we make our heuristic.
@@ -181,7 +181,7 @@ bool expected_primary_expression(const Info &info)
 
 [[nodiscard]] static unsigned int
 yypcontext_expected_tokens_or_throw(
-    const yypcontext_t *const yyctx,
+    const yypcontext_t* const yyctx,
     yysymbol_kind_t yyarg[],
     const unsigned int yyargn)
 {
@@ -205,14 +205,14 @@ yypcontext_expected_tokens_or_throw(
 }
 
 [[nodiscard]] static unsigned int
-expected_size(const yypcontext_t *const yyctx)
+expected_size(const yypcontext_t* const yyctx)
 {
     DEBUG_SMART_ASSERT(!!yyctx);
     return yypcontext_expected_tokens_or_throw(yyctx, nullptr, 0);
 }
 
 [[nodiscard]] static std::vector<yysymbol_kind_t>
-collect_expected_tokens(const yypcontext_t *const yyctx)
+collect_expected_tokens(const yypcontext_t* const yyctx)
 {
     unsigned int count = expected_size(yyctx);
     if (count == 0)
@@ -227,9 +227,9 @@ collect_expected_tokens(const yypcontext_t *const yyctx)
 }
 
 [[nodiscard]] static std::string
-get_formatted_unexpected_token_name(const Info &info)
+get_formatted_unexpected_token_name(const Info& info)
 {
-    DEBUG_SMART_ASSERT(!!info.unexpected_token_name, !! info.unexpected_token_source_text);
+    DEBUG_SMART_ASSERT(!!info.unexpected_token_name, !!info.unexpected_token_source_text.data());
     std::string out(info.unexpected_token_name);
     switch (info.unexpected_token)
     {
@@ -245,13 +245,13 @@ get_formatted_unexpected_token_name(const Info &info)
         out += info.unexpected_token_source_text;
         out += '\"';
         break;
-    default: ((void) 0);
+    default: ((void)0);
     }
     return out;
 }
 
 [[maybe_unused]][[nodiscard]] static Suggestion
-make_symbol_suggestion(const LexerCtx &lexer_ctx, yysymbol_kind_t suggested_symbol)
+make_symbol_suggestion(const LexerCtx& lexer_ctx, yysymbol_kind_t suggested_symbol)
 {
     DEBUG_SMART_ASSERT(suggested_symbol != YYSYMBOL_YYEMPTY);
     const TokenInfo token_info = lexer_ctx.last_token_info().value();
@@ -259,7 +259,7 @@ make_symbol_suggestion(const LexerCtx &lexer_ctx, yysymbol_kind_t suggested_symb
 }
 
 static void
-report_no_expected_diagnostic(const Info &info, DiagnosticReporter &dr)
+report_no_expected_diagnostic(const Info& info, DiagnosticReporter& dr)
 {
     DEBUG_SMART_ASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
@@ -275,15 +275,15 @@ report_no_expected_diagnostic(const Info &info, DiagnosticReporter &dr)
 
 static void
 report_few_expected_diagnostic(
-    const LexerCtx &lexer_ctx,
-    const Info &info,
-    DiagnosticReporter &dr
+    const LexerCtx& lexer_ctx,
+    const Info& info,
+    DiagnosticReporter& dr
 )
 {
     DEBUG_SMART_ASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
     DEBUG_SMART_ASSERT(info.expected_tokens.size() <= FEW_TOKENS);
-    const auto join_expected = [&](const char *const sep, const bool wrap_with_decorator)
+    const auto join_expected = [&](const char* const sep, const bool wrap_with_decorator)
     {
         std::string out;
         for (std::size_t i = 0; i < info.expected_tokens.size(); i++)
@@ -318,9 +318,9 @@ report_few_expected_diagnostic(
 }
 
 static void report_unexpected_eof(
-    const LexerCtx &lexer_ctx,
-    DiagnosticReporter &dr,
-    const Info &info)
+    const LexerCtx& lexer_ctx,
+    DiagnosticReporter& dr,
+    const Info& info)
 {
     DEBUG_SMART_ASSERT(info.unexpected_token == YYSYMBOL_YYEOF);
     const std::optional<TokenInfo> last_token_info_opt = lexer_ctx.last_token_info();
@@ -352,7 +352,7 @@ static void report_unexpected_eof(
     if (has_expected(info, YYSYMBOL_RIGHT_BRACE)) expected = YYSYMBOL_RIGHT_BRACE;
     if (has_expected(info, YYSYMBOL_COMMA)) expected = YYSYMBOL_COMMA;
 
-    const char *opener_name;
+    const char* opener_name;
     std::optional<SourceLocation> opener_loc;
     switch (expected)
     {
@@ -373,7 +373,7 @@ static void report_unexpected_eof(
 
     if (expected != YYSYMBOL_YYEMPTY)
     {
-        const char *const expected_name = yysymbol_name(expected);
+        const char* const expected_name = yysymbol_name(expected);
         std::optional<Suggestion> suggestion;
         if (last_token_info_opt.has_value())
             suggestion.emplace(expected_name, last_token_info_opt->loc);
@@ -403,11 +403,11 @@ static void report_unexpected_eof(
 
 static void
 report_many_expected_diagnostic(
-    const SemanticSystem &ss,
-    const LocationTracker &loc_tracker,
-    const LexerCtx &lexer_ctx,
-    const Info &info,
-    DiagnosticReporter &dr)
+    const SemanticSystem& ss,
+    const LocationTracker& loc_tracker,
+    const LexerCtx& lexer_ctx,
+    const Info& info,
+    DiagnosticReporter& dr)
 {
     DEBUG_SMART_ASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
@@ -440,7 +440,7 @@ report_many_expected_diagnostic(
     }
     else
     {
-        const char *opener_name = nullptr;
+        const char* opener_name = nullptr;
         std::optional<SourceLocation> opener_loc;
         switch (suggested_symbol)
         {
@@ -479,13 +479,13 @@ report_many_expected_diagnostic(
             unexpected_token_str,
             info.unexpected_token_loc,
             lexer_ctx.second_last_token_info().value().loc
-            );
+        );
     else
         dr.report_syntax_error_unexpected(unexpected_token_str, info.unexpected_token_loc);
 }
 
 static void
-report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc, DiagnosticReporter &dr)
+report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc, DiagnosticReporter& dr)
 {
     DEBUG_SMART_ASSERT(false &&
         "HOLD YOUR HORSES... You just caused an error,\n"
@@ -507,11 +507,11 @@ report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc, DiagnosticReporter
 
 static void
 report_unexpected_diagnostic(
-    const LocationTracker &loc_tracker,
-    const LexerCtx &lexer_ctx,
-    const Info &info,
-    DiagnosticReporter &dr,
-    const SemanticSystem &ss)
+    const LocationTracker& loc_tracker,
+    const LexerCtx& lexer_ctx,
+    const Info& info,
+    DiagnosticReporter& dr,
+    const SemanticSystem& ss)
 {
     if (info.expected_tokens.empty())
         report_no_expected_diagnostic(info, dr);
@@ -536,13 +536,13 @@ report_unexpected_diagnostic(
  * this function, we throw; otherwise we emit diagnostics and return 0.
  */
 static int yyreport_syntax_error(
-    yypcontext_t const *yyctx,
-    const yyscan_t flex_ctx,
-    LexerCtx &lexer_ctx,
-    LocationTracker &loc_tracker,
-    [[maybe_unused]] DiagnosticEngine &diagnostic_engine,
-    DiagnosticReporter &dr,
-    SemanticSystem &ss)
+    yypcontext_t const* yyctx,
+    ScannerAdapter &scanner,
+    LexerCtx& lexer_ctx,
+    LocationTracker& loc_tracker,
+    [[maybe_unused]] DiagnosticEngine& diagnostic_engine,
+    DiagnosticReporter& dr,
+    SemanticSystem& ss)
 {
     const yysymbol_kind_t unexpected_token = yypcontext_token(yyctx);
     const YYLTYPE unexpected_token_loc = *support::require_ptr(yypcontext_location(yyctx));
@@ -555,7 +555,7 @@ static int yyreport_syntax_error(
         const auto info = Info{
             .unexpected_token = unexpected_token,
             .unexpected_token_name = yysymbol_name(unexpected_token),
-            .unexpected_token_source_text = alpha_yyget_text(flex_ctx),
+            .unexpected_token_source_text = scanner.last_token_text(),
             .unexpected_token_loc = unexpected_token_loc,
             .expected_tokens = collect_expected_tokens(yyctx)
         };
@@ -565,16 +565,16 @@ static int yyreport_syntax_error(
 }
 
 static void alpha_yyerror(
-    const ALPHA_YYLTYPE *const err_loc,
-    [[maybe_unused]] const yyscan_t,
-    [[maybe_unused]] const alpha::LexerCtx &,
-    [[maybe_unused]] const alpha::LocationTracker &,
-    [[maybe_unused]] const alpha::DiagnosticEngine &diagnostic_engine,
-    alpha::DiagnosticReporter &dr,
-    [[maybe_unused]] const alpha::SemanticSystem &,
-    [[maybe_unused]] const std::string &error_message)
+    const ALPHA_YYLTYPE* const err_loc,
+    const alpha::ScannerAdapter&,
+    const alpha::LexerCtx &,
+    const alpha::LocationTracker&,
+    const alpha::DiagnosticEngine&,
+    alpha::DiagnosticReporter& dr,
+    const alpha::SemanticSystem&,
+    const std::string&)
 {
-    //static_assert(false, "WRITE ME NICELY!");
+    // TODO: static_assert(false, "WRITE ME NICELY!");
     dr.report_parser_stack_exhausted(PARSER_STACK_CAPACITY, *err_loc);
 }
 

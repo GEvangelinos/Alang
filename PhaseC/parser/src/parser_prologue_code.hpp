@@ -57,6 +57,7 @@
 
 namespace alpha
 {
+class ScannerAdapter;
 class LexerCtx;
 class LocationTracker;
 class DiagnosticEngine;
@@ -64,13 +65,14 @@ class DiagnosticReporter;
 class SemanticSystem;
 } // namespace alpha
 
+// TODO: is this really needed?
 static void alpha_yyerror(
-    const ALPHA_YYLTYPE *,
-    yyscan_t,
-    const alpha::LexerCtx &,
-    const alpha::LocationTracker &,
-    const alpha::DiagnosticEngine &,
-    alpha::DiagnosticReporter &,
-    const alpha::SemanticSystem &,
-    const std::string &error_message);
+    const ALPHA_YYLTYPE*,
+    const alpha::ScannerAdapter&,
+    const alpha::LexerCtx&,
+    const alpha::LocationTracker&,
+    const alpha::DiagnosticEngine&,
+    alpha::DiagnosticReporter&,
+    const alpha::SemanticSystem&,
+    const std::string& error_message);
 #endif // ALPHA_PARSER_PROLOGUE_CODE_HPP

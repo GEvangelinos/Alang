@@ -55,6 +55,7 @@ add_library(alpha_scanner_impl STATIC
     src/scanner_automaton.cpp
     src/scanner_context.cpp
     src/scanner_token.cpp
+    src/scanner_adapter.cpp
 )
 target_compile_options(alpha_scanner_impl PRIVATE
     -Wno-unused-function

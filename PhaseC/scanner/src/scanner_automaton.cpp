@@ -3,6 +3,7 @@
 #include <scanner/scanner_automaton.hpp>
 
 #include "scanner_prologue.hpp"
+#include "core/translation_unit_buffer.hpp"
 #include "scanner/scanner_context.hpp"
 #include "support/misc_tools.hpp"
 #include "support/string_tools.hpp"
@@ -55,49 +56,16 @@ ScannerAutomaton::ScannerAutomaton(
     LexerCtx& lexer_ctx,
     LocationTracker& lt,
     DiagnosticReporter& dr,
-    const char* const source_buffer,
-    const u64 source_size,
-    const u64 source_buffer_null_padding)
+    const TranslationUnitBuffer& tub)
     : lexer_ctx_(lexer_ctx),
       lt_(lt),
       dr_(dr),
-      source_buffer_(support::require_ptr(source_buffer)),
-      source_size_([source_size]()
-      {
-          using TargetType = decltype(source_size_)::UnderlyingType;
-          if (source_size > std::numeric_limits<TargetType>::max())
-              throw std::length_error(
-                  "Alpha Scanner Error: Source file size (" + std::to_string(source_size) +
-                  " bytes) exceeds the maximum supported index range (" +
-                  std::to_string(std::numeric_limits<TargetType>::max()) + ")."
-              );
-          return source_size;
-      }()),
-      source_buffer_null_padding_([source_buffer_null_padding]()
-      {
-          using TargetType = decltype(source_buffer_null_padding_)::UnderlyingType;
-          constexpr auto max_type_val = std::numeric_limits<TargetType>::max();
-          constexpr u64 k_sanity_limit = 64 * 1024; // Sanity Limit: 64KB massive for scanner guard.
-
-          if (source_buffer_null_padding > max_type_val)
-              throw std::range_error(
-                  "Alpha Architecture: Padding " + std::to_string(source_buffer_null_padding) +
-                  " exceeds index type capacity."
-              );
-
-          if (source_buffer_null_padding > k_sanity_limit)
-              throw std::logic_error(
-                  "Alpha Sanity Check: Padding " + std::to_string(source_buffer_null_padding) +
-                  " exceeds safety limit (" + std::to_string(k_sanity_limit) +
-                  "). Suspected caller-side logic error."
-              );
-          return static_cast<TargetType>(source_buffer_null_padding);
-      }())
+      tub_(tub)
 {
-    if (source_buffer_null_padding_.value < ScannerAutomaton::k_minimum_source_buffer_null_padding)
+    if (tub_.null_padding.value < ScannerAutomaton::k_minimum_source_buffer_null_padding)
         throw std::logic_error("Insufficient padding detected");
-    for (u64 pad_index = 0; pad_index < source_buffer_null_padding_.value; ++pad_index)
-        if (source_buffer_[source_size_.value + pad_index] != '\0')
+    for (SrcBuffIdx pad_index = tub_.null_padding; pad_index > SrcBuffIdx{0}; --pad_index)
+        if (tub_[SrcBuffIdx{tub_.source_size + pad_index}] != '\0')
             throw std::logic_error("Critical sentinel corruption detected");
 
     // Compile Time Evaluation only code.
@@ -128,8 +96,8 @@ char
 ScannerAutomaton::get_nth_char() const noexcept
 {
     const SrcBuffIdx index = cursor_ + n;
-    DEBUG_SMART_ASSERT(index < source_size_ + source_buffer_null_padding_ && "Illegal access");
-    const auto result = DEBUG_REQUIRE_PTR(source_buffer_)[index.value];
+    DEBUG_SMART_ASSERT(index < tub_.size && "Illegal access");
+    const auto result = tub_[index];
     DEBUG_SMART_ASSERT(
         result >= std::numeric_limits<unsigned char>::min(),
         result <= std::numeric_limits<char>::max()
@@ -141,8 +109,8 @@ char
 ScannerAutomaton::get_nth_char(const SrcBuffIdx n) const noexcept
 {
     const SrcBuffIdx index = cursor_ + n;
-    DEBUG_SMART_ASSERT(index < source_size_ + source_buffer_null_padding_ && "Illegal access");
-    return DEBUG_REQUIRE_PTR(source_buffer_)[index.value];
+    DEBUG_SMART_ASSERT(index < tub_.size && "Illegal access");
+    return tub_[index];
 }
 
 template <SrcBuffIdx n>
@@ -150,24 +118,24 @@ void
 ScannerAutomaton::advance_cursor() noexcept
 {
     static_assert(n.value > 0, "Why advance by zero?");
-    DEBUG_SMART_ASSERT(cursor_ < source_size_); // Is OK before?
+    DEBUG_SMART_ASSERT(cursor_ < tub_.source_size); // Is OK before?
     cursor_ += n;
     // After: Can be AT source_size_ (EOF), but not past it.
-    DEBUG_SMART_ASSERT(cursor_ <= source_size_); // Is OK after?
+    DEBUG_SMART_ASSERT(cursor_ <= tub_.source_size); // Is OK after?
 }
 
 void
 ScannerAutomaton::advance_cursor(const SrcBuffIdx n) noexcept
 {
-    DEBUG_SMART_ASSERT(cursor_< source_size_, n.value > 0 && "why advance by zero?");
+    DEBUG_SMART_ASSERT(cursor_< tub_.source_size, n.value > 0 && "why advance by zero?");
     // Is OK before?
     cursor_ += n;
     // After: Can be AT source_size_ (EOF), but not past it.
-    DEBUG_SMART_ASSERT(cursor_ <= source_size_); // Is OK after?
+    DEBUG_SMART_ASSERT(cursor_ <= tub_.source_size); // Is OK after?
 }
 
 const char*
-ScannerAutomaton::get_cursor_address() const noexcept { return source_buffer_ + cursor_.value; }
+ScannerAutomaton::get_cursor_address() const noexcept { return tub_.address_at(cursor_); }
 
 char
 ScannerAutomaton::get_curr_char() const noexcept
@@ -184,7 +152,7 @@ ScannerAutomaton::get_next_char() const noexcept
 }
 
 bool
-ScannerAutomaton::has_reached_eof() const noexcept { return cursor_ == source_size_; }
+ScannerAutomaton::has_reached_eof() const noexcept { return cursor_ == tub_.source_size; }
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::register_and_return(const LexerReturnType token_id) noexcept
@@ -299,7 +267,6 @@ ScannerAutomaton::handle_colon_char() noexcept
 
 void
 ScannerAutomaton::register_newline_char() noexcept { lt_.append_line(lexer_ctx_.source_index); }
-
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_comment_line() noexcept
@@ -429,12 +396,13 @@ ScannerAutomaton::handle_float_number() noexcept
     if (next_ch == 'e' || next_ch == 'E') // Handle Scientific floats
     {
         static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 1);
-        DEBUG_SMART_ASSERT(source_buffer_null_padding_.value >= 1);
-        const char next_next_ch = get_nth_char<SrcBuffIdx{2}>(); // Valid cause <1> was non null-byte.
+        DEBUG_SMART_ASSERT(tub_.null_padding.value >= 1);
+        const char next_next_ch = get_nth_char<SrcBuffIdx{2}>();
+        // Valid cause <1> was non null-byte.
         if (next_next_ch == '+' || next_next_ch == '-')
         {
             static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 2);
-            DEBUG_SMART_ASSERT(source_buffer_null_padding_.value >= 2);
+            DEBUG_SMART_ASSERT(tub_.null_padding.value >= 2);
             const char next_next_next_ch = get_nth_char<SrcBuffIdx{3}>();
             if (support::is_digit(next_next_next_ch))
             {
@@ -516,7 +484,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_alpha_char() noexcept
 {
     DEBUG_SMART_ASSERT(support::is_alpha(get_curr_char()));
-    SrcBuffIdx word_length {1};
+    SrcBuffIdx word_length{1};
     while (g_id_body_table[get_nth_char(word_length)])
         ++word_length;
 
@@ -573,7 +541,8 @@ ScannerAutomaton::handle_alpha_char() noexcept
             result_token = expected_token.bison_token_id;
     }
 
-    advance_cursor(SrcBuffIdx{word_length.value - 1}); // Minus 1 cause we want to not consume last valid char.
+    advance_cursor(SrcBuffIdx{word_length.value - 1});
+    // Minus 1 cause we want to not consume last valid char.
     DEBUG_SMART_ASSERT(
         g_id_body_table[get_curr_char()] && "last id fragment consumed by caller",
         !g_id_body_table[get_next_char()]
@@ -597,7 +566,8 @@ ScannerAutomaton::handle_alpha_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::yield_token() noexcept
 {
-    if (cursor_ == source_size_)
+    DEBUG_SMART_ASSERT(cursor_ <= tub_.source_size);
+    if (cursor_ >= tub_.source_size)
         return TKN_YYEOF;
 
     last_token_begin_ = cursor_;

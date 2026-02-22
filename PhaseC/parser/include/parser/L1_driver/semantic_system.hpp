@@ -91,7 +91,7 @@ private:
     SymbolTable *const symbol_table_ = nullptr;
     DiagnosticReporter *const dr_ = nullptr;
 
-    // -- Layer 2 cor subsystems -- We use unique_ptr instead of normal vars, in order to detect wrong initialization order
+    // -- Layer 3 core subsystems -- We use unique_ptr instead of normal vars, in order to detect wrong initialization order
     std::unique_ptr<ExprMaker> expr_maker_;
     std::unique_ptr<QuadHandler> quad_handler_;
     std::unique_ptr<QuadInterceptor> quad_interceptor_;

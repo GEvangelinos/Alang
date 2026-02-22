@@ -4,11 +4,10 @@
 #include <memory>
 #include <scanner/scanner_context.hpp>
 
-#include "translation_unit_buffer.hpp"
-#include "../../../ir_optimizer/include/ir_optimizer/ir_optimizer.hpp"
 #include "core/basics.hpp"
 #include "diagnostics/diagnostic_formatter.hpp"
 #include "L1_driver/semantic_system.hpp"
+#include "scanner/scanner_adapter.hpp"
 #include "settings/compiler_settings.hpp"
 
 // Forward declaration instead of including the <parser/alpha_parser.gen.hpp> header
@@ -41,28 +40,15 @@ public:
 private:
     enum class Phase { FRONTEND, IR_OPTIMIZATION };
 
-    class ScannerHandle : private alpha::Immobile
-    {
-    public:
-        ScannerHandle() = delete;
-        explicit ScannerHandle(TranslationUnitBuffer &tu_buffer);
-        ~ScannerHandle();
-
-        [[nodiscard]] yyscan_t get() const noexcept { return scanner_; }
-
-    private:
-        yyscan_t scanner_;
-    };
-
     Phase running_phase_ = Phase::FRONTEND;
 
     LocationTracker &lt_;
     DiagnosticEngine &diagnostic_engine_;
-    ScannerHandle scanner_handle_;
     ParseCtx parse_ctx_;
     LexerCtx lexer_ctx_;
+    ScannerAdapter scanner_;
     SemanticSystem semantic_system_;
-    IROptimizer ir_optimizer_;
+    std::unique_ptr<IROptimizer> ir_optimizer_;
     std::vector<Quad> ir_quads_;
 
     Once<int> parser_retval_;
@@ -79,7 +65,7 @@ public:
         const alpha::settings::ExprOpts &expr_opts,
         const alpha::settings::IROpts &ir_opts);
 
-    ~TranslationUnit() = default;
+    ~TranslationUnit();
 
     void compile();
     void show_symbol_table() const;
