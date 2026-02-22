@@ -7,6 +7,47 @@
 #include "support/misc_tools.hpp"
 #include "support/string_tools.hpp"
 
+namespace
+{
+constexpr auto is_id_body_char = [](const unsigned char c) consteval
+{
+    return alpha::support::is_digit(c) || alpha::support::is_alpha(c) || c == '_';
+};
+
+constexpr std::array<bool, 256> g_id_body_table =
+    []() consteval
+    {
+        std::array<bool, 256> result;
+        for (unsigned short uc = 0; uc <= std::numeric_limits<unsigned char>::max(); ++uc)
+            result[uc] = is_id_body_char(uc);
+        return result;
+    }();
+
+template <unsigned char uc>
+struct report_id_body_table_mismatch; // NEVER DEFINE (Whole point of this, is it errors upon use)
+
+// Because Templates are instantiated before code is executed (even at compile time context)
+// the only way to find at which position g_id_body_table is off, is to use recursive template instantiation
+// --- Note this assertion is no longer needed... As I now initialize the table algorithmically  --- //
+// --- and not manually (filling bool table with 0s and 1s) but it's still a smart piece of code --- //
+// --- so I am keeping it, as it took me lots of tinkering to make the recursive assertion work. --- //
+template <unsigned short Index>
+consteval bool assert_id_body_table_integrity()
+{
+    // Check for false positives:
+    if constexpr (Index > std::numeric_limits<unsigned char>::max())
+        return true;
+    else if constexpr (!is_id_body_char(Index) && g_id_body_table[Index]) // False Positives
+        report_id_body_table_mismatch<Index>{};
+    else if constexpr (is_id_body_char(Index) && !g_id_body_table[Index]) // False Negatives
+        report_id_body_table_mismatch<Index>{};
+    else
+        return assert_id_body_table_integrity<Index + 1>();
+}
+
+static_assert(assert_id_body_table_integrity<0>(),
+              "ID Table mismatch! See compiler output for index.");
+} // namespace
 
 namespace alpha
 {
@@ -29,17 +70,84 @@ ScannerAutomaton::ScannerAutomaton(
     for (u64 pad_index = 0; pad_index < source_buffer_null_padding_; ++pad_index)
         if (source_buffer_[source_size_ + pad_index] != '\0')
             throw std::logic_error("Critical sentinel corruption detected");
+
+    // Compile Time Evaluation only code.
+    static_assert(
+        keyword_names_and_tokens_.size() == static_cast<u64>(KeywordId::COUNT_),
+        "Keyword collection size mismatch: the 'keyword_names_and_tokens_' array must have exactly "
+        "'KEYWORD_COUNT_' elements. Did you add a new KeywordId without adding its metadata?"
+    );
+#ifdef DEBUG_MODE
+    static_assert(
+        []()
+        {
+            using UT = std::underlying_type_t<KeywordId>;
+            for (UT i = 0; i < static_cast<UT>(KeywordId::COUNT_); ++i)
+                if (static_cast<KeywordId>(i) != keyword_names_and_tokens_[i].id)
+                    return false;
+            return true;
+        }(),
+        "Keyword ID ordering violation: The 'id' field of each KeywordToken must match "
+        "its position in the 'keyword_names_and_tokens_' array. Ensure the array order "
+        "strictly follows the 'KeywordId' enum definition."
+    );
+#endif // DEBUG_MODE
+}
+
+template <u64 n>
+char
+ScannerAutomaton::get_nth_char() const noexcept
+{
+    const auto index = cursor_ + n;
+    DEBUG_SMART_ASSERT(index < source_size_ + source_buffer_null_padding_ && "Illegal access");
+    const auto result = DEBUG_REQUIRE_PTR(source_buffer_)[index];
+    DEBUG_SMART_ASSERT(
+        result >= std::numeric_limits<unsigned char>::min(),
+        result <= std::numeric_limits<char>::max()
+    );
+    return result;
 }
 
 char
-ScannerAutomaton::get_curr_char() noexcept
+ScannerAutomaton::get_nth_char(const u64 n) const noexcept
+{
+    const auto index = cursor_ + n;
+    DEBUG_SMART_ASSERT(index < source_size_ + source_buffer_null_padding_ && "Illegal access");
+    return DEBUG_REQUIRE_PTR(source_buffer_)[index];
+}
+
+template <u64 n>
+void
+ScannerAutomaton::advance_cursor() noexcept
+{
+    static_assert(n > 0, "Why advance by zero?");
+    DEBUG_SMART_ASSERT(cursor_ < source_size_); // Is OK before?
+    cursor_ += n;
+    // After: Can be AT source_size_ (EOF), but not past it.
+    DEBUG_SMART_ASSERT(cursor_ <= source_size_); // Is OK after?
+}
+
+void
+ScannerAutomaton::advance_cursor(const u64 n) noexcept
+{
+    DEBUG_SMART_ASSERT(cursor_ < source_size_, n > 0 && "why advance by zero?"); // Is OK before?
+    cursor_ += n;
+    // After: Can be AT source_size_ (EOF), but not past it.
+    DEBUG_SMART_ASSERT(cursor_ <= source_size_); // Is OK after?
+}
+
+const char*
+ScannerAutomaton::get_cursor_address() const noexcept { return source_buffer_ + cursor_; }
+
+char
+ScannerAutomaton::get_curr_char() const noexcept
 {
     DEBUG_SMART_ASSERT(!has_reached_eof());
     return get_nth_char<0>();
 }
 
 char
-ScannerAutomaton::get_next_char() noexcept
+ScannerAutomaton::get_next_char() const noexcept
 {
     DEBUG_SMART_ASSERT(!has_reached_eof());
     return get_nth_char<1>();
@@ -354,7 +462,6 @@ ScannerAutomaton::handle_decimal_number() noexcept
     return TKN_INT;
 }
 
-
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_number_char() noexcept
 {
@@ -387,6 +494,75 @@ ScannerAutomaton::handle_number_char() noexcept
     case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': \
     case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': \
     case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z'
+
+ScannerAutomaton::LexerReturnType
+ScannerAutomaton::handle_alpha_char() noexcept
+{
+    DEBUG_SMART_ASSERT(support::is_alpha(get_curr_char()));
+    u64 word_length = 1;
+    while (g_id_body_table[get_nth_char(word_length)])
+        ++word_length;
+
+    DEBUG_SMART_ASSERT(g_id_body_table[get_curr_char()]);
+
+    const auto find_possible_keyword = [this, word_length]() -> KeywordId
+    {
+        const char ch0 = get_nth_char<0>();
+        switch (word_length)
+        {
+        case 2: // IF | OR
+            if (ch0 == 'i') return KeywordId::IF;
+            if (ch0 == 'o') return KeywordId::OR;
+            break;
+        case 3: // AND | FOR | NOT | NIL
+            if (ch0 == 'a') return KeywordId::AND;
+            if (ch0 == 'f') return KeywordId::FOR;
+            if (ch0 == 'n')
+            {
+                const char ch1 = get_nth_char<1>();
+                if (ch1 == 'o') return KeywordId::NOT;
+                if (ch1 == 'i') return KeywordId::NIL;
+            }
+            break;
+        case 4: // ELSE | TRUE
+            if (ch0 == 'e') return KeywordId::ELSE;
+            if (ch0 == 't') return KeywordId::TRUE;
+            break;
+        case 5: // BREAK | FALSE | LOCAL | WHILE
+            if (ch0 == 'b') return KeywordId::BREAK;
+            if (ch0 == 'f') return KeywordId::FALSE;
+            if (ch0 == 'l') return KeywordId::LOCAL;
+            if (ch0 == 'w') return KeywordId::WHILE;
+            break;
+        case 6: // RETURN
+            if (ch0 == 'r') return KeywordId::RETURN;
+            break;
+        case 8: // CONTINUE | FUNCTION
+            if (ch0 == 'c') return KeywordId::CONTINUE;
+            if (ch0 == 'f') return KeywordId::FUNCTION;
+            break;
+        default: break;
+        }
+        return KeywordId::NONE_;
+    };
+
+    const KeywordId possible_keyword = find_possible_keyword();
+    LexerReturnType result_token = TKN_ID;
+    if (possible_keyword != KeywordId::NONE_)
+    {
+        const auto keyword_idx = static_cast<std::underlying_type_t<KeywordId>>(possible_keyword);
+        const KeywordToken expected_token = keyword_names_and_tokens_[keyword_idx];
+        if (std::string_view{get_cursor_address(), word_length} == expected_token.name)
+            result_token = expected_token.bison_token_id;
+    }
+
+    advance_cursor(word_length - 1); // Minus 1 cause we want to not consume last valid char.
+    DEBUG_SMART_ASSERT(
+        g_id_body_table[get_curr_char()] && "last id fragment consumed by caller",
+        !g_id_body_table[get_next_char()]
+        );
+    return result_token;
+}
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::yield_token() noexcept
@@ -423,7 +599,7 @@ ScannerAutomaton::yield_token() noexcept
         case '\n': register_newline_char();                    break;
         CASE_LIST_FOR_SPACES:                                  break;
         CASE_LIST_FOR_NUMBERS: result = handle_number_char();  break;
-        // CASE_LIST_FOR_LETTERS: result = handle_alpha_char();   break;
+        CASE_LIST_FOR_LETTERS: result = handle_alpha_char();   break;
         default:
             {
                 const char chartext[] = {curr_ch, 0};

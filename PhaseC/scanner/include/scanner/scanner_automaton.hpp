@@ -11,35 +11,11 @@ namespace alpha
 class ScannerAutomaton
 {
 public:
-    using LexerReturnType = int;
-
-    struct Token
-    {
-        const char* const name;
-        const int bison_token_id;
-    };
-
-    static inline std::array k_keyword_pool{
-        Token{"if", TKN_IF},
-        Token{"else", TKN_ELSE},
-        Token{"while", TKN_WHILE},
-        Token{"for", TKN_FOR},
-        Token{"function", TKN_FUNCTION},
-        Token{"return", TKN_RETURN},
-        Token{"break", TKN_BREAK},
-        Token{"continue", TKN_CONTINUE},
-        Token{"not", TKN_NOT},
-        Token{"and", TKN_AND},
-        Token{"or", TKN_OR},
-        Token{"local", TKN_LOCAL},
-        Token{"true", TKN_TRUE},
-        Token{"false", TKN_FALSE},
-        Token{"nil", TKN_NIL},
-    };
+    using LexerReturnType = std::underlying_type_t<decltype(TKN_YYEOF)>;
 
     // We require at least this much, to avoid eof checks in certain scenarios (like peeking) so we can speed things up.
     static constexpr u64 k_minimum_source_buffer_null_padding = 2;
-    static constexpr LexerReturnType TKN_INTERNAL_SKIP = 0x7FFFFFFF;
+    static constexpr LexerReturnType TKN_INTERNAL_SKIP = static_cast<LexerReturnType>(0x7FFFFFFF);
 
     ScannerAutomaton(
         LexerCtx& lexer_ctx,
@@ -53,6 +29,53 @@ public:
     [[nodiscard]] LexerReturnType yield_token() noexcept;
 
 private:
+    enum class KeywordId : i8
+    {
+        IF,
+        ELSE,
+        WHILE,
+        FOR,
+        FUNCTION,
+        RETURN,
+        BREAK,
+        CONTINUE,
+        NOT,
+        AND,
+        OR,
+        LOCAL,
+        TRUE,
+        FALSE,
+        NIL,
+        COUNT_,         // Note a keyword
+        NONE_ = COUNT_, // Not a keyword (used for internal purposes)
+    };
+
+    struct KeywordToken
+    {
+        const std::string_view name;
+        const LexerReturnType bison_token_id;
+        DEBUG(KeywordId id;)
+    };
+
+    static constexpr std::array keyword_names_and_tokens_
+    { // clang-format off
+        KeywordToken{"if"      , TKN_IF      , DEBUG(KeywordId::IF)},
+        KeywordToken{"else"    , TKN_ELSE    , DEBUG(KeywordId::ELSE)},
+        KeywordToken{"while"   , TKN_WHILE   , DEBUG(KeywordId::WHILE)},
+        KeywordToken{"for"     , TKN_FOR     , DEBUG(KeywordId::FOR)},
+        KeywordToken{"function", TKN_FUNCTION, DEBUG(KeywordId::FUNCTION)},
+        KeywordToken{"return"  , TKN_RETURN  , DEBUG(KeywordId::RETURN)},
+        KeywordToken{"break"   , TKN_BREAK   , DEBUG(KeywordId::BREAK)},
+        KeywordToken{"continue", TKN_CONTINUE, DEBUG(KeywordId::CONTINUE)},
+        KeywordToken{"not"     , TKN_NOT     , DEBUG(KeywordId::NOT)},
+        KeywordToken{"and"     , TKN_AND     , DEBUG(KeywordId::AND)},
+        KeywordToken{"or"      , TKN_OR      , DEBUG(KeywordId::OR)},
+        KeywordToken{"local"   , TKN_LOCAL   , DEBUG(KeywordId::LOCAL)},
+        KeywordToken{"true"    , TKN_TRUE    , DEBUG(KeywordId::TRUE)},
+        KeywordToken{"false"   , TKN_FALSE   , DEBUG(KeywordId::FALSE)},
+        KeywordToken{"nil"     , TKN_NIL     , DEBUG(KeywordId::NIL)},
+    }; // clang-format on
+
     LexerCtx& lexer_ctx_;
     LocationTracker& lt_;
     DiagnosticReporter& dr_;
@@ -62,14 +85,17 @@ private:
     u64 cursor_ = 0; // Index based (points on source_buffer)
 
     template <u64 n>
-    [[nodiscard]] char get_nth_char() noexcept; // Forward only lookup.
+    [[nodiscard]] char get_nth_char() const noexcept; // Forward only lookup.
+    [[nodiscard]] char get_nth_char(u64 n) const noexcept;
 
-    [[nodiscard]] char get_curr_char() noexcept;
-    [[nodiscard]] char get_next_char() noexcept;
+    [[nodiscard]] const char* get_cursor_address() const noexcept;
+    [[nodiscard]] char get_curr_char() const noexcept;
+    [[nodiscard]] char get_next_char() const noexcept;
     [[nodiscard]] bool has_reached_eof() const noexcept;
 
     template <u64 n = 1>
     void advance_cursor() noexcept;
+    void advance_cursor(u64 n) noexcept;
 
     [[nodiscard]] LexerReturnType register_and_return(LexerReturnType token_id) noexcept;
     [[nodiscard]] LexerReturnType handle_equal_char() noexcept;
@@ -91,25 +117,9 @@ private:
     [[nodiscard]] LexerReturnType handle_comment_line() noexcept;
     [[nodiscard]] LexerReturnType handle_comment_block() noexcept;
 
+    [[nodiscard]] LexerReturnType handle_alpha_char() noexcept;
+
     void register_newline_char() noexcept;
 };
-
-template <u64 n>
-char
-ScannerAutomaton::get_nth_char() noexcept
-{
-    const auto index = cursor_ + n;
-    DEBUG_SMART_ASSERT(index < source_size_ + source_buffer_null_padding_ && "Illegal access");
-    return DEBUG_REQUIRE_PTR(source_buffer_)[index];
-}
-
-template <u64 n>
-void
-ScannerAutomaton::advance_cursor() noexcept
-{
-    DEBUG_SMART_ASSERT(cursor_ < source_size_); // Is OK before.
-    cursor_ += n;
-    DEBUG_SMART_ASSERT(cursor_ < source_size_); // Is OK after.
-}
 } // namespace alpha
 #endif // SCANNER_AUTOMATON_HPP

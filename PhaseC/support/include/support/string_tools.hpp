@@ -36,6 +36,21 @@ std::string& strip(std::string& str);
     return result;
 }
 
+// Basic implementation, so we can avoid using the slower std::isalpha() that looks up for locale.
+[[nodiscard]] constexpr bool is_space(const unsigned char c) noexcept
+{
+    switch (c)
+    {
+    case ' ':
+    case '\f':
+    case '\n':
+    case '\r':
+    case '\t':
+    case '\v': return true;
+    default: return false;
+    }
+}
+
 static_assert(
     []()
     {
