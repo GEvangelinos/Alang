@@ -34,10 +34,10 @@ namespace sort_policy
 } // namespace sort_policy
 
 void swap_markers(std::string &str, char old_marker, char new_marker);
-[[nodiscard]] bool is_index_on_highlight(SrcBufferIdx idx, const TaggedHighlight &hl);
-[[nodiscard]] bool is_index_on_start_of_highlight(SrcBufferIdx idx, const TaggedHighlight &hl);
+[[nodiscard]] bool is_index_on_highlight(SrcBuffIdx idx, const TaggedHighlight &hl);
+[[nodiscard]] bool is_index_on_start_of_highlight(SrcBuffIdx idx, const TaggedHighlight &hl);
 [[nodiscard]] std::optional<HighlightTag>
-find_highlight_tag_at(const std::vector<TaggedHighlight> &highlights, SrcBufferIdx idx);
+find_highlight_tag_at(const std::vector<TaggedHighlight> &highlights, SrcBuffIdx idx);
 [[nodiscard]] std::string
 apply_sgr(std::string_view prefix, std::string_view text, std::string_view suffix);
 } // namespace
@@ -79,19 +79,19 @@ private:
     [[nodiscard]] std::vector<std::string> make_highlight_anchors(
         std::size_t root_height, char anchor_marker);
     [[nodiscard]] std::vector<std::string> make_highlight_labels();
-    [[nodiscard]] bool source_blank_afterwards(SrcBufferIdx idx) const noexcept;
+    [[nodiscard]] bool source_blank_afterwards(SrcBuffIdx idx) const noexcept;
 
-    [[nodiscard]] SrcBufferIdx find_end_of_code_in_line(SrcBufferIdx line_start_idx) const;
+    [[nodiscard]] SrcBuffIdx find_end_of_code_in_line(SrcBuffIdx line_start_idx) const;
     void ensure_primary_start_marked(std::string &underline);
     void handle_possible_coloring_start(
         std::string &line_accumulator,
         const std::vector<TaggedHighlight> &highlights,
-        SrcBufferIdx idx,
+        SrcBuffIdx idx,
         bool should_try_color_primary);
     void handle_possible_coloring_stop(
         std::string &line_accumulator,
         std::vector<TaggedHighlight> &highlights,
-        SrcBufferIdx idx);
+        SrcBuffIdx idx);
 
     void finalize_colored_line_accumulator(std::string &line_accumulator);
 
@@ -186,7 +186,7 @@ SrcColumnIdx
 IssueFormatterImpl::compute_visual_suggestion_indent_width(const Suggestion &suggestion) const
 {
     const SrcLineIdx line_no = loc_tracker_.find_last_line(suggestion.insert_after);
-    const SrcBufferIdx line_start_index = loc_tracker_.find_index_of_line(line_no);
+    const SrcBuffIdx line_start_index = loc_tracker_.find_index_of_line(line_no);
 
     DEBUG_SMART_ASSERT(suggestion.insert_after.end >= line_start_index);
 
@@ -390,8 +390,8 @@ IssueFormatterImpl::make_codeline()
     std::string line_accumulator;
     SrcColumnIdx column{SrcColumnIdx::none};
 
-    const SrcBufferIdx line_start_idx = loc_tracker_.find_index_of_line(working_line_);
-    for (SrcBufferIdx idx = line_start_idx; ; ++idx)
+    const SrcBuffIdx line_start_idx = loc_tracker_.find_index_of_line(working_line_);
+    for (SrcBuffIdx idx = line_start_idx; ; ++idx)
     {
         const char ch = source_buffer_[idx];
         if (ch == '\0' || ch == '\n')
@@ -421,10 +421,10 @@ IssueFormatterImpl::make_underline()
     std::string line_accumulator;
     SrcColumnIdx column{SrcColumnIdx::none};
 
-    const SrcBufferIdx line_start_idx = loc_tracker_.find_index_of_line(working_line_);
-    const SrcBufferIdx end_of_code_idx = find_end_of_code_in_line(line_start_idx); // Inclusive
+    const SrcBuffIdx line_start_idx = loc_tracker_.find_index_of_line(working_line_);
+    const SrcBuffIdx end_of_code_idx = find_end_of_code_in_line(line_start_idx); // Inclusive
     OnceFlag seen_char;
-    for (SrcBufferIdx idx = line_start_idx; ; ++idx.value)
+    for (SrcBuffIdx idx = line_start_idx; ; ++idx.value)
     {
         const char ch = source_buffer_[idx];
         const bool in_primary_issue = idx >= target_.loc.begin && idx < target_.loc.end;
@@ -474,14 +474,14 @@ IssueFormatterImpl::make_highlight_anchors(
         return {};
 
     std::vector<std::string> root_lines;
-    const SrcBufferIdx line_start_idx = loc_tracker_.find_index_of_line(working_line_);
+    const SrcBuffIdx line_start_idx = loc_tracker_.find_index_of_line(working_line_);
     for (std::size_t h = 0; h < root_height; ++h)
     {
         SrcColumnIdx column{SrcColumnIdx::none};
         std::string line_accumulator;
         std::size_t stems_printed = 0;
         const auto required_stems = initiating_highlights.size();
-        for (SrcBufferIdx line_idx = line_start_idx; ; ++line_idx)
+        for (SrcBuffIdx line_idx = line_start_idx; ; ++line_idx)
         {
             const char ch = source_buffer_[line_idx];
             DEBUG_SMART_ASSERT(ch != '\0' && "all initiating highlights before end of buffer=");
@@ -520,7 +520,7 @@ IssueFormatterImpl::make_highlight_labels()
         return {};
 
     std::vector<std::string> label_lines;
-    const SrcBufferIdx initial_line_idx = loc_tracker_.find_index_of_line(working_line_);
+    const SrcBuffIdx initial_line_idx = loc_tracker_.find_index_of_line(working_line_);
     for (auto required_labels = initiating_highlights.size();
          required_labels > 0;
          --required_labels)
@@ -528,7 +528,7 @@ IssueFormatterImpl::make_highlight_labels()
         SrcColumnIdx column{SrcColumnIdx::none};
         std::string line_accumulator;
         std::size_t labels_printed = 0;
-        for (SrcBufferIdx line_idx = initial_line_idx; ; ++line_idx)
+        for (SrcBuffIdx line_idx = initial_line_idx; ; ++line_idx)
         {
             const char ch = source_buffer_[line_idx];
             DEBUG_SMART_ASSERT(ch != '\0' && "all initiating highlights before end of buffer=");
@@ -559,9 +559,9 @@ IssueFormatterImpl::make_highlight_labels()
 }
 
 bool
-IssueFormatterImpl::source_blank_afterwards(const SrcBufferIdx idx) const noexcept
+IssueFormatterImpl::source_blank_afterwards(const SrcBuffIdx idx) const noexcept
 {
-    for (SrcBufferIdx i = idx; i.value < source_buffer_.source_size(); ++i)
+    for (SrcBuffIdx i = idx; i.value < source_buffer_.source_size(); ++i)
         if (!std::isspace(source_buffer_[i]))
             return false;
     return true;
@@ -583,7 +583,7 @@ void
 IssueFormatterImpl::handle_possible_coloring_start(
     std::string &line_accumulator,
     const std::vector<TaggedHighlight> &highlights,
-    const SrcBufferIdx idx,
+    const SrcBuffIdx idx,
     const bool should_try_color_primary)
 {
     if (!colorize_)
@@ -621,7 +621,7 @@ void
 IssueFormatterImpl::handle_possible_coloring_stop(
     std::string &line_accumulator,
     std::vector<TaggedHighlight> &highlights,
-    const SrcBufferIdx idx)
+    const SrcBuffIdx idx)
 {
     if (!colorize_)
         return;
@@ -654,12 +654,12 @@ IssueFormatterImpl::finalize_colored_line_accumulator(std::string &line_accumula
         coloring_highlight_.disable();
 }
 
-SrcBufferIdx
-IssueFormatterImpl::find_end_of_code_in_line(const SrcBufferIdx line_start_idx) const
+SrcBuffIdx
+IssueFormatterImpl::find_end_of_code_in_line(const SrcBuffIdx line_start_idx) const
 {
-    SrcBufferIdx last_nonspace = line_start_idx;
+    SrcBuffIdx last_nonspace = line_start_idx;
     std::string codeline_accumulator;
-    for (SrcBufferIdx idx = line_start_idx; ; ++idx)
+    for (SrcBuffIdx idx = line_start_idx; ; ++idx)
     {
         const char ch = source_buffer_[idx];
         if (ch == '\0' || ch == '\n')
@@ -675,8 +675,8 @@ IssueFormatterImpl::find_end_of_code_in_line(const SrcBufferIdx line_start_idx) 
 
     // -1 to move 1 chars before line comment token '//'
     const auto before_comment = line_start_idx.value + line_comment_pos - 1;
-    DEBUG_SMART_ASSERT(support::is_in_numeric_range<SrcBufferIdx::UnderlyingType>(before_comment));
-    return SrcBufferIdx{static_cast<SrcBufferIdx::UnderlyingType>(before_comment)};
+    DEBUG_SMART_ASSERT(support::is_in_numeric_range<SrcBuffIdx::UnderlyingType>(before_comment));
+    return SrcBuffIdx{static_cast<SrcBuffIdx::UnderlyingType>(before_comment)};
 }
 
 template<typename Predicate, typename Compare>
@@ -796,13 +796,13 @@ namespace sort_policy
 } // namespace sort_policy
 
 bool
-is_index_on_highlight(const SrcBufferIdx idx, const TaggedHighlight &hl)
+is_index_on_highlight(const SrcBuffIdx idx, const TaggedHighlight &hl)
 {
     return hl.ref()->loc.begin <= idx && idx < hl.ref()->loc.end; // Reminder: loc.end exclusive.
 }
 
 bool
-is_index_on_start_of_highlight(const SrcBufferIdx idx, const TaggedHighlight &hl)
+is_index_on_start_of_highlight(const SrcBuffIdx idx, const TaggedHighlight &hl)
 {
     return hl.ref()->loc.begin == idx;
 }
@@ -823,7 +823,7 @@ swap_markers(std::string &str, const char old_marker, const char new_marker)
 }
 
 [[maybe_unused]] std::optional<HighlightTag>
-find_highlight_tag_at(const std::vector<TaggedHighlight> &highlights, const SrcBufferIdx idx)
+find_highlight_tag_at(const std::vector<TaggedHighlight> &highlights, const SrcBuffIdx idx)
 {
     DEBUG_SMART_ASSERT(
         std::is_sorted(highlights.begin(),highlights.end(), &sort_policy::leftmost_first)&&

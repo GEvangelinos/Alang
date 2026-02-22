@@ -15,17 +15,17 @@ class LocationTracker; // IWYU pragma: keep
 
 struct SourceLocationRaw
 {
-    SrcBufferIdx::UnderlyingType begin;
-    SrcBufferIdx::UnderlyingType end;
+    SrcBuffIdx::UnderlyingType begin;
+    SrcBuffIdx::UnderlyingType end;
 };
 
 struct SourceLocation
 {
-    SrcBufferIdx begin; // Inclusive
-    SrcBufferIdx end;   // Exclusive
+    SrcBuffIdx begin; // Inclusive
+    SrcBuffIdx end;   // Exclusive
 
     constexpr SourceLocation();
-    constexpr SourceLocation(SrcBufferIdx begin, SrcBufferIdx end);
+    constexpr SourceLocation(SrcBuffIdx begin, SrcBuffIdx end);
     constexpr SourceLocation(SourceLocationRaw raw_loc);
 
     [[nodiscard]] SourceLocationRaw to_raw();
@@ -41,17 +41,17 @@ struct SourceLocation
 constexpr
 SourceLocation::SourceLocation()
     : SourceLocation(
-        SrcBufferIdx{SrcBufferIdx::none},
-        SrcBufferIdx{SrcBufferIdx::none}
+        SrcBuffIdx{SrcBuffIdx::none},
+        SrcBuffIdx{SrcBuffIdx::none}
     ) {}
 
 constexpr
-SourceLocation::SourceLocation(SrcBufferIdx begin, SrcBufferIdx end)
+SourceLocation::SourceLocation(SrcBuffIdx begin, SrcBuffIdx end)
     : begin(begin), end(end)
 {
     DEBUG_SMART_ASSERT(
-        ( begin.value == SrcBufferIdx::none &&
-            end.value == SrcBufferIdx::none
+        ( begin.value == SrcBuffIdx::none &&
+            end.value == SrcBuffIdx::none
         )
         || begin < end
     );
@@ -59,11 +59,11 @@ SourceLocation::SourceLocation(SrcBufferIdx begin, SrcBufferIdx end)
 
 constexpr
 SourceLocation::SourceLocation(const SourceLocationRaw raw_loc)
-    : begin(SrcBufferIdx{raw_loc.begin}), end(SrcBufferIdx{raw_loc.end})
+    : begin(SrcBuffIdx{raw_loc.begin}), end(SrcBuffIdx{raw_loc.end})
 {
     DEBUG_SMART_ASSERT(
-        ( begin.value == SrcBufferIdx::none &&
-            end.value == SrcBufferIdx::none
+        ( begin.value == SrcBuffIdx::none &&
+            end.value == SrcBuffIdx::none
         )
         || begin < end
     );
@@ -118,21 +118,21 @@ public:
 
     explicit LocationTracker(std::size_t max_valid_index);
 
-    void append_line(SrcBufferIdx linestart_index);
+    void append_line(SrcBuffIdx linestart_index);
     [[nodiscard]] SrcLineIdx find_first_line(SourceLocation loc) const;
     [[nodiscard]] SrcLineIdx find_last_line(SourceLocation loc) const;
     [[nodiscard]] SrcLineIdx find_symbol_line(SourceLocation loc) const;
-    [[nodiscard]] SrcBufferIdx find_index_of_line(SrcLineIdx line) const;
+    [[nodiscard]] SrcBuffIdx find_index_of_line(SrcLineIdx line) const;
     [[nodiscard]] SrcColumnIdx find_first_column(SourceLocation loc) const;
-    [[nodiscard]] LineRange find_lines(SrcBufferIdx begin_idx, SrcBufferIdx end_idx) const;
+    [[nodiscard]] LineRange find_lines(SrcBuffIdx begin_idx, SrcBuffIdx end_idx) const;
     [[nodiscard]] LineRange find_lines(SourceLocation loc) const;
     [[nodiscard]] bool is_virtual_line(SrcLineIdx line) const noexcept;
 
 private:
-    const SrcBufferIdx max_valid_index_;
-    std::vector<SrcBufferIdx> linestart_buffer_indices_;
+    const SrcBuffIdx max_valid_index_;
+    std::vector<SrcBuffIdx> linestart_buffer_indices_;
 
-    [[nodiscard]] SrcLineIdx find_line(SrcBufferIdx idx) const;
+    [[nodiscard]] SrcLineIdx find_line(SrcBuffIdx idx) const;
 };
 } // namespace alpha
 #endif // SOURCE_LOCATION_HPP

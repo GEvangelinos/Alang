@@ -53,9 +53,17 @@
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/source_location.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/source_location.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/source_location_types.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/source_location_types.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/src/source_location.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/source_location.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/diagnostics/src/issue_formatter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/issue_formatter.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/translation_unit_buffer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/translation_unit_buffer.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scanner/include/scanner/scanner_automaton.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/include/scanner/scanner_automaton.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/include/scanner/scanner_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/include/scanner/scanner_context.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/scanner/src/scanner_automaton.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_automaton.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/support/include/support/string_tools.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/support/include/support/string_tools.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_prologue.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_prologue.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/support/include/support/size_format_tools.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/support/include/support/size_format_tools.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -371,7 +379,7 @@
       <workItem from="1771335907554" duration="33942000" />
       <workItem from="1771505559229" duration="615000" />
       <workItem from="1771582320685" duration="23000" />
-      <workItem from="1771587449993" duration="58127000" />
+      <workItem from="1771587449993" duration="63765000" />
     </task>
     <servers />
   </component>

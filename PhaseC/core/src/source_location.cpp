@@ -8,21 +8,21 @@
 
 namespace alpha
 {
-SrcBufferIdx sizeT_to_srcBufferIdx(const std::size_t num)
+SrcBuffIdx sizeT_to_srcBufferIdx(const std::size_t num)
 {
-    if (!support::is_in_numeric_range<SrcBufferIdx::UnderlyingType>(num))
+    if (!support::is_in_numeric_range<SrcBuffIdx::UnderlyingType>(num))
         throw std::length_error(ATTACH_CONTEXT("`num` value can not be stored `SrcBufferIdx`"));
-    return SrcBufferIdx{static_cast<SrcBufferIdx::UnderlyingType>(num)};
+    return SrcBuffIdx{static_cast<SrcBuffIdx::UnderlyingType>(num)};
 }
 
 LocationTracker::LocationTracker(const std::size_t max_valid_index)
     : max_valid_index_(sizeT_to_srcBufferIdx(max_valid_index))
 {
-    linestart_buffer_indices_.emplace_back(SrcBufferIdx::none); // Sets virtual line 0 at idx 0.
+    linestart_buffer_indices_.emplace_back(SrcBuffIdx::none); // Sets virtual line 0 at idx 0.
 }
 
 void
-LocationTracker::append_line(const SrcBufferIdx linestart_index)
+LocationTracker::append_line(const SrcBuffIdx linestart_index)
 {
     DEBUG_SMART_ASSERT(
         !lines_frozen &&
@@ -57,7 +57,7 @@ LocationTracker::find_symbol_line(const SourceLocation loc) const
     return find_lines(loc).begin_line;
 }
 
-SrcBufferIdx
+SrcBuffIdx
 LocationTracker::find_index_of_line(const SrcLineIdx line) const
 {
     if (line.value == SrcLineIdx::none)
@@ -79,7 +79,7 @@ LocationTracker::find_first_column(const SourceLocation loc) const
     const SrcLineIdx starting_line = find_first_line(loc);
     DEBUG_SMART_ASSERT(starting_line.value <= linestart_buffer_indices_.size());
     // -1 as line starts at pos 0.
-    const SrcBufferIdx index_at_starting_line = linestart_buffer_indices_[starting_line.value - 1];
+    const SrcBuffIdx index_at_starting_line = linestart_buffer_indices_[starting_line.value - 1];
     DEBUG_SMART_ASSERT(loc.begin >= index_at_starting_line);
 
     // +1 to convert index offset to columns.
@@ -95,10 +95,10 @@ LocationTracker::find_first_column(const SourceLocation loc) const
  * No normalization is performed; the caller must ensure
  */
 LineRange
-LocationTracker::find_lines(const SrcBufferIdx begin_idx, const SrcBufferIdx end_idx) const
+LocationTracker::find_lines(const SrcBuffIdx begin_idx, const SrcBuffIdx end_idx) const
 {
     // LIBFUNCs -- Only libfuncs are defined at Location{0,0}
-    if (begin_idx.value == SrcBufferIdx::none && end_idx.value == SrcBufferIdx::none)
+    if (begin_idx.value == SrcBuffIdx::none && end_idx.value == SrcBuffIdx::none)
         return {
             .begin_line = SrcLineIdx{SrcLineIdx::none},
             .end_line = SrcLineIdx{SrcLineIdx::none}
@@ -127,7 +127,7 @@ LocationTracker::is_virtual_line(const SrcLineIdx line) const noexcept
 }
 
 SrcLineIdx
-LocationTracker::find_line(const SrcBufferIdx idx) const
+LocationTracker::find_line(const SrcBuffIdx idx) const
 {
     DEBUG_SMART_ASSERT(
         std::is_sorted(linestart_buffer_indices_.begin(), linestart_buffer_indices_.end())

@@ -15,7 +15,7 @@ public:
 
     // We require at least this much, to avoid eof checks in certain scenarios (like peeking) so we can speed things up.
     static constexpr u64 k_minimum_source_buffer_null_padding = 2;
-    static constexpr LexerReturnType TKN_INTERNAL_SKIP = static_cast<LexerReturnType>(0x7FFFFFFF);
+    static constexpr LexerReturnType TKN_INTERNAL_SKIP = 0x7FFFFFFF;
 
     ScannerAutomaton(
         LexerCtx& lexer_ctx,
@@ -27,6 +27,10 @@ public:
     );
 
     [[nodiscard]] LexerReturnType yield_token() noexcept;
+
+    [[nodiscard]] SrcBuffIdx last_token_begin() const noexcept;
+    [[nodiscard]] SrcBuffIdx last_token_end() const noexcept;
+    [[nodiscard]] u64 last_token_length() const noexcept;
 
 private:
     enum class KeywordId : i8
@@ -80,22 +84,23 @@ private:
     LocationTracker& lt_;
     DiagnosticReporter& dr_;
     const char* const source_buffer_ = nullptr;
-    const u64 source_size_ = 0;
-    const u64 source_buffer_null_padding_ = 0;
-    u64 cursor_ = 0; // Index based (points on source_buffer)
+    const SrcBuffIdx source_size_{0};
+    const SrcBuffIdx source_buffer_null_padding_{0};
+    SrcBuffIdx last_token_begin_{0}; // inclusive
+    SrcBuffIdx cursor_{0};           // Index based (points on source_buffer)
 
-    template <u64 n>
+    template <SrcBuffIdx n>
     [[nodiscard]] char get_nth_char() const noexcept; // Forward only lookup.
-    [[nodiscard]] char get_nth_char(u64 n) const noexcept;
+    [[nodiscard]] char get_nth_char(SrcBuffIdx n) const noexcept;
 
     [[nodiscard]] const char* get_cursor_address() const noexcept;
     [[nodiscard]] char get_curr_char() const noexcept;
     [[nodiscard]] char get_next_char() const noexcept;
     [[nodiscard]] bool has_reached_eof() const noexcept;
 
-    template <u64 n = 1>
+    template <SrcBuffIdx n = SrcBuffIdx{1}>
     void advance_cursor() noexcept;
-    void advance_cursor(u64 n) noexcept;
+    void advance_cursor(SrcBuffIdx n) noexcept;
 
     [[nodiscard]] LexerReturnType register_and_return(LexerReturnType token_id) noexcept;
     [[nodiscard]] LexerReturnType handle_equal_char() noexcept;
@@ -121,5 +126,17 @@ private:
 
     void register_newline_char() noexcept;
 };
+
+inline SrcBuffIdx
+ScannerAutomaton::last_token_begin() const noexcept { return {last_token_begin_}; }
+
+inline SrcBuffIdx
+ScannerAutomaton::last_token_end() const noexcept { return {cursor_}; }
+
+inline u64
+ScannerAutomaton::last_token_length() const noexcept
+{
+    return last_token_end().value - last_token_begin().value + 1;
+}
 } // namespace alpha
 #endif // SCANNER_AUTOMATON_HPP

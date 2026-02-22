@@ -1,7 +1,6 @@
 #ifndef SUPPORT_SIZE_FORMAT_TOOLS_HPP
 #define SUPPORT_SIZE_FORMAT_TOOLS_HPP
 
-#include <cstddef>
 #include <string>
 
 namespace alpha::support

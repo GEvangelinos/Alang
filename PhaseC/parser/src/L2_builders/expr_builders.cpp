@@ -24,8 +24,8 @@ using namespace alpha;
     DEBUG_SMART_ASSERT(!!*op_name, !!*op_symbol, !!*lvalue_subject);
     if (expr->is_lvalue_type() && expr->is_rvalue_casted())
     {
-        const SourceLocation lhs_cast_loc{expr->loc.begin, SrcBufferIdx{expr->loc.begin.value + 1}};
-        const SourceLocation rhs_cast_loc{SrcBufferIdx{expr->loc.end.value - 1}, expr->loc.end};
+        const SourceLocation lhs_cast_loc{expr->loc.begin, SrcBuffIdx{expr->loc.begin.value + 1}};
+        const SourceLocation rhs_cast_loc{SrcBuffIdx{expr->loc.end.value - 1}, expr->loc.end};
         dr->report_operator_on_lvalue_casted_to_rvalue(
             op_name, op_symbol, full_expr_loc, lhs_cast_loc, rhs_cast_loc);
         return false;

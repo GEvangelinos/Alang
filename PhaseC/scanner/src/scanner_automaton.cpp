@@ -62,13 +62,42 @@ ScannerAutomaton::ScannerAutomaton(
       lt_(lt),
       dr_(dr),
       source_buffer_(support::require_ptr(source_buffer)),
-      source_size_(source_size),
-      source_buffer_null_padding_(source_buffer_null_padding)
+      source_size_([source_size]()
+      {
+          using TargetType = decltype(source_size_)::UnderlyingType;
+          if (source_size > std::numeric_limits<TargetType>::max())
+              throw std::length_error(
+                  "Alpha Scanner Error: Source file size (" + std::to_string(source_size) +
+                  " bytes) exceeds the maximum supported index range (" +
+                  std::to_string(std::numeric_limits<TargetType>::max()) + ")."
+              );
+          return source_size;
+      }()),
+      source_buffer_null_padding_([source_buffer_null_padding]()
+      {
+          using TargetType = decltype(source_buffer_null_padding_)::UnderlyingType;
+          constexpr auto max_type_val = std::numeric_limits<TargetType>::max();
+          constexpr u64 k_sanity_limit = 64 * 1024; // Sanity Limit: 64KB massive for scanner guard.
+
+          if (source_buffer_null_padding > max_type_val)
+              throw std::range_error(
+                  "Alpha Architecture: Padding " + std::to_string(source_buffer_null_padding) +
+                  " exceeds index type capacity."
+              );
+
+          if (source_buffer_null_padding > k_sanity_limit)
+              throw std::logic_error(
+                  "Alpha Sanity Check: Padding " + std::to_string(source_buffer_null_padding) +
+                  " exceeds safety limit (" + std::to_string(k_sanity_limit) +
+                  "). Suspected caller-side logic error."
+              );
+          return static_cast<TargetType>(source_buffer_null_padding);
+      }())
 {
-    if (source_buffer_null_padding_ < ScannerAutomaton::k_minimum_source_buffer_null_padding)
+    if (source_buffer_null_padding_.value < ScannerAutomaton::k_minimum_source_buffer_null_padding)
         throw std::logic_error("Insufficient padding detected");
-    for (u64 pad_index = 0; pad_index < source_buffer_null_padding_; ++pad_index)
-        if (source_buffer_[source_size_ + pad_index] != '\0')
+    for (u64 pad_index = 0; pad_index < source_buffer_null_padding_.value; ++pad_index)
+        if (source_buffer_[source_size_.value + pad_index] != '\0')
             throw std::logic_error("Critical sentinel corruption detected");
 
     // Compile Time Evaluation only code.
@@ -94,13 +123,13 @@ ScannerAutomaton::ScannerAutomaton(
 #endif // DEBUG_MODE
 }
 
-template <u64 n>
+template <SrcBuffIdx n>
 char
 ScannerAutomaton::get_nth_char() const noexcept
 {
-    const auto index = cursor_ + n;
+    const SrcBuffIdx index = cursor_ + n;
     DEBUG_SMART_ASSERT(index < source_size_ + source_buffer_null_padding_ && "Illegal access");
-    const auto result = DEBUG_REQUIRE_PTR(source_buffer_)[index];
+    const auto result = DEBUG_REQUIRE_PTR(source_buffer_)[index.value];
     DEBUG_SMART_ASSERT(
         result >= std::numeric_limits<unsigned char>::min(),
         result <= std::numeric_limits<char>::max()
@@ -109,18 +138,18 @@ ScannerAutomaton::get_nth_char() const noexcept
 }
 
 char
-ScannerAutomaton::get_nth_char(const u64 n) const noexcept
+ScannerAutomaton::get_nth_char(const SrcBuffIdx n) const noexcept
 {
-    const auto index = cursor_ + n;
+    const SrcBuffIdx index = cursor_ + n;
     DEBUG_SMART_ASSERT(index < source_size_ + source_buffer_null_padding_ && "Illegal access");
-    return DEBUG_REQUIRE_PTR(source_buffer_)[index];
+    return DEBUG_REQUIRE_PTR(source_buffer_)[index.value];
 }
 
-template <u64 n>
+template <SrcBuffIdx n>
 void
 ScannerAutomaton::advance_cursor() noexcept
 {
-    static_assert(n > 0, "Why advance by zero?");
+    static_assert(n.value > 0, "Why advance by zero?");
     DEBUG_SMART_ASSERT(cursor_ < source_size_); // Is OK before?
     cursor_ += n;
     // After: Can be AT source_size_ (EOF), but not past it.
@@ -128,29 +157,30 @@ ScannerAutomaton::advance_cursor() noexcept
 }
 
 void
-ScannerAutomaton::advance_cursor(const u64 n) noexcept
+ScannerAutomaton::advance_cursor(const SrcBuffIdx n) noexcept
 {
-    DEBUG_SMART_ASSERT(cursor_ < source_size_, n > 0 && "why advance by zero?"); // Is OK before?
+    DEBUG_SMART_ASSERT(cursor_< source_size_, n.value > 0 && "why advance by zero?");
+    // Is OK before?
     cursor_ += n;
     // After: Can be AT source_size_ (EOF), but not past it.
     DEBUG_SMART_ASSERT(cursor_ <= source_size_); // Is OK after?
 }
 
 const char*
-ScannerAutomaton::get_cursor_address() const noexcept { return source_buffer_ + cursor_; }
+ScannerAutomaton::get_cursor_address() const noexcept { return source_buffer_ + cursor_.value; }
 
 char
 ScannerAutomaton::get_curr_char() const noexcept
 {
     DEBUG_SMART_ASSERT(!has_reached_eof());
-    return get_nth_char<0>();
+    return get_nth_char<SrcBuffIdx{0}>();
 }
 
 char
 ScannerAutomaton::get_next_char() const noexcept
 {
     DEBUG_SMART_ASSERT(!has_reached_eof());
-    return get_nth_char<1>();
+    return get_nth_char<SrcBuffIdx{1}>();
 }
 
 bool
@@ -362,11 +392,11 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_hex_number() noexcept
 {
     DEBUG_SMART_ASSERT(
-        get_nth_char<0>() == '0',
-        get_nth_char<1>() == 'x' || get_nth_char<1>() == 'X',
-        support::is_xdigit(get_nth_char<2>())
+        get_nth_char<SrcBuffIdx{0}>() == '0',
+        get_nth_char<SrcBuffIdx{1}>() == 'x' || get_nth_char<SrcBuffIdx{1}>() == 'X',
+        support::is_xdigit(get_nth_char<SrcBuffIdx{2}>())
     );
-    advance_cursor<2>(); // We consume 0 and 'x'
+    advance_cursor<SrcBuffIdx{2}>(); // We consume 0 and 'x'
     while (const char next_ch = get_next_char())
     {
         DEBUG_SMART_ASSERT(
@@ -399,33 +429,33 @@ ScannerAutomaton::handle_float_number() noexcept
     if (next_ch == 'e' || next_ch == 'E') // Handle Scientific floats
     {
         static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 1);
-        DEBUG_SMART_ASSERT(source_buffer_null_padding_ >= 1);
-        const char next_next_ch = get_nth_char<2>(); // Valid cause <1> was non null-byte.
+        DEBUG_SMART_ASSERT(source_buffer_null_padding_.value >= 1);
+        const char next_next_ch = get_nth_char<SrcBuffIdx{2}>(); // Valid cause <1> was non null-byte.
         if (next_next_ch == '+' || next_next_ch == '-')
         {
             static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 2);
-            DEBUG_SMART_ASSERT(source_buffer_null_padding_ >= 2);
-            const char next_next_next_ch = get_nth_char<3>();
+            DEBUG_SMART_ASSERT(source_buffer_null_padding_.value >= 2);
+            const char next_next_next_ch = get_nth_char<SrcBuffIdx{3}>();
             if (support::is_digit(next_next_next_ch))
             {
                 DEBUG_SMART_ASSERT(
-                    support::is_digit(get_nth_char<0>()),
-                    get_nth_char<1>() == 'e' || get_nth_char<1>() == 'E',
-                    get_nth_char<2>() == '+' || get_nth_char<2>() == '-',
-                    support::is_digit(get_nth_char<3>())
+                    support::is_digit(get_nth_char<SrcBuffIdx{0}>()),
+                    get_nth_char<SrcBuffIdx{1}>() == 'e' || get_nth_char<SrcBuffIdx{1}>() == 'E',
+                    get_nth_char<SrcBuffIdx{2}>() == '+' || get_nth_char<SrcBuffIdx{2}>() == '-',
+                    support::is_digit(get_nth_char<SrcBuffIdx{3}>())
                 );
-                advance_cursor<3>(); // Consume digit before E, consume E, consume +-
+                advance_cursor<SrcBuffIdx{3}>(); // Consume digit before E, consume E, consume +-
             }
             // else "This case is for something like 1.2e+myid, which is not scientific notation ... just a `1.2` float"
         }
         else if (support::is_digit(next_next_ch))
         {
             DEBUG_SMART_ASSERT(
-                support::is_digit(get_nth_char<0>()),
-                get_nth_char<1>() == 'e' || get_nth_char<1>() == 'E',
-                support::is_digit(get_nth_char<2>())
+                support::is_digit(get_nth_char<SrcBuffIdx{0}>()),
+                get_nth_char<SrcBuffIdx{1}>() == 'e' || get_nth_char<SrcBuffIdx{1}>() == 'E',
+                support::is_digit(get_nth_char<SrcBuffIdx{2}>())
             );
-            advance_cursor<2>(); // Consume digit before E and consume E.
+            advance_cursor<SrcBuffIdx{2}>(); // Consume digit before E and consume E.
         }
         // else "next_ch was e or E but without digit suffix e or E is just an ID fragment, not part of float"
     }
@@ -448,7 +478,7 @@ ScannerAutomaton::handle_decimal_number() noexcept
     {
         DEBUG_SMART_ASSERT(!has_reached_eof());
         const char next_ch = get_next_char();
-        if (next_ch == '.' && support::is_digit(get_nth_char<2>()))
+        if (next_ch == '.' && support::is_digit(get_nth_char<SrcBuffIdx{2}>()))
         {
             advance_cursor();
             return handle_float_number();
@@ -472,7 +502,7 @@ ScannerAutomaton::handle_number_char() noexcept
     if (curr_ch == '0')
     {
         const char next_ch = get_next_char();
-        if ((next_ch == 'x' || next_ch == 'X') && support::is_xdigit(get_nth_char<2>()))
+        if ((next_ch == 'x' || next_ch == 'X') && support::is_xdigit(get_nth_char<SrcBuffIdx{2}>()))
             return handle_hex_number();
     }
 
@@ -482,24 +512,11 @@ ScannerAutomaton::handle_number_char() noexcept
     // Note float without decimal (ex: `.15`) are not detected here (but most likely on '.' handler).
 }
 
-#define CASE_LIST_FOR_SPACES  \
-    case ' ': case '\r': case '\t': case '\v'
-#define CASE_LIST_FOR_NUMBERS \
-    case '0': case '1': case '2': case '3': case '4': \
-    case '5': case '6': case '7': case '8': case '9'
-#define CASE_LIST_FOR_LETTERS \
-    case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': \
-    case 'j': case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': \
-    case 's': case 't': case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':           \
-    case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': \
-    case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': \
-    case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z'
-
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_alpha_char() noexcept
 {
     DEBUG_SMART_ASSERT(support::is_alpha(get_curr_char()));
-    u64 word_length = 1;
+    SrcBuffIdx word_length {1};
     while (g_id_body_table[get_nth_char(word_length)])
         ++word_length;
 
@@ -507,8 +524,8 @@ ScannerAutomaton::handle_alpha_char() noexcept
 
     const auto find_possible_keyword = [this, word_length]() -> KeywordId
     {
-        const char ch0 = get_nth_char<0>();
-        switch (word_length)
+        const char ch0 = get_nth_char<SrcBuffIdx{0}>();
+        switch (word_length.value)
         {
         case 2: // IF | OR
             if (ch0 == 'i') return KeywordId::IF;
@@ -519,7 +536,7 @@ ScannerAutomaton::handle_alpha_char() noexcept
             if (ch0 == 'f') return KeywordId::FOR;
             if (ch0 == 'n')
             {
-                const char ch1 = get_nth_char<1>();
+                const char ch1 = get_nth_char<SrcBuffIdx{1}>();
                 if (ch1 == 'o') return KeywordId::NOT;
                 if (ch1 == 'i') return KeywordId::NIL;
             }
@@ -552,17 +569,30 @@ ScannerAutomaton::handle_alpha_char() noexcept
     {
         const auto keyword_idx = static_cast<std::underlying_type_t<KeywordId>>(possible_keyword);
         const KeywordToken expected_token = keyword_names_and_tokens_[keyword_idx];
-        if (std::string_view{get_cursor_address(), word_length} == expected_token.name)
+        if (std::string_view{get_cursor_address(), word_length.value} == expected_token.name)
             result_token = expected_token.bison_token_id;
     }
 
-    advance_cursor(word_length - 1); // Minus 1 cause we want to not consume last valid char.
+    advance_cursor(SrcBuffIdx{word_length.value - 1}); // Minus 1 cause we want to not consume last valid char.
     DEBUG_SMART_ASSERT(
         g_id_body_table[get_curr_char()] && "last id fragment consumed by caller",
         !g_id_body_table[get_next_char()]
-        );
+    );
     return result_token;
 }
+
+#define CASE_LIST_FOR_SPACES  \
+    case ' ': case '\r': case '\t': case '\v'
+#define CASE_LIST_FOR_NUMBERS \
+    case '0': case '1': case '2': case '3': case '4': \
+    case '5': case '6': case '7': case '8': case '9'
+#define CASE_LIST_FOR_LETTERS \
+    case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h': case 'i': \
+    case 'j': case 'k': case 'l': case 'm': case 'n': case 'o': case 'p': case 'q': case 'r': \
+    case 's': case 't': case 'u': case 'v': case 'w': case 'x': case 'y': case 'z':           \
+    case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G': case 'H': case 'I': \
+    case 'J': case 'K': case 'L': case 'M': case 'N': case 'O': case 'P': case 'Q': case 'R': \
+    case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z'
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::yield_token() noexcept
@@ -570,6 +600,7 @@ ScannerAutomaton::yield_token() noexcept
     if (cursor_ == source_size_)
         return TKN_YYEOF;
 
+    last_token_begin_ = cursor_;
     while (true)
     {
         LexerReturnType result = ScannerAutomaton::TKN_INTERNAL_SKIP;
@@ -603,7 +634,8 @@ ScannerAutomaton::yield_token() noexcept
         default:
             {
                 const char chartext[] = {curr_ch, 0};
-                dr_.report_invalid_character(chartext, k_no_loc); break;
+                dr_.report_invalid_character(chartext, k_no_loc);
+                break;
             }
         } // clang-format on
 

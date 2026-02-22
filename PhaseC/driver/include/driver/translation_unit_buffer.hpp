@@ -15,8 +15,8 @@ public:
     explicit TranslationUnitBuffer(const std::filesystem::path &path, std::size_t null_padding);
     ~TranslationUnitBuffer() = default;
 
-    [[nodiscard]] const char &operator[](const SrcBufferIdx i) const noexcept { return data_[i.value]; }
-    [[nodiscard]] char &operator[](const SrcBufferIdx i) noexcept { return data_[i.value]; }
+    [[nodiscard]] const char &operator[](const SrcBuffIdx i) const noexcept { return data_[i.value]; }
+    [[nodiscard]] char &operator[](const SrcBuffIdx i) noexcept { return data_[i.value]; }
 
     [[nodiscard]] char *data() noexcept { return data_.get(); }
 
