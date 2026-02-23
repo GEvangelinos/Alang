@@ -9,16 +9,18 @@
         #include <diagnostics/diagnostic_reporter.gen.hpp>
         #include "scanner_prologue.hpp"
 
-        #define YY_DECL                                \
-                int alpha_yylex(                       \
-                        YYSTYPE * yylval_param,        \
-                        YYLTYPE *yylloc_param,         \
-                        yyscan_t yyscanner ,           \
-                        alpha::LexerCtx &lexer_ctx,    \
-                        alpha::LocationTracker &lt,    \
+        #ifdef YY_DECL
+        #error "Flex has already defined YY_DECL (automatically)"
+        #else
+        #define YY_DECL                             \
+                int alpha_yylex(                    \
+                        YYSTYPE * yylval_param,     \
+                        YYLTYPE *yylloc_param,      \
+                        yyscan_t yyscanner ,        \
+                        alpha::LexerCtx &lexer_ctx, \
+                        alpha::LocationTracker &lt, \
                         alpha::DiagnosticReporter &dr)
-
-
+        #endif
 %}
 
 %option reentrant
@@ -104,7 +106,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
 {id}            { yylval->cstring = alpha::TokenID::refresh_last_id(yytext); YIELD_TOKEN(TKN_ID); } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
 {float}         { yylval->const_float = std::stod(yytext); YIELD_TOKEN(TKN_FLOAT); }
 {int}           { yylval->const_int = std::stol(yytext); YIELD_TOKEN(TKN_INT); }
-{line_comment}   { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
+{line_comment}  { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
 {newline}       { lt.append_line(lexer_ctx.source_index); }
 {space}+        { /* Just eat up the spaces. */ }
 

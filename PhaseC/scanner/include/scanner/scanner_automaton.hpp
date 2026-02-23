@@ -27,7 +27,7 @@ public:
         const TranslationUnitBuffer& tub
     );
 
-    [[nodiscard]] LexerReturnType yield_token() noexcept;
+    [[nodiscard]] LexerReturnType yield_token(YYSTYPE *yylval, YYLTYPE *yylloc) noexcept;
 
     [[nodiscard]] SrcBuffIdx last_token_begin() const noexcept;
     [[nodiscard]] SrcBuffIdx last_token_end() const noexcept;

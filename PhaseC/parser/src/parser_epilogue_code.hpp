@@ -13,9 +13,6 @@
 #include <variant>
 #include <vector>
 #include <diagnostics/diagnostic_reporter.gen.hpp>
-#include <scanner/alpha_scanner.gen.hpp>
-
-#include "parser_top_code.hpp"
 #include "diagnostics/diagnostic_types.hpp"
 #include "L1_driver/semantic_system.hpp"
 #include "scanner/scanner_context.hpp"

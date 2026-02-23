@@ -10,6 +10,8 @@
 #include "core/translation_unit_buffer.hpp"
 #include "driver/translation_unit_buffer_loader.hpp"
 #include "scanner/alpha_scanner.gen.hpp"
+#include "scanner/scanner_adapter.hpp"
+
 #include "support/cli_color.h"
 
 #define WARNING_BANNER_PREFIX COLOR_FG_ASCII_MAGENTA SGR_BOLD "Warning" SGR_BLINK "❗" SGR_RESET ": "
@@ -19,7 +21,7 @@ inline constexpr auto k_reescaped_warning_banner =
     SGR_RESET;
 
 // Note: The following stirng contains Greek characters.
-// I dont remember what going on with unicode and C++
+// I dont remember what's going on with unicode and C++
 // but in case it causes any problems just remove the Greek part
 // It is just a reference to a lecture.
 inline constexpr auto k_temp_reuse_warning_banner =
@@ -233,7 +235,9 @@ PassManager::PassManager(
       diagnostic_engine_(diagnostic_engine),
       parse_ctx_(support::require_ptr(symbol_table)),
       lexer_ctx_(),
-      scanner_(lexer_ctx_, lt, *support::require_ptr(diagnostic_engine.reporter.get()), tu_buffer),
+      scanner_(std::make_unique<ScannerAdapter>(
+          lexer_ctx_, lt, *support::require_ptr(diagnostic_engine.reporter.get()), tu_buffer
+      )),
       semantic_system_(
           expr_opts,
           &parse_ctx_,
@@ -254,16 +258,13 @@ void
 PassManager::run_frontend()
 {
     // The following are the possible return values yyparse can return (based on bison's manual).
-    /* [[maybe_unused]] */
-    constexpr auto successful_parsing = 0;
-    /* [[maybe_unused]] */
-    constexpr auto invalid_input = 1;
-    /* [[maybe_unused]] */
-    constexpr auto memory_exhaustion = 2;
+    // constexpr auto successful_parsing = 0;
+    // constexpr auto invalid_input = 1;
+    // constexpr auto memory_exhaustion = 2;
 
     running_phase_ = Phase::FRONTEND;
     parser_retval_ = alpha_yyparse(
-        scanner_,
+        *scanner_,
         lexer_ctx_,
         lt_,
         diagnostic_engine_,

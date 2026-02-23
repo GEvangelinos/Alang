@@ -13,6 +13,7 @@ LvalueResolver::Restricted::Restricted(const SemanticSystemServices &ss_services
 const Expr *
 LvalueResolver::Restricted::resolve_id(const char *id_name, const SourceLocation id_loc)
 {
+    DEBUG_SMART_ASSERT(!!id_name);
     const Symbol *result = symbol_table_->
         lookup_nearest(id_name, parse_ctx_->scope_handler.scope());
     if (!result) // Symbol not found, so insert it!
@@ -102,6 +103,7 @@ const Expr *LvalueResolver::Restricted::resolve_global_id(
 const Expr *
 LvalueResolver::Restricted::resolve_lvalue_to_rvalue(const Expr *const lvalue)
 {
+    DEBUG_SMART_ASSERT(!!lvalue);
     return expr_normalizer_->materialize_if_table_item(lvalue);
 }
 

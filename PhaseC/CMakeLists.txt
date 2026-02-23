@@ -50,6 +50,7 @@ project(Alpha VERSION 1.2 LANGUAGES CXX)
 option(ENABLE_IWYU "Enable include-what-you-use integration" OFF)
 option(DEBUG_MODE "DEBUG_MODE: enables extra sanity checking inside the code" OFF)
 option(OPTIMIZED_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable parser trace" OFF)
+option(USE_FLEX_SCANNER "USE_FLEX_SCANNER: Use Flex-generated scanner instead of the handwritten one" OFF)
 
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
@@ -209,6 +210,13 @@ if (HATE_PYTHON_MODE)
         "Pulling generator from cache. Python utilities are disabled"
     )
 
+endif ()
+
+if (USE_FLEX_SCANNER)
+    log_info("ScannerType: FLEX-generated")
+    add_compile_definitions(USE_FLEX_SCANNER)
+else ()
+    log_info("ScannerType: HANDWRITTEN.")
 endif ()
 
 function(dot_gen_applier [filename])

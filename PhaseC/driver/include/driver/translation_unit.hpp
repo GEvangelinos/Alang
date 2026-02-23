@@ -7,7 +7,6 @@
 #include "core/basics.hpp"
 #include "diagnostics/diagnostic_formatter.hpp"
 #include "L1_driver/semantic_system.hpp"
-#include "scanner/scanner_adapter.hpp"
 #include "settings/compiler_settings.hpp"
 
 // Forward declaration instead of including the <parser/alpha_parser.gen.hpp> header
@@ -19,6 +18,7 @@ class IROptimizer;
 class LocationTracker;
 class DiagnosticReporter;
 class SymbolTable;
+class ScannerAdapter;
 
 class PassManager : private Immobile
 {
@@ -46,7 +46,7 @@ private:
     DiagnosticEngine &diagnostic_engine_;
     ParseCtx parse_ctx_;
     LexerCtx lexer_ctx_;
-    ScannerAdapter scanner_;
+    std::unique_ptr<ScannerAdapter> scanner_;
     SemanticSystem semantic_system_;
     std::unique_ptr<IROptimizer> ir_optimizer_;
     std::vector<Quad> ir_quads_;

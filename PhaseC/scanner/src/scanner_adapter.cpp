@@ -1,14 +1,26 @@
 #include "scanner/scanner_adapter.hpp"
+
+// Conditional #include(s):
+#ifdef USE_FLEX_SCANNER
 #include "core/translation_unit_buffer.hpp"
+#else
+#endif
 
 namespace alpha
 {
+#ifdef USE_FLEX_SCANNER
+ScannerAdapter::ScannerAdapter(
+    LexerCtx&,
+    LocationTracker&,
+    DiagnosticReporter&,
+    TranslationUnitBuffer& tub) : scanner_handle_(tub) {}
+#else
 ScannerAdapter::ScannerAdapter(
     LexerCtx& lexer_ctx,
     LocationTracker& lt,
     DiagnosticReporter& dr,
-    const TranslationUnitBuffer& tub)
-    : scanner_automaton_(lexer_ctx, lt, dr, tub) {}
+    TranslationUnitBuffer& tub) : scanner_automaton_(lexer_ctx, lt, dr, tub) {}
+#endif
 
 #ifdef USE_FLEX_SCANNER
 ScannerAdapter::ScannerHandle::ScannerHandle(TranslationUnitBuffer& tu_buffer)
@@ -17,7 +29,7 @@ ScannerAdapter::ScannerHandle::ScannerHandle(TranslationUnitBuffer& tu_buffer)
         throw std::runtime_error(ATTACH_CONTEXT("Failed to initializing scanner"));
 
     DEBUG_SMART_ASSERT(!!tu_buffer.data());
-    if (alpha_yy_scan_buffer(tu_buffer.data(), tu_buffer.size(), scanner_) == nullptr)
+    if (alpha_yy_scan_buffer(tu_buffer.data(), tu_buffer.size.value, scanner_) == nullptr)
     {
         std::string error =
             "Failed to load Flex buffer. A common cause is forgetting "

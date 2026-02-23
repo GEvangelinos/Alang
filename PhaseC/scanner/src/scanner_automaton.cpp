@@ -2,7 +2,6 @@
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <scanner/scanner_automaton.hpp>
 
-#include "scanner_prologue.hpp"
 #include "core/translation_unit_buffer.hpp"
 #include "scanner/scanner_context.hpp"
 #include "support/misc_tools.hpp"
@@ -64,7 +63,7 @@ ScannerAutomaton::ScannerAutomaton(
 {
     if (tub_.null_padding.value < ScannerAutomaton::k_minimum_source_buffer_null_padding)
         throw std::logic_error("Insufficient padding detected");
-    for (SrcBuffIdx pad_index = tub_.null_padding; pad_index > SrcBuffIdx{0}; --pad_index)
+    for (auto pad_index = SrcBuffIdx{0}; pad_index < tub_.null_padding; ++pad_index)
         if (tub_[SrcBuffIdx{tub_.source_size + pad_index}] != '\0')
             throw std::logic_error("Critical sentinel corruption detected");
 
@@ -564,15 +563,14 @@ ScannerAutomaton::handle_alpha_char() noexcept
     case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z'
 
 ScannerAutomaton::LexerReturnType
-ScannerAutomaton::yield_token() noexcept
+ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noexcept
 {
     DEBUG_SMART_ASSERT(cursor_ <= tub_.source_size);
-    if (cursor_ >= tub_.source_size)
-        return TKN_YYEOF;
-
-    last_token_begin_ = cursor_;
     while (true)
     {
+        last_token_begin_ = cursor_;
+        if (cursor_ >= tub_.source_size)
+            return TKN_YYEOF;
         LexerReturnType result = ScannerAutomaton::TKN_INTERNAL_SKIP;
         const char curr_ch = get_curr_char();
         switch (curr_ch)
@@ -611,7 +609,15 @@ ScannerAutomaton::yield_token() noexcept
 
         advance_cursor(); // Main dispatching function always advance final token character.
         if (result != ScannerAutomaton::TKN_INTERNAL_SKIP)
+        {
+            if (result == TKN_INT)
+            {
+                const auto token_text = last_token_text();
+                yylval->const_int = std::stol(token_text.data());
+            }
+
             return result;
+        }
     }
 }
 #undef CASE_LIST_FOR_SPACES

@@ -3,7 +3,6 @@
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 
 #include "expr_type_traits.hpp"
-#include "expr_type_traits.hpp"
 #include "L2_semantic_subsystems/core/expr_normalizer.hpp"
 #include "parser/internal_typedefs.hpp"
 
@@ -1082,6 +1081,7 @@ ConstBuilder::Restricted::build_float_expr(const AlphaFloat value, const SourceL
 const Expr *
 ConstBuilder::Restricted::build_string_expr(const char *const value, const SourceLocation loc)
 {
+    DEBUG_SMART_ASSERT(!!value);
     return expr_maker_->make_const_string_expr(loc, value);
 }
 
