@@ -28,7 +28,7 @@ QuadHandler::emit(
                (req == Requirement::REQUIRED && !!expr);
     };
 
-    SMART_ASSERT(
+    DEBUG_SMART_ASSERT(
         quads_.size() + 1 == next_quad_label_,
         !ir::info_traits::is_non_emittable(opc),
         requirement_matches(ii::result(opc), result),
@@ -36,11 +36,11 @@ QuadHandler::emit(
         requirement_matches(ii::arg2(opc), arg2),
     );
     if (opc != ir::Opcode::TABLECREATE)
-        SMART_ASSERT(
+        DEBUG_SMART_ASSERT(
         loc != k_no_loc
     );
     if (opc == ir::Opcode::JUMP && label == next_quad_label())
-        SMART_ASSERT(
+        DEBUG_SMART_ASSERT(
         false && "ir::Opcode::JUMP jumps to itself"
     );
     #endif

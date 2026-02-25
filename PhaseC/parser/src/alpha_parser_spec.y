@@ -65,7 +65,6 @@
 // complex and appears to be problematic (erroneous).
 %union{
     const char *cstring;
-    bool const_bool;
     alpha::AlphaInt const_int;
     alpha::AlphaFloat const_float;
     const alpha::ProgFuncSymbol *const_progfunc_symbol_ptr;

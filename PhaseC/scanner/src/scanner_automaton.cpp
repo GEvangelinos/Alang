@@ -168,7 +168,8 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_equal_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '=');
-    if (get_next_char() == '=')
+        advance_cursor(); // FINAL
+    if (get_curr_char() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_EQ);
@@ -180,7 +181,8 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_exclamation_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '!');
-    if (get_next_char() == '=') // Only place we support '!', is a part of != token.
+        advance_cursor(); // FINAL
+    if (get_curr_char() == '=') // Only place we support '!', is a part of != token.
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_NEQ);
@@ -193,7 +195,8 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_plus_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '+');
-    if (get_next_char() == '+')
+        advance_cursor(); // FINAL
+    if (get_curr_char() == '+')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_INC);
@@ -205,7 +208,8 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_minus_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '-');
-    if (get_next_char() == '-')
+        advance_cursor(); // FINAL
+    if (get_curr_char() == '-')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_DEC);
@@ -217,7 +221,8 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_left_angle_bracket_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '<');
-    if (get_next_char() == '=')
+        advance_cursor(); // FINAL
+    if (get_curr_char() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_LTE);
@@ -229,7 +234,8 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_right_angle_bracket_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '>');
-    if (get_next_char() == '=')
+        advance_cursor(); // FINAL
+    if (get_curr_char() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_GTE);
@@ -241,10 +247,11 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_dot_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '.');
-    const char next_ch = get_next_char();
-    if (support::is_digit(next_ch))
+        advance_cursor(); // FINAL
+    const char curr_ch = get_next_char();
+    if (support::is_digit(curr_ch))
         return handle_float_number();
-    if (next_ch == '.')
+    if (curr_ch == '.')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_METHOD_CALL);
@@ -256,7 +263,8 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_colon_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == ':');
-    if (get_next_char() == ':')
+        advance_cursor(); // FINAL
+    if (get_curr_char() == ':')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_GLOBAL);
@@ -271,7 +279,8 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_comment_line() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '/');
-    while (!has_reached_eof() && get_next_char() != '\n')
+    advance_cursor<SrcBuffIdx{2}>(); // for 1st and 2nd '/'
+    while (!has_reached_eof() && get_curr_char() != '\n')
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
     return ScannerAutomaton::TKN_INTERNAL_SKIP;
 }
@@ -607,15 +616,38 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
             }
         } // clang-format on
 
+        if (result == TKN_INT)
+        {
+            #warning MEMORY_LEAK
+            char * token_memory = static_cast<char*>(std::calloc(100, 1));
+            std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
+            yylval->const_int = std::stol(token_memory);
+            yylloc->begin = last_token_begin();
+            yylloc->end = cursor_;
+            #warning  IS_SOURCE_LOCATION_INCLUSIVE_OR_EXCLUSIVE
+        }
+        else if (result == TKN_FLOAT)
+        {
+            #warning MEMORY_LEAK
+            char * token_memory = static_cast<char*>(std::calloc(100, 1));
+            std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
+            yylval->const_float = std::stod(token_memory);
+            yylloc->begin = last_token_begin();
+            yylloc->end = cursor_;
+        }
+        else if (result == TKN_STRING || result == TKN_ID)
+        {
+            #warning MEMORY_LEAK
+            char * token_memory = static_cast<char*>(std::calloc(100, 1));
+            std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
+            yylval->cstring = token_memory;
+            yylloc->begin = last_token_begin();
+            yylloc->end = cursor_;
+        }
+
         advance_cursor(); // Main dispatching function always advance final token character.
         if (result != ScannerAutomaton::TKN_INTERNAL_SKIP)
         {
-            if (result == TKN_INT)
-            {
-                const auto token_text = last_token_text();
-                yylval->const_int = std::stol(token_text.data());
-            }
-
             return result;
         }
     }
