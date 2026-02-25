@@ -168,7 +168,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_equal_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '=');
-        advance_cursor(); // FINAL
+    advance_cursor(); // FINAL
     if (get_curr_char() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -181,7 +181,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_exclamation_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '!');
-        advance_cursor(); // FINAL
+    advance_cursor();           // FINAL
     if (get_curr_char() == '=') // Only place we support '!', is a part of != token.
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -195,7 +195,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_plus_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '+');
-        advance_cursor(); // FINAL
+    advance_cursor(); // FINAL
     if (get_curr_char() == '+')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -208,7 +208,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_minus_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '-');
-        advance_cursor(); // FINAL
+    advance_cursor(); // FINAL
     if (get_curr_char() == '-')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -221,7 +221,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_left_angle_bracket_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '<');
-        advance_cursor(); // FINAL
+    advance_cursor(); // FINAL
     if (get_curr_char() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -234,7 +234,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_right_angle_bracket_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '>');
-        advance_cursor(); // FINAL
+    advance_cursor(); // FINAL
     if (get_curr_char() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -247,7 +247,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_dot_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '.');
-        advance_cursor(); // FINAL
+    advance_cursor(); // FINAL
     const char curr_ch = get_next_char();
     if (support::is_digit(curr_ch))
         return handle_float_number();
@@ -263,7 +263,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_colon_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == ':');
-        advance_cursor(); // FINAL
+    advance_cursor(); // FINAL
     if (get_curr_char() == ':')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -279,7 +279,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_comment_line() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '/');
-    advance_cursor<SrcBuffIdx{2}>(); // for 1st and 2nd '/'
+    advance_cursor<SrcBuffIdx{2}>(); // for 1st and 2nd '/' (fast-path)
     while (!has_reached_eof() && get_curr_char() != '\n')
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
     return ScannerAutomaton::TKN_INTERNAL_SKIP;
@@ -289,6 +289,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_comment_block() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '*'); // Still at beginning.
+    DEBUG(OnceFlag entered;)
     u64 block_comment_depth = 0;
     while (!has_reached_eof())
     {
@@ -297,9 +298,9 @@ ScannerAutomaton::handle_comment_block() noexcept
         const char ch2 = get_next_char();
         if (ch1 == '\n')
             register_newline_char();
-
-        if (ch1 == '/' && ch2 == '*')
+        else if (ch1 == '/' && ch2 == '*')
         {
+            DEBUG(entered.raise();)
             advance_cursor(); // consume '/' now, consume '*' at end.
             ++block_comment_depth;
         }
@@ -308,10 +309,10 @@ ScannerAutomaton::handle_comment_block() noexcept
             advance_cursor(); // consume '*' now, consume '/' at end.
             --block_comment_depth;
         }
-
+        DEBUG_SMART_ASSERT(entered.is_raised() && "should be raised from first run");
+        advance_cursor();
         if (block_comment_depth == 0)
             return ScannerAutomaton::TKN_INTERNAL_SKIP;
-        advance_cursor(); // Only advance if not on final closing '/'. (for caller to consume)
     }
     return TKN_YYEOF;
 }
@@ -325,6 +326,7 @@ ScannerAutomaton::handle_slash_char() noexcept
         return handle_comment_line();
     if (next_ch == '*')
         return handle_comment_block();
+    advance_cursor();
     return register_and_return(TKN_DIV);
 }
 
@@ -338,11 +340,12 @@ ScannerAutomaton::handle_double_quote_char() noexcept
     {
         // Reminder even if ch2 is after last valid CHAR (so its after EOF), its still valid due to padding requirement (in ctor)
         const char ch1 = get_curr_char();
+        advance_cursor();
         if (ch1 == '\"')       // Handle matching "
             return TKN_STRING; // Let Main dispatcher consume the matching " char.
         if (ch1 == '\\')       // Handle potential escape code
         {
-            const char ch2 = get_next_char();
+            const char ch2 = get_curr_char();
             switch (ch2)
             {
             case 'n':
@@ -352,13 +355,14 @@ ScannerAutomaton::handle_double_quote_char() noexcept
             case 'f':
             case '\\':
             case '\"':
-                advance_cursor(); // Consume ch1 here, and at end consume ch2.
                 DEBUG_SMART_ASSERT(!has_reached_eof() && "If ch2 past EOF, ch2 must be NULL-byte");
                 break;
-            default: break; // Do nothing
+            default:
+                dr_.report_invalid_escape_code();
+                break;
             }
+            advance_cursor(); // Consume ch1 here, and at end consume ch2.
         }
-        advance_cursor();
     }
     return TKN_YYEOF;
 }
@@ -371,19 +375,11 @@ ScannerAutomaton::handle_hex_number() noexcept
         get_nth_char<SrcBuffIdx{1}>() == 'x' || get_nth_char<SrcBuffIdx{1}>() == 'X',
         support::is_xdigit(get_nth_char<SrcBuffIdx{2}>())
     );
-    advance_cursor<SrcBuffIdx{2}>(); // We consume 0 and 'x'
-    while (const char next_ch = get_next_char())
-    {
-        DEBUG_SMART_ASSERT(
-            !has_reached_eof() &&
-            "To reach EOF here it would mean curr is at EOF (so NULL-BYTE) "
-            "and that also means next_ch on previous iterations was NULL-BYTE "
-            "and pass the isxdigit() check and advance cursor with a NULL-BYTE"
-        );
-        if (support::is_xdigit(next_ch))
+    advance_cursor<SrcBuffIdx{3}>(); // We consume 0 and 'x' and the first digit we know it exists.
+    while (const char curr_ch = get_curr_char())
+        if (support::is_xdigit(curr_ch))
             advance_cursor();
-    }
-    DEBUG_SMART_ASSERT(support::is_xdigit(get_curr_char()));
+    DEBUG_SMART_ASSERT(!support::is_xdigit(get_curr_char()));
     return TKN_INT;
 }
 
@@ -393,21 +389,24 @@ ScannerAutomaton::handle_float_number() noexcept
     DEBUG_SMART_ASSERT(get_curr_char() == '.', support::is_digit(get_next_char()));
     advance_cursor(); // To consume '.'
 
-    // --- Prefix digits consumption loop --- //
-    while (support::is_digit(get_next_char()))
+    // --- Prefix digits consumption loop(in case of scientific, are all otherwise) --- //
+    char curr_ch = get_curr_char();
+    while (support::is_digit(curr_ch))
+    {
         advance_cursor();
+        curr_ch = get_curr_char();
+    }
     DEBUG_SMART_ASSERT(!has_reached_eof(), support::is_digit(get_curr_char()));
 
     // --- Handle potential scientific floats --- //
-    const char next_ch = get_next_char();
-    DEBUG_SMART_ASSERT(!support::is_digit(next_ch) && "Prefix digit loop should consume that");
-    if (next_ch == 'e' || next_ch == 'E') // Handle Scientific floats
+    DEBUG_SMART_ASSERT(!support::is_digit(curr_ch) && "Prefix digit loop should consume that");
+    if (curr_ch == 'e' || curr_ch == 'E') // Handle Scientific floats
     {
         static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 1);
         DEBUG_SMART_ASSERT(tub_.null_padding.value >= 1);
-        const char next_next_ch = get_nth_char<SrcBuffIdx{2}>();
+        const char next_ch = get_next_char();
         // Valid cause <1> was non null-byte.
-        if (next_next_ch == '+' || next_next_ch == '-')
+        if (next_ch == '+' || next_ch == '-')
         {
             static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 2);
             DEBUG_SMART_ASSERT(tub_.null_padding.value >= 2);
@@ -424,7 +423,7 @@ ScannerAutomaton::handle_float_number() noexcept
             }
             // else "This case is for something like 1.2e+myid, which is not scientific notation ... just a `1.2` float"
         }
-        else if (support::is_digit(next_next_ch))
+        else if (support::is_digit(next_ch))
         {
             DEBUG_SMART_ASSERT(
                 support::is_digit(get_nth_char<SrcBuffIdx{0}>()),
@@ -437,7 +436,7 @@ ScannerAutomaton::handle_float_number() noexcept
     }
     DEBUG_SMART_ASSERT(support::is_digit(get_curr_char()));
 
-    // --- Suffix digits consumption loop --- //
+    // --- Suffix digits consumption loop (for scientifix floats/ normal float dont hae prefix and suffix)--- //
     while (support::is_digit(get_next_char()))
         advance_cursor();
     DEBUG_SMART_ASSERT(!has_reached_eof(), support::is_digit(get_curr_char()));
@@ -619,7 +618,7 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
         if (result == TKN_INT)
         {
             #warning MEMORY_LEAK
-            char * token_memory = static_cast<char*>(std::calloc(100, 1));
+            char* token_memory = static_cast<char*>(std::calloc(100, 1));
             std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
             yylval->const_int = std::stol(token_memory);
             yylloc->begin = last_token_begin();
@@ -629,7 +628,7 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
         else if (result == TKN_FLOAT)
         {
             #warning MEMORY_LEAK
-            char * token_memory = static_cast<char*>(std::calloc(100, 1));
+            char* token_memory = static_cast<char*>(std::calloc(100, 1));
             std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
             yylval->const_float = std::stod(token_memory);
             yylloc->begin = last_token_begin();
@@ -638,7 +637,7 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
         else if (result == TKN_STRING || result == TKN_ID)
         {
             #warning MEMORY_LEAK
-            char * token_memory = static_cast<char*>(std::calloc(100, 1));
+            char* token_memory = static_cast<char*>(std::calloc(100, 1));
             std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
             yylval->cstring = token_memory;
             yylloc->begin = last_token_begin();
@@ -646,10 +645,7 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
         }
 
         advance_cursor(); // Main dispatching function always advance final token character.
-        if (result != ScannerAutomaton::TKN_INTERNAL_SKIP)
-        {
-            return result;
-        }
+        if (result != ScannerAutomaton::TKN_INTERNAL_SKIP) { return result; }
     }
 }
 #undef CASE_LIST_FOR_SPACES
