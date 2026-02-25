@@ -404,42 +404,39 @@ ScannerAutomaton::handle_float_number() noexcept
     {
         static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 1);
         DEBUG_SMART_ASSERT(tub_.null_padding.value >= 1);
-        const char next_ch = get_next_char();
-        // Valid cause <1> was non null-byte.
+        const char next_ch = get_next_char(); // Valid cause 'curr_ch' was non null-byte.
         if (next_ch == '+' || next_ch == '-')
         {
             static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 2);
             DEBUG_SMART_ASSERT(tub_.null_padding.value >= 2);
-            const char next_next_next_ch = get_nth_char<SrcBuffIdx{3}>();
-            if (support::is_digit(next_next_next_ch))
+            const char next_next_ch = get_nth_char<SrcBuffIdx{2}>();
+            if (support::is_digit(next_next_ch))
             {
                 DEBUG_SMART_ASSERT(
-                    support::is_digit(get_nth_char<SrcBuffIdx{0}>()),
-                    get_nth_char<SrcBuffIdx{1}>() == 'e' || get_nth_char<SrcBuffIdx{1}>() == 'E',
-                    get_nth_char<SrcBuffIdx{2}>() == '+' || get_nth_char<SrcBuffIdx{2}>() == '-',
-                    support::is_digit(get_nth_char<SrcBuffIdx{3}>())
+                    get_nth_char<SrcBuffIdx{0}>() == 'e' || get_nth_char<SrcBuffIdx{0}>() == 'E',
+                    get_nth_char<SrcBuffIdx{1}>() == '+' || get_nth_char<SrcBuffIdx{1}>() == '-',
+                    support::is_digit(get_nth_char<SrcBuffIdx{2}>())
                 );
-                advance_cursor<SrcBuffIdx{3}>(); // Consume digit before E, consume E, consume +-
+                advance_cursor<SrcBuffIdx{3}>(); // Consume E, consume +-, and first digit
             }
             // else "This case is for something like 1.2e+myid, which is not scientific notation ... just a `1.2` float"
         }
         else if (support::is_digit(next_ch))
         {
             DEBUG_SMART_ASSERT(
-                support::is_digit(get_nth_char<SrcBuffIdx{0}>()),
-                get_nth_char<SrcBuffIdx{1}>() == 'e' || get_nth_char<SrcBuffIdx{1}>() == 'E',
-                support::is_digit(get_nth_char<SrcBuffIdx{2}>())
+                get_nth_char<SrcBuffIdx{0}>() == 'e' || get_nth_char<SrcBuffIdx{0}>() == 'E',
+                support::is_digit(get_nth_char<SrcBuffIdx{1}>())
             );
-            advance_cursor<SrcBuffIdx{2}>(); // Consume digit before E and consume E.
+            advance_cursor<SrcBuffIdx{2}>(); // Consume E and first digit.
         }
         // else "next_ch was e or E but without digit suffix e or E is just an ID fragment, not part of float"
-    }
-    DEBUG_SMART_ASSERT(support::is_digit(get_curr_char()));
 
-    // --- Suffix digits consumption loop (for scientifix floats/ normal float dont hae prefix and suffix)--- //
-    while (support::is_digit(get_next_char()))
-        advance_cursor();
-    DEBUG_SMART_ASSERT(!has_reached_eof(), support::is_digit(get_curr_char()));
+        // --- Suffix digits consumption loop (for scientific floats)--- //
+        while (support::is_digit(get_curr_char()))
+            advance_cursor();
+        DEBUG_SMART_ASSERT(!has_reached_eof(), !support::is_digit(get_curr_char()));
+    }
+    DEBUG_SMART_ASSERT(!support::is_digit(get_curr_char()));
 
     // Last digit is consumed by main dispatch loop (our caller).
     return TKN_FLOAT;
