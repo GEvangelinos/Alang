@@ -29,7 +29,7 @@ ScannerAdapter::ScannerHandle::ScannerHandle(TranslationUnitBuffer& tu_buffer)
         throw std::runtime_error(ATTACH_CONTEXT("Failed to initializing scanner"));
 
     DEBUG_SMART_ASSERT(!!tu_buffer.data());
-    if (alpha_yy_scan_buffer(tu_buffer.data(), tu_buffer.size.value, scanner_) == nullptr)
+    if (alpha_yy_scan_buffer(tu_buffer.data(), tu_buffer.size().value, scanner_) == nullptr)
     {
         std::string error =
             "Failed to load Flex buffer. A common cause is forgetting "

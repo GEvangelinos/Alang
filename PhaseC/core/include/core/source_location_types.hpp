@@ -20,16 +20,17 @@ namespace alpha
         constexpr StructName() : value(none) {}                                              \
         explicit constexpr StructName(const UnderlyingType value) noexcept : value(value) {} \
         constexpr StructName(const StructName &rhs) noexcept : value(rhs.value) {}           \
-        constexpr auto operator<=>(const StructName &rhs) const noexcept = default;          \
+        [[nodiscard]] constexpr auto operator<=>(const StructName &rhs) const noexcept = default; \
         constexpr StructName &operator=(StructName rhs) noexcept;                            \
         constexpr StructName &operator+=(StructName rhs) noexcept;                           \
         constexpr StructName &operator-=(StructName rhs) noexcept;                           \
-        constexpr StructName operator+(StructName rhs) const noexcept;                       \
-        constexpr StructName operator-(StructName rhs) const noexcept;                       \
+        [[nodiscard]] constexpr StructName operator+(StructName rhs) const noexcept;         \
+        [[nodiscard]] constexpr StructName operator-(StructName rhs) const noexcept;         \
         constexpr StructName &operator++() noexcept;                                         \
         constexpr StructName operator++(int) noexcept;                                       \
         constexpr StructName &operator--() noexcept;                                         \
         constexpr StructName operator--(int) noexcept;                                       \
+        [[nodiscard]] constexpr bool is_none() const noexcept { return value == none; }      \
     };                                                                                       \
     static_assert(sizeof(StructName) <= 8, "If false in overloaded operators I must reconsider pass rhs by ref (not by value)");
 

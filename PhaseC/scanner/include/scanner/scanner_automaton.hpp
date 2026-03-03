@@ -27,12 +27,13 @@ public:
         const TranslationUnitBuffer& tub
     );
 
-    [[nodiscard]] LexerReturnType yield_token(YYSTYPE *yylval, YYLTYPE *yylloc) noexcept;
+    [[nodiscard]] LexerReturnType yield_token(YYSTYPE* yylval, YYLTYPE* yylloc) noexcept;
 
-    [[nodiscard]] SrcBuffIdx last_token_begin() const noexcept;
-    [[nodiscard]] SrcBuffIdx last_token_end() const noexcept;
+    [[nodiscard]] const char* last_token_begin() const noexcept;
+    [[nodiscard]] const char* last_token_end() const noexcept;
     [[nodiscard]] u64 last_token_length() const noexcept;
     [[nodiscard]] std::string_view last_token_text() const noexcept;
+    [[nodiscard]] SourceLocation last_token_location() const noexcept;
 
 private:
     enum class KeywordId : i8
@@ -54,6 +55,12 @@ private:
         NIL,
         COUNT_,         // Note a keyword
         NONE_ = COUNT_, // Not a keyword (used for internal purposes)
+    };
+
+    enum class OpenerLen : u32
+    {
+        COMMENT_BLOCK = 2,
+        STRING = 1,
     };
 
     struct KeywordToken
@@ -82,25 +89,29 @@ private:
         KeywordToken{"nil"     , TKN_NIL     , DEBUG(KeywordId::NIL)},
     }; // clang-format on
 
+    static constexpr u32 block_comment_marker_size = 2; // for /*
+    static constexpr u32 string_marker_size = 1; // for "
+
     LexerCtx& lexer_ctx_;
     LocationTracker& lt_;
     DiagnosticReporter& dr_;
     const TranslationUnitBuffer& tub_;
-    SrcBuffIdx last_token_begin_{0}; // inclusive
-    SrcBuffIdx cursor_{0};           // Index based (points on source_buffer)
+    const char* last_token_begin_; // Points in source_buffer.
+    const char* cursor_;           // Points in source_buffer.
 
     template <SrcBuffIdx n>
     [[nodiscard]] char get_nth_char() const noexcept; // Forward only lookup.
     [[nodiscard]] char get_nth_char(SrcBuffIdx n) const noexcept;
 
-    [[nodiscard]] const char* get_cursor_address() const noexcept;
     [[nodiscard]] char get_curr_char() const noexcept;
     [[nodiscard]] char get_next_char() const noexcept;
     [[nodiscard]] bool has_reached_eof() const noexcept;
 
-    template <SrcBuffIdx n = SrcBuffIdx{1}>
-    void advance_cursor() noexcept;
-    void advance_cursor(SrcBuffIdx n) noexcept;
+
+    // By returning the cursor after advancing, we optimize from 2 register lookups to only 1.
+    template <SrcBuffIdx n_offset = SrcBuffIdx{1}>
+    const char* advance_cursor() noexcept;
+    const char* advance_cursor(SrcBuffIdx n) noexcept;
 
     [[nodiscard]] LexerReturnType register_and_return(LexerReturnType token_id) noexcept;
     [[nodiscard]] LexerReturnType handle_equal_char() noexcept;
@@ -120,29 +131,35 @@ private:
 
     [[nodiscard]] LexerReturnType handle_slash_char() noexcept;
     [[nodiscard]] LexerReturnType handle_comment_line() noexcept;
-    [[nodiscard]] LexerReturnType handle_comment_block() noexcept;
+    [[nodiscard]] LexerReturnType handle_comment_block_nested() noexcept;
+    [[nodiscard]] LexerReturnType handle_comment_block_standard() noexcept;
 
     [[nodiscard]] LexerReturnType handle_alpha_char() noexcept;
 
     void register_newline_char() noexcept;
+
+    template <OpenerLen opener_len>
+    [[nodiscard]] SourceLocation calculate_opener_loc() const noexcept;
 };
 
-inline SrcBuffIdx
-ScannerAutomaton::last_token_begin() const noexcept { return {last_token_begin_}; }
+inline const char*
+ScannerAutomaton::last_token_begin() const noexcept { return last_token_begin_; }
 
-inline SrcBuffIdx
-ScannerAutomaton::last_token_end() const noexcept { return {cursor_}; }
+inline const char*
+ScannerAutomaton::last_token_end() const noexcept { return cursor_; }
 
 inline u64
 ScannerAutomaton::last_token_length() const noexcept
 {
-    return last_token_end().value - last_token_begin().value + 1;
+    const auto result = last_token_end() - last_token_begin();
+    DEBUG_SMART_ASSERT(result > 0 && "A non phony token must have a at least size 1 to exit");
+    return result;
 }
 
 inline std::string_view
 ScannerAutomaton::last_token_text() const noexcept
 {
-    return std::string_view{tub_.address_at(last_token_begin()), last_token_length()};
+    return std::string_view{last_token_begin(), last_token_length()};
 }
 } // namespace alpha
 #endif // SCANNER_AUTOMATON_HPP

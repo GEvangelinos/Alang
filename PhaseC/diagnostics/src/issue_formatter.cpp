@@ -231,8 +231,9 @@ IssueFormatterImpl::format_issue_line()
     ensure_primary_start_marked(underline);
     swap_markers(underline, IssueFormatter::Markers::highlight, IssueFormatter::Markers::underline);
 
-    if (support::is_blank_str(codeline) && support::is_blank_str(underline) && !target_.suggestion.
-        has_value())
+    if (support::is_blank_str(codeline) &&
+        support::is_blank_str(underline) &&
+        !target_.suggestion.has_value())
         return {};
 
     const std::vector<std::string> highlight_anchors =
@@ -521,9 +522,7 @@ IssueFormatterImpl::make_highlight_labels()
 
     std::vector<std::string> label_lines;
     const SrcBuffIdx initial_line_idx = loc_tracker_.find_index_of_line(working_line_);
-    for (auto required_labels = initiating_highlights.size();
-         required_labels > 0;
-         --required_labels)
+    for (auto required_labels = initiating_highlights.size(); required_labels > 0; --required_labels)
     {
         SrcColumnIdx column{SrcColumnIdx::none};
         std::string line_accumulator;
@@ -561,7 +560,7 @@ IssueFormatterImpl::make_highlight_labels()
 bool
 IssueFormatterImpl::source_blank_afterwards(const SrcBuffIdx idx) const noexcept
 {
-    for (SrcBuffIdx i = idx; i < source_buffer_.source_size; ++i)
+    for (SrcBuffIdx i = idx; i < source_buffer_.source_size(); ++i)
         if (!std::isspace(source_buffer_[i]))
             return false;
     return true;

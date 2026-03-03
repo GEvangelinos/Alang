@@ -74,10 +74,6 @@ ExprFolder::try_fold_arithmetic_binary(
         case ir::Opcode::MUL: return make_const_num_expr(l * r);
         case ir::Opcode::DIV: return make_const_num_expr(l / r);
         case ir::Opcode::MOD:
-            std::cout << "L == " << typeid(decltype(l)).name() << '\n';
-            std::cout << "R == " << typeid(decltype(r)).name() << '\n';
-            std::cout << "Aint == " << typeid(AlphaInt).name() << '\n';
-            std::cout << "Afloat == " << typeid(AlphaFloat).name() << '\n';
             if constexpr (std::is_integral_v<decltype(l)> && std::is_integral_v<decltype(r)>)
                 return expr_maker_->make_const_int_expr(result_loc, l % r);
             else

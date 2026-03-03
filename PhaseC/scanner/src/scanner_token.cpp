@@ -266,18 +266,9 @@ std::stringstream TokenString::string_assembling_buffer_;
 SourceLocation TokenString::string_starting_location_ = k_no_loc;
 std::string TokenString::latest_assembled_string_;
 
-void TokenString::set_starting_location(const SourceLocation location)
-{
-    TokenString::string_starting_location_ = location;
-}
-
-SourceLocation TokenString::get_starting_location()
-{
-    return TokenString::string_starting_location_;
-}
-
 /* TODO: FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */
-std::string TokenString::convert_content_escapes_to_ascii()
+std::string
+TokenString::convert_content_escapes_to_ascii()
 {
     std::string str = string_assembling_buffer_.str();
     std::string to_replace = "\\n";

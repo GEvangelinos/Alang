@@ -13,51 +13,60 @@ class TranslationUnitBuffer
 {
 public:
     const SrcBuffIdx null_padding;
-    const SrcBuffIdx source_size;
-    const SrcBuffIdx size;
+
 
     TranslationUnitBuffer(char* data, std::size_t source_size, std::size_t null_padding);
     ~TranslationUnitBuffer() = default;
 
     [[nodiscard]] char operator[](SrcBuffIdx i) const noexcept;
     [[nodiscard]] char& operator[](SrcBuffIdx i) noexcept;
-    [[nodiscard]] const char* address_at(SrcBuffIdx i) const noexcept;
-
     [[nodiscard]] char* data() noexcept { return data_.get(); }
-
-    // We don't want entities having a const pointer or reference
-    // to TUB to be able to access data without using SrcBufferIdx.
-    // Only entities allowed to mutate TUB like Flex (lexer) can access arbitrarily, and that's
-    // modifying lexer would be too much work :D
-    const char* data() const noexcept = delete;
+    [[nodiscard]] const char* data() const noexcept { return data_.get(); }
+    [[nodiscard]] SrcBuffIdx source_size() const noexcept { return source_size_; }
+    [[nodiscard]] SrcBuffIdx size() const noexcept { return size_; }
+    [[nodiscard]] const char* begin() const noexcept { return data_.get(); }      // Inclusive
+    [[nodiscard]] const char* source_end() const noexcept { return source_end_; } // Exclusive
+    [[nodiscard]] const char* end() const noexcept { return end_; }               // Exclusive
+    [[nodiscard]] bool is_in_source(const char* addr) const noexcept;
+    [[nodiscard]] bool is_in_buffer(const char* addr) const noexcept;
 
     [[nodiscard]] static std::size_t
     compute_tub_size(std::size_t source_size, std::size_t padding) noexcept;
 
 private:
-    std::unique_ptr<char[]> data_;
+    const std::unique_ptr<char[]> data_;
+    const SrcBuffIdx source_size_;
+    const SrcBuffIdx size_;
+    const char* const begin_;
+    const char* const source_end_;
+    const char* const end_;
 };
 
 
 inline char
 TranslationUnitBuffer::operator[](const SrcBuffIdx i) const noexcept
 {
-    DEBUG_SMART_ASSERT(!!data_, i < size);
+    DEBUG_SMART_ASSERT(!!data_, i < size_);
     return data_[i.value];
 }
 
 inline char&
 TranslationUnitBuffer::operator[](const SrcBuffIdx i) noexcept
 {
-    DEBUG_SMART_ASSERT(!!data_, i < size);
+    DEBUG_SMART_ASSERT(!!data_, i < size_);
     return data_[i.value];
 }
 
-inline const char*
-TranslationUnitBuffer::address_at(const SrcBuffIdx i) const noexcept
+inline bool
+TranslationUnitBuffer::is_in_source(const char* const addr) const noexcept
 {
-    DEBUG_SMART_ASSERT(!!data_, i < size);
-    return data_.get() + i.value;
+    return addr >= begin() && addr < source_end();
+}
+
+inline bool
+TranslationUnitBuffer::is_in_buffer(const char* const addr) const noexcept
+{
+    return addr >= begin() && addr < end();
 }
 } // namespace alpha
 #endif //TRANSLATION_UNIT_BUFFER_HPP

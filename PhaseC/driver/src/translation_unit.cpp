@@ -325,7 +325,7 @@ TranslationUnit::TranslationUnit(
       translation_unit_buffer_(
           TranslationUnitBufferLoader::load_tub(source_path, k_scanner_eof_null_padding)
       ),
-      loc_tracker_((translation_unit_buffer_->size - translation_unit_buffer_->null_padding).value),
+      loc_tracker_((translation_unit_buffer_->size() - translation_unit_buffer_->null_padding).value),
       diagnostic_formatter_(
           source_path, loc_tracker_, *support::require_ptr(translation_unit_buffer_.get()), true
       ),

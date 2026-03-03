@@ -30,17 +30,17 @@ private:
     const std::string token_content_;
 
 protected:
-    Token(u32 line_number, u32 token_number, const std::string &token_content);
-    u32 get_token_number() const noexcept { return token_number_;}
-    u32 get_line_number() const noexcept {return line_number_; }
-    const std::string &get_token_content() const noexcept { return token_content_; };
+    Token(u32 line_number, u32 token_number, const std::string& token_content);
+    [[nodiscard]] u32 get_token_number() const noexcept { return token_number_; }
+    [[nodiscard]] u32 get_line_number() const noexcept { return line_number_; }
+    [[nodiscard]] const std::string& get_token_content() const noexcept { return token_content_; }
 
 public:
     virtual ~Token() = default;
-    static u32 get_valid_token_counter() noexcept {return valid_token_counter_; }
+    [[nodiscard]] static u32 get_valid_token_counter() noexcept { return valid_token_counter_; }
     virtual std::string to_string() const = 0;
     static void export_token(
-        void *yylval, u32 line_number, const std::string &content, const std::string &code_name);
+        void* yylval, u32 line_number, const std::string& content, const std::string& code_name);
 };
 
 class TokenKeyword final : public Token
@@ -52,9 +52,9 @@ public:
     TokenKeyword(
         u32 line_number,
         u32 token_number,
-        const std::string &keyword_content,
-        const std::string &keyword_code_name);
-    std::string to_string() const override;
+        const std::string& keyword_content,
+        const std::string& keyword_code_name);
+    [[nodiscard]] std::string to_string() const override;
 };
 
 class TokenOperator final : public Token
@@ -66,9 +66,9 @@ public:
     TokenOperator(
         u32 line_number,
         u32 token_number,
-        const std::string &operator_content,
-        const std::string &operator_code_name);
-    std::string to_string() const override;
+        const std::string& operator_content,
+        const std::string& operator_code_name);
+    [[nodiscard]] std::string to_string() const override;
 };
 
 class TokenPunctuation final : public Token
@@ -80,9 +80,9 @@ public:
     TokenPunctuation(
         u32 line_number,
         u32 token_number,
-        const std::string &punctuation_content,
-        const std::string &punctuation_code_name);
-    std::string to_string() const override;
+        const std::string& punctuation_content,
+        const std::string& punctuation_code_name);
+    [[nodiscard]] std::string to_string() const override;
 };
 
 class TokenIntegerNumber final : public Token
@@ -94,9 +94,9 @@ public:
     TokenIntegerNumber(
         u32 line_number,
         u32 token_number,
-        const std::string &integer_content,
+        const std::string& integer_content,
         std::string number_of_token);
-    std::string to_string() const override;
+    [[nodiscard]] std::string to_string() const override;
 };
 
 class TokenRealNumber final : public Token
@@ -108,8 +108,8 @@ public:
     TokenRealNumber(
         u32 line_number,
         u32 token_number,
-        const std::string &real_content,
-        const std::string &number_of_token);
+        const std::string& real_content,
+        const std::string& number_of_token);
     std::string to_string() const override;
 };
 
@@ -117,36 +117,36 @@ class TokenID final : public Token
 {
 private:
     const std::string id_name_;
-    static char *last_id_;
+    static char* last_id_;
 
 public:
     TokenID(
         u32 line_number,
         u32 token_number,
-        const std::string &id_content,
-        const std::string &id_name);
-    static char *refresh_last_id(const char *id);
+        const std::string& id_content,
+        const std::string& id_name);
+    [[nodiscard]] static char* refresh_last_id(const char* id);
     static void clear_last_id();
-    std::string to_string() const override;
+    [[nodiscard]] std::string to_string() const override;
 };
 
 class TokenString final : public Token
 {
 public:
     static void set_starting_location(SourceLocation location);
-    static SourceLocation get_starting_location();
+    [[nodiscard]] static SourceLocation get_starting_location();
     static void append_to_assembling_buffer(std::string string_chunk);
-    static const char *export_string_token();
+    [[nodiscard]] static const char* export_string_token();
     [[nodiscard]] static SourceLocation export_location(SourceLocation closing_quote_loc);
-    TokenString(u32 line_number, u32 token_number, const std::string &string_content);
-    std::string to_string() const override;
+    TokenString(u32 line_number, u32 token_number, const std::string& string_content);
+    [[nodiscard]] std::string to_string() const override;
 
 private:
     static std::string latest_assembled_string_;
     static std::stringstream string_assembling_buffer_;
     static SourceLocation string_starting_location_;
     static void flush_assembling_buffer();
-    static std::string convert_content_escapes_to_ascii();
+    [[nodiscard]] static std::string convert_content_escapes_to_ascii();
 };
 
 class TokenComment final : public Token
@@ -157,13 +157,13 @@ private:
 
 public:
     static void set_starting_location(SourceLocation location);
-    static SourceLocation get_starting_location();
+    [[nodiscard]] static SourceLocation get_starting_location();
     TokenComment(
         u32 line_number,
         u32 token_number,
-        const std::string &comment_description,
-        const std::string &comment_type);
-    std::string to_string() const override;
+        const std::string& comment_description,
+        const std::string& comment_type);
+    [[nodiscard]] std::string to_string() const override;
 };
 
 class TokenInvalid final : public Token
@@ -172,9 +172,18 @@ public:
     TokenInvalid(
         u32 line_number,
         u32 token_number,
-        const std::string &the_invalid_token);
-    std::string to_string() const override;
+        const std::string& the_invalid_token);
+    [[nodiscard]] std::string to_string() const override;
 };
-} /* namespace Alpha */
+
+inline void
+TokenString::set_starting_location(const SourceLocation location)
+{
+    TokenString::string_starting_location_ = location;
+}
+
+inline SourceLocation
+TokenString::get_starting_location() { return TokenString::string_starting_location_; }
+} /* namespace alpha */
 
 #endif /* ALPHA_LANG_HPP */

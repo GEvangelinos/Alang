@@ -14,14 +14,13 @@ constexpr auto is_id_body_char = [](const unsigned char c) consteval
     return alpha::support::is_digit(c) || alpha::support::is_alpha(c) || c == '_';
 };
 
-constexpr std::array<bool, 256> g_id_body_table =
-    []() consteval
-    {
-        std::array<bool, 256> result;
-        for (unsigned short uc = 0; uc <= std::numeric_limits<unsigned char>::max(); ++uc)
-            result[uc] = is_id_body_char(uc);
-        return result;
-    }();
+constexpr auto g_id_body_table = []() consteval
+{
+    std::array<bool, 256> result;
+    for (unsigned short uc = 0; uc <= std::numeric_limits<unsigned char>::max(); ++uc)
+        result[uc] = is_id_body_char(uc);
+    return result;
+}();
 
 template <unsigned char uc>
 struct report_id_body_table_mismatch; // NEVER DEFINE (Whole point of this, is it errors upon use)
@@ -45,8 +44,10 @@ consteval bool assert_id_body_table_integrity()
         return assert_id_body_table_integrity<Index + 1>();
 }
 
-static_assert(assert_id_body_table_integrity<0>(),
-              "ID Table mismatch! See compiler output for index.");
+static_assert(
+    assert_id_body_table_integrity<0>(),
+    "ID Table mismatch! See compiler output for index."
+);
 } // namespace
 
 namespace alpha
@@ -59,12 +60,14 @@ ScannerAutomaton::ScannerAutomaton(
     : lexer_ctx_(lexer_ctx),
       lt_(lt),
       dr_(dr),
-      tub_(tub)
+      tub_(tub),
+      last_token_begin_(tub.data()),
+      cursor_(tub.data())
 {
     if (tub_.null_padding.value < ScannerAutomaton::k_minimum_source_buffer_null_padding)
         throw std::logic_error("Insufficient padding detected");
     for (auto pad_index = SrcBuffIdx{0}; pad_index < tub_.null_padding; ++pad_index)
-        if (tub_[SrcBuffIdx{tub_.source_size + pad_index}] != '\0')
+        if (tub_[SrcBuffIdx{tub_.source_size() + pad_index}] != '\0')
             throw std::logic_error("Critical sentinel corruption detected");
 
     // Compile Time Evaluation only code.
@@ -94,47 +97,44 @@ template <SrcBuffIdx n>
 char
 ScannerAutomaton::get_nth_char() const noexcept
 {
-    const SrcBuffIdx index = cursor_ + n;
-    DEBUG_SMART_ASSERT(index < tub_.size && "Illegal access");
-    const auto result = tub_[index];
-    DEBUG_SMART_ASSERT(
-        result >= std::numeric_limits<unsigned char>::min(),
-        result <= std::numeric_limits<char>::max()
-    );
-    return result;
+    // Guard the multi-character lookahead contract
+    static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= n.value);
+    DEBUG_SMART_ASSERT(tub_.null_padding >= n);
+
+    const char* const result_addr = cursor_ + n.value;
+    DEBUG_SMART_ASSERT(tub_.is_in_buffer(result_addr));
+    return *result_addr;
 }
 
 char
 ScannerAutomaton::get_nth_char(const SrcBuffIdx n) const noexcept
 {
-    const SrcBuffIdx index = cursor_ + n;
-    DEBUG_SMART_ASSERT(index < tub_.size && "Illegal access");
-    return tub_[index];
+    const char* const result_addr = cursor_ + n.value;
+    DEBUG_SMART_ASSERT(tub_.is_in_buffer(result_addr));
+    return *result_addr;
 }
 
 template <SrcBuffIdx n>
-void
+const char*
 ScannerAutomaton::advance_cursor() noexcept
 {
     static_assert(n.value > 0, "Why advance by zero?");
-    DEBUG_SMART_ASSERT(cursor_ < tub_.source_size); // Is OK before?
-    cursor_ += n;
+    DEBUG_SMART_ASSERT(cursor_ < tub_.source_end()); // Is OK before?
+    const auto result = cursor_ += n.value;
     // After: Can be AT source_size_ (EOF), but not past it.
-    DEBUG_SMART_ASSERT(cursor_ <= tub_.source_size); // Is OK after?
-}
-
-void
-ScannerAutomaton::advance_cursor(const SrcBuffIdx n) noexcept
-{
-    DEBUG_SMART_ASSERT(cursor_< tub_.source_size, n.value > 0 && "why advance by zero?");
-    // Is OK before?
-    cursor_ += n;
-    // After: Can be AT source_size_ (EOF), but not past it.
-    DEBUG_SMART_ASSERT(cursor_ <= tub_.source_size); // Is OK after?
+    DEBUG_SMART_ASSERT(cursor_ <= tub_.source_end()); // Is OK after?
+    return result;
 }
 
 const char*
-ScannerAutomaton::get_cursor_address() const noexcept { return tub_.address_at(cursor_); }
+ScannerAutomaton::advance_cursor(const SrcBuffIdx n) noexcept
+{
+    DEBUG_SMART_ASSERT(tub_.is_in_source(cursor_), n.value > 0 && "why advance 0?"); // OK before?
+    const auto result = cursor_ += n.value;
+    // After: Can be AT source_size_ (EOF), but not past it.
+    DEBUG_SMART_ASSERT(tub_.is_in_buffer(cursor_)); // OK after?
+    return result;
+}
 
 char
 ScannerAutomaton::get_curr_char() const noexcept
@@ -151,25 +151,45 @@ ScannerAutomaton::get_next_char() const noexcept
 }
 
 bool
-ScannerAutomaton::has_reached_eof() const noexcept { return cursor_ == tub_.source_size; }
+ScannerAutomaton::has_reached_eof() const noexcept { return cursor_ == tub_.source_end(); }
+
+SourceLocation
+ScannerAutomaton::last_token_location() const noexcept
+{
+    return SourceLocation{
+        SrcBuffIdx{static_cast<SrcBuffIdx::UnderlyingType>(last_token_begin() - tub_.begin())},
+        SrcBuffIdx{static_cast<SrcBuffIdx::UnderlyingType>(last_token_end() - tub_.begin())},
+    };
+}
+
+template <ScannerAutomaton::OpenerLen opener_len>
+SourceLocation
+ScannerAutomaton::calculate_opener_loc() const noexcept
+{
+    const auto begin =
+        SrcBuffIdx{static_cast<SrcBuffIdx::UnderlyingType>(last_token_begin() - tub_.begin())};
+    const auto end =
+        SrcBuffIdx{begin.value + static_cast<std::underlying_type_t<OpenerLen>>(opener_len)};
+    return SourceLocation{begin, end};
+}
+
+
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::register_and_return(const LexerReturnType token_id) noexcept
 {
     lexer_ctx_.register_token(alpha::TokenInfo{
         .id = static_cast<alpha_yytoken_kind_t>(token_id),
-        .loc = k_no_loc
+        .loc = last_token_location(),
     });
     return token_id;
 }
-
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_equal_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '=');
-    advance_cursor(); // FINAL
-    if (get_curr_char() == '=')
+    if (*advance_cursor() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_EQ);
@@ -181,13 +201,12 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_exclamation_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '!');
-    advance_cursor();           // FINAL
-    if (get_curr_char() == '=') // Only place we support '!', is a part of != token.
+    if (*advance_cursor() == '=') // Only place we support '!', is a part of != token.
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_NEQ);
     }
-    dr_.report_invalid_character("!", k_no_loc);
+    dr_.report_invalid_character("!", last_token_location());
     return ScannerAutomaton::TKN_INTERNAL_SKIP;
 }
 
@@ -195,8 +214,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_plus_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '+');
-    advance_cursor(); // FINAL
-    if (get_curr_char() == '+')
+    if (*advance_cursor() == '+')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_INC);
@@ -208,8 +226,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_minus_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '-');
-    advance_cursor(); // FINAL
-    if (get_curr_char() == '-')
+    if (*advance_cursor() == '-')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_DEC);
@@ -221,8 +238,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_left_angle_bracket_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '<');
-    advance_cursor(); // FINAL
-    if (get_curr_char() == '=')
+    if (*advance_cursor() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_LTE);
@@ -234,8 +250,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_right_angle_bracket_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '>');
-    advance_cursor(); // FINAL
-    if (get_curr_char() == '=')
+    if (*advance_cursor() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_GTE);
@@ -247,11 +262,12 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_dot_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '.');
-    advance_cursor(); // FINAL
-    const char curr_ch = get_next_char();
-    if (support::is_digit(curr_ch))
+    const char next_ch = get_next_char();
+    if (support::is_digit(next_ch))
         return handle_float_number();
-    if (curr_ch == '.')
+
+    advance_cursor();
+    if (next_ch == '.')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_METHOD_CALL);
@@ -263,8 +279,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_colon_char() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == ':');
-    advance_cursor(); // FINAL
-    if (get_curr_char() == ':')
+    if (*advance_cursor() == ':')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
         return register_and_return(TKN_GLOBAL);
@@ -273,34 +288,45 @@ ScannerAutomaton::handle_colon_char() noexcept
 }
 
 void
-ScannerAutomaton::register_newline_char() noexcept { lt_.append_line(lexer_ctx_.source_index); }
+ScannerAutomaton::register_newline_char() noexcept
+{
+    lt_.append_line(SrcBuffIdx{static_cast<SrcBuffIdx::UnderlyingType>(cursor_ - tub_.begin())});
+}
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_comment_line() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '/');
-    advance_cursor<SrcBuffIdx{2}>(); // for 1st and 2nd '/' (fast-path)
-    while (!has_reached_eof() && get_curr_char() != '\n')
-        advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
+    char curr_ch = *advance_cursor<SrcBuffIdx{2}>(); // for consume 1st and 2nd `/` (fast-path)
+    while (!has_reached_eof() && curr_ch != '\n')
+        curr_ch = *advance_cursor();
     return ScannerAutomaton::TKN_INTERNAL_SKIP;
 }
 
 ScannerAutomaton::LexerReturnType
-ScannerAutomaton::handle_comment_block() noexcept
+ScannerAutomaton::handle_comment_block_nested() noexcept
+
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '*'); // Still at beginning.
-    DEBUG(OnceFlag entered;)
-    u64 block_comment_depth = 0;
+    DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '*');
+
+    // Code could be more nicely written, but I specifically choose these patterns, to achieve max scanning speed. (micro opts)
+    u64 block_comment_depth = 1;
+    char ch1 = *advance_cursor<SrcBuffIdx{2}>();
+
+
     while (!has_reached_eof())
     {
-        // Reminder even if ch2 is after last valid CHAR (so its after EOF), its still valid due to padding requirement (in ctor)
-        const char ch1 = get_curr_char();
-        const char ch2 = get_next_char();
         if (ch1 == '\n')
-            register_newline_char();
-        else if (ch1 == '/' && ch2 == '*')
         {
-            DEBUG(entered.raise();)
+            ch1 = *advance_cursor();
+            register_newline_char();
+            continue;
+        }
+
+        // Reminder even if ch2 is after last valid CHAR (so its after EOF), its still valid due to padding requirement (in ctor)
+        const char ch2 = get_next_char();
+        if (ch1 == '/' && ch2 == '*')
+        {
             advance_cursor(); // consume '/' now, consume '*' at end.
             ++block_comment_depth;
         }
@@ -309,13 +335,41 @@ ScannerAutomaton::handle_comment_block() noexcept
             advance_cursor(); // consume '*' now, consume '/' at end.
             --block_comment_depth;
         }
-        DEBUG_SMART_ASSERT(entered.is_raised() && "should be raised from first run");
-        advance_cursor();
+
+        ch1 = *advance_cursor();
         if (block_comment_depth == 0)
             return ScannerAutomaton::TKN_INTERNAL_SKIP;
     }
+    dr_.report_unclosed_comment(calculate_opener_loc<OpenerLen::COMMENT_BLOCK>());
     return TKN_YYEOF;
 }
+
+ScannerAutomaton::LexerReturnType
+ScannerAutomaton::handle_comment_block_standard() noexcept
+{
+    DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '*');
+    char ch = *advance_cursor<SrcBuffIdx{2}>();
+    while (!has_reached_eof())
+    {
+        if (ch == '\n')
+        {
+            ch = *advance_cursor();
+            register_newline_char();
+            continue;
+        }
+
+        // Reminder even if get_next_char() is after last valid CHAR (so its after EOF), its still valid due to padding requirement (in ctor)
+        if (ch == '*' && get_next_char() == '/')
+        {
+            advance_cursor<SrcBuffIdx{2}>(); // consume '*' and '/' now,
+            return ScannerAutomaton::TKN_INTERNAL_SKIP;
+        }
+        ch = *advance_cursor();
+    }
+    dr_.report_unclosed_comment(calculate_opener_loc<OpenerLen::COMMENT_BLOCK>());
+    return TKN_YYEOF;
+}
+
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_slash_char() noexcept
@@ -325,7 +379,7 @@ ScannerAutomaton::handle_slash_char() noexcept
     if (next_ch == '/')
         return handle_comment_line();
     if (next_ch == '*')
-        return handle_comment_block();
+        return handle_comment_block_standard();
     advance_cursor();
     return register_and_return(TKN_DIV);
 }
@@ -340,12 +394,15 @@ ScannerAutomaton::handle_double_quote_char() noexcept
     {
         // Reminder even if ch2 is after last valid CHAR (so its after EOF), its still valid due to padding requirement (in ctor)
         const char ch1 = get_curr_char();
-        advance_cursor();
+        advance_cursor();      // Consume ch1 here.
         if (ch1 == '\"')       // Handle matching "
             return TKN_STRING; // Let Main dispatcher consume the matching " char.
-        if (ch1 == '\\')       // Handle potential escape code
+        if (ch1 == '\n')
+            register_newline_char();
+        else if (ch1 == '\\') // Handle potential escape code
         {
             const char ch2 = get_curr_char();
+            advance_cursor(); // Consume ch2.
             switch (ch2)
             {
             case 'n':
@@ -358,12 +415,13 @@ ScannerAutomaton::handle_double_quote_char() noexcept
                 DEBUG_SMART_ASSERT(!has_reached_eof() && "If ch2 past EOF, ch2 must be NULL-byte");
                 break;
             default:
-                dr_.report_invalid_escape_code();
+                const char chartext[] = {ch2, '\0'};
+                dr_.report_invalid_escape_code(chartext, last_token_location());
                 break;
             }
-            advance_cursor(); // Consume ch1 here, and at end consume ch2.
         }
     }
+    dr_.report_unclosed_string(calculate_opener_loc<OpenerLen::STRING>());
     return TKN_YYEOF;
 }
 
@@ -375,92 +433,54 @@ ScannerAutomaton::handle_hex_number() noexcept
         get_nth_char<SrcBuffIdx{1}>() == 'x' || get_nth_char<SrcBuffIdx{1}>() == 'X',
         support::is_xdigit(get_nth_char<SrcBuffIdx{2}>())
     );
-    advance_cursor<SrcBuffIdx{3}>(); // We consume 0 and 'x' and the first digit we know it exists.
-    while (const char curr_ch = get_curr_char())
-        if (support::is_xdigit(curr_ch))
-            advance_cursor();
+    // We consume 0 and 'x' and the first digit we know it exists.
+    char curr_ch = *advance_cursor<SrcBuffIdx{3}>();
+    while (support::is_xdigit(curr_ch))
+        curr_ch = *advance_cursor();
     DEBUG_SMART_ASSERT(!support::is_xdigit(get_curr_char()));
     return TKN_INT;
 }
 
+// This function is a bit fat due to all the extra assertions.
+// But I prefer it this way, although it could be leaned down to 20 lines.
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_float_number() noexcept
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '.', support::is_digit(get_next_char()));
-    advance_cursor(); // To consume '.'
+    // --- Float digits consumption loop(in case of scientific, are all otherwise) --- //
+    char curr_ch = '\0'; // Initializing to a sentinel, zero cost (Dead Store Elimination)
+    while (support::is_digit(curr_ch = *advance_cursor())) // On first iteration consumes '.'
+        continue;
 
-    // --- Prefix digits consumption loop(in case of scientific, are all otherwise) --- //
-    char curr_ch = get_curr_char();
-    while (support::is_digit(curr_ch))
-    {
-        advance_cursor();
-        curr_ch = get_curr_char();
-    }
-    DEBUG_SMART_ASSERT(!has_reached_eof(), support::is_digit(get_curr_char()));
-
-    // --- Handle potential scientific floats --- //
-    DEBUG_SMART_ASSERT(!support::is_digit(curr_ch) && "Prefix digit loop should consume that");
     if (curr_ch == 'e' || curr_ch == 'E') // Handle Scientific floats
     {
-        static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 1);
-        DEBUG_SMART_ASSERT(tub_.null_padding.value >= 1);
-        const char next_ch = get_next_char(); // Valid cause 'curr_ch' was non null-byte.
-        if (next_ch == '+' || next_ch == '-')
+        const auto consume_scientific_digits = [this]<SrcBuffIdx::UnderlyingType pre_advance>()
         {
-            static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= 2);
-            DEBUG_SMART_ASSERT(tub_.null_padding.value >= 2);
-            const char next_next_ch = get_nth_char<SrcBuffIdx{2}>();
-            if (support::is_digit(next_next_ch))
-            {
-                DEBUG_SMART_ASSERT(
-                    get_nth_char<SrcBuffIdx{0}>() == 'e' || get_nth_char<SrcBuffIdx{0}>() == 'E',
-                    get_nth_char<SrcBuffIdx{1}>() == '+' || get_nth_char<SrcBuffIdx{1}>() == '-',
-                    support::is_digit(get_nth_char<SrcBuffIdx{2}>())
-                );
-                advance_cursor<SrcBuffIdx{3}>(); // Consume E, consume +-, and first digit
-            }
-            // else "This case is for something like 1.2e+myid, which is not scientific notation ... just a `1.2` float"
-        }
-        else if (support::is_digit(next_ch))
-        {
-            DEBUG_SMART_ASSERT(
-                get_nth_char<SrcBuffIdx{0}>() == 'e' || get_nth_char<SrcBuffIdx{0}>() == 'E',
-                support::is_digit(get_nth_char<SrcBuffIdx{1}>())
-            );
-            advance_cursor<SrcBuffIdx{2}>(); // Consume E and first digit.
-        }
-        // else "next_ch was e or E but without digit suffix e or E is just an ID fragment, not part of float"
+            char ch = *advance_cursor<SrcBuffIdx{pre_advance}>();
+            while (support::is_digit(ch)) ch = *advance_cursor();
+        };
 
-        // --- Suffix digits consumption loop (for scientific floats)--- //
-        while (support::is_digit(get_curr_char()))
-            advance_cursor();
-        DEBUG_SMART_ASSERT(!has_reached_eof(), !support::is_digit(get_curr_char()));
+        const char next_ch = get_next_char(); // Valid cause 'curr_ch' was non null-byte.
+        if ((next_ch == '+' || next_ch == '-') && support::is_digit(get_nth_char<SrcBuffIdx{2}>()))
+            consume_scientific_digits.operator()<3>();
+        else if (support::is_digit(next_ch))
+            consume_scientific_digits.operator()<2>();
     }
     DEBUG_SMART_ASSERT(!support::is_digit(get_curr_char()));
-
-    // Last digit is consumed by main dispatch loop (our caller).
     return TKN_FLOAT;
 }
+
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_decimal_number() noexcept
 {
-    DEBUG_SMART_ASSERT(support::is_digit(get_curr_char()));
-    while (true)
-    {
-        DEBUG_SMART_ASSERT(!has_reached_eof());
-        const char next_ch = get_next_char();
-        if (next_ch == '.' && support::is_digit(get_nth_char<SrcBuffIdx{2}>()))
-        {
-            advance_cursor();
-            return handle_float_number();
-        }
-        if (support::is_digit(next_ch))
-            advance_cursor();
-        else
-            break;
-    }
-    DEBUG_SMART_ASSERT(support::is_digit(get_curr_char()), !support::is_digit(get_next_char()));
+    DEBUG_SMART_ASSERT(support::is_digit(get_curr_char()), !has_reached_eof());
+
+    char curr_ch = '\0'; // Initializing to a sentinel, zero cost (Dead Store Elimination)
+    while (support::is_digit(curr_ch = *advance_cursor()))
+        continue;
+    if (curr_ch == '.' && support::is_digit(get_next_char()))
+        return handle_float_number();
     return TKN_INT;
 }
 
@@ -541,16 +561,12 @@ ScannerAutomaton::handle_alpha_char() noexcept
     {
         const auto keyword_idx = static_cast<std::underlying_type_t<KeywordId>>(possible_keyword);
         const KeywordToken expected_token = keyword_names_and_tokens_[keyword_idx];
-        if (std::string_view{get_cursor_address(), word_length.value} == expected_token.name)
+        if (std::string_view{cursor_, word_length.value} == expected_token.name)
             result_token = expected_token.bison_token_id;
     }
 
-    advance_cursor(SrcBuffIdx{word_length.value - 1});
-    // Minus 1 cause we want to not consume last valid char.
-    DEBUG_SMART_ASSERT(
-        g_id_body_table[get_curr_char()] && "last id fragment consumed by caller",
-        !g_id_body_table[get_next_char()]
-    );
+    advance_cursor(SrcBuffIdx{word_length.value});
+    DEBUG_SMART_ASSERT(!g_id_body_table[get_curr_char()]);
     return result_token;
 }
 
@@ -570,44 +586,53 @@ ScannerAutomaton::handle_alpha_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noexcept
 {
-    DEBUG_SMART_ASSERT(cursor_ <= tub_.source_size);
+    DEBUG_SMART_ASSERT(tub_.is_in_source(cursor_));
+
+    const auto consume_token = [this]<LexerReturnType token>()
+    {
+        advance_cursor();
+        return token;
+    };
+
     while (true)
     {
         last_token_begin_ = cursor_;
-        if (cursor_ >= tub_.source_size)
+        if (!tub_.is_in_source(cursor_))
             return TKN_YYEOF;
+
         LexerReturnType result = ScannerAutomaton::TKN_INTERNAL_SKIP;
         const char curr_ch = get_curr_char();
         switch (curr_ch)
         { // clang-format off
-        case '=':  result = handle_equal_char();               break;
-        case '!':  result = handle_exclamation_char();         break;
-        case '+':  result = handle_plus_char();                break;
-        case '-':  result = handle_minus_char();               break;
-        case '<':  result = handle_left_angle_bracket_char();  break;
-        case '>':  result = handle_right_angle_bracket_char(); break;
-        case '.':  result = handle_dot_char();                 break;
-        case ':':  result = handle_colon_char();               break;
-        case '*':  result = TKN_MUL;                           break;
-        case '/':  result = handle_slash_char();               break;
-        case '%':  result = TKN_MOD;                           break;
-        case '{':  result = TKN_LEFT_BRACE;                    break;
-        case '}':  result = TKN_RIGHT_BRACE;                   break;
-        case '[':  result = TKN_LEFT_BRACKET;                  break;
-        case ']':  result = TKN_RIGHT_BRACKET;                 break;
-        case '(':  result = TKN_LEFT_PAREN;                    break;
-        case ')':  result = TKN_RIGHT_PAREN;                   break;
-        case ';':  result = TKN_SEMICOLON;                     break;
-        case ',':  result = TKN_COMMA;                         break;
-        case '\"': result = handle_double_quote_char();        break;
-        case '\n': register_newline_char();                    break;
-        CASE_LIST_FOR_SPACES:                                  break;
-        CASE_LIST_FOR_NUMBERS: result = handle_number_char();  break;
-        CASE_LIST_FOR_LETTERS: result = handle_alpha_char();   break;
+        case '=':  result = handle_equal_char();                           break;
+        case '!':  result = handle_exclamation_char();                     break;
+        case '+':  result = handle_plus_char();                            break;
+        case '-':  result = handle_minus_char();                           break;
+        case '<':  result = handle_left_angle_bracket_char();              break;
+        case '>':  result = handle_right_angle_bracket_char();             break;
+        case '.':  result = handle_dot_char();                             break;
+        case ':':  result = handle_colon_char();                           break;
+        case '*':  result = consume_token.operator()<TKN_MUL>();           break;
+        case '/':  result = handle_slash_char();                           break;
+        case '%':  result = consume_token.operator()<TKN_MOD>();           break;
+        case '{':  result = consume_token.operator()<TKN_LEFT_BRACE>();    break;
+        case '}':  result = consume_token.operator()<TKN_RIGHT_BRACE>();   break;
+        case '[':  result = consume_token.operator()<TKN_LEFT_BRACKET>();  break;
+        case ']':  result = consume_token.operator()<TKN_RIGHT_BRACKET>(); break;
+        case '(':  result = consume_token.operator()<TKN_LEFT_PAREN>();    break;
+        case ')':  result = consume_token.operator()<TKN_RIGHT_PAREN>();   break;
+        case ';':  result = consume_token.operator()<TKN_SEMICOLON>();     break;
+        case ',':  result = consume_token.operator()<TKN_COMMA>();         break;
+        case '\"': result = handle_double_quote_char();                    break;
+        case '\n': advance_cursor(); register_newline_char();              break;
+        CASE_LIST_FOR_SPACES: advance_cursor();                            break;
+        CASE_LIST_FOR_NUMBERS: result = handle_number_char();              break;
+        CASE_LIST_FOR_LETTERS: result = handle_alpha_char();               break;
         default:
             {
-                const char chartext[] = {curr_ch, 0};
-                dr_.report_invalid_character(chartext, k_no_loc);
+                advance_cursor();
+                const char chartext[] = {curr_ch, '\0'};
+                dr_.report_invalid_character(chartext, last_token_location());
                 break;
             }
         } // clang-format on
@@ -618,9 +643,6 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
             char* token_memory = static_cast<char*>(std::calloc(100, 1));
             std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
             yylval->const_int = std::stol(token_memory);
-            yylloc->begin = last_token_begin();
-            yylloc->end = cursor_;
-            #warning  IS_SOURCE_LOCATION_INCLUSIVE_OR_EXCLUSIVE
         }
         else if (result == TKN_FLOAT)
         {
@@ -628,8 +650,6 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
             char* token_memory = static_cast<char*>(std::calloc(100, 1));
             std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
             yylval->const_float = std::stod(token_memory);
-            yylloc->begin = last_token_begin();
-            yylloc->end = cursor_;
         }
         else if (result == TKN_STRING || result == TKN_ID)
         {
@@ -637,12 +657,13 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
             char* token_memory = static_cast<char*>(std::calloc(100, 1));
             std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
             yylval->cstring = token_memory;
-            yylloc->begin = last_token_begin();
-            yylloc->end = cursor_;
         }
 
-        advance_cursor(); // Main dispatching function always advance final token character.
-        if (result != ScannerAutomaton::TKN_INTERNAL_SKIP) { return result; }
+        if (result != ScannerAutomaton::TKN_INTERNAL_SKIP)
+        {
+            *yylloc = last_token_location();
+            return register_and_return(result);
+        }
     }
 }
 #undef CASE_LIST_FOR_SPACES

@@ -42,8 +42,8 @@ any_character_but_newline  .
 comment_begin_rule        "/\*"
 comment_end_rule          "\*/"
 
-string_begin_rule         \"
-string_end_rule         \"
+string_begin_rule \"
+string_end_rule   \"
 
 /* Newlines are valid inside strings, but we exclude '\n' here */
 /* so that it matches a separate {newline} rule, allowing us */

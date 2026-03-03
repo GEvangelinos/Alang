@@ -34,7 +34,7 @@ lstrip(std::string &str)
     const auto it = std::find_if(
         str.begin(),
         str.end(),
-        [](const unsigned char c) { return !std::isspace(c); }
+        [](const unsigned char c) { return !support::is_space(c); }
     );
     str.erase(str.begin(), it);
     return str;
@@ -46,7 +46,7 @@ rstrip(std::string &str)
     const auto rit = std::find_if(
         str.rbegin(),
         str.rend(),
-        [](const unsigned char c) { return !std::isspace(c); }
+        [](const unsigned char c) { return !support::is_space(c); }
     );
     str.erase(rit.base(), str.end());
     return str;
@@ -65,7 +65,7 @@ is_blank_str(const std::string &str)
 {
     return str.empty() ||
            std::all_of(
-               str.begin(), str.end(), [](const unsigned char ch) { return std::isspace(ch); }
+               str.begin(), str.end(), [](const unsigned char ch) { return support::is_space(ch); }
            );
 }
 

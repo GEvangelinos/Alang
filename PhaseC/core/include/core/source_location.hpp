@@ -31,7 +31,18 @@ struct SourceLocation
     [[nodiscard]] SourceLocationRaw to_raw();
     [[nodiscard]] bool operator==(SourceLocation rhs) const noexcept;
     [[nodiscard]] bool operator!=(SourceLocation rhs) const noexcept;
+
+    friend std::ostream& operator<<(std::ostream &os, const SourceLocation& self);
 };
+
+inline std::ostream&
+    operator<<(std::ostream& os, const SourceLocation& self)
+{
+    os << "[" << self.begin.value << ", " << self.end.value << ")";
+    return os;
+
+}
+
 
 // ======================================================================================
 // Core inline utilities for SourceLocation.
