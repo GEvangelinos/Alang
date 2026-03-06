@@ -11,12 +11,12 @@ namespace
 using namespace alpha;
 
 [[nodiscard]] bool validate_lvalue(
-    DiagnosticReporter *const dr,
-    const Expr *const expr,
+    DiagnosticReporter* const dr,
+    const Expr* const expr,
     const SourceLocation full_expr_loc,
-    const char *op_name,
-    const char *op_symbol,
-    const char *lvalue_subject
+    const char* op_name,
+    const char* op_symbol,
+    const char* lvalue_subject
 )
 {
     DEBUG_SMART_ASSERT(!!dr, !!expr, !!op_name, !!op_symbol, !!lvalue_subject);
@@ -39,12 +39,12 @@ using namespace alpha;
 }
 
 [[nodiscard]] bool validate_direct_lvalue(
-    DiagnosticReporter *const dr,
-    const Expr *const expr,
+    DiagnosticReporter* const dr,
+    const Expr* const expr,
     const SourceLocation full_expr_loc,
-    const char *op_name,
-    const char *op_symbol,
-    const char *lvalue_subject)
+    const char* op_name,
+    const char* op_symbol,
+    const char* lvalue_subject)
 
 {
     DEBUG_SMART_ASSERT(!!expr);
@@ -68,30 +68,30 @@ using namespace alpha;
 namespace alpha
 {
 AssignBuilder::AssignBuilder(
-    AssignBuilder::Options &&options,
-    const SemanticSystemServices &ss_services)
+    AssignBuilder::Options&& options,
+    const SemanticSystemServices& ss_services)
     : DISPATCH_TARGET(std::move(options), ss_services) {}
 
 AssignBuilder::Restricted::Restricted(
-    AssignBuilder::Options &&options,
-    const SemanticSystemServices &ss_services)
+    AssignBuilder::Options&& options,
+    const SemanticSystemServices& ss_services)
     : SemanticSubsystem(ss_services),
       options_(std::move(options)) {}
 
 BasicBuilder::BasicBuilder(
-    BasicBuilder::Options &&options,
-    const SemanticSystemServices &ss_services)
+    BasicBuilder::Options&& options,
+    const SemanticSystemServices& ss_services)
     : DISPATCH_TARGET(std::move(options), ss_services) {}
 
 BasicBuilder::Restricted::Restricted(
-    BasicBuilder::Options &&options,
-    const SemanticSystemServices &ss_services)
+    BasicBuilder::Options&& options,
+    const SemanticSystemServices& ss_services)
     : SemanticSubsystem(ss_services), options_(std::move(options)) {}
 
-CallBuilder::CallBuilder(const SemanticSystemServices &ss_services)
+CallBuilder::CallBuilder(const SemanticSystemServices& ss_services)
     : DISPATCH_TARGET(ss_services) {}
 
-CallBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
+CallBuilder::Restricted::Restricted(const SemanticSystemServices& ss_services)
     : SemanticSubsystem(ss_services) {}
 
 CallBuilder::Restricted::CallInfo::CallInfo()
@@ -102,32 +102,32 @@ CallBuilder::Restricted::CallInfo::CallInfo(MethodInfo method_info)
     : pending_method_info(method_info),
       arguments() {}
 
-ConstBuilder::ConstBuilder(const SemanticSystemServices &ss_services)
+ConstBuilder::ConstBuilder(const SemanticSystemServices& ss_services)
     : DISPATCH_TARGET(ss_services) {}
 
-ConstBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
+ConstBuilder::Restricted::Restricted(const SemanticSystemServices& ss_services)
     : SemanticSubsystem(ss_services) {}
 
-FunctionBuilder::FunctionBuilder(const SemanticSystemServices &ss_services)
+FunctionBuilder::FunctionBuilder(const SemanticSystemServices& ss_services)
     : DISPATCH_TARGET(ss_services) {}
 
-FunctionBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
+FunctionBuilder::Restricted::Restricted(const SemanticSystemServices& ss_services)
     : SemanticSubsystem(ss_services) {}
 
-TableAccessBuilder::TableAccessBuilder(const SemanticSystemServices &ss_services)
+TableAccessBuilder::TableAccessBuilder(const SemanticSystemServices& ss_services)
     : DISPATCH_TARGET(ss_services) {}
 
-TableAccessBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
+TableAccessBuilder::Restricted::Restricted(const SemanticSystemServices& ss_services)
     : SemanticSubsystem(ss_services) {}
 
-AggregateBuilder::AggregateBuilder(const SemanticSystemServices &ss_services)
+AggregateBuilder::AggregateBuilder(const SemanticSystemServices& ss_services)
     :DISPATCH_TARGET(ss_services) {}
 
-AggregateBuilder::Restricted::Restricted(const SemanticSystemServices &ss_services)
+AggregateBuilder::Restricted::Restricted(const SemanticSystemServices& ss_services)
     : SemanticSubsystem(ss_services) {}
 
 AggregateBuilder::Restricted::TableLiteralInfo::TableLiteralInfo(
-    const NewTableExpr *const new_table_expr,
+    const NewTableExpr* const new_table_expr,
     const LabelID host_quad_label)
     : host_expr(DEBUG_REQUIRE_PTR(new_table_expr)),
       host_quad_label(host_quad_label) {}
@@ -140,23 +140,29 @@ void
 AggregateBuilder::Restricted::init_table_literal()
 {
     parse_ctx_->elist_ctx_handler.enter_region(ElistCtxHandler::Region::TABLE);
-    const NewTableExpr *const new_table = expr_maker_->make_new_table_expr(k_no_loc);
+    const NewTableExpr* const new_table = expr_maker_->make_new_table_expr(SourceLocation::none());
 
     // Store quad label, so I can loc-patch quad's location
     draft_.table_literal_stack.emplace(new_table, quad_handler_->next_quad_label());
 
-    quad_yielder_->yield_next(ir::Opcode::TABLECREATE, new_table, nullptr, nullptr, k_no_loc);
+    quad_yielder_->yield_next(
+        ir::Opcode::TABLECREATE,
+        new_table,
+        nullptr,
+        nullptr,
+        SourceLocation::none()
+    );
 }
 
-const Expr *
+const Expr*
 AggregateBuilder::Restricted::finalize_table_literal(const SourceLocation table_loc)
 {
-    auto &tls = draft_.table_literal_stack; // Short alias for readability.
+    auto& tls = draft_.table_literal_stack; // Short alias for readability.
     DEBUG_SMART_ASSERT(!tls.empty() && "No active table literal to finalize");
 
     // TODO: provide a locpatch_expr method of expr_maker.. instead of cloining
     // Clone the table expression with its finalized source location for accurate diagnostics
-    const Expr *const table_literal =
+    const Expr* const table_literal =
         expr_maker_->clone_with_updated_location(table_loc, tls.top().host_expr);
 
     // Backpatch the TABLECREATE quad with the correct source location
@@ -168,8 +174,8 @@ AggregateBuilder::Restricted::finalize_table_literal(const SourceLocation table_
 }
 
 void AggregateBuilder::Restricted::commit_dict_element(
-    const Expr *key,
-    const Expr *value,
+    const Expr* key,
+    const Expr* value,
     const SourceLocation dict_elem_loc)
 {
     DEBUG_SMART_ASSERT(!!key, !!value);
@@ -186,7 +192,7 @@ void AggregateBuilder::Restricted::commit_dict_element(
         "If we collect a dict_entry, then we must be inside a table_literal"
     );
 
-    const auto &top_table = draft_.table_literal_stack.top();
+    const auto& top_table = draft_.table_literal_stack.top();
 
     quad_yielder_->yield_next(
         ir::Opcode::TABLESETELEM,
@@ -202,10 +208,10 @@ void AggregateBuilder::Restricted::commit_dict_element(
 // As a side effect, even outer methods (like this one) must go through
 // `restricted()` to reach private data, since that's the only legal path.
 void
-AggregateBuilder::commit_list_element(const Expr *list_elem)
+AggregateBuilder::commit_list_element(const Expr* list_elem)
 {
     DEBUG_SMART_ASSERT(!!list_elem);
-    auto &r = restricted(); // Local alias for clarity
+    auto& r = restricted(); // Local alias for clarity
 
     DEBUG_SMART_ASSERT(
         r.parse_ctx_->elist_ctx_handler.region().has_value() &&
@@ -217,9 +223,9 @@ AggregateBuilder::commit_list_element(const Expr *list_elem)
     r.expr_normalizer_->resolve_bool_short_circuit(list_elem);
 
     DEBUG_SMART_ASSERT(!r.draft_.table_literal_stack.empty());
-    auto &top_table = r.draft_.table_literal_stack.top();
+    auto& top_table = r.draft_.table_literal_stack.top();
 
-    const Expr *const index_expr = r.expr_maker_->make_const_int_expr(
+    const Expr* const index_expr = r.expr_maker_->make_const_int_expr(
         list_elem->loc,
         top_table.list_index++
     );
@@ -235,7 +241,7 @@ AggregateBuilder::commit_list_element(const Expr *list_elem)
 // TODO: do we propagate assignment of assignment like x = y = z = 5? If NOT
 // We might need to let Expr::Type::ASSIGN_EXPR
 bool
-AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const Expr *const rvalue)
+AssignBuilder::Restricted::try_record_const_expr(const Expr* const lvalue, const Expr* const rvalue)
 {
     DEBUG_SMART_ASSERT(
         !!lvalue, !!rvalue,
@@ -245,20 +251,20 @@ AssignBuilder::Restricted::try_record_const_expr(const Expr *const lvalue, const
     if (lvalue->type != Expr::Type::VARIABLE)
         return false;
 
-    const auto *const var_symbol = static_cast<const VariableExpr *>(lvalue)->var_symbol;
+    const auto* const var_symbol = static_cast<const VariableExpr*>(lvalue)->var_symbol;
     if (!rvalue->is_const())
     {
         SymbolTable::detach_const_expr(var_symbol);
         return false;
     }
-    SymbolTable::attach_const_expr(var_symbol, static_cast<const ConstExpr *>(rvalue));
+    SymbolTable::attach_const_expr(var_symbol, static_cast<const ConstExpr*>(rvalue));
     return true;
 }
 
-const Expr *
+const Expr*
 AssignBuilder::Restricted::handle_direct_assignment(
-    const Expr *const lhs,
-    const Expr *rhs,
+    const Expr* const lhs,
+    const Expr* rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
@@ -284,16 +290,16 @@ AssignBuilder::Restricted::handle_direct_assignment(
     return quad_yielder_->yield_next(ir::Opcode::ASSIGN, result_factory, lhs, nullptr, result_loc);
 }
 
-const Expr *
+const Expr*
 AssignBuilder::Restricted::handle_table_item_assignment(
-    const Expr *const lhs,
-    const Expr *rhs,
+    const Expr* const lhs,
+    const Expr* rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
     DEBUG_SMART_ASSERT(lhs->type == Expr::Type::TABLE_ITEM);
 
-    const auto *const ti = static_cast<const TableItemExpr *>(lhs);
+    const auto* const ti = static_cast<const TableItemExpr*>(lhs);
     rhs = expr_optimizer_->try_propagate_const(rhs);
     rhs = expr_normalizer_->materialize_if_table_item(rhs);
     expr_normalizer_->resolve_bool_short_circuit(rhs);
@@ -302,20 +308,20 @@ AssignBuilder::Restricted::handle_table_item_assignment(
 
     // We resurface the assigned element of table to allow chained assignment. Ex.: a = b.c = d;
     // This is also useful for call(t[i]=1, t[i]=2, t[i]=3);
-    const Expr *const materialized = expr_normalizer_->materialize_if_table_item(ti);
+    const Expr* const materialized = expr_normalizer_->materialize_if_table_item(ti);
     DEBUG_SMART_ASSERT(materialized->has_var_symbol());
 
     // We semantically transform materialized to an ASSIGN expression
     return expr_maker_->make_assign_expr(
         materialized->loc,
-        static_cast<const ExprWVarSymbol *>(materialized)->var_symbol
+        static_cast<const ExprWVarSymbol*>(materialized)->var_symbol
     );
 }
 
-const Expr *
+const Expr*
 AssignBuilder::Restricted::build_assignment(
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
@@ -327,32 +333,32 @@ AssignBuilder::Restricted::build_assignment(
            : handle_table_item_assignment(lhs, rhs, result_loc);
 }
 
-const Expr *
-AssignBuilder::Restricted::build_pre_inc(const Expr *const expr, const SourceLocation result_loc)
+const Expr*
+AssignBuilder::Restricted::build_pre_inc(const Expr* const expr, const SourceLocation result_loc)
 {
     return build_inc_dec<OpVariant::PRE, IncPolicy>(expr, result_loc);
 }
 
-const Expr *
-AssignBuilder::Restricted::build_post_inc(const Expr *const expr, const SourceLocation result_loc)
+const Expr*
+AssignBuilder::Restricted::build_post_inc(const Expr* const expr, const SourceLocation result_loc)
 {
     return build_inc_dec<OpVariant::POST, IncPolicy>(expr, result_loc);
 }
 
-const Expr *
-AssignBuilder::Restricted::build_pre_dec(const Expr *const expr, const SourceLocation result_loc)
+const Expr*
+AssignBuilder::Restricted::build_pre_dec(const Expr* const expr, const SourceLocation result_loc)
 {
     return build_inc_dec<OpVariant::PRE, DecPolicy>(expr, result_loc);
 }
 
-const Expr *
-AssignBuilder::Restricted::build_post_dec(const Expr *const expr, const SourceLocation result_loc)
+const Expr*
+AssignBuilder::Restricted::build_post_dec(const Expr* const expr, const SourceLocation result_loc)
 {
     return build_inc_dec<OpVariant::POST, DecPolicy>(expr, result_loc);
 }
 
 bool
-AssignBuilder::Restricted::is_direct_target_expr(const Expr *expr) noexcept
+AssignBuilder::Restricted::is_direct_target_expr(const Expr* expr) noexcept
 {
     return expr->type != Expr::Type::TABLE_ITEM;
 }
@@ -366,19 +372,19 @@ AssignBuilder::Restricted::assignment_requires_temp() const
 
 bool
 AssignBuilder::Restricted::validate_assignment(
-    const Expr *const lhs,
+    const Expr* const lhs,
     const SourceLocation assign_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs);
     if (lhs->type == Expr::Type::LIBRARY_FUNCTION)
     {
-        const auto *const func_symbol = static_cast<const LibFuncExpr *>(lhs)->libfunc_symbol;
+        const auto* const func_symbol = static_cast<const LibFuncExpr*>(lhs)->libfunc_symbol;
         dr_->report_assign_to_libfunc(func_symbol->name, assign_loc);
         return false;
     }
     if (lhs->type == Expr::Type::PROGRAM_FUNCTION)
     {
-        const auto *const func_symbol = static_cast<const ProgFuncExpr *>(lhs)->progfunc_symbol;
+        const auto* const func_symbol = static_cast<const ProgFuncExpr*>(lhs)->progfunc_symbol;
         dr_->report_assign_to_func(func_symbol->name, assign_loc, func_symbol->loc);
         return false;
     }
@@ -390,21 +396,21 @@ AssignBuilder::Restricted::validate_assignment(
 }
 
 // TODO: DRY!
-template<typename Policy>
-const Expr *
+template <typename Policy>
+const Expr*
 AssignBuilder::Restricted::handle_pre_inc_dec(
-    const Expr *const lvalue,
+    const Expr* const lvalue,
     const SourceLocation result_loc)
 {
     static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
     DEBUG_SMART_ASSERT(!!lvalue);
-    auto *qy = quad_yielder_;
+    auto* qy = quad_yielder_;
 
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
-        const auto *const ti_host = static_cast<const TableItemExpr *>(lvalue);
+        const auto* const ti_host = static_cast<const TableItemExpr*>(lvalue);
         // External materialization is required, as ti is also used on quad's result field.
-        const Expr *const ti = expr_normalizer_->materialize_if_table_item(ti_host);
+        const Expr* const ti = expr_normalizer_->materialize_if_table_item(ti_host);
         DEBUG_SMART_ASSERT(ti_host->index->type != Expr::Type::TABLE_ITEM && "Materialize index!");
         qy->yield_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
         qy->yield_next(ir::Opcode::TABLESETELEM, ti_host, ti_host->index, ti, result_loc);
@@ -412,7 +418,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
         if (!assignment_requires_temp())
         {
             DEBUG_SMART_ASSERT(ti->has_var_symbol());
-            const auto ti_symbol = static_cast<const ExprWVarSymbol *>(ti)->var_symbol;
+            const auto ti_symbol = static_cast<const ExprWVarSymbol*>(ti)->var_symbol;
             return expr_maker_->make_arithmetic_expr(result_loc, ti_symbol);
         }
 
@@ -429,7 +435,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
         if (!assignment_requires_temp())
         {
             DEBUG_SMART_ASSERT(lvalue->has_var_symbol());
-            const auto lvalue_symbol = static_cast<const ExprWVarSymbol *>(lvalue)->var_symbol;
+            const auto lvalue_symbol = static_cast<const ExprWVarSymbol*>(lvalue)->var_symbol;
             return expr_maker_->make_arithmetic_expr(result_loc, lvalue_symbol);
         }
 
@@ -440,25 +446,25 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
     }
 }
 
-template<typename Policy>
-const Expr *
+template <typename Policy>
+const Expr*
 AssignBuilder::Restricted::handle_post_inc_dec(
-    const Expr *const lvalue,
+    const Expr* const lvalue,
     const SourceLocation result_loc)
 {
     static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
-    auto *qy = quad_yielder_;
+    auto* qy = quad_yielder_;
 
     const auto temp_factory = [result_loc, this]()
     {
         return expr_maker_->make_arithmetic_expr(result_loc, parse_ctx_->new_temp());
     };
 
-    const Expr *result = nullptr;
+    const Expr* result = nullptr;
     if (lvalue->type == Expr::Type::TABLE_ITEM)
     {
-        const auto *const ti_host = static_cast<const TableItemExpr *>(lvalue);
-        const Expr *const ti = expr_normalizer_->materialize_if_table_item(lvalue);
+        const auto* const ti_host = static_cast<const TableItemExpr*>(lvalue);
+        const Expr* const ti = expr_normalizer_->materialize_if_table_item(lvalue);
         DEBUG_SMART_ASSERT(ti->has_active_temp());
         // We externally materialize as we need `ti` in more than a single yield.
         // IMPORTANT: For table items we must allocate the result temp before `yield_next` call.
@@ -480,9 +486,9 @@ AssignBuilder::Restricted::handle_post_inc_dec(
     return DEBUG_REQUIRE_PTR(result);
 }
 
-template<AssignBuilder::Restricted::OpVariant op_variant, typename Policy>
-const Expr *
-AssignBuilder::Restricted::build_inc_dec(const Expr *const expr, const SourceLocation result_loc)
+template <AssignBuilder::Restricted::OpVariant op_variant, typename Policy>
+const Expr*
+AssignBuilder::Restricted::build_inc_dec(const Expr* const expr, const SourceLocation result_loc)
 {
     static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
 
@@ -493,7 +499,7 @@ AssignBuilder::Restricted::build_inc_dec(const Expr *const expr, const SourceLoc
     if (!validator(dr_, expr, result_loc, Policy::op_name, Policy::op_symbol, "operand"))
         return nullptr;
 
-    const Expr *result = nullptr;
+    const Expr* result = nullptr;
     if constexpr (op_variant == OpVariant::PRE)
         result = handle_pre_inc_dec<Policy>(expr, result_loc);
     else if constexpr (op_variant == OpVariant::POST)
@@ -508,8 +514,8 @@ AssignBuilder::Restricted::build_inc_dec(const Expr *const expr, const SourceLoc
     return result;
 }
 
-const Expr *
-BasicBuilder::Restricted::prepare_logical_operand_expr(const Expr *expr)
+const Expr*
+BasicBuilder::Restricted::prepare_logical_operand_expr(const Expr* expr)
 {
     expr = expr_normalizer_->materialize_if_table_item(expr);
     expr = expr_optimizer_->try_propagate_const(expr);
@@ -528,9 +534,9 @@ BasicBuilder::Restricted::mark_short_circuit_jump_point()
     short_circuit_jump_stack_.push(quad_handler_->next_quad_label());
 }
 
-const Expr *
+const Expr*
 BasicBuilder::Restricted::build_uminus(
-    const Expr *expr,
+    const Expr* expr,
     const SourceLocation uminus_loc,
     const SourceLocation result_loc)
 {
@@ -547,11 +553,11 @@ skip_opt:
     return quad_yielder_->yield_next(ir::Opcode::UMINUS, result_factory, expr, nullptr, result_loc);
 }
 
-const Expr *
+const Expr*
 BasicBuilder::Restricted::build_arithmetic(
     const ir::Opcode opc,
-    const Expr *lhs,
-    const Expr *rhs,
+    const Expr* lhs,
+    const Expr* rhs,
     const SourceLocation arith_op_loc,
     const SourceLocation result_loc)
 {
@@ -577,11 +583,11 @@ skip_opt:
     return quad_yielder_->yield_next(opc, result_factory, lhs, rhs, result_loc);
 }
 
-const Expr *
+const Expr*
 BasicBuilder::Restricted::build_relational(
     const ir::Opcode opc,
-    const Expr *lhs,
-    const Expr *rhs,
+    const Expr* lhs,
+    const Expr* rhs,
     const SourceLocation operator_loc,
     const SourceLocation result_loc)
 {
@@ -604,7 +610,7 @@ BasicBuilder::Restricted::build_relational(
 skip_opt:
     auto hook = [result_loc, this]()
     {
-        const BoolExpr *result_expr = expr_maker_->make_bool_expr(result_loc);
+        const BoolExpr* result_expr = expr_maker_->make_bool_expr(result_loc);
         result_expr->true_list.push_back(quad_handler_->next_quad_label());
         result_expr->false_list.push_back(quad_handler_->next_quad_label() + 1); // +1 for jump quad
         return result_expr;
@@ -617,8 +623,8 @@ skip_opt:
     return hook_result;
 }
 
-const Expr *
-BasicBuilder::Restricted::build_logical_not(const Expr *expr, const SourceLocation result_loc)
+const Expr*
+BasicBuilder::Restricted::build_logical_not(const Expr* expr, const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
     DEBUG_SMART_ASSERT(expr->is_bool_or_const_bool());
@@ -628,14 +634,14 @@ BasicBuilder::Restricted::build_logical_not(const Expr *expr, const SourceLocati
     // Sanity check, CONST_BOOL must be consumed by the optimizer.
     DEBUG_SMART_ASSERT(expr->type == Expr::Type::BOOL);
 
-    static_cast<const BoolExpr *>(expr)->invert();
+    static_cast<const BoolExpr*>(expr)->invert();
     return expr;
 }
 
-const Expr *
+const Expr*
 BasicBuilder::Restricted::build_logical_and(
-    const Expr *lhs,
-    const Expr *rhs,
+    const Expr* lhs,
+    const Expr* rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
@@ -650,10 +656,10 @@ BasicBuilder::Restricted::build_logical_and(
     return build_short_circuit_bool_expr<AndShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
-const Expr *
+const Expr*
 BasicBuilder::Restricted::build_logical_or(
-    const Expr *lhs,
-    const Expr *rhs,
+    const Expr* lhs,
+    const Expr* rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
@@ -668,11 +674,11 @@ BasicBuilder::Restricted::build_logical_or(
     return build_short_circuit_bool_expr<OrShortCircuitPolicy>(lhs, rhs, result_loc);
 }
 
-template<typename Policy>
-const Expr *
+template <typename Policy>
+const Expr*
 BasicBuilder::Restricted::build_short_circuit_bool_expr(
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation result_loc)
 {
     static_assert(
@@ -682,9 +688,9 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
     );
 
     DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL && rhs->type == Expr::Type::BOOL);
-    const BoolExpr *const lhs_bool = static_cast<const BoolExpr *>(lhs);
-    const BoolExpr *const rhs_bool = static_cast<const BoolExpr *>(rhs);
-    const BoolExpr *const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
+    const BoolExpr* const lhs_bool = static_cast<const BoolExpr*>(lhs);
+    const BoolExpr* const rhs_bool = static_cast<const BoolExpr*>(rhs);
+    const BoolExpr* const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
 
     // Patching left side.
     DEBUG_SMART_ASSERT(!short_circuit_jump_stack_.empty());
@@ -694,9 +700,9 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
     Policy::backpatch_list(lhs_bool).clear();
 
     // Merging right side.
-    auto &lhs_merge = Policy::merge_lhs_list(lhs_bool);            // lhs_bool->false_list
-    auto &rhs_merge = Policy::merge_rhs_list(rhs_bool);            // rhs_bool->false_list
-    auto &result_merge = Policy::merge_lhs_list(bool_result_expr); // lhs_bool->false_list
+    auto& lhs_merge = Policy::merge_lhs_list(lhs_bool);            // lhs_bool->false_list
+    auto& rhs_merge = Policy::merge_rhs_list(rhs_bool);            // rhs_bool->false_list
+    auto& result_merge = Policy::merge_lhs_list(bool_result_expr); // lhs_bool->false_list
 
     // We could use merge_rhs too
     result_merge.reserve(lhs_merge.size() + rhs_merge.size());
@@ -707,8 +713,8 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
     return bool_result_expr;
 }
 
-const Expr *
-BasicBuilder::Restricted::normalize_to_bool_expr(const Expr *const expr)
+const Expr*
+BasicBuilder::Restricted::normalize_to_bool_expr(const Expr* const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
 
@@ -723,13 +729,13 @@ BasicBuilder::Restricted::normalize_to_bool_expr(const Expr *const expr)
 
     const auto hook = [expr, this]()
     {
-        const BoolExpr *const bool_expr = expr_maker_->make_bool_expr(expr->loc);
+        const BoolExpr* const bool_expr = expr_maker_->make_bool_expr(expr->loc);
         bool_expr->true_list.push_back(quad_handler_->next_quad_label());
         bool_expr->false_list.push_back(quad_handler_->next_quad_label() + 1);
         return bool_expr;
     };
 
-    const Expr *const bool_expr = quad_yielder_->yield_returning_hook_result(
+    const Expr* const bool_expr = quad_yielder_->yield_returning_hook_result(
         ir::Opcode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc, k_no_label, hook
     );
     quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc);
@@ -740,7 +746,7 @@ bool
 BasicBuilder::Restricted::validate_arithmetic_expr(
     const OperandSide op_side,
     const ir::Opcode opc,
-    const Expr *expr,
+    const Expr* expr,
     const SourceLocation arith_op_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
@@ -763,8 +769,8 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
 bool
 BasicBuilder::Restricted::validate_arithmetic_operation(
     const ir::Opcode opc,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation arith_op_loc)
 {
     const bool valid_lhs = validate_arithmetic_expr(OperandSide::LEFT, opc, lhs, arith_op_loc);
@@ -775,8 +781,8 @@ BasicBuilder::Restricted::validate_arithmetic_operation(
 bool
 BasicBuilder::Restricted::validate_relational_operation(
     const ir::Opcode opc,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation operator_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs, SemUtils::is_relational_iropcode(opc));
@@ -841,7 +847,7 @@ BasicBuilder::Restricted::validate_relational_operation(
 bool
 BasicBuilder::Restricted::validate_possible_division(
     const ir::Opcode opc,
-    const Expr *const rhs,
+    const Expr* const rhs,
     const SourceLocation division_loc)
 {
     if (opc != ir::Opcode::DIV && opc != ir::Opcode::MOD)
@@ -852,11 +858,11 @@ BasicBuilder::Restricted::validate_possible_division(
     return false;
 }
 
-const Expr *
+const Expr*
 BasicBuilder::Restricted::try_optimize_arithmetic_expr(
     const ir::Opcode opc,
-    const Expr *&lhs,
-    const Expr *&rhs,
+    const Expr*& lhs,
+    const Expr*& rhs,
     const SourceLocation result_loc)
 {
     #define HANDLE_ARITHMETIC(OPC) \
@@ -873,11 +879,11 @@ BasicBuilder::Restricted::try_optimize_arithmetic_expr(
     #undef  HANDLE_ARITHMETIC
 }
 
-const Expr *
+const Expr*
 BasicBuilder::Restricted::try_optimize_relational_expr(
     const ir::Opcode opc,
-    const Expr *&lhs,
-    const Expr *&rhs,
+    const Expr*& lhs,
+    const Expr*& rhs,
     const SourceLocation result_loc)
 {
     #define HANDLE_RELATIONAL(OPC) \
@@ -906,7 +912,7 @@ BasicBuilder::Restricted::warn_if_lossy_conversion_int_to_float(
 
 void
 CallBuilder::Restricted::update_method_call_draft(
-    const char *const method_id,
+    const char* const method_id,
     const SourceLocation method_id_loc)
 {
     DEBUG(
@@ -943,8 +949,8 @@ CallBuilder::Restricted::finalize_call()
 
 void
 CallBuilder::Restricted::check_for_argument_mismatch(
-    const Expr *const callable_lvalue,
-    const CallInfo::ArgStack &arg_stack,
+    const Expr* const callable_lvalue,
+    const CallInfo::ArgStack& arg_stack,
     const SourceLocation call_loc
 )
 {
@@ -953,7 +959,7 @@ CallBuilder::Restricted::check_for_argument_mismatch(
         return;
 
     DEBUG_SMART_ASSERT(callable_lvalue->type == Expr::Type::PROGRAM_FUNCTION);
-    const auto func_symbol = static_cast<const ProgFuncExpr *>(callable_lvalue)->progfunc_symbol;
+    const auto func_symbol = static_cast<const ProgFuncExpr*>(callable_lvalue)->progfunc_symbol;
     if (func_symbol->parameter_list.size() == arg_stack.size())
         return;
     dr_->report_call_argument_mismatch(
@@ -965,50 +971,50 @@ CallBuilder::Restricted::check_for_argument_mismatch(
     );
 }
 
-const Expr *
+const Expr*
 CallBuilder::Restricted::build_call_consuming(
-    const Expr *const callable,
+    const Expr* const callable,
     const SourceLocation call_loc,
-    const ConstStringExpr *const method_name)
+    const ConstStringExpr* const method_name)
 {
     DEBUG_SMART_ASSERT(!!callable);
     DEBUG_SMART_ASSERT(callable->is_callable());
     DEBUG_SMART_ASSERT(!draft_.call_info_stack.empty());
-    auto *qy = quad_yielder_; // Short alias for readability.
+    auto* qy = quad_yielder_; // Short alias for readability.
 
-    auto &call_args = draft_.call_info_stack.top().arguments;
+    auto& call_args = draft_.call_info_stack.top().arguments;
     check_for_argument_mismatch(callable, call_args, call_loc);
     while (!call_args.empty())
     {
-        const Expr *const arg = call_args.top();
+        const Expr* const arg = call_args.top();
         qy->yield_next(ir::Opcode::PARAM, nullptr, arg, nullptr, arg->loc);
         call_args.pop();
     }
 
-    const Expr *call_target = callable;
+    const Expr* call_target = callable;
     if (method_name)
     {
         // Materialize host (handles cases like a[b]..c; host being a[b])
-        const Expr *const method_keeper = expr_normalizer_->materialize_if_table_item(callable);
+        const Expr* const method_keeper = expr_normalizer_->materialize_if_table_item(callable);
         qy->yield_next(ir::Opcode::PARAM, nullptr, method_keeper, nullptr, method_keeper->loc);
         // Extract method into a call_target.
         const SourceLocation method_get_loc = merge(method_keeper->loc, method_name->loc);
         call_target = expr_maker_->make_table_item_expr(method_get_loc, method_keeper, method_name);
     }
-    const Expr *const callee = expr_normalizer_->materialize_if_table_item(call_target);
+    const Expr* const callee = expr_normalizer_->materialize_if_table_item(call_target);
     DEBUG_SMART_ASSERT(callee->is_callable());
     qy->yield_next(ir::Opcode::CALL, nullptr, callee, nullptr, call_loc);
 
     // At these point we have used everything required to make a call.
     finalize_call();
-    const auto *getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
+    const auto* getretval_expr = expr_maker_->make_variable_expr(call_loc, parse_ctx_->new_temp());
     qy->yield_next(ir::Opcode::GETRETVAL, getretval_expr, nullptr, nullptr, call_loc);
     return getretval_expr;
 }
 
-const Expr *
+const Expr*
 CallBuilder::Restricted::build_method_call_consuming(
-    const Expr *const method_host,
+    const Expr* const method_host,
     const SourceLocation call_loc)
 {
     DEBUG_SMART_ASSERT(!draft_.call_info_stack.empty());
@@ -1017,28 +1023,28 @@ CallBuilder::Restricted::build_method_call_consuming(
     if (!validate_lvalue(dr_, method_host, call_loc, "method access", "..", "base expression"))
         return nullptr;
 
-    const MethodInfo &mi = *draft_.call_info_stack.top().pending_method_info;
+    const MethodInfo& mi = *draft_.call_info_stack.top().pending_method_info;
     // Turn method name into a string literal expression
-    const auto *const method_name = expr_maker_->make_const_string_expr(mi.id_loc, mi.id.c_str());
+    const auto* const method_name = expr_maker_->make_const_string_expr(mi.id_loc, mi.id.c_str());
 
     // Don't materialize callable_method, let build_call_consuming() do it.
     return build_call_consuming(method_host, call_loc, method_name);
 }
 
-const Expr *
+const Expr*
 CallBuilder::Restricted::build_iife_call_consuming(
-    const ProgFuncSymbol *const func_symbol,
+    const ProgFuncSymbol* const func_symbol,
     const SourceLocation call_loc)
 {
     DEBUG_SMART_ASSERT(!!func_symbol);
-    const auto *const prog_func_expr = expr_maker_->make_prog_func_expr(call_loc, func_symbol);
+    const auto* const prog_func_expr = expr_maker_->make_prog_func_expr(call_loc, func_symbol);
     return build_call_consuming(prog_func_expr, call_loc);
 }
 
-void CallBuilder::commit_call_argument(const Expr *call_arg)
+void CallBuilder::commit_call_argument(const Expr* call_arg)
 {
     DEBUG_SMART_ASSERT(!!call_arg);
-    auto &r = restricted();
+    auto& r = restricted();
     DEBUG_SMART_ASSERT(
         r.parse_ctx_->elist_ctx_handler.region().has_value() &&
         r.parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::CALL
@@ -1054,38 +1060,38 @@ void CallBuilder::commit_call_argument(const Expr *call_arg)
     r.draft_.call_info_stack.top().arguments.push(call_arg);
 }
 
-const Expr *
+const Expr*
 ConstBuilder::Restricted::build_true_expr(const SourceLocation loc)
 {
     return expr_maker_->make_const_bool_expr(loc, true);
 }
 
-const Expr *
+const Expr*
 ConstBuilder::Restricted::build_false_expr(const SourceLocation loc)
 {
     return expr_maker_->make_const_bool_expr(loc, false);
 }
 
-const Expr *
+const Expr*
 ConstBuilder::Restricted::build_int_expr(const AlphaInt value, const SourceLocation loc)
 {
     return expr_maker_->make_const_int_expr(loc, value);
 }
 
-const Expr *
+const Expr*
 ConstBuilder::Restricted::build_float_expr(const AlphaFloat value, const SourceLocation loc)
 {
     return expr_maker_->make_const_float_expr(loc, value);
 }
 
-const Expr *
-ConstBuilder::Restricted::build_string_expr(const char *const value, const SourceLocation loc)
+const Expr*
+ConstBuilder::Restricted::build_string_expr(const char* const value, const SourceLocation loc)
 {
     DEBUG_SMART_ASSERT(!!value);
     return expr_maker_->make_const_string_expr(loc, value);
 }
 
-const Expr *
+const Expr*
 ConstBuilder::Restricted::build_nil_expr(const SourceLocation loc)
 {
     return expr_maker_->make_nil_expr(loc);
@@ -1098,7 +1104,7 @@ FunctionBuilder::Restricted::update_function_draft()
 }
 
 void
-FunctionBuilder::Restricted::update_function_draft(const std::string &id)
+FunctionBuilder::Restricted::update_function_draft(const std::string& id)
 {
     function_draft_.id = id;
 
@@ -1108,7 +1114,7 @@ FunctionBuilder::Restricted::update_function_draft(const std::string &id)
 
 void
 FunctionBuilder::Restricted::collect_function_parameter(
-    const std::string &id,
+    const std::string& id,
     const SourceLocation id_loc) { function_draft_.parameter_list.emplace_back(id, id_loc); }
 
 void
@@ -1117,7 +1123,7 @@ FunctionBuilder::Restricted::register_function_parameters()
     constexpr auto space = VarSymbol::Space::FORMAL_ARGUMENT;
     DEBUG_SMART_ASSERT(parse_ctx_->space_handler.space() == VarSymbol::Space::FORMAL_ARGUMENT);
 
-    for (const Parameter &p : function_draft_.parameter_list)
+    for (const Parameter& p : function_draft_.parameter_list)
         if (validate_formal_param_name(p))
             symbol_table_->insert_variable(
                 p.name,
@@ -1131,7 +1137,7 @@ FunctionBuilder::Restricted::register_function_parameters()
 
 bool
 FunctionBuilder::Restricted::validate_funcdef_name(
-    const std::string &func_name,
+    const std::string& func_name,
     const SourceLocation funcname_loc)
 {
     if (symbol_table_->is_libfunc_name(func_name))
@@ -1141,7 +1147,7 @@ FunctionBuilder::Restricted::validate_funcdef_name(
     }
 
     const auto curr_scope = parse_ctx_->scope_handler.scope();
-    if (const Symbol *const found_symbol = symbol_table_->lookup_local(func_name, curr_scope))
+    if (const Symbol* const found_symbol = symbol_table_->lookup_local(func_name, curr_scope))
     {
         if (found_symbol->is_function())
         {
@@ -1158,7 +1164,7 @@ FunctionBuilder::Restricted::validate_funcdef_name(
 }
 
 bool
-FunctionBuilder::Restricted::validate_formal_param_name(const Parameter &param)
+FunctionBuilder::Restricted::validate_formal_param_name(const Parameter& param)
 {
     // Library‐function conflict
     if (symbol_table_->is_libfunc_name(param.name))
@@ -1168,7 +1174,7 @@ FunctionBuilder::Restricted::validate_formal_param_name(const Parameter &param)
     }
 
     const auto curr_scope = parse_ctx_->scope_handler.scope();
-    if (const Symbol *const formal_symbol = symbol_table_->lookup_local(param.name, curr_scope))
+    if (const Symbol* const formal_symbol = symbol_table_->lookup_local(param.name, curr_scope))
     {
         // Parameter should produce name conflicts only with themselves.
         DEBUG_SMART_ASSERT(
@@ -1182,9 +1188,9 @@ FunctionBuilder::Restricted::validate_formal_param_name(const Parameter &param)
     return true;
 }
 
-const Expr *
+const Expr*
 FunctionBuilder::Restricted::forward_program_function(
-    const ProgFuncSymbol *const func_symbol,
+    const ProgFuncSymbol* const func_symbol,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!func_symbol);
@@ -1198,13 +1204,13 @@ FunctionBuilder::Restricted::forward_program_function(
 /// we must *NOT* back-patch the local-variable count,
 /// or we’ll end up polluting the original function’s frame with
 /// local_variable_count from the redefinition. TODO: DO WE POLLUTE CURRENTLY?
-const ProgFuncSymbol *
+const ProgFuncSymbol*
 FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation func_signature_loc)
 {
     const bool validated_funcname = validate_funcdef_name(function_draft_.id, func_signature_loc);
     const u32 skip_func_jump_label = quad_handler_->next_quad_label();
     quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_signature_loc);
-    const ProgFuncSymbol *func_symbol = nullptr;
+    const ProgFuncSymbol* func_symbol = nullptr;
     if (validated_funcname)
     {
         func_symbol = symbol_table_->insert_program_function(
@@ -1235,7 +1241,7 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation f
     return func_symbol;
 }
 
-const ProgFuncSymbol *
+const ProgFuncSymbol*
 FunctionBuilder::Restricted::build_program_function_exit(
     const BlockSourceLocation block_loc)
 {
@@ -1262,25 +1268,25 @@ FunctionBuilder::Restricted::build_program_function_exit(
     return fbi.func_symbol;
 }
 
-const Expr *
+const Expr*
 TableAccessBuilder::Restricted::build_member_access(
-    const Expr *const base,
-    const char *const member_id,
+    const Expr* const base,
+    const char* const member_id,
     const SourceLocation member_id_loc,
     const SourceLocation access_loc)
 {
     DEBUG_SMART_ASSERT(!!base, !!member_id);
     if (!validate_lvalue(dr_, base, access_loc, "member access", ".", "base expression"))
         return nullptr;
-    const Expr *const materialized_lvalue = expr_normalizer_->materialize_if_table_item(base);
-    const Expr *const index = expr_maker_->make_const_string_expr(member_id_loc, member_id);
+    const Expr* const materialized_lvalue = expr_normalizer_->materialize_if_table_item(base);
+    const Expr* const index = expr_maker_->make_const_string_expr(member_id_loc, member_id);
     return expr_maker_->make_table_item_expr(access_loc, materialized_lvalue, index);
 }
 
-const Expr *
+const Expr*
 TableAccessBuilder::Restricted::build_subscript_access(
-    const Expr *base,
-    const Expr *subscript,
+    const Expr* base,
+    const Expr* subscript,
     const SourceLocation access_loc)
 {
     DEBUG_SMART_ASSERT(!!base, !!subscript);

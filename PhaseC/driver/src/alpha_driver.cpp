@@ -11,6 +11,14 @@ Driver::Driver(
 }
 
 void
+Driver::only_lex_tokens() const
+{
+    for (const TranslationUnit &tu : translation_units_)
+        tu.only_lex_tokens();
+}
+
+
+void
 Driver::show_symbol_table() const
 {
     if (!this->ok())

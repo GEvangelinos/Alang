@@ -138,7 +138,7 @@
         else if constexpr (std::is_default_constructible_v<return_type>)      \
             return return_type{};                                             \
         else                                                                  \
-            static_assert(false, "Return type is not default-constructible"); \
+            static_assert(always_false_v<return_type>, "Return type is not default-constructible"); \
     }
 
 #define DISPATCH_MASTER_METHOD_CALL(method_name) \

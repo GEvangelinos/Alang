@@ -37,7 +37,7 @@ QuadHandler::emit(
     );
     if (opc != ir::Opcode::TABLECREATE)
         DEBUG_SMART_ASSERT(
-        loc != k_no_loc
+        loc != SourceLocation::none()
     );
     if (opc == ir::Opcode::JUMP && label == next_quad_label())
         DEBUG_SMART_ASSERT(
@@ -85,7 +85,7 @@ QuadHandler::locPatch_tablecreate(const LabelID target_quad_label, const SourceL
 {
     DEBUG_SMART_ASSERT(
         target_quad_label != k_no_label && "Can't loc-patch quad without valid LabelID",
-        new_loc != k_no_loc && "Can't loc-patch quad without valid SourceLocation"
+        new_loc != SourceLocation::none() && "Can't loc-patch quad without valid SourceLocation"
     );
 
     const u32 idx = Quad::label_to_index(target_quad_label);
@@ -94,7 +94,8 @@ QuadHandler::locPatch_tablecreate(const LabelID target_quad_label, const SourceL
     DEBUG_SMART_ASSERT(idx < quads_.size());
     DEBUG_SMART_ASSERT(
         quads_[idx].opcode == ir::Opcode::TABLECREATE && "Only loc-patching tablecreate quads",
-        quads_[idx].loc == k_no_loc && "SourceLocation is already assigned, should'nt be called"
+        quads_[idx].loc == SourceLocation::none() &&
+        "SourceLocation is already assigned, should'nt be called"
     );
 
     quads_[idx].loc = new_loc;

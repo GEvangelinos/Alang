@@ -38,7 +38,7 @@ LexerCtx::lastest_open_parenthesis_loc() const
 {
     if (open_left_parentheses_locs.empty())
         return {};
-    DEBUG_SMART_ASSERT(open_left_parentheses_locs.top() != k_no_loc);
+    DEBUG_SMART_ASSERT(open_left_parentheses_locs.top() != SourceLocation::none());
     return open_left_parentheses_locs.top();
 }
 
@@ -47,7 +47,7 @@ LexerCtx::lastest_open_bracket_loc() const
 {
     if (open_left_brackets_locs.empty())
         return {};
-    DEBUG_SMART_ASSERT(open_left_brackets_locs.top() != k_no_loc);
+    DEBUG_SMART_ASSERT(open_left_brackets_locs.top() != SourceLocation::none());
     return open_left_brackets_locs.top();
 }
 
@@ -56,7 +56,7 @@ LexerCtx::latest_open_brace_loc() const
 {
     if (open_left_braces_locs.empty())
         return {};
-    DEBUG_SMART_ASSERT(open_left_braces_locs.top() != k_no_loc);
+    DEBUG_SMART_ASSERT(open_left_braces_locs.top() != SourceLocation::none());
     return open_left_braces_locs.top();
 }
 } // namespace alpha

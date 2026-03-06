@@ -8,30 +8,29 @@ namespace alpha
 #ifdef DEFINE_SRC_IDX_TYPE
 #error "Macro collision detected"
 #endif
-#define DEFINE_SRC_IDX_TYPE_STRUCT(StructName)                                               \
-    struct StructName                                                                        \
-    {                                                                                        \
-        using UnderlyingType = Word;                                                         \
-        static_assert(std::is_unsigned_v<UnderlyingType>);                                   \
-                                                                                             \
-        static constexpr UnderlyingType none = 0;                                            \
-        UnderlyingType value;                                                                \
-                                                                                             \
-        constexpr StructName() : value(none) {}                                              \
-        explicit constexpr StructName(const UnderlyingType value) noexcept : value(value) {} \
-        constexpr StructName(const StructName &rhs) noexcept : value(rhs.value) {}           \
+#define DEFINE_SRC_IDX_TYPE_STRUCT(StructName)                                                    \
+    struct StructName                                                                             \
+    {                                                                                             \
+        using UnderlyingType = Word;                                                              \
+        static_assert(std::is_unsigned_v<UnderlyingType>);                                        \
+                                                                                                  \
+        [[nodiscard]] static constexpr StructName none() { return {}; }                           \
+        UnderlyingType value;                                                                     \
+                                                                                                  \
+        constexpr StructName() : value(0) {}                                                      \
+        explicit constexpr StructName(const UnderlyingType value) noexcept : value(value) {}      \
+        constexpr StructName(const StructName &rhs) noexcept : value(rhs.value) {}                \
         [[nodiscard]] constexpr auto operator<=>(const StructName &rhs) const noexcept = default; \
-        constexpr StructName &operator=(StructName rhs) noexcept;                            \
-        constexpr StructName &operator+=(StructName rhs) noexcept;                           \
-        constexpr StructName &operator-=(StructName rhs) noexcept;                           \
-        [[nodiscard]] constexpr StructName operator+(StructName rhs) const noexcept;         \
-        [[nodiscard]] constexpr StructName operator-(StructName rhs) const noexcept;         \
-        constexpr StructName &operator++() noexcept;                                         \
-        constexpr StructName operator++(int) noexcept;                                       \
-        constexpr StructName &operator--() noexcept;                                         \
-        constexpr StructName operator--(int) noexcept;                                       \
-        [[nodiscard]] constexpr bool is_none() const noexcept { return value == none; }      \
-    };                                                                                       \
+        constexpr StructName &operator=(StructName rhs) noexcept;                                 \
+        constexpr StructName &operator+=(StructName rhs) noexcept;                                \
+        constexpr StructName &operator-=(StructName rhs) noexcept;                                \
+        [[nodiscard]] constexpr StructName operator+(StructName rhs) const noexcept;              \
+        [[nodiscard]] constexpr StructName operator-(StructName rhs) const noexcept;              \
+        constexpr StructName &operator++() noexcept;                                              \
+        constexpr StructName operator++(int) noexcept;                                            \
+        constexpr StructName &operator--() noexcept;                                              \
+        constexpr StructName operator--(int) noexcept;                                            \
+    };                                                                                            \
     static_assert(sizeof(StructName) <= 8, "If false in overloaded operators I must reconsider pass rhs by ref (not by value)");
 
     DEFINE_SRC_IDX_TYPE_STRUCT(SrcLineIdx)

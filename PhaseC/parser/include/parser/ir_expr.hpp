@@ -228,8 +228,8 @@ Expr::rvalue_cast() const { rvalue_casted.raise(); }
 // WARNING: static_* expressions have dummy location which does NOT correspond
 // to any real source buffer region. Never return them from synthesis; doing so
 // risks invalid ranges in error reporting and location-sensitive computations.
-inline static const ConstIntExpr k_static_int_1_expr{k_no_loc, 1};
-inline static const ConstBoolExpr k_static_true_expr{k_no_loc, true};
-inline static const ConstBoolExpr k_static_false_expr{k_no_loc, false};
+inline static const ConstIntExpr k_static_int_1_expr{SourceLocation::none(), 1};
+inline static const ConstBoolExpr k_static_true_expr{SourceLocation::none(), true};
+inline static const ConstBoolExpr k_static_false_expr{SourceLocation::none(), false};
 } // namespace alpha
 #endif // IR_EXPR_HPP

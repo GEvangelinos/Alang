@@ -29,7 +29,6 @@
 %option prefix="alpha_yy"
 
 /* FLex regex definitions */
-
 id              [a-zA-Z][a-zA-Z_0-9]*
 int             (0[xX][0-9a-fA-F]+)|([0-9]+)
 float           ([0-9]*\.[0-9]+([eE][\+-]?[0-9]+)?)
@@ -115,7 +114,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
         alpha::TokenComment::set_starting_location(*yylloc);
 } /* No return until complete token or EOF. */
 <INSIDE_COMMENT_BLOCK>{comment_end_rule} {
-                BEGIN(INITIAL);
+        BEGIN(INITIAL);
 }
 <INSIDE_COMMENT_BLOCK>{newline} {
         lt.append_line(lexer_ctx.source_index);
@@ -129,8 +128,10 @@ string_invalid_escape_code "\\"([^tnr"\\])
 {string_begin_rule} {
         BEGIN(INSIDE_STRING);
         alpha::TokenString::set_starting_location(*yylloc);
+        alpha::TokenString::append_to_assembling_buffer(yytext);
 }
 <INSIDE_STRING>{newline} {
+        alpha::TokenString::append_to_assembling_buffer(yytext);
         lt.append_line(lexer_ctx.source_index);
 }
 <INSIDE_STRING>{string_valid_inner_part} {
@@ -146,6 +147,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
 }
 <INSIDE_STRING>{string_end_rule} {
         BEGIN(INITIAL);
+        alpha::TokenString::append_to_assembling_buffer(yytext);
         yylval->cstring = alpha::TokenString::export_string_token();
         *yylloc = alpha::TokenString::export_location(*yylloc);
         YIELD_TOKEN(TKN_STRING);
@@ -155,5 +157,5 @@ string_invalid_escape_code "\\"([^tnr"\\])
         dr.report_invalid_character(yytext, *yylloc);
 }
 
-<<EOF>>          { YIELD_TOKEN(TKN_YYEOF); }
+<<EOF>> { YIELD_TOKEN(TKN_YYEOF); }
 %%

@@ -5,5 +5,6 @@ debug-build/
 ./tests/Tree.asc
 *.swap
 *.swp
+*.swo
 
 __pycache__/

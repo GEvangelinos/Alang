@@ -141,7 +141,7 @@ FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const host)
     frame_stack_.emplace(
         k_global_data_frame_name,
         k_global_scope,
-        k_no_loc,
+        SourceLocation::none(),
         nullptr,
         k_no_label);
 }
@@ -353,7 +353,7 @@ ParseCtx::new_temp()
             var_type,
             space_handler.space(),
             space_handler.next_offset(),
-            k_no_loc
+            SourceLocation::none()
         );
     }
     symbol_table_->attach_temp_handle(var_symbol, temp_handle);

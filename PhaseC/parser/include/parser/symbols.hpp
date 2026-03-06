@@ -223,7 +223,7 @@ VarSymbol::TempBinding::id() const noexcept
 
 inline
 LibFuncSymbol::LibFuncSymbol(const std::string &name, [[maybe_unused]] u32)
-    : Symbol(name, k_libfunc_scope, Symbol::Type::LIBRARY_FUNCTION, k_no_loc) {}
+    : Symbol(name, k_libfunc_scope, Symbol::Type::LIBRARY_FUNCTION, SourceLocation::none()) {}
 
 inline
 ProgFuncSymbol::ProgFuncSymbol(

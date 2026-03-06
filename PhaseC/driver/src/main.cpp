@@ -17,16 +17,16 @@ bool g_show_parser_trace = false;
 static constexpr char compiler_description[] = "A Compiler for the Alpha language";
 
 [[nodiscard]] static arguinator::Parser launch_cli_parser(
-    int argc, const char *const *argv, const alpha::SettingManager &sm);
+    int argc, const char* const * argv, const alpha::SettingManager& sm);
 
-void handle_exports(const arguinator::Parser &cli_parser, const alpha::Driver &driver);
-void handle_shows(const arguinator::Parser &cli_parser, const alpha::Driver &driver);
-[[nodiscard]] static const char *fatal_header();
+void handle_exports(const arguinator::Parser& cli_parser, const alpha::Driver& driver);
+void handle_shows(const arguinator::Parser& cli_parser, const alpha::Driver& driver);
+[[nodiscard]] static const char* fatal_header();
 [[noreturn]] static void fatal_impl(std::string_view error_message);
-[[noreturn]] static void fatal(const alpha::exception::DriverError &e) { fatal_impl(e.what()); }
-[[noreturn]] static void fatal(const arguinator::CLIError &e) { fatal_impl(e.what()); }
+[[noreturn]] static void fatal(const alpha::exception::DriverError& e) { fatal_impl(e.what()); }
+[[noreturn]] static void fatal(const arguinator::CLIError& e) { fatal_impl(e.what()); }
 
-int main(const int argc, char **argv)
+int main(const int argc, char** argv)
 {
     alpha::SettingManager setting_manager;
     std::unique_ptr<alpha::Driver> driver;
@@ -47,8 +47,8 @@ int main(const int argc, char **argv)
         handle_shows(cli_parser, *driver);
     }
     catch (arguinator::CLIHelp) { return 0; }
-    catch (arguinator::CLIError &e) { fatal(e); }
-    catch (alpha::exception::DriverError &e) { fatal(e); }
+    catch (arguinator::CLIError& e) { fatal(e); }
+    catch (alpha::exception::DriverError& e) { fatal(e); }
 
     if (setting_manager.config_flag_settings().expect_errors)
         return driver->ok() ? EXIT_FAILURE : EXIT_SUCCESS;
@@ -56,13 +56,13 @@ int main(const int argc, char **argv)
 }
 
 arguinator::Parser
-launch_cli_parser(const int argc, const char *const *const argv, const alpha::SettingManager &sm)
+launch_cli_parser(const int argc, const char* const * const argv, const alpha::SettingManager& sm)
 {
     arguinator::Parser parser(argc, argv, compiler_description);
 
-    for (const auto &s: sm.all_settings())
+    for (const auto& s : sm.all_settings())
     {
-        auto &flag = parser.set_flag(s.name)
+        auto& flag = parser.set_flag(s.name)
                            .set_arity(s.arity)
                            .set_help(s.help);
         if (s.required)
@@ -86,33 +86,33 @@ launch_cli_parser(const int argc, const char *const *const argv, const alpha::Se
     return parser;
 }
 
-void handle_exports(const arguinator::Parser &cli_parser, const alpha::Driver &driver)
+void handle_exports(const arguinator::Parser& cli_parser, const alpha::Driver& driver)
 {
-    using ASD = alpha::settings::Jobs;
-    if (cli_parser[ASD::export_symbol_table].is_provided())
+    using ASJ = alpha::settings::Jobs;
+    if (cli_parser[ASJ::export_symbol_table].is_provided())
         driver.export_symbol_table();
-    if (cli_parser[ASD::export_symbol_table_without_temps].is_provided())
+    if (cli_parser[ASJ::export_symbol_table_without_temps].is_provided())
         driver.export_symbol_table_without_temps();
-    if (cli_parser[ASD::export_diagnostics].is_provided())
+    if (cli_parser[ASJ::export_diagnostics].is_provided())
         driver.export_diagnostics();
-    if (cli_parser[ASD::export_ir].is_provided())
+    if (cli_parser[ASJ::export_ir].is_provided())
         driver.export_ir();
 }
 
-void handle_shows(const arguinator::Parser &cli_parser, const alpha::Driver &driver)
+void handle_shows(const arguinator::Parser& cli_parser, const alpha::Driver& driver)
 {
-    using ASD = alpha::settings::Jobs;
-    if (cli_parser[ASD::show_symbol_table].is_provided())
+    using ASJ = alpha::settings::Jobs;
+    if (cli_parser[ASJ::show_symbol_table].is_provided())
         driver.show_symbol_table();
-    if (cli_parser[ASD::show_ir].is_provided())
+    if (cli_parser[ASJ::show_ir].is_provided())
         driver.show_ir(false);
-    if (cli_parser[ASD::show_ir_detailed].is_provided())
+    if (cli_parser[ASJ::show_ir_detailed].is_provided())
         driver.show_ir(true);
-    if (!cli_parser[ASD::no_show_diagnostics].is_provided())
+    if (!cli_parser[ASJ::no_show_diagnostics].is_provided())
         driver.show_diagnostics(); // Used by regression-test tool.
 }
 
-const char *
+const char*
 fatal_header() { return COMPILER_NAME ": " COLOR_FG_ASCII_BOLD_RED "fatal: " SGR_RESET; }
 
 void

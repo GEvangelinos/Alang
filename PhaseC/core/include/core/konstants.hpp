@@ -27,7 +27,6 @@ static constexpr char k_temp_variable_prefix[] = "$";
 static constexpr u32 k_global_scope = 0;
 static constexpr u32 k_libfunc_scope = k_global_scope;
 static constexpr u32 k_libfunc_local_variable_count = 0;
-static constexpr SourceLocation k_no_loc;
 
 constexpr char k_not_available_marker[] = "NA";
 constexpr char k_not_available_pretty_marker[] = "-";

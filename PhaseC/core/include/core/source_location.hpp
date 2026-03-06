@@ -2,6 +2,8 @@
 #define SOURCE_LOCATION_HPP
 
 #include <vector>               // for vector
+
+#include "source_location.hpp"
 #include "core/basics.hpp"
 #include "core/numeric_types.hpp" // for u32
 #include "core/source_location_types.hpp"
@@ -21,10 +23,10 @@ struct SourceLocationRaw
 
 struct SourceLocation
 {
-    SrcBuffIdx begin; // Inclusive
-    SrcBuffIdx end;   // Exclusive
+    SrcBuffIdx begin = SrcBuffIdx::none(); // Inclusive
+    SrcBuffIdx end = SrcBuffIdx::none();   // Exclusive
 
-    constexpr SourceLocation();
+    constexpr SourceLocation() = default;
     constexpr SourceLocation(SrcBuffIdx begin, SrcBuffIdx end);
     constexpr SourceLocation(SourceLocationRaw raw_loc);
 
@@ -32,17 +34,9 @@ struct SourceLocation
     [[nodiscard]] bool operator==(SourceLocation rhs) const noexcept;
     [[nodiscard]] bool operator!=(SourceLocation rhs) const noexcept;
 
-    friend std::ostream& operator<<(std::ostream &os, const SourceLocation& self);
+    [[nodiscard]] static constexpr SourceLocation none() noexcept;
+    [[nodiscard]] static constexpr SourceLocation eof() noexcept;
 };
-
-inline std::ostream&
-    operator<<(std::ostream& os, const SourceLocation& self)
-{
-    os << "[" << self.begin.value << ", " << self.end.value << ")";
-    return os;
-
-}
-
 
 // ======================================================================================
 // Core inline utilities for SourceLocation.
@@ -50,34 +44,20 @@ inline std::ostream&
 // to minimize call overhead in hot parsing paths.
 // ======================================================================================
 constexpr
-SourceLocation::SourceLocation()
-    : SourceLocation(
-        SrcBuffIdx{SrcBuffIdx::none},
-        SrcBuffIdx{SrcBuffIdx::none}
-    ) {}
-
-constexpr
 SourceLocation::SourceLocation(SrcBuffIdx begin, SrcBuffIdx end)
     : begin(begin), end(end)
 {
-    DEBUG_SMART_ASSERT(
-        ( begin.value == SrcBuffIdx::none &&
-            end.value == SrcBuffIdx::none
-        )
-        || begin < end
-    );
+    #ifdef DEBUG_MODE
+    if (!std::is_constant_evaluated())
+        DEBUG_SMART_ASSERT(begin < end);
+    #endif
 }
 
 constexpr
 SourceLocation::SourceLocation(const SourceLocationRaw raw_loc)
     : begin(SrcBuffIdx{raw_loc.begin}), end(SrcBuffIdx{raw_loc.end})
 {
-    DEBUG_SMART_ASSERT(
-        ( begin.value == SrcBuffIdx::none &&
-            end.value == SrcBuffIdx::none
-        )
-        || begin < end
-    );
+    DEBUG_SMART_ASSERT((begin == SrcBuffIdx::none() && end == SrcBuffIdx::none()) || begin < end);
 }
 
 inline SourceLocationRaw
@@ -105,6 +85,18 @@ merge(const SourceLocation left, const SourceLocation right)
         left.end <= right.begin && "Location overlap detected"
     );
     return SourceLocation{left.begin, right.end};
+}
+
+constexpr SourceLocation
+SourceLocation::none() noexcept { return SourceLocation{SrcBuffIdx::none(), SrcBuffIdx::none()}; }
+
+constexpr SourceLocation
+SourceLocation::eof() noexcept
+{
+    return SourceLocation{
+        SrcBuffIdx{std::numeric_limits<SrcBuffIdx::UnderlyingType>::max()},
+        SrcBuffIdx{std::numeric_limits<SrcBuffIdx::UnderlyingType>::max()},
+    };
 }
 
 // ======================================================================================

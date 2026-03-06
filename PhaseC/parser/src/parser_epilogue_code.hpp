@@ -458,7 +458,7 @@ report_many_expected_diagnostic(
 
         if (opener_loc.has_value() && lexer_ctx.last_token_info().has_value())
         {
-            DEBUG_SMART_ASSERT(opener_loc.value() != k_no_loc);
+            DEBUG_SMART_ASSERT(opener_loc.value() != SourceLocation::none());
             dr.report_syntax_error_expected_closer(
                 yysymbol_name(suggested_symbol),
                 unexpected_token_str,

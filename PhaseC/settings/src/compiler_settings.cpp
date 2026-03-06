@@ -46,7 +46,7 @@ SettingManager::SettingManager()
 #undef  MAKE_SETTING_WITH_VALUE_TYPE
 
 void
-SettingManager::parse_settings(const arguinator::Parser &arg_parser)
+SettingManager::parse_settings(const arguinator::Parser& arg_parser)
 {
     config_flag_settings_.set(SettingManager::parse_config_flag_settings(arg_parser));
     config_data_settings_.set(SettingManager::parse_config_data_settings(arg_parser));
@@ -54,7 +54,7 @@ SettingManager::parse_settings(const arguinator::Parser &arg_parser)
     ir_opt_settings_.set(SettingManager::parse_ir_opt_settings(arg_parser));
 }
 
-const settings::ExprOpts &
+const settings::ExprOpts&
 SettingManager::expr_opt_settings() const
 {
     if (!expr_opt_settings_.is_assigned())
@@ -62,7 +62,7 @@ SettingManager::expr_opt_settings() const
     return expr_opt_settings_.get();
 }
 
-const settings::IROpts &
+const settings::IROpts&
 SettingManager::ir_opt_settings() const
 {
     if (!ir_opt_settings_.is_assigned())
@@ -70,7 +70,7 @@ SettingManager::ir_opt_settings() const
     return ir_opt_settings_.get();
 }
 
-const settings::ConfigFlags &
+const settings::ConfigFlags&
 SettingManager::config_flag_settings() const
 {
     if (!config_flag_settings_.is_assigned())
@@ -78,7 +78,7 @@ SettingManager::config_flag_settings() const
     return config_flag_settings_.get();
 }
 
-const settings::ConfigData &
+const settings::ConfigData&
 SettingManager::config_data_settings() const
 {
     if (!config_data_settings_.is_assigned())
@@ -87,7 +87,7 @@ SettingManager::config_data_settings() const
 }
 
 settings::ConfigFlags
-SettingManager::parse_config_flag_settings(const arguinator::Parser &arg_parser)
+SettingManager::parse_config_flag_settings(const arguinator::Parser& arg_parser)
 {
     #define QUERY(REQUIRED, ARITY, NAME, HELP_MSG) \
         .NAME = arg_parser[#NAME].is_provided(),
@@ -99,7 +99,7 @@ SettingManager::parse_config_flag_settings(const arguinator::Parser &arg_parser)
 
 
 settings::ConfigData
-SettingManager::parse_config_data_settings(const arguinator::Parser &arg_parser)
+SettingManager::parse_config_data_settings(const arguinator::Parser& arg_parser)
 {
     DEBUG_SMART_ASSERT(
         arg_parser[settings::ConfigDataNames::source].is_provided() &&
@@ -126,8 +126,9 @@ SettingManager::parse_config_data_settings(const arguinator::Parser &arg_parser)
         .max_errors = max_error_extractor(),
     };
 }
+
 settings::ExprOpts
-SettingManager::parse_expr_opt_settings(const arguinator::Parser &arg_parser)
+SettingManager::parse_expr_opt_settings(const arguinator::Parser& arg_parser)
 {
     #define QUERY(REQUIRED, ARITY, NAME, HELP_MSG) \
     .NAME = arg_parser[#NAME].is_provided(),
@@ -138,7 +139,7 @@ SettingManager::parse_expr_opt_settings(const arguinator::Parser &arg_parser)
 }
 
 settings::IROpts
-SettingManager::parse_ir_opt_settings(const arguinator::Parser &arg_parser)
+SettingManager::parse_ir_opt_settings(const arguinator::Parser& arg_parser)
 {
     #define QUERY(REQUIRED, ARITY, NAME, HELP_MSG) \
     .NAME = arg_parser[#NAME].is_provided(),

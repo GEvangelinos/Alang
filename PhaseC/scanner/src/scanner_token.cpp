@@ -229,7 +229,7 @@ std::string TokenID::to_string() const
 /*** ENDOF: class TokenID definitions. ***/
 
 /*** STARTOF: class TokenComment definitions. ***/
-SourceLocation TokenComment::comment_starting_location_ = k_no_loc;
+SourceLocation TokenComment::comment_starting_location_ = SourceLocation::none();
 
 void TokenComment::set_starting_location(const SourceLocation location)
 {
@@ -263,7 +263,7 @@ std::string TokenComment::to_string() const
 
 /*** STARTOF: class TokenString definitions. ***/
 std::stringstream TokenString::string_assembling_buffer_;
-SourceLocation TokenString::string_starting_location_ = k_no_loc;
+SourceLocation TokenString::string_starting_location_ = SourceLocation::none();
 std::string TokenString::latest_assembled_string_;
 
 /* TODO: FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */

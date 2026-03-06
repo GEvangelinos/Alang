@@ -18,7 +18,7 @@ SrcBuffIdx sizeT_to_srcBufferIdx(const std::size_t num)
 LocationTracker::LocationTracker(const std::size_t max_valid_index)
     : max_valid_index_(sizeT_to_srcBufferIdx(max_valid_index))
 {
-    linestart_buffer_indices_.emplace_back(SrcBuffIdx::none); // Sets virtual line 0 at idx 0.
+    linestart_buffer_indices_.emplace_back(SrcBuffIdx::none());
 }
 
 void
@@ -36,31 +36,31 @@ LocationTracker::append_line(const SrcBuffIdx linestart_index)
 SrcLineIdx
 LocationTracker::find_first_line(const SourceLocation loc) const
 {
-    if (loc == k_no_loc)
-        return SrcLineIdx(SrcLineIdx::none);
+    if (loc == SourceLocation::none())
+        return SrcLineIdx::none();
     return find_line(loc.begin);
 }
 
 SrcLineIdx
 LocationTracker::find_last_line(const SourceLocation loc) const
 {
-    if (loc == k_no_loc)
-        return SrcLineIdx{SrcLineIdx::none};
+    if (loc == SourceLocation::none())
+        return SrcLineIdx::none();
     return find_line(loc.end);
 }
 
 SrcLineIdx
 LocationTracker::find_symbol_line(const SourceLocation loc) const
 {
-    if (loc == k_no_loc)
-        return SrcLineIdx{SrcLineIdx::none};
+    if (loc == SourceLocation::none())
+        return SrcLineIdx::none();
     return find_lines(loc).begin_line;
 }
 
 SrcBuffIdx
 LocationTracker::find_index_of_line(const SrcLineIdx line) const
 {
-    if (line.value == SrcLineIdx::none)
+    if (line == SrcLineIdx::none())
         throw std::logic_error(ATTACH_CONTEXT(FMT::format(
             "BUG: LocationTracker was asked to find index of k_no_line = `{}`)",
             SrcLineIdx::none
@@ -72,7 +72,7 @@ LocationTracker::find_index_of_line(const SrcLineIdx line) const
 SrcColumnIdx
 LocationTracker::find_first_column(const SourceLocation loc) const
 {
-    if (loc == k_no_loc)
+    if (loc == SourceLocation::none())
         throw std::logic_error(ATTACH_CONTEXT(
             "BUG: LocationTracker was asked to find column of k_no_loc"));
 
@@ -98,10 +98,10 @@ LineRange
 LocationTracker::find_lines(const SrcBuffIdx begin_idx, const SrcBuffIdx end_idx) const
 {
     // LIBFUNCs -- Only libfuncs are defined at Location{0,0}
-    if (begin_idx.value == SrcBuffIdx::none && end_idx.value == SrcBuffIdx::none)
+    if (begin_idx == SrcBuffIdx::none() && end_idx == SrcBuffIdx::none())
         return {
-            .begin_line = SrcLineIdx{SrcLineIdx::none},
-            .end_line = SrcLineIdx{SrcLineIdx::none}
+            .begin_line = SrcLineIdx::none(),
+            .end_line = SrcLineIdx::none(),
         };
 
     return {find_line(begin_idx), find_line(end_idx)};
@@ -123,7 +123,7 @@ LocationTracker::is_virtual_line(const SrcLineIdx line) const noexcept
     );
     DEBUG_SMART_ASSERT(!linestart_buffer_indices_.empty() && "There must be at least phony line 0");
     const auto current_existing_line_count = linestart_buffer_indices_.size() - 1;
-    return line.value == SrcLineIdx::none || line.value > current_existing_line_count;
+    return line == SrcLineIdx::none() || line.value > current_existing_line_count;
 }
 
 SrcLineIdx

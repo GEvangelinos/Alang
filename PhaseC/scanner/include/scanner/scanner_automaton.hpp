@@ -98,6 +98,7 @@ private:
     const TranslationUnitBuffer& tub_;
     const char* last_token_begin_; // Points in source_buffer.
     const char* cursor_;           // Points in source_buffer.
+    char swap_char_ = '\0';
 
     template <SrcBuffIdx n>
     [[nodiscard]] char get_nth_char() const noexcept; // Forward only lookup.
@@ -113,6 +114,8 @@ private:
     const char* advance_cursor() noexcept;
     const char* advance_cursor(SrcBuffIdx n) noexcept;
 
+    [[nodiscard]] LexerReturnType register_and_return(
+        LexerReturnType token_id, SourceLocation token_loc) noexcept;
     [[nodiscard]] LexerReturnType register_and_return(LexerReturnType token_id) noexcept;
     [[nodiscard]] LexerReturnType handle_equal_char() noexcept;
     [[nodiscard]] LexerReturnType handle_exclamation_char() noexcept;
@@ -136,6 +139,8 @@ private:
 
     [[nodiscard]] LexerReturnType handle_alpha_char() noexcept;
 
+    void handle_newline_char() noexcept;
+    void handle_invalid_char(char curr_ch) noexcept;
     void register_newline_char() noexcept;
 
     template <OpenerLen opener_len>

@@ -31,6 +31,7 @@ public:
         DiagnosticEngine &diagnostic_engine,
         SymbolTable *symbol_table);
 
+    void only_lex_tokens();
     void execute();
     void notify_hard_error();
 
@@ -68,6 +69,7 @@ public:
     ~TranslationUnit();
 
     void compile();
+    void only_lex_tokens() const;
     void show_symbol_table() const;
     void show_diagnostics() const;
     void show_ir(bool detailed) const;

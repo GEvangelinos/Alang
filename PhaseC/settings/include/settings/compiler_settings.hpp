@@ -9,6 +9,7 @@
 
 // (REQUIRED, ARITY, NAME, HELP_MSG)
 #define JOB_SETTINGS(X) \
+    X(false, 0, only_show_tokens,    "Pretty-prints all tokens, while reporting lexical errors at end") \
     X(false, 0, list_opts,           "List available optimizations for IR generation.") \
     X(false, 0, show_parser_trace,   "Pretty-prints a message for each matched grammar rule.") \
     X(false, 0, export_symbol_table, "Write the compiler's symbol table to a CSV file named <source_filename>.st.csv.") \

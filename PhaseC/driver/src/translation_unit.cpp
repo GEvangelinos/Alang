@@ -85,8 +85,8 @@ std::string escape(const char* const str)
         case '\v': out += "\\v"; break;
         case '\f': out += "\\f"; break;
         case '\b': out += "\\b"; break;
-        case '\\': out += "\\\\"; break;
-        case '\"': out += "\\\""; break;
+        // case '\\': out += "\\\\"; break;
+        // case '\"': out += "\\\""; break;
         default: out += ch; break;
         } // clang-format on
     }
@@ -104,8 +104,7 @@ std::string expr_printer(const alpha::Expr* expr, const char* const missing_mark
     case ET::CONST_BOOL: return static_cast<const ConstBoolExpr*>(expr)->value ? "true" : "false";
     case ET::CONST_INT: return std::to_string(static_cast<const ConstIntExpr*>(expr)->value);
     case ET::CONST_FLOAT: return std::to_string(static_cast<const ConstFloatExpr*>(expr)->value);
-    case ET::CONST_STRING:
-        return FMT::format("\"{}\"", escape(static_cast<const ConstStringExpr*>(expr)->value));
+    case ET::CONST_STRING: return escape(static_cast<const ConstStringExpr*>(expr)->value);
     case ET::CONST_NIL: return "nil";
     case ET::ARITHMETIC: return static_cast<const ArithmeticExpr*>(expr)->var_symbol->name;
     case ET::ASSIGN: return static_cast<const AssignExpr*>(expr)->var_symbol->name;
@@ -247,6 +246,38 @@ PassManager::PassManager(
       ir_optimizer_(std::make_unique<IROptimizer>(ir_opts)) { DEBUG_SMART_ASSERT(!!ir_optimizer_); }
 
 void
+PassManager::only_lex_tokens()
+{
+    std::cout << "\n--------------------Lexical Analysis--------------------\n";
+
+    ALPHA_YYSTYPE yystype;
+    ALPHA_YYLTYPE yyltype;
+
+    u32 token_counter = 0;
+    while (true)
+    {
+        const int token = scanner_->alpha_yylex(
+            &yystype,
+            &yyltype,
+            lexer_ctx_,
+            lt_,
+            *DEBUG_REQUIRE_PTR(diagnostic_engine_.reporter.get())
+        );
+
+        if (token == TKN_YYEOF)
+            break;
+
+        std::cout << FMT::format(
+            "{}: #{} ",
+            lt_.find_first_line(yyltype).value,
+            token_counter++
+        ) << std::endl;
+    }
+    std::cout << "\n----------------End of Lexical Analysis-----------------\n";
+}
+
+
+void
 PassManager::execute()
 {
     run_frontend();
@@ -325,7 +356,8 @@ TranslationUnit::TranslationUnit(
       translation_unit_buffer_(
           TranslationUnitBufferLoader::load_tub(source_path, k_scanner_eof_null_padding)
       ),
-      loc_tracker_((translation_unit_buffer_->size() - translation_unit_buffer_->null_padding).value),
+      loc_tracker_(
+          (translation_unit_buffer_->size() - translation_unit_buffer_->null_padding).value),
       diagnostic_formatter_(
           source_path, loc_tracker_, *support::require_ptr(translation_unit_buffer_.get()), true
       ),
@@ -340,7 +372,6 @@ TranslationUnit::TranslationUnit(
       )) {}
 
 TranslationUnit::~TranslationUnit() = default;
-
 
 void
 TranslationUnit::compile()
@@ -373,6 +404,13 @@ TranslationUnit::notify_fatal_error() { throw exception::DiagnosticFatalError();
 
 void
 TranslationUnit::notify_max_errors_reached() { throw exception::DiagnosticLimitError(); }
+
+void
+TranslationUnit::only_lex_tokens() const
+{
+    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
+    pass_manager_->only_lex_tokens();
+}
 
 void
 TranslationUnit::show_symbol_table() const
@@ -409,14 +447,14 @@ TranslationUnit::show_diagnostics() const
 
     for (const auto& diagnostic : diagnostic_engine_.get_diagnostics())
         std::cerr << diagnostic_formatter_.format(*diagnostic);
-    std::cerr << std::endl;
+    if (!diagnostic_engine_.get_diagnostics().empty())
+        std::cerr << std::endl;
 }
 
 void
 TranslationUnit::show_ir(const bool detailed) const
 {
     DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
     print_ir<true>(std::cout, pass_manager_->get_quads(), loc_tracker_, detailed);
 }
 

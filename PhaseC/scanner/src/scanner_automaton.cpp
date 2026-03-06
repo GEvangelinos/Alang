@@ -1,4 +1,5 @@
 #include <alpha_parser.gen.hpp>
+#include <charconv>
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <scanner/scanner_automaton.hpp>
 
@@ -70,7 +71,6 @@ ScannerAutomaton::ScannerAutomaton(
         if (tub_[SrcBuffIdx{tub_.source_size() + pad_index}] != '\0')
             throw std::logic_error("Critical sentinel corruption detected");
 
-    // Compile Time Evaluation only code.
     static_assert(
         keyword_names_and_tokens_.size() == static_cast<u64>(KeywordId::COUNT_),
         "Keyword collection size mismatch: the 'keyword_names_and_tokens_' array must have exactly "
@@ -173,16 +173,22 @@ ScannerAutomaton::calculate_opener_loc() const noexcept
     return SourceLocation{begin, end};
 }
 
-
+ScannerAutomaton::LexerReturnType
+ScannerAutomaton::register_and_return(
+    const LexerReturnType token_id,
+    const SourceLocation token_loc) noexcept
+{
+    lexer_ctx_.register_token(TokenInfo{
+        .id = static_cast<alpha_yytoken_kind_t>(token_id),
+        .loc = token_loc
+    });
+    return token_id;
+}
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::register_and_return(const LexerReturnType token_id) noexcept
 {
-    lexer_ctx_.register_token(alpha::TokenInfo{
-        .id = static_cast<alpha_yytoken_kind_t>(token_id),
-        .loc = last_token_location(),
-    });
-    return token_id;
+    return register_and_return(token_id, last_token_location());
 }
 
 ScannerAutomaton::LexerReturnType
@@ -516,7 +522,7 @@ ScannerAutomaton::handle_alpha_char() noexcept
 
     const auto find_possible_keyword = [this, word_length]() -> KeywordId
     {
-        const char ch0 = get_nth_char<SrcBuffIdx{0}>();
+        const char ch0 = get_curr_char();
         switch (word_length.value)
         {
         case 2: // IF | OR
@@ -528,7 +534,7 @@ ScannerAutomaton::handle_alpha_char() noexcept
             if (ch0 == 'f') return KeywordId::FOR;
             if (ch0 == 'n')
             {
-                const char ch1 = get_nth_char<SrcBuffIdx{1}>();
+                const char ch1 = get_next_char();
                 if (ch1 == 'o') return KeywordId::NOT;
                 if (ch1 == 'i') return KeywordId::NIL;
             }
@@ -568,6 +574,23 @@ ScannerAutomaton::handle_alpha_char() noexcept
     advance_cursor(SrcBuffIdx{word_length.value});
     DEBUG_SMART_ASSERT(!g_id_body_table[get_curr_char()]);
     return result_token;
+}
+
+void
+ScannerAutomaton::handle_newline_char() noexcept
+{
+    advance_cursor();
+    register_newline_char();
+}
+
+
+void
+ScannerAutomaton::handle_invalid_char(const char curr_ch) noexcept
+{
+    DEBUG_SMART_ASSERT(get_curr_char() == curr_ch);
+    advance_cursor();
+    const char chartext[] = {curr_ch, '\0'};
+    dr_.report_invalid_character(chartext, last_token_location());
 }
 
 #define CASE_LIST_FOR_SPACES  \
@@ -624,46 +647,36 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
         case ';':  result = consume_token.operator()<TKN_SEMICOLON>();     break;
         case ',':  result = consume_token.operator()<TKN_COMMA>();         break;
         case '\"': result = handle_double_quote_char();                    break;
-        case '\n': advance_cursor(); register_newline_char();              break;
-        CASE_LIST_FOR_SPACES: advance_cursor();                            break;
+        case '\n': handle_newline_char();                                  break;
+        CASE_LIST_FOR_SPACES:  advance_cursor();                           break;
         CASE_LIST_FOR_NUMBERS: result = handle_number_char();              break;
         CASE_LIST_FOR_LETTERS: result = handle_alpha_char();               break;
-        default:
-            {
-                advance_cursor();
-                const char chartext[] = {curr_ch, '\0'};
-                dr_.report_invalid_character(chartext, last_token_location());
-                break;
-            }
+        default: handle_invalid_char(curr_ch);                             break;
         } // clang-format on
 
-        if (result == TKN_INT)
+        switch (result)
         {
-            #warning MEMORY_LEAK
-            char* token_memory = static_cast<char*>(std::calloc(100, 1));
-            std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
-            yylval->const_int = std::stol(token_memory);
+        case TKN_INT:
+            std::from_chars(last_token_begin_, cursor_, yylval->const_int);
+            break;
+        case TKN_FLOAT:
+            std::from_chars(last_token_begin_, cursor_, yylval->const_float);
+            break;
+        case TKN_ID:
+        case TKN_STRING:
+            {
+                #warning MEMORY_LEAK
+                char* token_memory = static_cast<char*>(std::calloc(100, 1));
+                std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
+                yylval->cstring = token_memory;
+                break;
+            }
+        case TKN_YYEOF:
+            return register_and_return(TKN_YYEOF, *yylloc = SourceLocation::eof());
+        case ScannerAutomaton::TKN_INTERNAL_SKIP:
+            continue;
         }
-        else if (result == TKN_FLOAT)
-        {
-            #warning MEMORY_LEAK
-            char* token_memory = static_cast<char*>(std::calloc(100, 1));
-            std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
-            yylval->const_float = std::stod(token_memory);
-        }
-        else if (result == TKN_STRING || result == TKN_ID)
-        {
-            #warning MEMORY_LEAK
-            char* token_memory = static_cast<char*>(std::calloc(100, 1));
-            std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
-            yylval->cstring = token_memory;
-        }
-
-        if (result != ScannerAutomaton::TKN_INTERNAL_SKIP)
-        {
-            *yylloc = last_token_location();
-            return register_and_return(result);
-        }
+        return register_and_return(result, *yylloc = last_token_location());
     }
 }
 #undef CASE_LIST_FOR_SPACES

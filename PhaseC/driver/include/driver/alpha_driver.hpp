@@ -17,6 +17,7 @@ public:
     ~Driver() = default;
 
     // Simple wrappers for now
+    void only_lex_tokens() const;
     void show_symbol_table() const;
     void show_diagnostics() const;
     void show_ir(bool detailed) const;

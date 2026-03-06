@@ -16,28 +16,28 @@ using HighlightTag = std::size_t;
 class TaggedHighlight
 {
 public:
-    TaggedHighlight(const Highlight *const ref, const HighlightTag tag)
+    TaggedHighlight(const Highlight* const ref, const HighlightTag tag)
         : ref_(DEBUG_REQUIRE_PTR(ref)), tag_(tag) {}
 
     [[nodiscard]] auto ref() const noexcept { return ref_; }
     [[nodiscard]] auto tag() const noexcept { return tag_; }
 
 private:
-    const Highlight *ref_;
+    const Highlight* ref_;
     HighlightTag tag_;
 };
 
 namespace sort_policy
 {
-    [[nodiscard]] bool leftmost_first(const TaggedHighlight &a, const TaggedHighlight &b);
-    [[nodiscard]] bool rightmost_first(const TaggedHighlight &a, const TaggedHighlight &b);
+    [[nodiscard]] bool leftmost_first(const TaggedHighlight& a, const TaggedHighlight& b);
+    [[nodiscard]] bool rightmost_first(const TaggedHighlight& a, const TaggedHighlight& b);
 } // namespace sort_policy
 
-void swap_markers(std::string &str, char old_marker, char new_marker);
-[[nodiscard]] bool is_index_on_highlight(SrcBuffIdx idx, const TaggedHighlight &hl);
-[[nodiscard]] bool is_index_on_start_of_highlight(SrcBuffIdx idx, const TaggedHighlight &hl);
+void swap_markers(std::string& str, char old_marker, char new_marker);
+[[nodiscard]] bool is_index_on_highlight(SrcBuffIdx idx, const TaggedHighlight& hl);
+[[nodiscard]] bool is_index_on_start_of_highlight(SrcBuffIdx idx, const TaggedHighlight& hl);
 [[nodiscard]] std::optional<HighlightTag>
-find_highlight_tag_at(const std::vector<TaggedHighlight> &highlights, SrcBuffIdx idx);
+find_highlight_tag_at(const std::vector<TaggedHighlight>& highlights, SrcBuffIdx idx);
 [[nodiscard]] std::string
 apply_sgr(std::string_view prefix, std::string_view text, std::string_view suffix);
 } // namespace
@@ -48,17 +48,17 @@ class IssueFormatterImpl final
 {
 public:
     IssueFormatterImpl(
-        const TranslationUnitBuffer &source_buffer,
-        const LocationTracker &loc_tracker,
-        const Issue &target,
+        const TranslationUnitBuffer& source_buffer,
+        const LocationTracker& loc_tracker,
+        const Issue& target,
         bool colorize);
 
     [[nodiscard]] std::string format(std::filesystem::path source_path);
 
 private:
-    const TranslationUnitBuffer &source_buffer_;
-    const LocationTracker &loc_tracker_;
-    const Issue &target_;
+    const TranslationUnitBuffer& source_buffer_;
+    const LocationTracker& loc_tracker_;
+    const Issue& target_;
     const Issue::RenderingLineSpan rendering_span_;
     const bool colorize_;
     SrcLineIdx working_line_;
@@ -71,10 +71,10 @@ private:
     [[nodiscard]] std::string make_issue_header(std::filesystem::path source_path) const;
     [[nodiscard]] std::string make_codeline();
     [[nodiscard]] std::string format_issue_line_with_suggestion(
-        const std::string &codeline,
-        const std::string &underline,
-        const std::vector<std::string> &highlight_anchors,
-        const std::vector<std::string> &highlight_labels);
+        const std::string& codeline,
+        const std::string& underline,
+        const std::vector<std::string>& highlight_anchors,
+        const std::vector<std::string>& highlight_labels);
     [[nodiscard]] std::string make_underline();
     [[nodiscard]] std::vector<std::string> make_highlight_anchors(
         std::size_t root_height, char anchor_marker);
@@ -82,20 +82,20 @@ private:
     [[nodiscard]] bool source_blank_afterwards(SrcBuffIdx idx) const noexcept;
 
     [[nodiscard]] SrcBuffIdx find_end_of_code_in_line(SrcBuffIdx line_start_idx) const;
-    void ensure_primary_start_marked(std::string &underline);
+    void ensure_primary_start_marked(std::string& underline);
     void handle_possible_coloring_start(
-        std::string &line_accumulator,
-        const std::vector<TaggedHighlight> &highlights,
+        std::string& line_accumulator,
+        const std::vector<TaggedHighlight>& highlights,
         SrcBuffIdx idx,
         bool should_try_color_primary);
     void handle_possible_coloring_stop(
-        std::string &line_accumulator,
-        std::vector<TaggedHighlight> &highlights,
+        std::string& line_accumulator,
+        std::vector<TaggedHighlight>& highlights,
         SrcBuffIdx idx);
 
-    void finalize_colored_line_accumulator(std::string &line_accumulator);
+    void finalize_colored_line_accumulator(std::string& line_accumulator);
 
-    template<typename Predicate, typename Compare>
+    template <typename Predicate, typename Compare>
     [[nodiscard]] std::vector<TaggedHighlight>
     collect_line_highlight_tags(Predicate should_collect, Compare cmp) const;
 
@@ -107,20 +107,20 @@ private:
         bool keep_decorator_marker = true);
     [[nodiscard]] static std::string colorize_line_comment(std::string_view codeline);
     [[nodiscard]] SrcColumnIdx compute_visual_suggestion_indent_width(
-        const Suggestion &suggestion) const;
+        const Suggestion& suggestion) const;
 
-    [[nodiscard]] const char *sgr(const char *const color) const noexcept
+    [[nodiscard]] const char* sgr(const char* const color) const noexcept
     {
         return colorize_ ? color : "";
     }
 
-    [[nodiscard]] static Word calculate_slots(SrcColumnIdx &column_idx, char ch);
+    [[nodiscard]] static Word calculate_slots(SrcColumnIdx& column_idx, char ch);
 };
 
 IssueFormatter::IssueFormatter(
     const std::filesystem::path source_path,
-    const TranslationUnitBuffer &source_buffer,
-    const LocationTracker &loc_tracker,
+    const TranslationUnitBuffer& source_buffer,
+    const LocationTracker& loc_tracker,
     const bool colorize)
     : source_path_(source_path),
       source_buffer_(source_buffer),
@@ -128,7 +128,7 @@ IssueFormatter::IssueFormatter(
       colorize_(colorize) {}
 
 std::string
-IssueFormatter::format(const Issue &issue)
+IssueFormatter::format(const Issue& issue)
 {
     IssueFormatterImpl impl_{
         source_buffer_,
@@ -139,7 +139,7 @@ IssueFormatter::format(const Issue &issue)
     return impl_.format(source_path_);
 }
 
-const char *
+const char*
 IssueFormatter::get_underline_color(const Issue::Type type) noexcept
 {
     using IT = Issue::Type;
@@ -154,10 +154,10 @@ IssueFormatter::get_underline_color(const Issue::Type type) noexcept
     }
 }
 
-const char *
+const char*
 IssueFormatter::get_highlight_color(const std::size_t highlight_index) noexcept
 {
-    static constexpr const char *highlight_colors[] = {
+    static constexpr const char* highlight_colors[] = {
         COLOR_FG_PINK,
         COLOR_FG_SKY,
         COLOR_FG_MINT,
@@ -166,9 +166,9 @@ IssueFormatter::get_highlight_color(const std::size_t highlight_index) noexcept
 }
 
 IssueFormatterImpl::IssueFormatterImpl(
-    const TranslationUnitBuffer &source_buffer,
-    const LocationTracker &loc_tracker,
-    const Issue &target,
+    const TranslationUnitBuffer& source_buffer,
+    const LocationTracker& loc_tracker,
+    const Issue& target,
     const bool colorize)
     : source_buffer_(source_buffer),
       loc_tracker_(loc_tracker),
@@ -183,14 +183,14 @@ IssueFormatterImpl::IssueFormatterImpl(
 // Number of columns (spaces) to indent the suggestion so its first char
 // appears immediately after insert_after.last_index on this line.
 SrcColumnIdx
-IssueFormatterImpl::compute_visual_suggestion_indent_width(const Suggestion &suggestion) const
+IssueFormatterImpl::compute_visual_suggestion_indent_width(const Suggestion& suggestion) const
 {
     const SrcLineIdx line_no = loc_tracker_.find_last_line(suggestion.insert_after);
     const SrcBuffIdx line_start_index = loc_tracker_.find_index_of_line(line_no);
 
     DEBUG_SMART_ASSERT(suggestion.insert_after.end >= line_start_index);
 
-    SrcColumnIdx column{SrcColumnIdx::none};
+    SrcColumnIdx column = SrcColumnIdx::none();
     // Instead of computing suggestion width with plain subtraction
     // we walk the input buffer in case there is a tab to expand.
     for (auto i = line_start_index; i < suggestion.insert_after.end; ++i)
@@ -259,9 +259,9 @@ IssueFormatterImpl::format_issue_line()
     if (!highlight_anchors.empty())
     {
         DEBUG_SMART_ASSERT(!highlight_labels.empty() && "There are anchors -> thee must be labels");
-        for (const std::string &anchor : highlight_anchors)
+        for (const std::string& anchor : highlight_anchors)
             out << FMT::format("{0:>{1}} | {2}\n", "", linebox_width, anchor);
-        for (const std::string &label : highlight_labels)
+        for (const std::string& label : highlight_labels)
             out << FMT::format("{0:>{1}} | {2}\n", "", linebox_width, label);
     }
 
@@ -273,10 +273,10 @@ IssueFormatterImpl::format_issue_line()
 
 std::string
 IssueFormatterImpl::format_issue_line_with_suggestion(
-    const std::string &codeline,
-    const std::string &underline,
-    const std::vector<std::string> &highlight_anchors,
-    const std::vector<std::string> &highlight_labels)
+    const std::string& codeline,
+    const std::string& underline,
+    const std::vector<std::string>& highlight_anchors,
+    const std::vector<std::string>& highlight_labels)
 {
     DEBUG_SMART_ASSERT(target_.suggestion.has_value() && " Shouldn't be called w/o suggestion");
 
@@ -287,7 +287,7 @@ IssueFormatterImpl::format_issue_line_with_suggestion(
 
     constexpr auto linebox_width = IssueFormatter::k_linebox_width_;
 
-    for (const std::string &line : support::split_lines(target_.suggestion->desc))
+    for (const std::string& line : support::split_lines(target_.suggestion->desc))
         out << FMT::format(
             "{0:{1}} | {2:{3}}{4}{5}{6}{7}\n",
             "",                                        // {0}
@@ -328,7 +328,7 @@ IssueFormatterImpl::format_issue_line_with_suggestion(
         linebox_width, // {1}
         underline      // {2}
     );
-    for (const std::string &line : highlight_anchors)
+    for (const std::string& line : highlight_anchors)
         if (!underline.empty())
             out << FMT::format(
                 "{0:{1}} | {2}\n",
@@ -336,7 +336,7 @@ IssueFormatterImpl::format_issue_line_with_suggestion(
                 linebox_width, // {1}
                 line           // {2}
             );
-    for (const std::string &line : highlight_labels)
+    for (const std::string& line : highlight_labels)
         if (!underline.empty())
             out << FMT::format(
                 "{0:{1}} | {2}\n",
@@ -350,11 +350,11 @@ IssueFormatterImpl::format_issue_line_with_suggestion(
 std::string
 IssueFormatterImpl::make_issue_header(const std::filesystem::path source_path) const
 {
-    const char *const header_location_sgr = sgr(SGR_RESET COLOR_FG_ASCII_BOLD_WHITE);
-    const char *const header_message_sgr = sgr(SGR_RESET COLOR_FG_ASCII_WHITE);
-    const char *const issue_type_color = sgr(IssueFormatter::get_underline_color(target_.type));
-    const char *const decorated_sections_sgr = sgr(SGR_RESET COLOR_FG_ASCII_BOLD_WHITE);
-    const char *const reset_sgr = sgr(SGR_RESET);
+    const char* const header_location_sgr = sgr(SGR_RESET COLOR_FG_ASCII_BOLD_WHITE);
+    const char* const header_message_sgr = sgr(SGR_RESET COLOR_FG_ASCII_WHITE);
+    const char* const issue_type_color = sgr(IssueFormatter::get_underline_color(target_.type));
+    const char* const decorated_sections_sgr = sgr(SGR_RESET COLOR_FG_ASCII_BOLD_WHITE);
+    const char* const reset_sgr = sgr(SGR_RESET);
 
     const std::string decorated_desc = decorate_sections(
         target_.desc,
@@ -380,7 +380,7 @@ IssueFormatterImpl::make_issue_header(const std::filesystem::path source_path) c
 std::string
 IssueFormatterImpl::make_codeline()
 {
-    const auto crosses_on_working_line = [this](const Highlight &hl)
+    const auto crosses_on_working_line = [this](const Highlight& hl)
     {
         const SrcLineIdx first = loc_tracker_.find_first_line(hl.loc);
         const SrcLineIdx last = loc_tracker_.find_last_line(hl.loc);
@@ -389,7 +389,7 @@ IssueFormatterImpl::make_codeline()
     std::vector<TaggedHighlight> crossed_highlights =
         collect_line_highlight_tags(crosses_on_working_line, &sort_policy::rightmost_first);
     std::string line_accumulator;
-    SrcColumnIdx column{SrcColumnIdx::none};
+    SrcColumnIdx column = SrcColumnIdx::none();
 
     const SrcBuffIdx line_start_idx = loc_tracker_.find_index_of_line(working_line_);
     for (SrcBuffIdx idx = line_start_idx; ; ++idx)
@@ -410,7 +410,7 @@ IssueFormatterImpl::make_codeline()
 std::string
 IssueFormatterImpl::make_underline()
 {
-    const auto crosses_on_working_line = [this](const Highlight &hl)
+    const auto crosses_on_working_line = [this](const Highlight& hl)
     {
         const SrcLineIdx first = loc_tracker_.find_first_line(hl.loc);
         const SrcLineIdx last = loc_tracker_.find_last_line(hl.loc);
@@ -420,12 +420,12 @@ IssueFormatterImpl::make_underline()
         collect_line_highlight_tags(crosses_on_working_line, &sort_policy::rightmost_first);
 
     std::string line_accumulator;
-    SrcColumnIdx column{SrcColumnIdx::none};
+    SrcColumnIdx column = SrcColumnIdx::none();
 
     const SrcBuffIdx line_start_idx = loc_tracker_.find_index_of_line(working_line_);
     const SrcBuffIdx end_of_code_idx = find_end_of_code_in_line(line_start_idx); // Inclusive
     OnceFlag seen_char;
-    for (SrcBuffIdx idx = line_start_idx; ; ++idx.value)
+    for (SrcBuffIdx idx = line_start_idx; ; ++idx)
     {
         const char ch = source_buffer_[idx];
         const bool in_primary_issue = idx >= target_.loc.begin && idx < target_.loc.end;
@@ -465,7 +465,7 @@ IssueFormatterImpl::make_highlight_anchors(
     const std::size_t root_height,
     const char anchor_marker)
 {
-    const auto begins_on_working_line = [this](const Highlight &hl)
+    const auto begins_on_working_line = [this](const Highlight& hl)
     {
         return loc_tracker_.find_first_line(hl.loc) == working_line_;
     };
@@ -478,7 +478,7 @@ IssueFormatterImpl::make_highlight_anchors(
     const SrcBuffIdx line_start_idx = loc_tracker_.find_index_of_line(working_line_);
     for (std::size_t h = 0; h < root_height; ++h)
     {
-        SrcColumnIdx column{SrcColumnIdx::none};
+        SrcColumnIdx column = SrcColumnIdx::none();
         std::string line_accumulator;
         std::size_t stems_printed = 0;
         const auto required_stems = initiating_highlights.size();
@@ -487,7 +487,7 @@ IssueFormatterImpl::make_highlight_anchors(
             const char ch = source_buffer_[line_idx];
             DEBUG_SMART_ASSERT(ch != '\0' && "all initiating highlights before end of buffer=");
             DEBUG_SMART_ASSERT(initiating_highlights.size() >= stems_printed);
-            const TaggedHighlight &next_highlight = initiating_highlights[stems_printed];
+            const TaggedHighlight& next_highlight = initiating_highlights[stems_printed];
             OnceFlag printed;
             const auto slots = calculate_slots(column, ch);
             if (is_index_on_start_of_highlight(line_idx, next_highlight))
@@ -511,7 +511,7 @@ IssueFormatterImpl::make_highlight_anchors(
 std::vector<std::string>
 IssueFormatterImpl::make_highlight_labels()
 {
-    const auto begins_on_working_line = [this](const Highlight &hl)
+    const auto begins_on_working_line = [this](const Highlight& hl)
     {
         return loc_tracker_.find_first_line(hl.loc) == working_line_;
     };
@@ -522,9 +522,10 @@ IssueFormatterImpl::make_highlight_labels()
 
     std::vector<std::string> label_lines;
     const SrcBuffIdx initial_line_idx = loc_tracker_.find_index_of_line(working_line_);
-    for (auto required_labels = initiating_highlights.size(); required_labels > 0; --required_labels)
+    for (auto required_labels = initiating_highlights.size(); required_labels > 0; --
+         required_labels)
     {
-        SrcColumnIdx column{SrcColumnIdx::none};
+        SrcColumnIdx column = SrcColumnIdx::none();
         std::string line_accumulator;
         std::size_t labels_printed = 0;
         for (SrcBuffIdx line_idx = initial_line_idx; ; ++line_idx)
@@ -532,7 +533,7 @@ IssueFormatterImpl::make_highlight_labels()
             const char ch = source_buffer_[line_idx];
             DEBUG_SMART_ASSERT(ch != '\0' && "all initiating highlights before end of buffer=");
             DEBUG_SMART_ASSERT(initiating_highlights.size() > labels_printed);
-            const TaggedHighlight &next_highlight = initiating_highlights[labels_printed];
+            const TaggedHighlight& next_highlight = initiating_highlights[labels_printed];
             const auto slots = calculate_slots(column, ch);
             OnceFlag printed;
             if (is_index_on_start_of_highlight(line_idx, next_highlight))
@@ -567,7 +568,7 @@ IssueFormatterImpl::source_blank_afterwards(const SrcBuffIdx idx) const noexcept
 }
 
 void
-IssueFormatterImpl::ensure_primary_start_marked(std::string &underline)
+IssueFormatterImpl::ensure_primary_start_marked(std::string& underline)
 {
     if (primary_beginning_marked_)
         return; // Already set.
@@ -580,8 +581,8 @@ IssueFormatterImpl::ensure_primary_start_marked(std::string &underline)
 
 void
 IssueFormatterImpl::handle_possible_coloring_start(
-    std::string &line_accumulator,
-    const std::vector<TaggedHighlight> &highlights,
+    std::string& line_accumulator,
+    const std::vector<TaggedHighlight>& highlights,
     const SrcBuffIdx idx,
     const bool should_try_color_primary)
 {
@@ -618,8 +619,8 @@ IssueFormatterImpl::handle_possible_coloring_start(
 
 void
 IssueFormatterImpl::handle_possible_coloring_stop(
-    std::string &line_accumulator,
-    std::vector<TaggedHighlight> &highlights,
+    std::string& line_accumulator,
+    std::vector<TaggedHighlight>& highlights,
     const SrcBuffIdx idx)
 {
     if (!colorize_)
@@ -637,7 +638,7 @@ IssueFormatterImpl::handle_possible_coloring_stop(
 }
 
 void
-IssueFormatterImpl::finalize_colored_line_accumulator(std::string &line_accumulator)
+IssueFormatterImpl::finalize_colored_line_accumulator(std::string& line_accumulator)
 {
     support::rstrip(line_accumulator); // We remove redundant suffix spaces.
     if (!colorize_)
@@ -678,18 +679,18 @@ IssueFormatterImpl::find_end_of_code_in_line(const SrcBuffIdx line_start_idx) co
     return SrcBuffIdx{static_cast<SrcBuffIdx::UnderlyingType>(before_comment)};
 }
 
-template<typename Predicate, typename Compare>
+template <typename Predicate, typename Compare>
 std::vector<TaggedHighlight>
 IssueFormatterImpl::collect_line_highlight_tags(
     const Predicate should_collect,
     const Compare cmp) const
 {
     static_assert(
-        std::is_invocable_r_v<bool, Predicate, const Highlight &>,
+        std::is_invocable_r_v<bool, Predicate, const Highlight&>,
         "Predicate must be callable with (const Highlight &) and return bool"
     );
     static_assert(
-        std::is_invocable_r_v<bool, Compare, const TaggedHighlight &, const TaggedHighlight &>,
+        std::is_invocable_r_v<bool, Compare, const TaggedHighlight&, const TaggedHighlight&>,
         "Compare must be callable as bool(const TaggedHighlight&, const TaggedHighlight&)"
     );
 
@@ -698,7 +699,7 @@ IssueFormatterImpl::collect_line_highlight_tags(
         return result;
 
     HighlightTag tag = 0;
-    for (const Highlight &h : *target_.highlights)
+    for (const Highlight& h : *target_.highlights)
     {
         if (should_collect(h))
             result.emplace_back(&h, tag);
@@ -754,9 +755,7 @@ IssueFormatterImpl::colorize_line_comment(const std::string_view codeline)
         return std::string(codeline);
     std::string colored;
     colored.reserve(
-        codeline.size() +
-        sizeof(IssueFormatter::Colors::comment_color) +
-        sizeof(SGR_RESET)
+        codeline.size() + sizeof(IssueFormatter::Colors::comment_color) + sizeof(SGR_RESET)
     );
     colored += codeline.substr(0, line_comment_pos);
     colored += IssueFormatter::Colors::comment_color;
@@ -766,7 +765,7 @@ IssueFormatterImpl::colorize_line_comment(const std::string_view codeline)
 }
 
 Word
-IssueFormatterImpl::calculate_slots(SrcColumnIdx &column_idx, const char ch)
+IssueFormatterImpl::calculate_slots(SrcColumnIdx& column_idx, const char ch)
 {
     const Word slots =
         ch == '\t'
@@ -782,26 +781,26 @@ namespace
 namespace sort_policy
 {
     bool
-    leftmost_first(const TaggedHighlight &a, const TaggedHighlight &b)
+    leftmost_first(const TaggedHighlight& a, const TaggedHighlight& b)
     {
         return a.ref()->loc.begin < b.ref()->loc.begin;
     }
 
     bool
-    rightmost_first(const TaggedHighlight &a, const TaggedHighlight &b)
+    rightmost_first(const TaggedHighlight& a, const TaggedHighlight& b)
     {
         return a.ref()->loc.begin > b.ref()->loc.begin;
     }
 } // namespace sort_policy
 
 bool
-is_index_on_highlight(const SrcBuffIdx idx, const TaggedHighlight &hl)
+is_index_on_highlight(const SrcBuffIdx idx, const TaggedHighlight& hl)
 {
     return hl.ref()->loc.begin <= idx && idx < hl.ref()->loc.end; // Reminder: loc.end exclusive.
 }
 
 bool
-is_index_on_start_of_highlight(const SrcBuffIdx idx, const TaggedHighlight &hl)
+is_index_on_start_of_highlight(const SrcBuffIdx idx, const TaggedHighlight& hl)
 {
     return hl.ref()->loc.begin == idx;
 }
@@ -816,13 +815,13 @@ apply_sgr(const std::string_view prefix, const std::string_view text, const std:
 }
 
 void
-swap_markers(std::string &str, const char old_marker, const char new_marker)
+swap_markers(std::string& str, const char old_marker, const char new_marker)
 {
     std::replace(str.begin(), str.end(), old_marker, new_marker);
 }
 
 [[maybe_unused]] std::optional<HighlightTag>
-find_highlight_tag_at(const std::vector<TaggedHighlight> &highlights, const SrcBuffIdx idx)
+find_highlight_tag_at(const std::vector<TaggedHighlight>& highlights, const SrcBuffIdx idx)
 {
     DEBUG_SMART_ASSERT(
         std::is_sorted(highlights.begin(),highlights.end(), &sort_policy::leftmost_first)&&
@@ -830,7 +829,7 @@ find_highlight_tag_at(const std::vector<TaggedHighlight> &highlights, const SrcB
         "(per sort_policy::leftmost_first) before calling current function."
     );
 
-    for (const TaggedHighlight &hl : highlights)
+    for (const TaggedHighlight& hl : highlights)
         if (is_index_on_highlight(idx, hl))
             return hl.tag();
     return std::nullopt;
