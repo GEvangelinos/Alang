@@ -16,6 +16,7 @@
     #define YYLTYPE ALPHA_YYLTYPE
 
     #include <core/source_location.hpp>
+    #include "core/string_span.hpp"
     #include <parser/internal_typedefs.hpp>
 
     typedef void* yyscan_t;
@@ -64,13 +65,12 @@
 // semantic driver is written in C++. Bison's C++ driver is more
 // complex and appears to be problematic (erroneous).
 %union{
-    const char *cstring;
+    alpha::StringSpan string;
     alpha::AlphaInt const_int;
     alpha::AlphaFloat const_float;
     const alpha::ProgFuncSymbol *const_progfunc_symbol_ptr;
     const alpha::Expr *const_expr_ptr;
     const alpha::ExprPair *const_expr_pair_ptr;
-
     alpha::BlockSourceLocation block_location;
 }
 
@@ -108,8 +108,8 @@
  *     syntax error, unexpected GLOBAL
  */
 
-%token <cstring>        STRING "string-literal"
-%token <cstring>        ID     "identifier"
+%token <string>        STRING "string-literal"
+%token <string>        ID     "identifier"
 %token <const_int>      INT    "integer-constant"
 %token <const_float>    FLOAT  "float-constant"
 

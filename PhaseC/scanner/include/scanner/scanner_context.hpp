@@ -24,8 +24,7 @@ public:
     SrcBuffIdx source_index;
 
     LexerCtx() = default;
-
-    ~LexerCtx() { TokenID::clear_last_id(); }
+    ~LexerCtx() = default;
 
     void register_token(TokenInfo token_info);
 

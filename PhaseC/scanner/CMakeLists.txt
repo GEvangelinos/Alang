@@ -51,12 +51,17 @@ target_include_directories(alpha_scanner_api INTERFACE
 )
 
 add_library(alpha_scanner_impl STATIC
-    ${ALPHA_SCANNER_OUTPUT_FILEPATH}
-    src/scanner_automaton.cpp
     src/scanner_context.cpp
     src/scanner_token.cpp
     src/scanner_adapter.cpp
 )
+
+if (USE_FLEX_SCANNER)
+    target_sources(alpha_scanner_impl PRIVATE ${ALPHA_SCANNER_OUTPUT_FILEPATH})
+else ()
+    target_sources(alpha_scanner_impl PRIVATE src/scanner_automaton.cpp)
+endif()
+
 target_compile_options(alpha_scanner_impl PRIVATE
     -Wno-unused-function
 )

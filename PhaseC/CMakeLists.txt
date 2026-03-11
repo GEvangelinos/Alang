@@ -161,7 +161,7 @@ if (DEBUG_MODE)
         )
     endif ()
 
-    SET(SANITIZERS "-fsanitize=address,undefined")
+    SET(SANITIZERS "-fsanitize=address")
     add_compile_options(
         -g
         #        ${SANITIZERS}
@@ -174,9 +174,9 @@ if (DEBUG_MODE)
         #        -Wmissing-declarations
     )
 
-    add_link_options(
-        #        ${SANITIZERS}
-    )
+#    add_link_options(
+#                ${SANITIZERS}
+#    )
     add_compile_definitions(DEBUG_MODE)
 endif ()
 

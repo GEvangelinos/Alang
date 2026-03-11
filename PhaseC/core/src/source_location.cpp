@@ -3,20 +3,28 @@
 #include <cstddef>                  // for ptrdiff_t
 #include <iterator>                 // for distance
 #include <stdexcept>                // for logic_error
-#include "core/konstants.hpp" // for k_no_line
 #include "support/smart_assert.h"     // for DEBUG_SMART_ASSERT
 
 namespace alpha
 {
-SrcBuffIdx sizeT_to_srcBufferIdx(const std::size_t num)
+[[nodiscard, deprecated]] SrcBuffIdx
+sizeT_to_srcBufferIdx(const std::size_t num)
 {
     if (!support::is_in_numeric_range<SrcBuffIdx::UnderlyingType>(num))
         throw std::length_error(ATTACH_CONTEXT("`num` value can not be stored `SrcBufferIdx`"));
     return SrcBuffIdx{static_cast<SrcBuffIdx::UnderlyingType>(num)};
 }
 
-LocationTracker::LocationTracker(const std::size_t max_valid_index)
-    : max_valid_index_(sizeT_to_srcBufferIdx(max_valid_index))
+bool
+SourceLocation::is_valid() const noexcept
+{
+    return begin < end ||
+           (begin == SrcBuffIdx::none() && end == SrcBuffIdx::none()) ||
+           (begin == SourceLocation::k_eof_begin_ && end == SourceLocation::k_eof_end_);
+}
+
+LocationTracker::LocationTracker(const SrcBuffIdx max_valid_index)
+    : max_valid_index_(max_valid_index)
 {
     linestart_buffer_indices_.emplace_back(SrcBuffIdx::none());
 }
@@ -38,6 +46,8 @@ LocationTracker::find_first_line(const SourceLocation loc) const
 {
     if (loc == SourceLocation::none())
         return SrcLineIdx::none();
+    if (loc == SourceLocation::eof())
+        return eof_line();
     return find_line(loc.begin);
 }
 
@@ -46,6 +56,8 @@ LocationTracker::find_last_line(const SourceLocation loc) const
 {
     if (loc == SourceLocation::none())
         return SrcLineIdx::none();
+    if (loc == SourceLocation::eof())
+        return eof_line();
     return find_line(loc.end);
 }
 
@@ -54,6 +66,8 @@ LocationTracker::find_symbol_line(const SourceLocation loc) const
 {
     if (loc == SourceLocation::none())
         return SrcLineIdx::none();
+    if (loc == SourceLocation::eof())
+        return eof_line();
     return find_lines(loc).begin_line;
 }
 
@@ -80,11 +94,19 @@ LocationTracker::find_first_column(const SourceLocation loc) const
     DEBUG_SMART_ASSERT(starting_line.value <= linestart_buffer_indices_.size());
     // -1 as line starts at pos 0.
     const SrcBuffIdx index_at_starting_line = linestart_buffer_indices_[starting_line.value - 1];
-    DEBUG_SMART_ASSERT(loc.begin >= index_at_starting_line);
 
-    // +1 to convert index offset to columns.
-    const SrcColumnIdx starting_column{loc.begin.value - index_at_starting_line.value + 1};
-    return starting_column;
+    if (loc == SourceLocation::eof())
+    {
+        const SrcColumnIdx starting_column{(max_valid_index_ - index_at_starting_line).value + 1};
+        return starting_column;
+    }
+    else
+    {
+        DEBUG_SMART_ASSERT(loc.begin >= index_at_starting_line);
+        // +1 to convert index offset to columns.
+        const SrcColumnIdx starting_column{loc.begin.value - index_at_starting_line.value + 1};
+        return starting_column;
+    }
 }
 
 /**
@@ -110,6 +132,8 @@ LocationTracker::find_lines(const SrcBuffIdx begin_idx, const SrcBuffIdx end_idx
 LineRange
 LocationTracker::find_lines(const SourceLocation loc) const
 {
+    if (loc == SourceLocation::eof())
+        return LineRange{eof_line(), eof_line()};
     return find_lines(loc.begin, loc.end);
 }
 
@@ -127,13 +151,21 @@ LocationTracker::is_virtual_line(const SrcLineIdx line) const noexcept
 }
 
 SrcLineIdx
+LocationTracker::eof_line() const noexcept
+{
+    return SrcLineIdx{
+        static_cast<SrcLineIdx::UnderlyingType>(linestart_buffer_indices_.size() - 1)
+    };
+}
+
+SrcLineIdx
 LocationTracker::find_line(const SrcBuffIdx idx) const
 {
     DEBUG_SMART_ASSERT(
         std::is_sorted(linestart_buffer_indices_.begin(), linestart_buffer_indices_.end())
     );
 
-    if (idx.value > max_valid_index_.value)
+    if (idx > max_valid_index_)
         throw std::logic_error(ATTACH_CONTEXT(
             "BUG: LocationTracker received out-of-bounds index."));
 

@@ -259,7 +259,7 @@ private:
     private:
         struct MethodInfo
         {
-            const std::string id;
+            const StringSpan id;
             const SourceLocation id_loc;
         };
 
@@ -284,7 +284,7 @@ private:
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
 
-        void update_method_call_draft(const char *method_id, SourceLocation method_id_loc);
+        void update_method_call_draft(StringSpan method_id, SourceLocation method_id_loc);
 
         void init_call();
         void finalize_call();
@@ -338,7 +338,7 @@ private:
         [[nodiscard]] const Expr *build_false_expr(SourceLocation loc);
         [[nodiscard]] const Expr *build_int_expr(AlphaInt value, SourceLocation loc);
         [[nodiscard]] const Expr *build_float_expr(AlphaFloat value, SourceLocation loc);
-        [[nodiscard]] const Expr *build_string_expr(const char *value, SourceLocation loc);
+        [[nodiscard]] const Expr *build_string_expr(StringSpan value, SourceLocation loc);
         [[nodiscard]] const Expr *build_nil_expr(SourceLocation loc);
     };
 
@@ -371,7 +371,7 @@ private:
             std::string id;
             std::vector<Parameter> parameter_list;
 
-            void reset() { id = std::string(), parameter_list.clear(); }
+            void reset() { id.clear(), parameter_list.clear(); }
         } function_draft_;
 
         u32 next_function_address_ = k_first_function_address;
@@ -380,8 +380,8 @@ private:
         ~Restricted() override = default;
 
         void update_function_draft();
-        void update_function_draft(const std::string &id);
-        void collect_function_parameter(const std::string &id, SourceLocation id_loc);
+        void update_function_draft(StringSpan id);
+        void collect_function_parameter(StringSpan id, SourceLocation id_loc);
         [[nodiscard]] const Expr *forward_program_function(
             const ProgFuncSymbol *func_symbol, SourceLocation result_loc);
         [[nodiscard]] const ProgFuncSymbol *build_program_function_entry(
@@ -420,7 +420,7 @@ private:
     private:
         [[nodiscard]] const Expr *build_member_access(
             const Expr *base,
-            const char *member_id,
+            StringSpan member_id,
             SourceLocation member_id_loc,
             SourceLocation access_loc);
         [[nodiscard]] const Expr *build_subscript_access(

@@ -6,31 +6,31 @@
 
 namespace alpha
 {
-[[nodiscard]] static const Expr *
-try_trim_add(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLocation add_loc);
-[[nodiscard]] static const Expr *
-try_trim_sub(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLocation sub_loc);
-[[nodiscard]] static const Expr *
-try_trim_mul(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLocation mul_loc);
-[[nodiscard]] static const Expr *
-try_trim_div(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLocation div_loc);
-[[nodiscard]] static const Expr *
-try_trim_mod(ExprMaker *expr_maker, const Expr *lhs, const Expr *rhs, SourceLocation mod_loc);
+[[nodiscard]] static const Expr*
+try_trim_add(ExprMaker* expr_maker, const Expr* lhs, const Expr* rhs, SourceLocation add_loc);
+[[nodiscard]] static const Expr*
+try_trim_sub(ExprMaker* expr_maker, const Expr* lhs, const Expr* rhs, SourceLocation sub_loc);
+[[nodiscard]] static const Expr*
+try_trim_mul(ExprMaker* expr_maker, const Expr* lhs, const Expr* rhs, SourceLocation mul_loc);
+[[nodiscard]] static const Expr*
+try_trim_div(ExprMaker* expr_maker, const Expr* lhs, const Expr* rhs, SourceLocation div_loc);
+[[nodiscard]] static const Expr*
+try_trim_mod(ExprMaker* expr_maker, const Expr* lhs, const Expr* rhs, SourceLocation mod_loc);
 
-ExprOptimizer::ExprOptimizer(const settings::ExprOpts &expr_opts, ExprMaker *const expr_maker)
+ExprOptimizer::ExprOptimizer(const settings::ExprOpts& expr_opts, ExprMaker* const expr_maker)
     : expr_opts_(expr_opts),
       expr_maker_(support::require_ptr(expr_maker)),
       expr_folder_(support::require_ptr(expr_maker)),
       expr_trimmer_(support::require_ptr(expr_maker)) {}
 
-ExprFolder::ExprFolder(ExprMaker *const expr_maker)
+ExprFolder::ExprFolder(ExprMaker* const expr_maker)
     : expr_maker_(support::require_ptr(expr_maker)) {}
 
-ExprTrimmer::ExprTrimmer(ExprMaker *const expr_maker)
+ExprTrimmer::ExprTrimmer(ExprMaker* const expr_maker)
     : expr_maker_(expr_maker) {}
 
-const Expr *
-ExprFolder::try_fold_arithmetic_uminus(const Expr *const expr, const SourceLocation result_loc)
+const Expr*
+ExprFolder::try_fold_arithmetic_uminus(const Expr* const expr, const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
     if (!ExprFolder::should_fold_arithmetic(expr))
@@ -40,24 +40,24 @@ ExprFolder::try_fold_arithmetic_uminus(const Expr *const expr, const SourceLocat
     {
     case Expr::Type::CONST_INT:
         return expr_maker_->make_const_int_expr(
-            result_loc, -static_cast<const ConstIntExpr *>(expr)->value);
+            result_loc, -static_cast<const ConstIntExpr*>(expr)->value);
     case Expr::Type::CONST_FLOAT:
         return expr_maker_->make_const_float_expr(
-            result_loc, -static_cast<const ConstFloatExpr *>(expr)->value);
+            result_loc, -static_cast<const ConstFloatExpr*>(expr)->value);
     default: [[unlikely]] throw std::logic_error(ATTACH_CONTEXT("Needed const numeric expr."));
     }
 }
 
-const Expr *
+const Expr*
 ExprFolder::try_fold_arithmetic_binary(
     const ir::Opcode opc,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation result_loc)
 {
-    const auto fold_arith_op = [this, opc, result_loc](const auto l, const auto r) -> const Expr *
+    const auto fold_arith_op = [this, opc, result_loc](const auto l, const auto r) -> const Expr*
     {
-        const auto make_const_num_expr = [this, result_loc](const auto num) -> const Expr *
+        const auto make_const_num_expr = [this, result_loc](const auto num) -> const Expr*
         {
             if constexpr (std::is_integral_v<decltype(num)>)
                 return expr_maker_->make_const_int_expr(result_loc, num);
@@ -87,19 +87,19 @@ ExprFolder::try_fold_arithmetic_binary(
         return nullptr;
 
     return lhs->type == Expr::Type::CONST_INT && rhs->type == Expr::Type::CONST_INT
-           ? fold_arith_op(static_cast<const ConstIntExpr *>(lhs)->value,
-                           static_cast<const ConstIntExpr *>(rhs)->value)
+           ? fold_arith_op(static_cast<const ConstIntExpr*>(lhs)->value,
+                           static_cast<const ConstIntExpr*>(rhs)->value)
            : fold_arith_op(SemUtils::extract_alpha_float(lhs), SemUtils::extract_alpha_float(rhs));
 }
 
-const Expr *
+const Expr*
 ExprFolder::try_fold_relational_numeric(
     const ir::Opcode opc,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation result_loc)
 {
-    const auto fold_rel_num_op = [this, opc, result_loc](const auto l, const auto r) -> const Expr *
+    const auto fold_rel_num_op = [this, opc, result_loc](const auto l, const auto r) -> const Expr*
     {
         switch (opc)
         {
@@ -124,16 +124,17 @@ ExprFolder::try_fold_relational_numeric(
         return nullptr;
 
     return lhs->type == Expr::Type::CONST_INT && rhs->type == Expr::Type::CONST_INT
-           ? fold_rel_num_op(static_cast<const ConstIntExpr *>(lhs)->value,
-                         static_cast<const ConstIntExpr *>(rhs)->value)
-           : fold_rel_num_op(SemUtils::extract_alpha_float(lhs), SemUtils::extract_alpha_float(rhs));
+           ? fold_rel_num_op(static_cast<const ConstIntExpr*>(lhs)->value,
+                             static_cast<const ConstIntExpr*>(rhs)->value)
+           : fold_rel_num_op(SemUtils::extract_alpha_float(lhs),
+                             SemUtils::extract_alpha_float(rhs));
 }
 
-const Expr *
+const Expr*
 ExprFolder::try_fold_relational_equality(
     const ir::Opcode opc,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation result_loc)
 
 {
@@ -144,7 +145,7 @@ ExprFolder::try_fold_relational_equality(
     if (!should_fold_relational_equality(lhs, rhs))
         return nullptr;
 
-const auto equality_check = [lhs, rhs]() -> bool
+    const auto equality_check = [lhs, rhs]() -> bool
     {
         using ET = Expr::Type;
         if (lhs->type == ET::CONST_BOOL || rhs->type == ET::CONST_BOOL)
@@ -154,14 +155,18 @@ const auto equality_check = [lhs, rhs]() -> bool
         if (lhs->type == ET::CONST_NIL && rhs->type == ET::CONST_NIL)
             return true;
         if (lhs->type == ET::CONST_STRING && rhs->type == ET::CONST_STRING)
-            return std::string_view(static_cast<const ConstStringExpr *>(lhs)->value) ==
-                   std::string_view(static_cast<const ConstStringExpr *>(rhs)->value);
+        {
+            const StringSpan lhs_val = static_cast<const ConstStringExpr*>(lhs)->value;
+            const StringSpan rhs_val = static_cast<const ConstStringExpr*>(rhs)->value;
+            return std::string_view{lhs_val.dataa, lhs_val.size} ==
+                   std::string_view{rhs_val.dataa, rhs_val.size};
+        }
         if (lhs->type == ET::LIBRARY_FUNCTION && rhs->type == ET::LIBRARY_FUNCTION)
-            return static_cast<const LibFuncExpr *>(lhs)->libfunc_symbol->name ==
-                   static_cast<const LibFuncExpr *>(rhs)->libfunc_symbol->name;
+            return static_cast<const LibFuncExpr*>(lhs)->libfunc_symbol->name ==
+                   static_cast<const LibFuncExpr*>(rhs)->libfunc_symbol->name;
         if (lhs->type == ET::PROGRAM_FUNCTION && rhs->type == ET::PROGRAM_FUNCTION)
-            return static_cast<const ProgFuncExpr *>(lhs)->progfunc_symbol->address ==
-                   static_cast<const ProgFuncExpr *>(rhs)->progfunc_symbol->address;
+            return static_cast<const ProgFuncExpr*>(lhs)->progfunc_symbol->address ==
+                   static_cast<const ProgFuncExpr*>(rhs)->progfunc_symbol->address;
         UNREACHABLE("Some static combination is not handled");
     };
 
@@ -172,10 +177,10 @@ const auto equality_check = [lhs, rhs]() -> bool
     throw std::logic_error(ATTACH_CONTEXT("Needed equality ir::Opcode"));
 }
 
-const Expr *
+const Expr*
 ExprFolder::try_fold_logical_or(
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
@@ -183,16 +188,16 @@ ExprFolder::try_fold_logical_or(
         return nullptr;
 
     DEBUG_SMART_ASSERT(lhs->type == Expr::Type::CONST_BOOL, rhs->type == Expr::Type::CONST_BOOL);
-    const auto bool_lhs = static_cast<const ConstBoolExpr *>(lhs)->value;
-    const auto bool_rhs = static_cast<const ConstBoolExpr *>(rhs)->value;
+    const auto bool_lhs = static_cast<const ConstBoolExpr*>(lhs)->value;
+    const auto bool_rhs = static_cast<const ConstBoolExpr*>(rhs)->value;
 
     return expr_maker_->make_const_bool_expr(result_loc, bool_lhs || bool_rhs);
 }
 
-const Expr *
+const Expr*
 ExprFolder::try_fold_logical_and(
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
@@ -200,15 +205,15 @@ ExprFolder::try_fold_logical_and(
         return nullptr;
 
     DEBUG_SMART_ASSERT(lhs->type == Expr::Type::CONST_BOOL, rhs->type == Expr::Type::CONST_BOOL);
-    const auto bool_lhs = static_cast<const ConstBoolExpr *>(lhs)->value;
-    const auto bool_rhs = static_cast<const ConstBoolExpr *>(rhs)->value;
+    const auto bool_lhs = static_cast<const ConstBoolExpr*>(lhs)->value;
+    const auto bool_rhs = static_cast<const ConstBoolExpr*>(rhs)->value;
 
     return expr_maker_->make_const_bool_expr(result_loc, bool_lhs && bool_rhs);
 }
 
-const Expr *
+const Expr*
 ExprFolder::try_fold_logical_not(
-    const Expr *const expr,
+    const Expr* const expr,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!expr);
@@ -216,54 +221,54 @@ ExprFolder::try_fold_logical_not(
         return nullptr;
 
     return expr_maker_->make_const_bool_expr(
-        result_loc, !static_cast<const ConstBoolExpr *>(expr)->value);
+        result_loc, !static_cast<const ConstBoolExpr*>(expr)->value);
 }
 
 bool
-ExprFolder::should_fold_arithmetic(const Expr *const expr)
+ExprFolder::should_fold_arithmetic(const Expr* const expr)
 {
     return DEBUG_REQUIRE_PTR(expr)->is_const_arithmetic();
 }
 
 bool
-ExprFolder::should_fold_arithmetic(const Expr *const lhs, const Expr *const rhs)
+ExprFolder::should_fold_arithmetic(const Expr* const lhs, const Expr* const rhs)
 {
     return DEBUG_REQUIRE_PTR(lhs)->is_const_arithmetic() &&
            DEBUG_REQUIRE_PTR(rhs)->is_const_arithmetic();
 }
 
 bool
-ExprFolder::should_fold_relational_numeric(const Expr *const lhs, const Expr *const rhs)
+ExprFolder::should_fold_relational_numeric(const Expr* const lhs, const Expr* const rhs)
 {
     return DEBUG_REQUIRE_PTR(lhs)->is_const_arithmetic() &&
            DEBUG_REQUIRE_PTR(rhs)->is_const_arithmetic();
 }
 
 bool
-ExprFolder::should_fold_relational_equality(const Expr *const lhs, const Expr *const rhs)
+ExprFolder::should_fold_relational_equality(const Expr* const lhs, const Expr* const rhs)
 {
     return DEBUG_REQUIRE_PTR(lhs)->is_static() &&
            DEBUG_REQUIRE_PTR(rhs)->is_static();
 }
 
 bool
-ExprFolder::should_fold_logical(const Expr *const expr)
+ExprFolder::should_fold_logical(const Expr* const expr)
 {
     return DEBUG_REQUIRE_PTR(expr)->type == Expr::Type::CONST_BOOL;
 }
 
 bool
-ExprFolder::should_fold_logical(const Expr *const lhs, const Expr *const rhs)
+ExprFolder::should_fold_logical(const Expr* const lhs, const Expr* const rhs)
 {
     return DEBUG_REQUIRE_PTR(lhs)->type == Expr::Type::CONST_BOOL &&
            DEBUG_REQUIRE_PTR(rhs)->type == Expr::Type::CONST_BOOL;
 }
 
-const Expr *
+const Expr*
 ExprTrimmer::try_trim_binary_arithmetic(
     const ir::Opcode opc,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation result_loc)
 {
     DEBUG_SMART_ASSERT(!!lhs, !!rhs);
@@ -279,11 +284,11 @@ ExprTrimmer::try_trim_binary_arithmetic(
     }
 }
 
-const Expr *
+const Expr*
 ExprTrimmer::try_trim_relational_equality(
     const ir::Opcode opc,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation result_loc)
 {
     if (opc == ir::Opcode::IF_EQ)
@@ -304,11 +309,11 @@ ExprTrimmer::try_trim_relational_equality(
     return nullptr; // Trimming failed (most common scenario)
 }
 
-const Expr *
+const Expr*
 ExprTrimmer::try_trim_binary_logical(
     const ir::Opcode opc,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation result_loc)
 {
     if (opc == ir::Opcode::OR)
@@ -332,15 +337,15 @@ ExprTrimmer::try_trim_binary_logical(
     return nullptr;
 }
 
-const Expr *
-ExprOptimizer::try_propagate_const(const Expr *const expr)
+const Expr*
+ExprOptimizer::try_propagate_const(const Expr* const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
     if (!expr_opts_.opt_const_propagation) [[unlikely]] // We optimize for fully optimized setups.
         return expr;
     if (expr->type != Expr::Type::VARIABLE)
         return expr;
-    const VarSymbol *const var_symbol = static_cast<const VariableExpr *>(expr)->var_symbol;
+    const VarSymbol* const var_symbol = static_cast<const VariableExpr*>(expr)->var_symbol;
     DEBUG_SMART_ASSERT(!!var_symbol); // All VariableExpr must be tied to a Variable(Symbol);
     if (!var_symbol->has_const_value())
         return expr;
@@ -349,11 +354,11 @@ ExprOptimizer::try_propagate_const(const Expr *const expr)
     return expr_maker_->clone_with_updated_location(expr->loc, var_symbol->get_const_expr());
 }
 
-const Expr *
+const Expr*
 try_trim_add(
-    ExprMaker *const expr_maker,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    ExprMaker* const expr_maker,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation add_loc)
 {
     DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
@@ -363,11 +368,11 @@ try_trim_add(
     return nullptr; // Trimming failed (most common scenario)
 }
 
-const Expr *
+const Expr*
 try_trim_sub(
-    ExprMaker *const expr_maker,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    ExprMaker* const expr_maker,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation sub_loc)
 {
     DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
@@ -376,11 +381,11 @@ try_trim_sub(
     return nullptr; // Trimming failed (most common scenario)
 }
 
-const Expr *
+const Expr*
 try_trim_mul(
-    ExprMaker *const expr_maker,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    ExprMaker* const expr_maker,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation mul_loc)
 {
     DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
@@ -394,11 +399,11 @@ try_trim_mul(
     return nullptr; // Trimming failed (most common scenario)
 }
 
-const Expr *
+const Expr*
 try_trim_div(
-    ExprMaker *const expr_maker,
-    const Expr *const lhs,
-    const Expr *const rhs,
+    ExprMaker* const expr_maker,
+    const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation div_loc)
 {
     DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
@@ -406,11 +411,11 @@ try_trim_div(
     return nullptr; // Trimming failed (most common scenario)
 }
 
-const Expr *
+const Expr*
 try_trim_mod(
-    ExprMaker *const expr_maker,
-    [[maybe_unused]] const Expr *const lhs,
-    const Expr *const rhs,
+    ExprMaker* const expr_maker,
+    [[maybe_unused]] const Expr* const lhs,
+    const Expr* const rhs,
     const SourceLocation mod_loc)
 {
     DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);

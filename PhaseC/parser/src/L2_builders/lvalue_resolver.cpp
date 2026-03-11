@@ -4,17 +4,17 @@
 
 namespace alpha
 {
-LvalueResolver::LvalueResolver(const SemanticSystemServices &ss_services)
+LvalueResolver::LvalueResolver(const SemanticSystemServices& ss_services)
     : DISPATCH_TARGET(ss_services) {}
 
-LvalueResolver::Restricted::Restricted(const SemanticSystemServices &ss_services)
+LvalueResolver::Restricted::Restricted(const SemanticSystemServices& ss_services)
     : SemanticSubsystem(ss_services) {}
 
-const Expr *
-LvalueResolver::Restricted::resolve_id(const char *id_name, const SourceLocation id_loc)
+const Expr*
+LvalueResolver::Restricted::resolve_id(StringSpan id_name, const SourceLocation id_loc)
 {
-    DEBUG_SMART_ASSERT(!!id_name);
-    const Symbol *result = symbol_table_->
+    DEBUG_SMART_ASSERT(!id_name.empty());
+    const Symbol* result = symbol_table_->
         lookup_nearest(id_name, parse_ctx_->scope_handler.scope());
     if (!result) // Symbol not found, so insert it!
     {
@@ -30,23 +30,23 @@ LvalueResolver::Restricted::resolve_id(const char *id_name, const SourceLocation
     else if (!ensure_reachable_symbol(result, id_name, id_loc)) // Symbol found, is it reachable?
         return nullptr;
     if (result->is_variable())
-        return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol *>(result));
+        return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol*>(result));
     if (result->type == Symbol::Type::PROGRAM_FUNCTION)
         return expr_maker_->
-            make_prog_func_expr(id_loc, static_cast<const ProgFuncSymbol *>(result));
+            make_prog_func_expr(id_loc, static_cast<const ProgFuncSymbol*>(result));
     if (result->type == Symbol::Type::LIBRARY_FUNCTION)
-        return expr_maker_->make_lib_func_expr(id_loc, static_cast<const LibFuncSymbol *>(result));
+        return expr_maker_->make_lib_func_expr(id_loc, static_cast<const LibFuncSymbol*>(result));
     UNREACHABLE("Resolved symbol is neither a variable nor a function: unexpected symbol type");
 }
 
-const Expr *
+const Expr*
 LvalueResolver::Restricted::resolve_local_id(
-    const char *const lid_name,
+    const StringSpan lid_name,
     const SourceLocation lid_loc)
 {
-    DEBUG_SMART_ASSERT(!!lid_name);
+    DEBUG_SMART_ASSERT(!lid_name.empty());
 
-    const Symbol *result = symbol_table_->lookup_local(lid_name, parse_ctx_->scope_handler.scope());
+    const Symbol* result = symbol_table_->lookup_local(lid_name, parse_ctx_->scope_handler.scope());
     if (symbol_table_->is_libfunc_name(lid_name))
     {
         dr_->report_local_id_shadows_libfunc(lid_name, lid_loc);
@@ -55,7 +55,7 @@ LvalueResolver::Restricted::resolve_local_id(
     if (!result)
     {
         const auto current_scope = parse_ctx_->scope_handler.scope();
-        const VarSymbol *const inserted = symbol_table_->insert_variable(
+        const VarSymbol* const inserted = symbol_table_->insert_variable(
             lid_name,
             current_scope,
             current_scope == k_global_scope
@@ -68,10 +68,10 @@ LvalueResolver::Restricted::resolve_local_id(
         return expr_maker_->make_variable_expr(lid_loc, inserted);
     }
     if (result->is_variable())
-        return expr_maker_->make_variable_expr(lid_loc, static_cast<const VarSymbol *>(result));
+        return expr_maker_->make_variable_expr(lid_loc, static_cast<const VarSymbol*>(result));
     if (result->type == Symbol::Type::PROGRAM_FUNCTION)
         return expr_maker_->make_prog_func_expr(
-            lid_loc, static_cast<const ProgFuncSymbol *>(result));
+            lid_loc, static_cast<const ProgFuncSymbol*>(result));
     DEBUG_SMART_ASSERT(
         result->type!= Symbol::Type::LIBRARY_FUNCTION &&
         "libfunc, should be resolved at name lookup"
@@ -79,29 +79,29 @@ LvalueResolver::Restricted::resolve_local_id(
     UNREACHABLE("Unexpected symbol type");
 }
 
-const Expr *LvalueResolver::Restricted::resolve_global_id(
-    const char *const gid_name,
+const Expr* LvalueResolver::Restricted::resolve_global_id(
+    const StringSpan gid_name,
     const SourceLocation gid_loc)
 {
-    DEBUG_SMART_ASSERT(!!gid_name);
-    const Symbol *result = symbol_table_->lookup_global(gid_name);
+    DEBUG_SMART_ASSERT(!gid_name.empty());
+    const Symbol* const result = symbol_table_->lookup_global(gid_name);
     if (!result)
     {
         dr_->report_unresolved_global_symbol(gid_name, gid_loc);
         return nullptr;
     }
     if (result->is_variable())
-        return expr_maker_->make_variable_expr(gid_loc, static_cast<const VarSymbol *>(result));
+        return expr_maker_->make_variable_expr(gid_loc, static_cast<const VarSymbol*>(result));
     if (result->type == Symbol::Type::PROGRAM_FUNCTION)
         return expr_maker_->make_prog_func_expr(
-            gid_loc, static_cast<const ProgFuncSymbol *>(result));
+            gid_loc, static_cast<const ProgFuncSymbol*>(result));
     if (result->type == Symbol::Type::LIBRARY_FUNCTION)
-        return expr_maker_->make_lib_func_expr(gid_loc, static_cast<const LibFuncSymbol *>(result));
+        return expr_maker_->make_lib_func_expr(gid_loc, static_cast<const LibFuncSymbol*>(result));
     UNREACHABLE("Unexpected symbol type");
 }
 
-const Expr *
-LvalueResolver::Restricted::resolve_lvalue_to_rvalue(const Expr *const lvalue)
+const Expr*
+LvalueResolver::Restricted::resolve_lvalue_to_rvalue(const Expr* const lvalue)
 {
     DEBUG_SMART_ASSERT(!!lvalue);
     return expr_normalizer_->materialize_if_table_item(lvalue);
@@ -109,8 +109,8 @@ LvalueResolver::Restricted::resolve_lvalue_to_rvalue(const Expr *const lvalue)
 
 bool
 LvalueResolver::Restricted::ensure_reachable_symbol(
-    const Symbol *symbol,
-    const char *const id_name,
+    const Symbol* symbol,
+    const StringSpan id_name,
     const SourceLocation id_loc)
 {
     const bool reachable =

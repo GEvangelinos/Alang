@@ -4,6 +4,8 @@
 #include "support/format_adapter.hpp"  // for format, FMT
 #include "support/smart_assert.h"      // for DEBUG_SMART_ASSERT
 #include <utility>                   // for move, pair, forward
+
+#include "core/string_span.hpp"
 #include "parser/semantic_utils.hpp"
 
 namespace alpha
@@ -48,11 +50,11 @@ namespace // (Anonymous)
 template<typename SymbolKind, typename... Args>
     requires std::is_base_of_v<Symbol, SymbolKind>
 const SymbolKind *
-SymbolTable::insert_symbol(const std::string &name, u32 scope, Args &&... args)
+SymbolTable::insert_symbol(const StringSpan name, u32 scope, Args &&... args)
 {
     DEBUG_SMART_ASSERT(!name.empty());
 
-    const auto symbol_map_it = symbol_map_.try_emplace(name).first;
+    const auto symbol_map_it = symbol_map_.try_emplace(name.to_string()).first;
     const auto &symbol_name_ref = symbol_map_it->first;
     auto &synonym_symbols = symbol_map_it->second;
     const auto symbol_it = find_insert_position(synonym_symbols, scope);
@@ -77,8 +79,9 @@ SymbolTable::SymbolTable()
     // Load library functions
     for (uf32 i = 0; i < k_library_function_names.size(); i++)
     {
-        const std::string &name = k_library_function_names[i];
-        library_function_set_.insert(name);
+        const StringSpan name = k_library_function_names[i];
+
+        library_function_set_.insert(name.to_string());
         (void) insert_symbol<LibFuncSymbol>(name, k_libfunc_scope);
     }
 }
@@ -86,7 +89,7 @@ SymbolTable::SymbolTable()
 // Used for inserting PROGRAM_FUNCTIONS (USER FUNCTIONS)
 const ProgFuncSymbol *
 SymbolTable::insert_program_function(
-    const std::string &name,
+    const StringSpan name,
     const u32 scope,
     const u32 address,
     const std::vector<Parameter> &parameter_list,
@@ -97,7 +100,7 @@ SymbolTable::insert_program_function(
 
 const VarSymbol *
 SymbolTable::insert_variable(
-    const std::string &name,
+    const StringSpan name,
     const u32 scope,
     const VarSymbol::Type type,
     const VarSymbol::Space space,
@@ -108,10 +111,10 @@ SymbolTable::insert_variable(
 }
 
 const Symbol *
-SymbolTable::lookup_global(const std::string &name) const
+SymbolTable::lookup_global(const StringSpan name) const
 {
     // Does `symbol_name` exist ?
-    const auto it = symbol_map_.find(name);
+    const auto it = symbol_map_.find(name.to_string());
     if (it == symbol_map_.end())
         return nullptr;
 
@@ -123,10 +126,10 @@ SymbolTable::lookup_global(const std::string &name) const
 }
 
 const Symbol *
-SymbolTable::lookup_nearest(const std::string &name, const u32 scope) const
+SymbolTable::lookup_nearest(const StringSpan name, const u32 scope) const
 {
     // Does `symbol_name` exist ?
-    const auto it = symbol_map_.find(name);
+    const auto it = symbol_map_.find(name.to_string());
     if (it == symbol_map_.end())
         return nullptr;
 
@@ -139,9 +142,9 @@ SymbolTable::lookup_nearest(const std::string &name, const u32 scope) const
 }
 
 const Symbol *
-SymbolTable::lookup_local(const std::string &symbol_name, const u32 scope) const
+SymbolTable::lookup_local(const StringSpan symbol_name, const u32 scope) const
 {
-    const auto it = symbol_map_.find(symbol_name);
+    const auto it = symbol_map_.find(symbol_name.to_string());
     if (it == symbol_map_.end())
         return nullptr;
 
@@ -181,9 +184,9 @@ SymbolTable::hide_scope_symbols(const u32 scope) noexcept
 }
 
 bool
-SymbolTable::is_libfunc_name(const std::string &name) const
+SymbolTable::is_libfunc_name(const StringSpan name) const
 {
-    return library_function_set_.contains(name);
+    return library_function_set_.contains(name.to_string());
 }
 
 /// Note: This method is deliberately implemented as a static method of SymbolTable

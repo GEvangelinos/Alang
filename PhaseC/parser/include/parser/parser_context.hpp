@@ -528,7 +528,7 @@ FunctionCtxHandler::add_local() noexcept
 inline std::string
 AnonymousGenerator::new_anonymous()
 {
-    return k_anonymous_prefix + std::to_string(anonymous_counter_++);
+    return k_anonymous_prefix + FMT::to_string(anonymous_counter_++);
 }
 
 inline bool

@@ -52,7 +52,7 @@ IROPCODE_INFO:
 IROPCODE_OPTIMIZATION_FLAGS: [ foldable, trimmable ]
 
 # TODO:
-#invariants:
+# invariants:
 # if is_branching -> result is not used because branches never save
 # arg1 and arg2 can be required...
 # but not always (for example JUMP) but rule of thumb is branching OPcode should not provide result

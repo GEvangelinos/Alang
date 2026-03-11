@@ -8,6 +8,7 @@
 #include "parser/symbols.hpp"
 
 #include "core/konstants.hpp"
+#include "core/string_span.hpp"
 #include "parser/ir_opcode.gen.hpp"
 #include "support/misc_tools.hpp"
 #include "support/string_tools.hpp"
@@ -163,16 +164,19 @@ struct ConstFloatExpr final : public ConstExpr
 
 struct ConstStringExpr final : public ConstExpr
 {
-    const char *value;
+    const StringSpan value;
 
-    ConstStringExpr(const SourceLocation loc, const char *const value)
+    ConstStringExpr(const SourceLocation loc, const StringSpan value)
         : ConstExpr(Type::CONST_STRING, loc),
-          value(support::cstrdup(DEBUG_REQUIRE_PTR(value))) { DEBUG_SMART_ASSERT(!!this->value); }
+          value(support::cstrdup(value.dataa, value.size), value.size)
+    {
+        DEBUG_SMART_ASSERT(!this->value.empty());
+    }
 
     ~ConstStringExpr()
     {
-        DEBUG_SMART_ASSERT(!!value);
-        delete [] value;
+        DEBUG_SMART_ASSERT(!value.empty());
+        delete [] value.dataa;
     }
 };
 

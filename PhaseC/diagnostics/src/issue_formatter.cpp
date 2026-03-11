@@ -193,12 +193,19 @@ IssueFormatterImpl::compute_visual_suggestion_indent_width(const Suggestion& sug
     SrcColumnIdx column = SrcColumnIdx::none();
     // Instead of computing suggestion width with plain subtraction
     // we walk the input buffer in case there is a tab to expand.
-    for (auto i = line_start_index; i < suggestion.insert_after.end; ++i)
+
+
+    const SrcBuffIdx effective_end =
+        suggestion.insert_after != SourceLocation::eof()
+        ? suggestion.insert_after.end
+        : source_buffer_.source_size() - SrcBuffIdx{1};
+
+    for (auto i = line_start_index; i < effective_end; ++i)
     {
         const char ch = source_buffer_[i];
         if (ch == '\t')
-            column.value += IssueFormatter::k_tab_width_ - column.value %
-                IssueFormatter::k_tab_width_;
+            column.value +=
+                IssueFormatter::k_tab_width_ - column.value % IssueFormatter::k_tab_width_;
         else
             ++column.value;
     }

@@ -11,7 +11,7 @@
 namespace alpha
 {
 /*** STARTOF: Local to the file (static) definitions: ***/
-[[maybe_unused]] static std::string to_upper_case(const std::string &input)
+[[maybe_unused]] static std::string to_upper_case(const std::string& input)
 {
     std::string result = input;
     std::transform(result.begin(), result.end(), result.begin(),
@@ -25,12 +25,12 @@ namespace alpha
 unsigned int Token::valid_token_counter_ = 0;
 
 void Token::export_token(
-    void *yylval,
+    void* yylval,
     const u32 line_number,
-    const std::string &content,
-    const std::string &code_name)
+    const std::string& content,
+    const std::string& code_name)
 {
-    AlphaToken *casted_yylval = (struct AlphaToken *) yylval;
+    AlphaToken* casted_yylval = (struct AlphaToken*)yylval;
     casted_yylval->line_number = line_number;
     casted_yylval->token_number = Token::get_valid_token_counter();
     casted_yylval->content = content;
@@ -57,7 +57,7 @@ void Token::decrement_valid_token_counter()
 Token::Token(
     const u32 line_number,
     const u32 token_number,
-    const std::string &token_content)
+    const std::string& token_content)
     : line_number_(line_number), token_number_(token_number), token_content_(token_content)
 {
     increment_valid_token_counter();
@@ -83,8 +83,8 @@ std::string Token::to_string() const
 TokenKeyword::TokenKeyword(
     const u32 line_number,
     const u32 token_number,
-    const std::string &keyword_content,
-    const std::string &keyword_code_name)
+    const std::string& keyword_content,
+    const std::string& keyword_code_name)
     : Token(line_number, token_number, keyword_content), token_code_name_(keyword_code_name) {}
 
 std::string TokenKeyword::to_string() const
@@ -104,8 +104,8 @@ std::string TokenKeyword::to_string() const
 TokenOperator::TokenOperator(
     const u32 line_number,
     const u32 token_number,
-    const std::string &operator_content,
-    const std::string &operator_code_name)
+    const std::string& operator_content,
+    const std::string& operator_code_name)
     : Token(line_number, token_number, operator_content),
       token_code_name_(operator_code_name) {}
 
@@ -126,8 +126,8 @@ std::string TokenOperator::to_string() const
 TokenPunctuation::TokenPunctuation(
     const u32 line_number,
     const u32 token_number,
-    const std::string &punctuation_content,
-    const std::string &punctuation_code_name)
+    const std::string& punctuation_content,
+    const std::string& punctuation_code_name)
     : Token(line_number, token_number, punctuation_content),
       token_code_name_(punctuation_code_name) {}
 
@@ -148,7 +148,7 @@ std::string TokenPunctuation::to_string() const
 TokenIntegerNumber::TokenIntegerNumber(
     const u32 line_number,
     const u32 token_number,
-    const std::string &integer_content,
+    const std::string& integer_content,
     const std::string number_of_token)
     : Token(line_number, token_number, integer_content),
       number_of_token_(number_of_token) {}
@@ -170,8 +170,8 @@ std::string TokenIntegerNumber::to_string() const
 TokenRealNumber::TokenRealNumber(
     const u32 line_number,
     const u32 token_number,
-    const std::string &real_content,
-    const std::string &number_of_token)
+    const std::string& real_content,
+    const std::string& number_of_token)
     : Token(line_number, token_number, real_content),
       number_of_token_(number_of_token) {}
 
@@ -189,29 +189,13 @@ std::string TokenRealNumber::to_string() const
 /*** ENDOF: class TokenIntegerNumber definitions. ***/
 
 /*** STARTOF: class TokenID definitions. ***/
-char *TokenID::last_id_ = nullptr;
-
 TokenID::TokenID(
     const u32 line_number,
     const u32 token_number,
-    const std::string &id_content,
-    const std::string &id_name)
+    const std::string& id_content,
+    const std::string& id_name)
     : Token(line_number, token_number, id_content),
       id_name_(id_name) {}
-
-char *TokenID::refresh_last_id(const char *const id)
-{
-    // TODO in future driver.. just malloc a buffer, and write the same (grow only if needed..);
-    if (!id)
-        throw std::runtime_error("Error in lexer (probably): `id` is null.");
-
-    delete[] TokenID::last_id_; /* delete[] is safe with nullptr too (in first initialization). */
-    TokenID::last_id_ = new char[std::strlen(id) + 1]; /* +1 for '\0'. */
-    std::strcpy(TokenID::last_id_, id);
-    return TokenID::last_id_;
-}
-
-void TokenID::clear_last_id() { delete[] TokenID::last_id_; }
 
 std::string TokenID::to_string() const
 {
@@ -244,8 +228,8 @@ SourceLocation TokenComment::get_starting_location()
 TokenComment::TokenComment(
     const u32 line_number,
     const u32 token_number,
-    const std::string &comment_description,
-    const std::string &comment_type)
+    const std::string& comment_description,
+    const std::string& comment_type)
     : Token(line_number, token_number, comment_description), comment_type_(comment_type) {}
 
 std::string TokenComment::to_string() const
@@ -320,11 +304,14 @@ void TokenString::flush_assembling_buffer()
     string_assembling_buffer_.clear();
 }
 
-const char *TokenString::export_string_token()
+StringSpan TokenString::export_string_token()
 {
     latest_assembled_string_ = convert_content_escapes_to_ascii();
     TokenString::flush_assembling_buffer();
-    return latest_assembled_string_.c_str();
+    return StringSpan{
+        .dataa = latest_assembled_string_.c_str(),
+        .size = latest_assembled_string_.size()
+    };
 }
 
 SourceLocation
@@ -336,7 +323,7 @@ TokenString::export_location(SourceLocation closing_quote_loc)
 TokenString::TokenString(
     const u32 line_number,
     const u32 token_number,
-    const std::string &string_content)
+    const std::string& string_content)
     : Token(line_number, token_number, string_content) {}
 
 std::string TokenString::to_string() const
@@ -358,7 +345,7 @@ std::string TokenString::to_string() const
 TokenInvalid::TokenInvalid(
     const u32 line_number,
     const u32 token_number,
-    const std::string &the_invalid_token)
+    const std::string& the_invalid_token)
     : Token(line_number, token_number, the_invalid_token)
 {
     /* Empty Constructor Body */

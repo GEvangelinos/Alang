@@ -4,6 +4,7 @@
 #include <iosfwd> // for stringstream
 #include <string> // for string, basic_string
 #include "core/source_location.hpp"
+#include "core/string_span.hpp"
 
 // TODO: if planning to scan multiple files and have multiple threads..
 // you need to remove the static buffer variables and either move to thread_local (for many threads)
@@ -115,19 +116,16 @@ public:
 
 class TokenID final : public Token
 {
-private:
-    const std::string id_name_;
-    static char* last_id_;
-
 public:
     TokenID(
         u32 line_number,
         u32 token_number,
         const std::string& id_content,
         const std::string& id_name);
-    [[nodiscard]] static char* refresh_last_id(const char* id);
-    static void clear_last_id();
     [[nodiscard]] std::string to_string() const override;
+
+private:
+    const std::string id_name_;
 };
 
 class TokenString final : public Token
@@ -136,13 +134,15 @@ public:
     static void set_starting_location(SourceLocation location);
     [[nodiscard]] static SourceLocation get_starting_location();
     static void append_to_assembling_buffer(std::string string_chunk);
-    [[nodiscard]] static const char* export_string_token();
+    [[nodiscard]] static StringSpan export_string_token();
     [[nodiscard]] static SourceLocation export_location(SourceLocation closing_quote_loc);
     TokenString(u32 line_number, u32 token_number, const std::string& string_content);
     [[nodiscard]] std::string to_string() const override;
 
 private:
+    // TODO: bomb waiting to explode... (uses global buffer, with many TranslationUnit == CHAOS)
     static std::string latest_assembled_string_;
+    // TODO: use std::vector<char> stringstream is locale aware and slow.
     static std::stringstream string_assembling_buffer_;
     static SourceLocation string_starting_location_;
     static void flush_assembling_buffer();

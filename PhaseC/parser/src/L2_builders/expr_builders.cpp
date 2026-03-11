@@ -1,5 +1,6 @@
 #include "L2_semantic_subsystems/expr_builders.hpp"
 
+#include <ranges>
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 
 #include "expr_type_traits.hpp"
@@ -912,7 +913,7 @@ BasicBuilder::Restricted::warn_if_lossy_conversion_int_to_float(
 
 void
 CallBuilder::Restricted::update_method_call_draft(
-    const char* const method_id,
+    const StringSpan method_id,
     const SourceLocation method_id_loc)
 {
     DEBUG(
@@ -1025,8 +1026,7 @@ CallBuilder::Restricted::build_method_call_consuming(
 
     const MethodInfo& mi = *draft_.call_info_stack.top().pending_method_info;
     // Turn method name into a string literal expression
-    const auto* const method_name = expr_maker_->make_const_string_expr(mi.id_loc, mi.id.c_str());
-
+    const auto* const method_name = expr_maker_->make_const_string_expr(mi.id_loc, mi.id);
     // Don't materialize callable_method, let build_call_consuming() do it.
     return build_call_consuming(method_host, call_loc, method_name);
 }
@@ -1085,9 +1085,9 @@ ConstBuilder::Restricted::build_float_expr(const AlphaFloat value, const SourceL
 }
 
 const Expr*
-ConstBuilder::Restricted::build_string_expr(const char* const value, const SourceLocation loc)
+ConstBuilder::Restricted::build_string_expr(const StringSpan value, const SourceLocation loc)
 {
-    DEBUG_SMART_ASSERT(!!value);
+    DEBUG_SMART_ASSERT(!value.empty());
     return expr_maker_->make_const_string_expr(loc, value);
 }
 
@@ -1100,22 +1100,24 @@ ConstBuilder::Restricted::build_nil_expr(const SourceLocation loc)
 void
 FunctionBuilder::Restricted::update_function_draft()
 {
-    update_function_draft(parse_ctx_->anonymous_generator.new_anonymous());
+    update_function_draft(StringSpan::from_string(parse_ctx_->anonymous_generator.new_anonymous()));
 }
 
 void
-FunctionBuilder::Restricted::update_function_draft(const std::string& id)
+FunctionBuilder::Restricted::update_function_draft(const StringSpan id)
 {
-    function_draft_.id = id;
-
+    function_draft_.id = id.to_string();
     // We probably enter next space before function_entry early on here, for formal arguments.
     parse_ctx_->space_handler.enter_space();
 }
 
 void
 FunctionBuilder::Restricted::collect_function_parameter(
-    const std::string& id,
-    const SourceLocation id_loc) { function_draft_.parameter_list.emplace_back(id, id_loc); }
+    const StringSpan id,
+    const SourceLocation id_loc)
+{
+    function_draft_.parameter_list.emplace_back(id.to_string(), id_loc);
+}
 
 void
 FunctionBuilder::Restricted::register_function_parameters()
@@ -1126,7 +1128,7 @@ FunctionBuilder::Restricted::register_function_parameters()
     for (const Parameter& p : function_draft_.parameter_list)
         if (validate_formal_param_name(p))
             symbol_table_->insert_variable(
-                p.name,
+                StringSpan::from_string(p.name),
                 parse_ctx_->scope_handler.scope(),
                 VarSymbol::Type::FORMAL_ARGUMENT,
                 space,
@@ -1140,14 +1142,15 @@ FunctionBuilder::Restricted::validate_funcdef_name(
     const std::string& func_name,
     const SourceLocation funcname_loc)
 {
-    if (symbol_table_->is_libfunc_name(func_name))
+    const auto func_name_span = StringSpan::from_string(func_name);
+    if (symbol_table_->is_libfunc_name(func_name_span))
     {
         dr_->report_redefinition_of_libfunc(func_name, funcname_loc);
         return false;
     }
 
     const auto curr_scope = parse_ctx_->scope_handler.scope();
-    if (const Symbol* const found_symbol = symbol_table_->lookup_local(func_name, curr_scope))
+    if (const Symbol* const found_symbol = symbol_table_->lookup_local(func_name_span, curr_scope))
     {
         if (found_symbol->is_function())
         {
@@ -1166,15 +1169,16 @@ FunctionBuilder::Restricted::validate_funcdef_name(
 bool
 FunctionBuilder::Restricted::validate_formal_param_name(const Parameter& param)
 {
+    const auto param_name = StringSpan::from_string(param.name);
     // Library‐function conflict
-    if (symbol_table_->is_libfunc_name(param.name))
+    if (symbol_table_->is_libfunc_name(param_name))
     {
         dr_->report_libfunc_redefined_as_formal_parameter(param.name, param.loc);
         return false;
     }
 
     const auto curr_scope = parse_ctx_->scope_handler.scope();
-    if (const Symbol* const formal_symbol = symbol_table_->lookup_local(param.name, curr_scope))
+    if (const Symbol* const formal_symbol = symbol_table_->lookup_local(param_name, curr_scope))
     {
         // Parameter should produce name conflicts only with themselves.
         DEBUG_SMART_ASSERT(
@@ -1214,7 +1218,7 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation f
     if (validated_funcname)
     {
         func_symbol = symbol_table_->insert_program_function(
-            function_draft_.id,
+            StringSpan::from_string(function_draft_.id),
             parse_ctx_->scope_handler.scope(),
             next_function_address_++,
             function_draft_.parameter_list,
@@ -1271,11 +1275,11 @@ FunctionBuilder::Restricted::build_program_function_exit(
 const Expr*
 TableAccessBuilder::Restricted::build_member_access(
     const Expr* const base,
-    const char* const member_id,
+    const StringSpan member_id,
     const SourceLocation member_id_loc,
     const SourceLocation access_loc)
 {
-    DEBUG_SMART_ASSERT(!!base, !!member_id);
+    DEBUG_SMART_ASSERT(!!base, !member_id.empty());
     if (!validate_lvalue(dr_, base, access_loc, "member access", ".", "base expression"))
         return nullptr;
     const Expr* const materialized_lvalue = expr_normalizer_->materialize_if_table_item(base);

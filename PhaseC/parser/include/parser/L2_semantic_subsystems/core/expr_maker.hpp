@@ -41,7 +41,7 @@ public:
     [[nodiscard]] const ConstFloatExpr *make_const_float_expr(
         SourceLocation expr_loc, AlphaFloat float_value);
     [[nodiscard]] const ConstStringExpr *make_const_string_expr(
-        SourceLocation expr_loc, const char *str_value);
+        SourceLocation expr_loc, StringSpan str_value);
     [[nodiscard]] const ConstNilExpr *make_nil_expr(SourceLocation expr_loc);
     [[nodiscard]] const LibFuncExpr *make_lib_func_expr(
         SourceLocation expr_loc, const LibFuncSymbol *func_symbol);
@@ -147,9 +147,9 @@ ExprMaker::make_const_float_expr(const SourceLocation expr_loc, const AlphaFloat
 }
 
 inline const ConstStringExpr *
-ExprMaker::make_const_string_expr(const SourceLocation expr_loc, const char *const str_value)
+ExprMaker::make_const_string_expr(const SourceLocation expr_loc, const StringSpan str_value)
 {
-    DEBUG_SMART_ASSERT(!!str_value);
+    DEBUG_SMART_ASSERT(!str_value.empty());
     const auto *const const_str_expr = new const ConstStringExpr(expr_loc, str_value);
     expr_sink_.push_back(const_str_expr);
     return const_str_expr;

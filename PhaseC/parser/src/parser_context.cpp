@@ -2,7 +2,7 @@
 
 namespace alpha
 {
-SpaceHandler::SpaceHandler(const ParseCtx *const host)
+SpaceHandler::SpaceHandler(const ParseCtx* const host)
     : host_(support::require_ptr(host))
 {
     enter_space(); // We push the first scope space frame (PROGRAM_VAR)
@@ -19,7 +19,7 @@ SpaceHandler::~SpaceHandler()
     )
 }
 
-ScopeHandler::ScopeHandler(const ParseCtx *host)
+ScopeHandler::ScopeHandler(const ParseCtx* host)
     : host_(support::require_ptr(host))
 {
     DEBUG_SMART_ASSERT(
@@ -38,7 +38,7 @@ ScopeHandler::~ScopeHandler()
     )
 }
 
-CallCtxHandler::CallCtxHandler(ParseCtx *const host)
+CallCtxHandler::CallCtxHandler(ParseCtx* const host)
     : host_(support::require_ptr(host)) {}
 
 CallCtxHandler::~CallCtxHandler()
@@ -49,7 +49,7 @@ CallCtxHandler::~CallCtxHandler()
     )
 }
 
-TableCtxHandler::TableCtxHandler(ParseCtx *const host)
+TableCtxHandler::TableCtxHandler(ParseCtx* const host)
     : host_(support::require_ptr(host)) {}
 
 TableCtxHandler::~TableCtxHandler()
@@ -133,7 +133,7 @@ FunctionCtxHandler::FlowLivenessTracker::pop_flow_state()
     flow_states_.pop_back();
 }
 
-FunctionCtxHandler::FunctionCtxHandler(ParseCtx *const host)
+FunctionCtxHandler::FunctionCtxHandler(ParseCtx* const host)
     : host_(support::require_ptr(host))
 {
     // We push a stack-frame, for loops that might occur outside functions.
@@ -177,9 +177,9 @@ FunctionCtxHandler::~FunctionCtxHandler()
  */
 void
 FunctionCtxHandler::enter_function(
-    const std::string &func_name,
+    const std::string& func_name,
     const SourceLocation func_loc,
-    const ProgFuncSymbol *const func_symbol,
+    const ProgFuncSymbol* const func_symbol,
     const LabelID label_of_jump)
 {
     DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting && "A safe small sanity limit");
@@ -234,7 +234,7 @@ FunctionCtxHandler::exit_function() noexcept
     };
 }
 
-TempCtxHandler::TempCtxHandler(const ParseCtx *const host)
+TempCtxHandler::TempCtxHandler(const ParseCtx* const host)
     : host_(support::require_ptr(host)) { push_temp_ctx_frame(); }
 
 TempCtxHandler::~TempCtxHandler()
@@ -284,7 +284,7 @@ TempCtxHandler::acquire_temp_handle()
     );
     DEBUG_SMART_ASSERT(!temp_frames.empty());
 
-    auto &temp_handles = temp_frames.top().temp_handles_;
+    auto& temp_handles = temp_frames.top().temp_handles_;
 
     // Scan for available
     for (TempHandleID id = 0; id < temp_handles.size(); ++id)
@@ -305,12 +305,12 @@ void
 TempCtxHandler::release_temp_handle(const TempHandleID id)
 {
     DEBUG_SMART_ASSERT(!temp_frames.empty());
-    auto &temp_handles = temp_frames.top().temp_handles_;
+    auto& temp_handles = temp_frames.top().temp_handles_;
     DEBUG_SMART_ASSERT(!temp_handles.empty(), id < temp_handles.size());
     temp_handles[id] = TempFrame::Handle::RELEASED;
 }
 
-ParseCtx::ParseCtx(SymbolTable *const symbol_table)
+ParseCtx::ParseCtx(SymbolTable* const symbol_table)
     : space_handler(this),
       scope_handler(this),
       table_ctx_handler(this),
@@ -323,21 +323,22 @@ std::string
 ParseCtx::generate_temp_name(const TempHandleID temp_handle)
     noexcept(noexcept(std::to_string(temp_handle)))
 {
-    return k_temp_variable_prefix + std::to_string(temp_handle);
+    return k_temp_variable_prefix + FMT::to_string(temp_handle);
 }
 
-const VarSymbol *
+const VarSymbol*
 ParseCtx::new_temp()
 {
     const TempHandleID temp_handle = temp_ctx_handler.acquire_temp_handle();
     const std::string temp_name = ParseCtx::generate_temp_name(temp_handle);
+    const StringSpan temp_name_span = StringSpan::from_string(temp_name);
 
-    const Symbol *symbol = symbol_table_->lookup_local(temp_name, scope_handler.scope());
+    const Symbol* symbol = symbol_table_->lookup_local(temp_name_span, scope_handler.scope());
     DEBUG_SMART_ASSERT(
         !symbol || symbol->is_variable(),
         !symbol || symbol->is_temp_variable()
     );
-    const VarSymbol *var_symbol = static_cast<const VarSymbol *>(symbol);
+    const VarSymbol* var_symbol = static_cast<const VarSymbol*>(symbol);
 
     // We register new temp, only if current scope doesn't have that temp.
     if (!var_symbol)
@@ -348,7 +349,7 @@ ParseCtx::new_temp()
             : VarSymbol::Type::LOCAL_VARIABLE;
 
         var_symbol = symbol_table_->insert_variable(
-            temp_name,
+            temp_name_span,
             scope_handler.scope(),
             var_type,
             space_handler.space(),

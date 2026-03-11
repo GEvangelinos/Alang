@@ -185,7 +185,10 @@ VarSymbol::VarSymbol(
     const SourceLocation loc) noexcept
     : Symbol(name, scope, type, loc),
       space(space),
-      offset(offset) {}
+      offset(offset)
+{
+    DEBUG_SMART_ASSERT(is_variable());
+}
 
 inline Symbol::Type
 VarSymbol::scope_to_symbol_type(const u32 scope)

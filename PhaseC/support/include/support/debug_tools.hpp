@@ -142,11 +142,11 @@
         #ifdef UNREACHABLE
         #error "Macro collision detected"
         #endif
-        #define UNREACHABLE(_message_if_reached)                           \
-                do                                                         \
-                {                                                          \
-                REPORT_UNREACHABLE_VIOLATION(_message_if_reached);         \
-                __builtin_unreachable();                                   \
+        #define UNREACHABLE(_message_if_reached)                                   \
+                do                                                                 \
+                {                                                                  \
+                        REPORT_UNREACHABLE_VIOLATION(_message_if_reached);         \
+                        __builtin_unreachable();                                   \
                 } while (0)
 
 #elif defined(_MSC_VER)
@@ -171,6 +171,12 @@
                         REPORT_UNREACHABLE_VIOLATION(_message_if_reached); \
                         std::abort();                                      \
                 } while (0)
+#endif
+
+#ifdef DEBUG_MODE
+        #define DEBUG_UNREACHABLE(...) UNREACHABLE(__VA_ARGS__)
+#else
+        #define DEBUG_UNREACHABLE(...)
 #endif
 
 namespace alpha::support

@@ -1,4 +1,8 @@
 %{
+        #ifndef USE_FLEX_SCANNER
+        #error "Flex scanner requires USE_FLEX_SCANNER."
+        #endif
+
         #include <string>                             // for basic_string, stod, stol
         #include <parser/alpha_parser.gen.hpp>                   // for alpha_yylloc, alpha_yyt...
         #include "diagnostics/diagnostic_engine.hpp"               // for CTError, ErrorTracker
@@ -102,7 +106,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
 "."             { YIELD_TOKEN(TKN_DOT); }
 ".."            { YIELD_TOKEN(TKN_METHOD_CALL); }
 
-{id}            { yylval->cstring = alpha::TokenID::refresh_last_id(yytext); YIELD_TOKEN(TKN_ID); } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
+{id}            { yylval->string = alpha::StringSpan{yytext, (alpha::u64)yyleng}; YIELD_TOKEN(TKN_ID); } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
 {float}         { yylval->const_float = std::stod(yytext); YIELD_TOKEN(TKN_FLOAT); }
 {int}           { yylval->const_int = std::stol(yytext); YIELD_TOKEN(TKN_INT); }
 {line_comment}  { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
@@ -121,7 +125,9 @@ string_invalid_escape_code "\\"([^tnr"\\])
 }
 <INSIDE_COMMENT_BLOCK>{any_character_but_newline} { /* Just eat up any character use see. */ }
 <INSIDE_COMMENT_BLOCK><<EOF>> {
-        dr.report_unclosed_comment(alpha::TokenComment::get_starting_location());
+        alpha::SourceLocation loc = alpha::TokenComment::get_starting_location();
+        loc.end = yylloc->end - alpha::SrcBuffIdx{1}; // -1 required as yylloc points to EOF (non existing char)
+        dr.report_unclosed_comment(loc);
         YIELD_TOKEN(TKN_YYEOF);
 }
 
@@ -142,13 +148,15 @@ string_invalid_escape_code "\\"([^tnr"\\])
         dr.report_invalid_escape_code(yytext, *yylloc);
 }
 <INSIDE_STRING><<EOF>> {
-        dr.report_unclosed_string(alpha::TokenString::get_starting_location());
+        alpha::SourceLocation loc = alpha::TokenString::get_starting_location();
+        loc.end = yylloc->end - alpha::SrcBuffIdx{1}; // -1 required as yylloc points to EOF (non existing char)
+        dr.report_unclosed_string(loc);
         YIELD_TOKEN(TKN_YYEOF);
 }
 <INSIDE_STRING>{string_end_rule} {
         BEGIN(INITIAL);
         alpha::TokenString::append_to_assembling_buffer(yytext);
-        yylval->cstring = alpha::TokenString::export_string_token();
+        yylval->string = alpha::TokenString::export_string_token();
         *yylloc = alpha::TokenString::export_location(*yylloc);
         YIELD_TOKEN(TKN_STRING);
 }

@@ -31,7 +31,7 @@ public:
         DiagnosticEngine &diagnostic_engine,
         SymbolTable *symbol_table);
 
-    void only_lex_tokens();
+    void scan_tokens();
     void execute();
     void notify_hard_error();
 
@@ -90,7 +90,6 @@ private:
     DiagnosticFormatter diagnostic_formatter_;
     SymbolTable symbol_table_;
     std::unique_ptr<PassManager> pass_manager_;
-    OnceFlag tried_compiling;
     bool execution_completed_ = false;
 
     void export_within_dir(

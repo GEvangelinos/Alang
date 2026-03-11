@@ -108,7 +108,7 @@ ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &.
     static_assert((std::is_same_v<Exprs, const Expr *> && ...), "all args must be const Expr *");
     static_assert(ir::opt_traits::is_foldable(opc), "`folding` not supported for this Opcode");
     static_assert(sizeof...(exprs) == ir::info_traits::opt_operands(opc),
-                  "exprs-opt_operands mismatch");
+        "exprs-opt_operands mismatch");
     DEBUG_SMART_ASSERT(expr_opts_.opt_const_eval && "Expr folding is OFF, shouldn't be called");
 
     auto expr_tuple = std::forward_as_tuple(exprs...);
@@ -140,9 +140,9 @@ ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &.
         else if constexpr (opc == ir::Opcode::IF_LT || opc == ir::Opcode::IF_LTE ||
                            opc == ir::Opcode::IF_GT || opc == ir::Opcode::IF_GTE)
             return expr_folder_.try_fold_relational_numeric(opc, lhs, rhs, result_loc);
-        else static_assert(always_false_v<void>, "Unsupported opcode in try_fold_optimize");
+        else static_assert(always_false_v<decltype(opc)>, "Unsupported opcode in try_fold_optimize");
     }
-    else static_assert([] { return false; }(), "foldable ir::Opcode not handled.");
+    else static_assert(always_false_v<decltype(opc)>, "foldable ir::Opcode not handled.");
 }
 
 template<ir::Opcode opc, typename... Exprs>

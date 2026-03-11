@@ -1,3 +1,7 @@
+#ifdef USE_FLEX_SCANNER
+#error "ScannerAutomaton conflict: USE_FLEX_SCANNER is defined."
+#endif
+
 #include <alpha_parser.gen.hpp>
 #include <charconv>
 #include <diagnostics/diagnostic_reporter.gen.hpp>
@@ -162,6 +166,31 @@ ScannerAutomaton::last_token_location() const noexcept
     };
 }
 
+SourceLocation
+ScannerAutomaton::last_token_location_eof_trimmed() const noexcept
+{
+    DEBUG_SMART_ASSERT(has_reached_eof() && "Should only be called when eof is reached");
+    SourceLocation loc = last_token_location();
+    DEBUG_SMART_ASSERT(
+        loc.end > SrcBuffIdx{1} &&
+        "Invalid EOF-trim: SourceLocation is empty or too small. "
+        "`end` is exclusive and must reference a real character before trimming."
+    );
+    --loc.end;
+    return loc;
+
+    // EOF trimming is only used for unterminated tokens (strings or block comments).
+    // When EOF is reached the scanner cursor has already advanced past the last
+    // valid character, so `last_token_end()` points one past the real token end.
+    // We therefore subtract one to obtain the actual source range.
+    //
+    // This assumes the token contains at least one real character. If `loc.end`
+    // is 0 or 1, trimming would produce either an invalid range or `SourceLocation::none()`
+    // (begin=0,end=0). That situation would imply we attempted to report an
+    // unterminated token in an empty buffer or with a zero-length token, which
+    // should be impossible under normal scanner invariants.
+}
+
 template <ScannerAutomaton::OpenerLen opener_len>
 SourceLocation
 ScannerAutomaton::calculate_opener_loc() const noexcept
@@ -311,14 +340,12 @@ ScannerAutomaton::handle_comment_line() noexcept
 
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_comment_block_nested() noexcept
-
 {
     DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '*');
 
     // Code could be more nicely written, but I specifically choose these patterns, to achieve max scanning speed. (micro opts)
     u64 block_comment_depth = 1;
     char ch1 = *advance_cursor<SrcBuffIdx{2}>();
-
 
     while (!has_reached_eof())
     {
@@ -346,7 +373,7 @@ ScannerAutomaton::handle_comment_block_nested() noexcept
         if (block_comment_depth == 0)
             return ScannerAutomaton::TKN_INTERNAL_SKIP;
     }
-    dr_.report_unclosed_comment(calculate_opener_loc<OpenerLen::COMMENT_BLOCK>());
+    dr_.report_unclosed_comment(last_token_location_eof_trimmed());
     return TKN_YYEOF;
 }
 
@@ -372,7 +399,7 @@ ScannerAutomaton::handle_comment_block_standard() noexcept
         }
         ch = *advance_cursor();
     }
-    dr_.report_unclosed_comment(calculate_opener_loc<OpenerLen::COMMENT_BLOCK>());
+    dr_.report_unclosed_comment(last_token_location_eof_trimmed());
     return TKN_YYEOF;
 }
 
@@ -427,7 +454,8 @@ ScannerAutomaton::handle_double_quote_char() noexcept
             }
         }
     }
-    dr_.report_unclosed_string(calculate_opener_loc<OpenerLen::STRING>());
+
+    dr_.report_unclosed_string(last_token_location_eof_trimmed());
     return TKN_YYEOF;
 }
 
@@ -572,7 +600,7 @@ ScannerAutomaton::handle_alpha_char() noexcept
     }
 
     advance_cursor(SrcBuffIdx{word_length.value});
-    DEBUG_SMART_ASSERT(!g_id_body_table[get_curr_char()]);
+    DEBUG_SMART_ASSERT(has_reached_eof() || !g_id_body_table[get_curr_char()]);
     return result_token;
 }
 
@@ -609,19 +637,19 @@ ScannerAutomaton::handle_invalid_char(const char curr_ch) noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noexcept
 {
-    DEBUG_SMART_ASSERT(tub_.is_in_source(cursor_));
-
     const auto consume_token = [this]<LexerReturnType token>()
     {
         advance_cursor();
         return token;
     };
 
+    // DEBUG_SMART_ASSERT(tub_.is_in_source(cursor_));
+
     while (true)
     {
         last_token_begin_ = cursor_;
         if (!tub_.is_in_source(cursor_))
-            return TKN_YYEOF;
+            return register_and_return(TKN_YYEOF, *yylloc = SourceLocation::eof());
 
         LexerReturnType result = ScannerAutomaton::TKN_INTERNAL_SKIP;
         const char curr_ch = get_curr_char();
@@ -665,10 +693,8 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
         case TKN_ID:
         case TKN_STRING:
             {
-                #warning MEMORY_LEAK
-                char* token_memory = static_cast<char*>(std::calloc(100, 1));
-                std::memcpy(token_memory, last_token_text().data(), last_token_text().size());
-                yylval->cstring = token_memory;
+                const std::string_view text = last_token_text();
+                yylval->string = StringSpan{.dataa = text.data(), .size = text.size()};
                 break;
             }
         case TKN_YYEOF:

@@ -9,6 +9,7 @@
 #include <L1_driver/semantic_system_dispatcher_dsl.hpp>
 
 #include "semantic_subsystem.hpp"
+#include "core/string_span.hpp"
 
 namespace alpha
 {
@@ -25,13 +26,13 @@ private:
         explicit Restricted(const SemanticSystemServices &ss_services);
         ~Restricted() override = default;
 
-        [[nodiscard]] const Expr *resolve_id(const char *id_name, SourceLocation id_loc);
-        [[nodiscard]] const Expr *resolve_local_id(const char *lid_name, SourceLocation lid_loc);
-        [[nodiscard]] const Expr *resolve_global_id(const char *gid_name, SourceLocation gid_loc);
+        [[nodiscard]] const Expr *resolve_id(StringSpan id_name, SourceLocation id_loc);
+        [[nodiscard]] const Expr *resolve_local_id(StringSpan lid_name, SourceLocation lid_loc);
+        [[nodiscard]] const Expr *resolve_global_id(StringSpan gid_name, SourceLocation gid_loc);
         [[nodiscard]] const Expr *resolve_lvalue_to_rvalue(const Expr *lvalue);
 
         [[nodiscard]] bool ensure_reachable_symbol(
-            const Symbol *symbol, const char *id_name, SourceLocation id_loc);
+            const Symbol *symbol, StringSpan id_name, SourceLocation id_loc);
     };
 
     Restricted DISPATCH_TARGET;

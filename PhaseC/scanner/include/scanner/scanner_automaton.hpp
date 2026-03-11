@@ -1,6 +1,10 @@
 #ifndef SCANNER_AUTOMATON_HPP
 #define SCANNER_AUTOMATON_HPP
 
+#ifdef USE_FLEX_SCANNER
+#error "ScannerAutomaton conflict: USE_FLEX_SCANNER is defined."
+#endif
+
 #include <array>
 #include <core/numeric_types.hpp>
 
@@ -33,7 +37,6 @@ public:
     [[nodiscard]] const char* last_token_end() const noexcept;
     [[nodiscard]] u64 last_token_length() const noexcept;
     [[nodiscard]] std::string_view last_token_text() const noexcept;
-    [[nodiscard]] SourceLocation last_token_location() const noexcept;
 
 private:
     enum class KeywordId : i8
@@ -60,7 +63,7 @@ private:
     enum class OpenerLen : u32
     {
         COMMENT_BLOCK = 2,
-        STRING = 1,
+        STRING        = 1,
     };
 
     struct KeywordToken
@@ -90,7 +93,7 @@ private:
     }; // clang-format on
 
     static constexpr u32 block_comment_marker_size = 2; // for /*
-    static constexpr u32 string_marker_size = 1; // for "
+    static constexpr u32 string_marker_size = 1;        // for "
 
     LexerCtx& lexer_ctx_;
     LocationTracker& lt_;
@@ -98,7 +101,6 @@ private:
     const TranslationUnitBuffer& tub_;
     const char* last_token_begin_; // Points in source_buffer.
     const char* cursor_;           // Points in source_buffer.
-    char swap_char_ = '\0';
 
     template <SrcBuffIdx n>
     [[nodiscard]] char get_nth_char() const noexcept; // Forward only lookup.
@@ -113,6 +115,9 @@ private:
     template <SrcBuffIdx n_offset = SrcBuffIdx{1}>
     const char* advance_cursor() noexcept;
     const char* advance_cursor(SrcBuffIdx n) noexcept;
+
+    [[nodiscard]] SourceLocation last_token_location() const noexcept;
+    [[nodiscard]] SourceLocation last_token_location_eof_trimmed() const noexcept;
 
     [[nodiscard]] LexerReturnType register_and_return(
         LexerReturnType token_id, SourceLocation token_loc) noexcept;
@@ -157,7 +162,10 @@ inline u64
 ScannerAutomaton::last_token_length() const noexcept
 {
     const auto result = last_token_end() - last_token_begin();
-    DEBUG_SMART_ASSERT(result > 0 && "A non phony token must have a at least size 1 to exit");
+    DEBUG_SMART_ASSERT(
+        result > 0 ||has_reached_eof()
+        && "A non phony token must have a at least size 1 to exit"
+    );
     return result;
 }
 

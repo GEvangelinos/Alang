@@ -42,9 +42,14 @@ int main(const int argc, char** argv)
             setting_manager.expr_opt_settings(),
             setting_manager.ir_opt_settings()
         );
-        driver->run();
-        handle_exports(cli_parser, *driver);
-        handle_shows(cli_parser, *driver);
+        if (cli_parser[alpha::settings::Jobs::only_show_tokens].is_provided())
+            driver->only_lex_tokens();
+        else
+        {
+            driver->run();
+            handle_exports(cli_parser, *driver);
+            handle_shows(cli_parser, *driver);
+        }
     }
     catch (arguinator::CLIHelp) { return 0; }
     catch (arguinator::CLIError& e) { fatal(e); }

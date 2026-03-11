@@ -36,7 +36,7 @@ using namespace alpha::ir::opt_traits;
 // are inconsistent.
 [[nodiscard]] consteval bool inv0_executable_implies_emittable()
 {
-    for (const auto opc: alpha::ir::all_opcodes_array)
+    for (const auto opc: alpha::ir::all_iropcodes_array)
         if (is_executable(opc) && !is_emittable(opc))
             return false;
     return true;
@@ -47,7 +47,7 @@ using namespace alpha::ir::opt_traits;
 // result operand slot.
 [[nodiscard]] consteval bool inv1_branching_has_no_result()
 {
-    for (const auto opc: alpha::ir::all_opcodes_array)
+    for (const auto opc: alpha::ir::all_iropcodes_array)
         if (is_branching(opc) && result(opc) != Requirement::NONE)
             return false;
     return true;
@@ -65,7 +65,7 @@ using namespace alpha::ir::opt_traits;
                arg2(opc) != Requirement::NONE;
     };
 
-    for (const auto opc: alpha::ir::all_opcodes_array)
+    for (const auto opc: alpha::ir::all_iropcodes_array)
     {
         if (is_non_emittable(opc) && has_any_operand(opc)) { return false; }
     }
@@ -77,7 +77,7 @@ using namespace alpha::ir::opt_traits;
 // present simplifies folder and codegen assumptions.
 [[nodiscard]] consteval bool inv3_emittable_and_foldable_requires_arg1()
 {
-    for (const auto opc: alpha::ir::all_opcodes_array)
+    for (const auto opc: alpha::ir::all_iropcodes_array)
     {
         if (is_emittable(opc) && is_foldable(opc) &&
             arg1(opc) != Requirement::REQUIRED) { return false; }
@@ -89,7 +89,7 @@ using namespace alpha::ir::opt_traits;
 // Rationale: Positional operand discipline -- you can’t have arg2 without arg1.
 [[nodiscard]] consteval bool inv4_no_arg1_implies_no_arg2()
 {
-    for (const auto opc: alpha::ir::all_opcodes_array)
+    for (const auto opc: alpha::ir::all_iropcodes_array)
         if (arg1(opc) == Requirement::NONE && arg2(opc) != Requirement::NONE)
             return false;
     return true;
@@ -100,7 +100,7 @@ using namespace alpha::ir::opt_traits;
 // executable either; otherwise traits disagree about its lifecycle.
 [[nodiscard]] consteval bool inv5_non_emittable_implies_non_executable()
 {
-    for (const auto opc: alpha::ir::all_opcodes_array)
+    for (const auto opc: alpha::ir::all_iropcodes_array)
         if (is_non_emittable(opc) && is_executable(opc))
             return false;
     return true;
@@ -111,7 +111,7 @@ using namespace alpha::ir::opt_traits;
 // operand, that operand must be represented in arg1.
 [[nodiscard]] consteval bool inv6_emittable_with_one_opt_operand_requires_arg1()
 {
-    for (const auto opc: alpha::ir::all_opcodes_array)
+    for (const auto opc: alpha::ir::all_iropcodes_array)
         if (is_emittable(opc) &&
             opt_operands(opc) == 1 &&
             arg1(opc) == Requirement::NONE)
@@ -125,7 +125,7 @@ using namespace alpha::ir::opt_traits;
 // Arg1 must still exist to maintain positional operand ordering.
 [[nodiscard]] consteval bool inv7_emittable_with_multi_opt_operands_requires_arg1()
 {
-    for (const auto opc: alpha::ir::all_opcodes_array)
+    for (const auto opc: alpha::ir::all_iropcodes_array)
         if (is_emittable(opc) &&
             opt_operands(opc) > 1 &&
             arg1(opc) == Requirement::NONE)

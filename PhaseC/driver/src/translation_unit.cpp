@@ -71,13 +71,12 @@ void exit_export_directory(const std::filesystem::path& original_path)
     std::filesystem::current_path(original_path);
 }
 
-std::string escape(const char* const str)
+std::string escape(const alpha::StringSpan str)
 {
     std::string out;
-    char ch;
-    for (std::size_t i = 0; (ch = str[i]) != '\0'; ++i)
+    for (std::size_t i = 0; i < str.size; ++i)
     {
-        switch (ch)
+        switch (const char ch = str.dataa[i]; ch)
         { // clang-format off
         case '\n': out += "\\n"; break;
         case '\r': out += "\\r"; break;
@@ -246,9 +245,16 @@ PassManager::PassManager(
       ir_optimizer_(std::make_unique<IROptimizer>(ir_opts)) { DEBUG_SMART_ASSERT(!!ir_optimizer_); }
 
 void
-PassManager::only_lex_tokens()
+PassManager::scan_tokens()
 {
-    std::cout << "\n--------------------Lexical Analysis--------------------\n";
+    std::cout << "\n--------------------Lexical Analysis--------------------\n"
+        << FMT::format( // Header
+            "{0} {1} {2}",
+            format_column<true, 0, 10>("#"),
+            format_column<true, 1, 10>("line"),
+            format_column<true, 2, 10>("token")
+        )
+        << std::endl;
 
     ALPHA_YYSTYPE yystype;
     ALPHA_YYLTYPE yyltype;
@@ -267,15 +273,17 @@ PassManager::only_lex_tokens()
         if (token == TKN_YYEOF)
             break;
 
+
         std::cout << FMT::format(
-            "{}: #{} ",
-            lt_.find_first_line(yyltype).value,
-            token_counter++
-        ) << std::endl;
+                "{0} {1} {2}",
+                format_column<true, 0, 10>(lt_.find_first_line(yyltype).value),
+                format_column<true, 1, 10>(token_counter++),
+                format_column<true, 2, 10>(token)
+            )
+            << std::endl;
     }
     std::cout << "\n----------------End of Lexical Analysis-----------------\n";
 }
-
 
 void
 PassManager::execute()
@@ -356,8 +364,7 @@ TranslationUnit::TranslationUnit(
       translation_unit_buffer_(
           TranslationUnitBufferLoader::load_tub(source_path, k_scanner_eof_null_padding)
       ),
-      loc_tracker_(
-          (translation_unit_buffer_->size() - translation_unit_buffer_->null_padding).value),
+      loc_tracker_(translation_unit_buffer_->size() - translation_unit_buffer_->null_padding),
       diagnostic_formatter_(
           source_path, loc_tracker_, *support::require_ptr(translation_unit_buffer_.get()), true
       ),
@@ -383,7 +390,6 @@ TranslationUnit::compile()
         ~FreezeOnExit() { loc_tracker.lines_frozen.raise(); }
     } freeze_on_exit(loc_tracker_);
 
-    tried_compiling.raise();
     try
     {
         pass_manager_->execute();
@@ -406,17 +412,11 @@ void
 TranslationUnit::notify_max_errors_reached() { throw exception::DiagnosticLimitError(); }
 
 void
-TranslationUnit::only_lex_tokens() const
-{
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-    pass_manager_->only_lex_tokens();
-}
+TranslationUnit::only_lex_tokens() const { pass_manager_->scan_tokens(); }
 
 void
 TranslationUnit::show_symbol_table() const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
     std::cout << COLOR_FG_ASCII_BLUE;
     const auto& symbol_per_scope_vector = symbol_table_.symbols_per_scope();
     for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
@@ -424,15 +424,20 @@ TranslationUnit::show_symbol_table() const
         if (symbol_per_scope_vector[scope].empty())
             continue;
         std::cout << FMT::format(
-            "----------------------------     Scope #{:<4}     ----------------------------\n",
+            "----------------------------------     Scope #{:<4}     ----------------------------------\n",
             scope
         );
-        for (const auto symbol_ptr : symbol_per_scope_vector[scope])
-            std::cout << FMT::format("{:<30} {:<20} (line {:>5}) (scope {:>4})\n",
-                                     FMT::format("\"{}\"", symbol_ptr->name),
-                                     FMT::format("[{}]", symbol_ptr->type_to_string()),
-                                     loc_tracker_.find_symbol_line(symbol_ptr->loc).value,
-                                     symbol_ptr->scope);
+        for (const Symbol* symbol_ptr : symbol_per_scope_vector[scope])
+            std::cout << FMT::format(
+                "{:<30} {:<20} (line {:>5}) (scope {:>4}) {}\n",
+                FMT::format("\"{}\"", symbol_ptr->name),
+                FMT::format("[{}]", symbol_ptr->type_to_string()),
+                loc_tracker_.find_symbol_line(symbol_ptr->loc).value,
+                symbol_ptr->scope,
+                symbol_ptr->is_variable()
+                ? FMT::format("(offset {})", static_cast<const VarSymbol*>(symbol_ptr)->offset)
+                : ""
+            );
         std::cout << '\n';
     }
     std::cout << SGR_RESET << std::endl;
@@ -441,10 +446,7 @@ TranslationUnit::show_symbol_table() const
 void
 TranslationUnit::show_diagnostics() const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
     const std::string source_filename = source_path_.filename().string();
-
     for (const auto& diagnostic : diagnostic_engine_.get_diagnostics())
         std::cerr << diagnostic_formatter_.format(*diagnostic);
     if (!diagnostic_engine_.get_diagnostics().empty())
@@ -454,73 +456,56 @@ TranslationUnit::show_diagnostics() const
 void
 TranslationUnit::show_ir(const bool detailed) const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
     print_ir<true>(std::cout, pass_manager_->get_quads(), loc_tracker_, detailed);
 }
 
 void
 TranslationUnit::export_symbol_table() const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
-    export_within_dir(k_symbol_table_exports_dirname,
-                      &TranslationUnit::export_symbol_table_dispatch);
+    export_within_dir(
+        k_symbol_table_exports_dirname,
+        &TranslationUnit::export_symbol_table_dispatch
+    );
 }
 
 void
 TranslationUnit::export_symbol_table_without_temps() const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
-    export_within_dir(k_symbol_table_exports_dirname,
-                      &TranslationUnit::export_symbol_table_without_temps_dispatch);
+    export_within_dir(
+        k_symbol_table_exports_dirname,
+        &TranslationUnit::export_symbol_table_without_temps_dispatch
+    );
 }
 
 void
 TranslationUnit::export_diagnostics() const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
-    export_within_dir(k_diagnostic_exports_dirname,
-                      &TranslationUnit::export_diagnostics_impl);
+    export_within_dir(k_diagnostic_exports_dirname, &TranslationUnit::export_diagnostics_impl);
 }
 
 void
 TranslationUnit::export_ir() const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
     export_within_dir(k_ir_exports_dirname, &TranslationUnit::export_ir_impl);
 }
 
 bool TranslationUnit::compiled_ok() const noexcept
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
     return execution_completed_ && !diagnostic_engine_.has_errors();
 }
 
 void
-TranslationUnit::export_symbol_table_dispatch() const
-{
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
-    export_symbol_table_impl(true);
-}
+TranslationUnit::export_symbol_table_dispatch() const { export_symbol_table_impl(true); }
 
 void
 TranslationUnit::export_symbol_table_without_temps_dispatch() const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
     export_symbol_table_impl(false);
 }
 
 void
 TranslationUnit::export_symbol_table_impl(const bool export_temps) const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
     const std::string outfile_name = source_path_.filename().string() + k_symbol_table_export_ext;
     std::ofstream outfile(outfile_name);
     if (!outfile)
@@ -552,8 +537,6 @@ TranslationUnit::export_within_dir(
     const std::string_view dirname,
     void (TranslationUnit::*export_func)() const) const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
     const auto original_path = std::filesystem::current_path();
     create_export_directory(dirname);
     enter_export_directory(dirname);
@@ -564,8 +547,6 @@ TranslationUnit::export_within_dir(
 void
 TranslationUnit::export_diagnostics_impl() const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
     const std::string outfile_name = source_path_.filename().string() + k_diagnostic_export_ext;
     std::ofstream outfile(outfile_name);
     if (!outfile)
@@ -595,8 +576,6 @@ TranslationUnit::export_diagnostics_impl() const
 void
 TranslationUnit::export_ir_impl() const
 {
-    DEBUG_SMART_ASSERT(tried_compiling && "Not compiled anything yet, shouldn't be called");
-
     const std::string outfile_name = source_path_.filename().string() + k_ir_export_ext;
     std::ofstream outfile(outfile_name);
     if (!outfile)

@@ -53,7 +53,7 @@ namespace alpha::SemUtils
     return opc == ir::Opcode::AND || opc == ir::Opcode::OR;
 }
 
-[[nodiscard]] constexpr const char *relop_str(const ir::Opcode opc)
+[[nodiscard]] constexpr const char* relop_str(const ir::Opcode opc)
 {
     DEBUG_SMART_ASSERT(is_relational_iropcode(opc));
     switch (opc)
@@ -70,7 +70,7 @@ namespace alpha::SemUtils
     }
 }
 
-[[nodiscard]] constexpr const char *arith_op_str(const ir::Opcode opc)
+[[nodiscard]] constexpr const char* arith_op_str(const ir::Opcode opc)
 {
     DEBUG_SMART_ASSERT(is_binary_arithmetic_opcode(opc));
     switch (opc)
@@ -86,31 +86,30 @@ namespace alpha::SemUtils
     }
 }
 
-[[nodiscard]] inline bool as_bool(const Expr *const e)
+[[nodiscard]] inline bool as_bool(const Expr* const e) noexcept
 {
     DEBUG_SMART_ASSERT(!!e);
     DEBUG_SMART_ASSERT(e->is_static() && "Can only evaluate as bool is given expr is static");
     using ET = Expr::Type;
     switch (e->type)
     {
-    case ET::CONST_BOOL: return static_cast<const ConstBoolExpr *>(e)->value;
-    case ET::CONST_INT: return static_cast<const ConstIntExpr *>(e)->value != 0;
-    case ET::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(e)->value != 0;
-    case ET::CONST_STRING: return std::strlen(static_cast<const ConstStringExpr *>(e)->value) != 0;
+    case ET::CONST_BOOL: return static_cast<const ConstBoolExpr*>(e)->value;
+    case ET::CONST_INT: return static_cast<const ConstIntExpr*>(e)->value != 0;
+    case ET::CONST_FLOAT: return static_cast<const ConstFloatExpr*>(e)->value != 0;
+    case ET::CONST_STRING: return static_cast<const ConstStringExpr*>(e)->value.size != 0;
     case ET::CONST_NIL: return false;
     case ET::LIBRARY_FUNCTION: return true;
     case ET::PROGRAM_FUNCTION: return true;
-    default: throw std::logic_error(ATTACH_CONTEXT("Expected bool-convertable expr."));
+    default: UNREACHABLE("Expected bool-convertable expr.");
     }
 }
 
-[[nodiscard]] inline AlphaFloat extract_alpha_float(const Expr *const e)
+[[nodiscard]] inline AlphaFloat extract_alpha_float(const Expr* const e) noexcept
 {
-    if (e->type == Expr::Type::CONST_FLOAT)
-        return static_cast<const ConstFloatExpr *>(e)->value;
     if (e->type == Expr::Type::CONST_INT)
-        return static_cast<const ConstIntExpr *>(e)->value;
-    throw std::logic_error(ATTACH_CONTEXT("Expected CONST_INT or CONST_FLOAT Expr::Type"));
+        return static_cast<const ConstIntExpr*>(e)->value;
+    DEBUG_SMART_ASSERT(e->type == Expr::Type::CONST_FLOAT && "Logic error");
+    return static_cast<const ConstFloatExpr*>(e)->value;
 }
 } // namespace alpha::SemanticUtils
 #endif // SEMANTIC_UTILS_HPP

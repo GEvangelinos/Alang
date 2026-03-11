@@ -66,15 +66,17 @@ static_assert(
     "it means the mask trick support::is_alpha() is using, is wrong, and produces wrong results."
 );
 
-[[nodiscard]] inline char* cstrdup(const char* const src)
+[[nodiscard]] inline char* cstrdup(const char* const src, const std::size_t size)
 {
     DEBUG_SMART_ASSERT(!!src);
     if (!src)
         return nullptr;
 
-    const auto src_size = std::strlen(src) + 1; // +1 for NULL-byte
-    char* dest = new char[src_size];
-    std::memcpy(dest, src, src_size);
+    // +1 for the null terminator is mandatory for "cstr" functions
+    char* const dest = new(std::nothrow) char[size + 1];
+    if (!dest)
+        return nullptr;
+    std::memcpy(dest, src, size);
     return dest;
 }
 

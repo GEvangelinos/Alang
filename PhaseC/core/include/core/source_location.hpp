@@ -4,6 +4,10 @@
 #include <vector>               // for vector
 
 #include "source_location.hpp"
+#include "source_location.hpp"
+#include "source_location.hpp"
+#include "source_location.hpp"
+#include "source_location.hpp"
 #include "core/basics.hpp"
 #include "core/numeric_types.hpp" // for u32
 #include "core/source_location_types.hpp"
@@ -11,7 +15,7 @@
 namespace alpha
 {
 // Classes defined here:
-struct SourceLocation; // IWYU pragma: keep
+class SourceLocation;  // IWYU pragma: keep
 struct LineRange;      // IWYU pragma: keep
 class LocationTracker; // IWYU pragma: keep
 
@@ -21,8 +25,9 @@ struct SourceLocationRaw
     SrcBuffIdx::UnderlyingType end;
 };
 
-struct SourceLocation
+class SourceLocation
 {
+public:
     SrcBuffIdx begin = SrcBuffIdx::none(); // Inclusive
     SrcBuffIdx end = SrcBuffIdx::none();   // Exclusive
 
@@ -36,6 +41,14 @@ struct SourceLocation
 
     [[nodiscard]] static constexpr SourceLocation none() noexcept;
     [[nodiscard]] static constexpr SourceLocation eof() noexcept;
+
+private:
+    static constexpr SrcBuffIdx k_eof_begin_ =
+        SrcBuffIdx{std::numeric_limits<SrcBuffIdx::UnderlyingType>::max()};
+    static constexpr SrcBuffIdx k_eof_end_ =
+        SrcBuffIdx{std::numeric_limits<SrcBuffIdx::UnderlyingType>::max()};
+
+    [[nodiscard]] bool is_valid() const noexcept;
 };
 
 // ======================================================================================
@@ -44,20 +57,14 @@ struct SourceLocation
 // to minimize call overhead in hot parsing paths.
 // ======================================================================================
 constexpr
-SourceLocation::SourceLocation(SrcBuffIdx begin, SrcBuffIdx end)
-    : begin(begin), end(end)
-{
-    #ifdef DEBUG_MODE
-    if (!std::is_constant_evaluated())
-        DEBUG_SMART_ASSERT(begin < end);
-    #endif
-}
+SourceLocation::SourceLocation(const SrcBuffIdx begin, const SrcBuffIdx end)
+    : begin(begin), end(end) { DEBUG_SMART_ASSERT(is_valid()); }
 
 constexpr
 SourceLocation::SourceLocation(const SourceLocationRaw raw_loc)
     : begin(SrcBuffIdx{raw_loc.begin}), end(SrcBuffIdx{raw_loc.end})
 {
-    DEBUG_SMART_ASSERT((begin == SrcBuffIdx::none() && end == SrcBuffIdx::none()) || begin < end);
+    DEBUG_SMART_ASSERT(is_valid());
 }
 
 inline SourceLocationRaw
@@ -93,10 +100,7 @@ SourceLocation::none() noexcept { return SourceLocation{SrcBuffIdx::none(), SrcB
 constexpr SourceLocation
 SourceLocation::eof() noexcept
 {
-    return SourceLocation{
-        SrcBuffIdx{std::numeric_limits<SrcBuffIdx::UnderlyingType>::max()},
-        SrcBuffIdx{std::numeric_limits<SrcBuffIdx::UnderlyingType>::max()},
-    };
+    return SourceLocation{SourceLocation::k_eof_begin_, SourceLocation::k_eof_end_};
 }
 
 // ======================================================================================
@@ -110,8 +114,8 @@ struct BlockSourceLocation
 
 struct LineRange
 {
-    const SrcLineIdx begin_line;
-    const SrcLineIdx end_line;
+    const SrcLineIdx begin_line; // Inclusive
+    const SrcLineIdx end_line;   // Inclusive
 };
 
 class LocationTracker : private Immobile
@@ -119,7 +123,7 @@ class LocationTracker : private Immobile
 public:
     OnceFlag lines_frozen;
 
-    explicit LocationTracker(std::size_t max_valid_index);
+    explicit LocationTracker(SrcBuffIdx max_valid_index);
 
     void append_line(SrcBuffIdx linestart_index);
     [[nodiscard]] SrcLineIdx find_first_line(SourceLocation loc) const;
@@ -135,6 +139,7 @@ private:
     const SrcBuffIdx max_valid_index_;
     std::vector<SrcBuffIdx> linestart_buffer_indices_;
 
+    [[nodiscard]] SrcLineIdx eof_line() const noexcept;
     [[nodiscard]] SrcLineIdx find_line(SrcBuffIdx idx) const;
 };
 } // namespace alpha
