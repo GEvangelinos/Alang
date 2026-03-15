@@ -8,7 +8,7 @@
 
 namespace alpha
 {
-template<typename T>
+template <typename T>
 using VectorStack = std::stack<T, std::vector<T>>;
 
 /// @brief A mixin that prevents copying, moving, or reassigning derived classes.
@@ -29,10 +29,10 @@ public:
 
     ~Immobile() = default;
 
-    Immobile(const Immobile &) = delete;            ///< Disable copy-construction
-    Immobile(Immobile &&) = delete;                 ///< Disable move-construction
-    Immobile &operator=(const Immobile &) = delete; ///< Disable copy-assignment
-    Immobile &operator=(Immobile &&) = delete;      ///< Disable move-assignment
+    Immobile(const Immobile&) = delete;            ///< Disable copy-construction
+    Immobile(Immobile&&) = delete;                 ///< Disable move-construction
+    Immobile& operator=(const Immobile&) = delete; ///< Disable copy-assignment
+    Immobile& operator=(Immobile&&) = delete;      ///< Disable move-assignment
 };
 
 class ToggleSwitch
@@ -47,91 +47,89 @@ public:
         state_ = true;
     }
 
-   constexpr  void disable() noexcept
+    constexpr void disable() noexcept
     {
         DEBUG_SMART_ASSERT(state_ == true);
         state_ = false;
     }
 
-    constexpr operator bool() const noexcept { return state_;}
+    constexpr operator bool() const noexcept { return state_; }
 
 private:
     bool state_ = false; // Initially the switch is off.
 };
 
-template<typename T>
-class Once : private Immobile
+
+template <typename T>
+class Once
 {
 public:
-    Once() = default;
-    explicit Once(const T &t) { set(t); }
-    explicit Once(T &&t) { set(std::move(t)); }
+    explicit Once(const T& t) { set(t); }
+    explicit Once(T&& t) { set(std::move(t)); }
 
-    ~Once() = default;
+    Once() = default; // No T is constructed here
 
-    void set(const T &value)
+    // variadic template to construct T in-place
+    template <typename... Args>
+    void set(Args&&... args)
     {
-        if (assigned_) throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
-        value_ = value;
+        if (assigned_) throw std::logic_error("BUG: Once already assigned");
+
+        // Placement new: constructs T directly into `storage`
+        new(&storage) T(std::forward<Args>(args)...);
         assigned_ = true;
     }
 
-    void set(T &&value)
+    operator const T&() const & { return get(); }
+
+    const T& get() const
     {
-        if (assigned_) throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
-        value_ = std::move(value);
-        assigned_ = true;
+        if (!assigned_) throw std::logic_error("BUG: Once not assigned");
+        return *reinterpret_cast<const T*>(&storage);
     }
 
-    operator const T &() const & { return get(); }
+    ~Once() { if (assigned_) reinterpret_cast<T*>(&storage)->~T(); }
 
-    const Once &operator=(const T &value)
+    const Once& operator=(const T& value)
     {
         set(value);
         return *this;
     }
 
-    template<typename U = T>
+    template <typename U = T>
     std::enable_if_t<std::is_pointer_v<U>, U> operator->() { return get(); }
 
-    template<typename U = T>
+    template <typename U = T>
     std::enable_if_t<std::is_pointer_v<U>, U> operator->() const { return get(); }
 
-    // We prefer use addressof instead of  & to avoid overloads on & operator.
-    template<typename U = T>
+    // We prefer use addressof instead of & to avoid overloads on & operator.
+    template <typename U = T>
     std::enable_if_t<!std::is_pointer_v<U>, U> operator->() { return std::addressof(get()); }
 
-    // We prefer use addressof instead of  & to avoid overloads on & operator.
-    template<typename U = T>
+    // We prefer use addressof instead of & to avoid overloads on & operator.
+    template <typename U = T>
     std::enable_if_t<!std::is_pointer_v<U>, U> operator->() const { return std::addressof(get()); }
 
     explicit operator bool() { return is_assigned(); }
-
-    [[nodiscard]] const T &get() const
-    {
-        if (!assigned_)
-            throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` not assigned yet"));
-        return value_;
-    }
 
     [[nodiscard]] bool is_assigned() const noexcept { return assigned_; }
 
 private:
-    T value_;
+    alignas(T) std::byte storage[sizeof(T)];
     bool assigned_ = false;
 };
 
-template<typename T>
+template <typename T>
 class DebugOnce : private Immobile
 {
 public:
     DebugOnce() = default;
-    explicit DebugOnce(const T &t) { set(t); }
-    explicit DebugOnce(T &&t) { set(std::move(t)); }
+    explicit DebugOnce(const T& t) { set(t); }
+    explicit DebugOnce(T&& t) { set(std::move(t)); }
 
     ~DebugOnce() = default;
 
-    void set(const T &value)
+    void set(const T& value)
     {
         DEBUG(
             if (assigned_) throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
@@ -140,7 +138,7 @@ public:
         DEBUG(assigned_ = true;)
     }
 
-    void set(T &&value)
+    void set(T&& value)
     {
         DEBUG(
             if (assigned_) throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` already assigned"));
@@ -149,31 +147,31 @@ public:
         DEBUG(assigned_ = true;)
     }
 
-    operator const T &() const & { return get(); }
+    operator const T&() const & { return get(); }
 
-    const DebugOnce &operator=(const T &value)
+    const DebugOnce& operator=(const T& value)
     {
         set(value);
         return *this;
     }
 
-    template<typename U = T>
+    template <typename U = T>
     std::enable_if_t<std::is_pointer_v<U>, U> operator->() { return get(); }
 
-    template<typename U = T>
+    template <typename U = T>
     std::enable_if_t<std::is_pointer_v<U>, U> operator->() const { return get(); }
 
     // We prefer use addressof instead of  & to avoid overloads on & operator.
-    template<typename U = T>
+    template <typename U = T>
     std::enable_if_t<!std::is_pointer_v<U>, U> operator->() { return std::addressof(get()); }
 
     // We prefer use addressof instead of  & to avoid overloads on & operator.
-    template<typename U = T>
+    template <typename U = T>
     std::enable_if_t<!std::is_pointer_v<U>, U> operator->() const { return std::addressof(get()); }
 
     explicit operator bool() { return is_assigned(); }
 
-    [[nodiscard]] const T &get() const
+    [[nodiscard]] const T& get() const
     {
         DEBUG(
             if (!assigned_) throw std::logic_error(ATTACH_CONTEXT("BUG: `Once` not assigned yet"));

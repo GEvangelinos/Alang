@@ -1,7 +1,7 @@
 #ifndef ALPHA_EXPR_MAKER_HPP
 #define ALPHA_EXPR_MAKER_HPP
 
-#include "ir_expr.hpp"
+#include "core/ir/ir_expr.hpp"
 #include "semantic_utils.hpp"
 #include "core/basics.hpp"
 #include "core/source_location.hpp"
@@ -214,6 +214,5 @@ ExprMaker::make_variable_expr(const SourceLocation expr_loc, const VarSymbol *co
     expr_sink_.push_back(variable_expr);
     return variable_expr;
 }
-
 } // namespace alpha
 #endif //ALPHA_EXPR_MAKER_HPP

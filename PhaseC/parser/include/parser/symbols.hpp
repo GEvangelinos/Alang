@@ -129,7 +129,7 @@ public:
     const std::vector<Parameter> parameter_list;
 
     // Declared mutable, as we backpatch it after the function’s complete definition.
-    mutable Once<u32> stackframe_slot_count;
+    mutable Once<u32> stackframe_slot_count; // TODO: Is this required? (if you remove it... does it break anything?)
 
     ProgFuncSymbol(
         const std::string &name,

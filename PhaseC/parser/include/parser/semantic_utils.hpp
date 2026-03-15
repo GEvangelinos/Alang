@@ -2,7 +2,9 @@
 #define SEMANTIC_UTILS_HPP
 
 #include <parser/ir_opcode.gen.hpp>
-#include "parser/ir_expr.hpp"
+
+#include "core/ir/ir_expr.hpp"
+#include "support/debug_tools.hpp"
 #include "support/smart_assert.h"
 
 namespace alpha::SemUtils

@@ -87,6 +87,7 @@ private:
 
     // Must be initialized first -- used by subsystems during their construction.
     // Defaulted to nullptr to trigger safe asserts if construction order is violated.
+
     ParseCtx *const parse_ctx_ = nullptr;
     SymbolTable *const symbol_table_ = nullptr;
     DiagnosticReporter *const dr_ = nullptr;

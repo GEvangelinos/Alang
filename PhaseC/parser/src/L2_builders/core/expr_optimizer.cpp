@@ -221,7 +221,8 @@ ExprFolder::try_fold_logical_not(
         return nullptr;
 
     return expr_maker_->make_const_bool_expr(
-        result_loc, !static_cast<const ConstBoolExpr*>(expr)->value);
+        result_loc, !static_cast<const ConstBoolExpr*>(expr)->value
+    );
 }
 
 bool

@@ -44,14 +44,14 @@ const char *to_string(OperandSide pos) noexcept;
 // @Note: Be careful when modifying or reordering fields in this struct.
 //        Instances of Expr are generated constantly, so layout and size have a
 //        direct impact on performance and memory footprint. Aim to keep the
-//        struct as compact as possible.
+//        struct as compact as possible (without packing).
 struct Expr : private Immobile
 {
-    enum class Type : u16
+    enum class Type : u8
     {
-        #define EXPR_TYPE_ENUM_MAKER(expr_type) expr_type,
-        EXPR_TYPES(EXPR_TYPE_ENUM_MAKER)
-        #undef  EXPR_TYPE_ENUM_MAKER
+        #define AS_ENUM_MEMBER(expr_type) expr_type,
+        EXPR_TYPES(AS_ENUM_MEMBER)
+        #undef  AS_ENUM_MEMBER
     };
 
     const SourceLocation loc;
@@ -84,8 +84,6 @@ protected:
         : loc(loc), type(type) {}
 
 private:
-    mutable SourceLocation left_cast_region;
-    mutable SourceLocation right_cast_region;
     mutable OnceFlag rvalue_casted;
 };
 
@@ -137,7 +135,7 @@ struct BoolExpr final : public ExprWVarSymbol
 
 struct ConstBoolExpr final : public ConstExpr
 {
-    bool value;
+    const bool value;
 
     ConstBoolExpr(const SourceLocation loc, const bool value)
         : ConstExpr(Type::CONST_BOOL, loc),

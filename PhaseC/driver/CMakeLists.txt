@@ -1,6 +1,3 @@
-get_filename_component(CURRENT_COMPONENT_NAME "${CMAKE_CURRENT_SOURCE_DIR}" NAME)
-set(GENERATED_INCLUDE_DIR "${AUTOGEN_ROOT_DIR_PATH}/${CURRENT_COMPONENT_NAME}/include")
-
 # === alpha_driver_api: Interface (public headers only) ===
 add_library(alpha_driver_api INTERFACE)
 target_include_directories(alpha_driver_api INTERFACE
@@ -20,9 +17,6 @@ add_library(alpha_driver_impl STATIC
     src/translation_unit.cpp
     src/translation_unit_buffer_loader.cpp
     src/exception.cpp
-)
-target_include_directories(alpha_driver_impl PRIVATE
-    "${GENERATED_INCLUDE_DIR}"
 )
 target_link_libraries(alpha_driver_impl PRIVATE
     alpha_core_api
@@ -50,6 +44,7 @@ target_link_libraries("${COMPILER_EXE_NAME}" PRIVATE
     alpha_scanner_impl
     alpha_settings_impl
     alpha_ir_optimizer_impl
+    alpha_bytecode_generator_impl
 )
 
 # === Custom generation step (scanner + parser) ===
@@ -57,7 +52,6 @@ add_custom_target(generate_parser_scanner ALL DEPENDS
     generate_scanner
     generate_parser
 )
-
 add_dependencies(${COMPILER_EXE_NAME}
     generate_parser_scanner
 )

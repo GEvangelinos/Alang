@@ -2,7 +2,7 @@
 #define EXPR_TYPE_TRAITS_HPP
 
 #include <type_traits>
-#include "ir_expr.hpp"
+#include "core/ir/ir_expr.hpp"
 
 namespace alpha::expr_traits::cmp_bitmasks
 {

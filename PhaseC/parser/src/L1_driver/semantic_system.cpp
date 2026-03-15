@@ -18,7 +18,7 @@ SemanticSystem::SemanticSystem(
     dr_(support::require_ptr(dr)),
 
     // Private components, used by public submodules.
-    expr_maker_(std::make_unique<ExprMaker>(parse_ctx)),
+    expr_maker_(std::make_unique<ExprMaker>(parse_ctx_)),
     quad_handler_(std::make_unique<QuadHandler>()),
     quad_interceptor_(std::make_unique<QuadInterceptor>(quad_handler_.get(), parse_ctx)),
     quad_yielder_(std::make_unique<QuadYielder>(

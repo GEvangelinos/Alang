@@ -1,5 +1,5 @@
 #include "L2_semantic_subsystems/core/expr_normalizer.hpp"
-#include "ir_expr.hpp"
+#include "core/ir/ir_expr.hpp"
 #include "L2_semantic_subsystems/core/quad_handler.hpp"
 #include "L2_semantic_subsystems/core/expr_maker.hpp"
 #include "L2_semantic_subsystems/core/quad_yielder.hpp"

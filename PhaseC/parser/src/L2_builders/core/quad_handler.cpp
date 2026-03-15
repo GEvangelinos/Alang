@@ -1,6 +1,6 @@
 #include "L2_semantic_subsystems/core/quad_handler.hpp"
 
-#include "ir_expr.hpp"
+#include "core/ir/ir_expr.hpp"
 #include "ir_quad.hpp"
 #include "parser/ir_opcode_info_traits.gen.hpp"
 

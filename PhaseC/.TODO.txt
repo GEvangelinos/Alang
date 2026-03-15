@@ -446,7 +446,7 @@ TODO: Compiler Feature Planning
 67 DONE) make bison rules written in snake case not in camel case
  (they were camel in second architecture build with semanticManager and SemanticBuilder)
 
-68 DONE (Created a way more sofisticated system than X-macros where ir::Opcodes are described in YAML
+68 DONE) (Created a way more sofisticated system than X-macros where ir::Opcodes are described in YAML
     then a python program generates C++, info,opt_traits in form of constexpr functions (in beginning where
     templated vars (like original type-traits) but i wanted to minimize bloat and code generation, and also
     have the "traits" usable and efficient in both runtime and compile time
@@ -478,7 +478,7 @@ TODO: Compiler Feature Planning
         Well there are kinda right..
         As the "Standard or Alpha" outputs the original IOPCodes for IR :D
 
-69 Done (part of ExprTrimmer class) OPTS to do:
+69 DONE (part of ExprTrimmer class) OPTS to do:
     do x+0 = x
     x - 0 = x
 

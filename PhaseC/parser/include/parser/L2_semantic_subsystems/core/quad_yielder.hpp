@@ -3,7 +3,7 @@
 
 #include "expr_maker.hpp"
 #include "expr_optimizer.hpp"
-#include "ir_expr.hpp"
+#include "core/ir/ir_expr.hpp"
 #include "parser_context.hpp"
 #include "quad_handler.hpp"
 #include "quad_interceptor.hpp"

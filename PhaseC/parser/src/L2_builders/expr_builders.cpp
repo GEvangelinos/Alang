@@ -17,8 +17,7 @@ using namespace alpha;
     const SourceLocation full_expr_loc,
     const char* op_name,
     const char* op_symbol,
-    const char* lvalue_subject
-)
+    const char* lvalue_subject)
 {
     DEBUG_SMART_ASSERT(!!dr, !!expr, !!op_name, !!op_symbol, !!lvalue_subject);
     DEBUG_SMART_ASSERT(!!*op_name, !!*op_symbol, !!*lvalue_subject);
