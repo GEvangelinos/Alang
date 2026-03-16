@@ -12,7 +12,7 @@
 #include "support/misc_tools.hpp"
 #include "support/string_tools.hpp"
 
-namespace alpha
+namespace alpha::ir
 {
 struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
 {
@@ -37,5 +37,5 @@ Quad::label_to_index(const LabelID label)
 
 inline LabelID
 Quad::index_to_label(const std::size_t index) { return index + 1; }
-} // namespace alpha
+} // namespace alpha::ir
 #endif // IR_QUAD_HPP

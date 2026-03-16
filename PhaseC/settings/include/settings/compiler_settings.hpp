@@ -12,13 +12,15 @@
     X(false, 0, only_show_tokens,    "Pretty-prints all tokens, while reporting lexical errors at end") \
     X(false, 0, list_opts,           "List available optimizations for IR generation.") \
     X(false, 0, show_parser_trace,   "Pretty-prints a message for each matched grammar rule.") \
-    X(false, 0, export_symbol_table, "Write the compiler's symbol table to a CSV file named <source_filename>.st.csv.") \
     X(false, 0, show_symbol_table,   "Pretty-prints the symbol table on console.") \
     X(false, 0, export_diagnostics,  "Write the compiler's diagnostics to a CSV file named <source_filename>.diag.csv.") \
     X(false, 0, no_show_diagnostics, "Disable diagnostic display (used for regression testing).")\
+    X(false, 0, export_symbol_table, "Write the compiler's symbol table to a CSV file named <source_filename>.st.csv.") \
     X(false, 0, export_ir,           "Write the compiler's generated quads to <source_filename>.ir.csv.") \
+    X(false, 0, no_export_abc,       "Disable writing the compiler's generated Alpha-Binary-Code to <source_filename>.abc.") \
     X(false, 0, show_ir,             "Pretty-prints the IR quads on console.") \
     X(false, 0, show_ir_detailed,    "Pretty-prints the IR quads on console, including liveness metadata (e.g., dead or live quads).") \
+    X(false, 0, show_abc,            "Pretty-prints the Alpha-Binary-Code on console.") \
     X(false, 0, export_symbol_table_without_temps, "Write the compiler's symbol table to a CSV file named <source_filename>.st.csv without the internal temp variables (used for regression testing).")
 
 // (REQUIRED, ARITY, NAME, HELP_MSG)

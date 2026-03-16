@@ -13,6 +13,8 @@
 #include <variant>
 #include <vector>
 #include <diagnostics/diagnostic_reporter.gen.hpp>
+
+#include "core/source_location_tracker.hpp"
 #include "diagnostics/diagnostic_types.hpp"
 #include "L1_driver/semantic_system.hpp"
 #include "scanner/scanner_context.hpp"

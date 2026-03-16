@@ -1,7 +1,7 @@
 #include "L2_semantic_subsystems/core/quad_handler.hpp"
 
 #include "core/ir/ir_expr.hpp"
-#include "ir_quad.hpp"
+#include "core/ir/ir_quad.hpp"
 #include "parser/ir_opcode_info_traits.gen.hpp"
 
 namespace alpha
@@ -29,7 +29,7 @@ QuadHandler::emit(
     };
 
     DEBUG_SMART_ASSERT(
-        quads_.size() + 1 == next_quad_label_,
+        ir_quads_.size() + 1 == next_quad_label_,
         !ir::info_traits::is_non_emittable(opc),
         requirement_matches(ii::result(opc), result),
         requirement_matches(ii::arg1(opc), arg1),
@@ -45,7 +45,7 @@ QuadHandler::emit(
     );
     #endif
 
-    quads_.emplace_back(Quad{
+    ir_quads_.emplace_back(ir::Quad{
         .loc = loc,
         .result = result,
         .arg1 = arg1,
@@ -61,13 +61,13 @@ void
 QuadHandler::labelPatch_quad(const LabelID target_quad_label, const LabelID destination_label)
 {
     // First quad at index 0, has quad with label 1.
-    const u32 idx = Quad::label_to_index(target_quad_label);
+    const u32 idx = ir::Quad::label_to_index(target_quad_label);
     DEBUG_SMART_ASSERT(
-        idx < quads_.size(),
-        quads_[idx].label == k_no_label,
+        idx < ir_quads_.size(),
+        ir_quads_[idx].label == k_no_label,
         destination_label != k_no_label
     );
-    quads_[idx].label = destination_label;
+    ir_quads_[idx].label = destination_label;
 }
 
 void
@@ -88,24 +88,24 @@ QuadHandler::locPatch_tablecreate(const LabelID target_quad_label, const SourceL
         new_loc != SourceLocation::none() && "Can't loc-patch quad without valid SourceLocation"
     );
 
-    const u32 idx = Quad::label_to_index(target_quad_label);
+    const u32 idx = ir::Quad::label_to_index(target_quad_label);
 
     // Keep asserts separate, as dereferencing might segfault
-    DEBUG_SMART_ASSERT(idx < quads_.size());
+    DEBUG_SMART_ASSERT(idx < ir_quads_.size());
     DEBUG_SMART_ASSERT(
-        quads_[idx].opcode == ir::Opcode::TABLECREATE && "Only loc-patching tablecreate quads",
-        quads_[idx].loc == SourceLocation::none() &&
+        ir_quads_[idx].opcode == ir::Opcode::TABLECREATE && "Only loc-patching tablecreate quads",
+        ir_quads_[idx].loc == SourceLocation::none() &&
         "SourceLocation is already assigned, should'nt be called"
     );
 
-    quads_[idx].loc = new_loc;
+    ir_quads_[idx].loc = new_loc;
 }
 
-std::vector<Quad>
+std::vector<ir::Quad>
 QuadHandler::extract_quads() noexcept
 {
-    const auto result = std::move(quads_);
-    quads_.clear();
+    const auto result = std::move(ir_quads_);
+    ir_quads_.clear();
     return result;
 }
 } // namespace alpha

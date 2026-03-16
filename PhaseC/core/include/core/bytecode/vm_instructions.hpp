@@ -3,12 +3,13 @@
 
 #include "vm_opcodes.hpp"
 #include "core/numeric_types.hpp"
+#include "core/source_location.hpp"
 
 namespace alpha::vm
 {
 struct Argument
 {
-    enum class Type
+    enum class Type : u8
     {
         LABEL,
         GLOBAL,
@@ -111,11 +112,11 @@ struct LibFuncArgument : public Argument
 
 struct Instruction
 {
-    vm::Opcode opcode;
-    vm::Argument result;
-    vm::Argument arg1;
-    vm::Argument arg2;
-    u32 line;
+    const vm::Opcode opcode;
+    const vm::Argument* const result;
+    const vm::Argument* const arg1;
+    const vm::Argument* const arg2;
+    SourceLocation loc;
 };
 } // namespace alpha::vm
 

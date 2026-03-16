@@ -7,6 +7,7 @@
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <scanner/scanner_automaton.hpp>
 
+#include "core/source_location_tracker.hpp"
 #include "core/translation_unit_buffer.hpp"
 #include "scanner/scanner_context.hpp"
 #include "support/misc_tools.hpp"

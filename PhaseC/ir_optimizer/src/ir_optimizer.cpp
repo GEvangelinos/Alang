@@ -4,8 +4,8 @@ namespace alpha
 {
 IROptimizer::IROptimizer(const settings::IROpts &ir_opts) : ir_opts_(ir_opts) {}
 
-std::vector<Quad>
-IROptimizer::run(std::vector<Quad> quads) const
+std::vector<ir::Quad>
+IROptimizer::run(std::vector<ir::Quad> quads) const
 {
     while (true)
     {
@@ -20,7 +20,7 @@ IROptimizer::run(std::vector<Quad> quads) const
 }
 
 bool
-IROptimizer::do_jump_threading(std::vector<Quad> &quads)
+IROptimizer::do_jump_threading(std::vector<ir::Quad> &quads)
 {
     DEBUG_SMART_ASSERT(support::is_in_numeric_range<LabelID>(quads.size()));
     bool changed_quads = false;
@@ -36,12 +36,12 @@ IROptimizer::do_jump_threading(std::vector<Quad> &quads)
         LabelID jump_target = quads[i].label;
         while (true)
         {
-            const auto target_index = Quad::label_to_index(jump_target);
+            const auto target_index = ir::Quad::label_to_index(jump_target);
             if (target_index >= quads.size()) // exit jump (one past last quad)
                     break;
             const auto &target_quad = quads[target_index];
             const auto is_self_jump =
-                [&] { return Quad::index_to_label(quad_index_to_jump_thread) == jump_target; };
+                [&] { return ir::Quad::index_to_label(quad_index_to_jump_thread) == jump_target; };
             if (target_quad.opcode != ir::Opcode::JUMP || is_self_jump())
                 break;
             jump_chain_indices.push(quad_index_to_jump_thread);

@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "internal_typedefs.hpp"
-#include "ir_quad.hpp"
+#include "core/ir/ir_quad.hpp"
 #include "parser/ir_opcode.gen.hpp"
 #include "parser/konstants.hpp"
 
@@ -39,12 +39,12 @@ public:
     void locPatch_tablecreate(LabelID target_quad_label, SourceLocation new_loc);
 
     [[nodiscard]] LabelID next_quad_label() const noexcept { return next_quad_label_; }
-    [[nodiscard]] std::vector<Quad> extract_quads() noexcept;
+    [[nodiscard]] std::vector<ir::Quad> extract_quads() noexcept;
 
 private:
     LabelID next_quad_label_ = k_first_label;
     // TODO: write a container like deque but more efficient. (this can only store 9 or 10 elems before new malloc())
-    std::vector<Quad> quads_;
+    std::vector<ir::Quad> ir_quads_;
 };
 
 } // namespace alpha

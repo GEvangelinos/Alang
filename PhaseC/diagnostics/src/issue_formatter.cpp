@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include "core/source_location_tracker.hpp"
 #include "core/translation_unit_buffer.hpp"
 #include "support/cli_color.h"
 #include "support/misc_tools.hpp"

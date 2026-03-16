@@ -102,6 +102,8 @@ void handle_exports(const arguinator::Parser& cli_parser, const alpha::Driver& d
         driver.export_diagnostics();
     if (cli_parser[ASJ::export_ir].is_provided())
         driver.export_ir();
+    if (!cli_parser[ASJ::no_export_abc].is_provided())
+        driver.export_abc();
 }
 
 void handle_shows(const arguinator::Parser& cli_parser, const alpha::Driver& driver)
@@ -113,6 +115,8 @@ void handle_shows(const arguinator::Parser& cli_parser, const alpha::Driver& dri
         driver.show_ir(false);
     if (cli_parser[ASJ::show_ir_detailed].is_provided())
         driver.show_ir(true);
+    if (cli_parser[ASJ::show_abc].is_provided())
+        driver.show_abc();
     if (!cli_parser[ASJ::no_show_diagnostics].is_provided())
         driver.show_diagnostics(); // Used by regression-test tool.
 }

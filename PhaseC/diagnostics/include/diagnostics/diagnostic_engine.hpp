@@ -72,10 +72,7 @@ private:
     std::vector<const Diagnostic *> hards_;
     std::vector<const Diagnostic *> fatals_;
 
-    void emit(
-        DiagnosticCode code,
-        Issue &&primary,
-        std::list<Note> &&note_list);
+    void emit(DiagnosticCode code, Issue &&primary, std::list<Note> &&note_list);
 };
 } // namespace alpha
 #endif // DIAGNOSTIC_ENGINE_HPP

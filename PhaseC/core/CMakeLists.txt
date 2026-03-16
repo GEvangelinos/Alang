@@ -4,6 +4,7 @@ target_link_libraries(alpha_core_api INTERFACE support_api alpha_parser_api)
 
 add_library(alpha_core_impl STATIC
     src/source_location.cpp
+    src/source_location_tracker.cpp
     src/translation_unit_buffer.cpp
     src/ir/ir_expr.cpp
 )

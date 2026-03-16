@@ -55,7 +55,7 @@ std::string format_column(T&& value);
 template <bool colorize, typename Stream>
 void print_ir(
     Stream& out,
-    const std::vector<alpha::Quad>& quads,
+    const std::vector<alpha::ir::Quad>& quads,
     const alpha::LocationTracker& lt,
     bool print_detailed);
 
@@ -152,7 +152,7 @@ std::string format_column(T&& value)
 template <bool Colorize, typename Stream>
 void print_ir(
     Stream& out,
-    const std::vector<alpha::Quad>& quads,
+    const std::vector<alpha::ir::Quad>& quads,
     const alpha::LocationTracker& lt,
     const bool print_detailed)
 {
@@ -190,7 +190,7 @@ void print_ir(
     const auto quads_size = quads.size();
     for (alpha::u32 i = 0; i < quads_size; i++)
     {
-        const alpha::Quad& q = quads[i];
+        const alpha::ir::Quad& q = quads[i];
 
         std::string quad_label_str = alpha::ir::info_traits::is_branching(quads[i].opcode)
                                      ? std::to_string(q.label)
@@ -325,7 +325,7 @@ PassManager::is_in_hard_error() const
     }
 }
 
-const std::vector<Quad>&
+const std::vector<ir::Quad>&
 PassManager::get_quads() const noexcept { return ir_quads_; }
 
 void
@@ -460,6 +460,10 @@ TranslationUnit::show_ir(const bool detailed) const
 }
 
 void
+TranslationUnit::show_abc() const {}
+
+
+void
 TranslationUnit::export_symbol_table() const
 {
     export_within_dir(
@@ -488,6 +492,9 @@ TranslationUnit::export_ir() const
 {
     export_within_dir(k_ir_exports_dirname, &TranslationUnit::export_ir_impl);
 }
+
+void
+TranslationUnit::export_abc() const {}
 
 bool TranslationUnit::compiled_ok() const noexcept
 {
@@ -584,7 +591,7 @@ TranslationUnit::export_ir_impl() const
 
     outfile << k_ir_csv_export_header; // Write CSV header.
 
-    auto write_ir_line = [&](const std::size_t quad_no, const Quad& q)
+    auto write_ir_line = [&](const std::size_t quad_no, const ir::Quad& q)
     {
         const auto [first_line, last_line] = loc_tracker_.find_lines(q.loc);
         std::string quad_label_str = alpha::ir::info_traits::is_branching(q.opcode)

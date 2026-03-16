@@ -5,6 +5,7 @@
 #include <scanner/scanner_context.hpp>
 
 #include "core/basics.hpp"
+#include "core/source_location_tracker.hpp"
 #include "diagnostics/diagnostic_formatter.hpp"
 #include "L1_driver/semantic_system.hpp"
 #include "settings/compiler_settings.hpp"
@@ -36,7 +37,7 @@ public:
     void notify_hard_error();
 
     [[nodiscard]] bool is_in_hard_error()const ;
-    [[nodiscard]] const std::vector<Quad> &get_quads() const noexcept;
+    [[nodiscard]] const std::vector<ir::Quad> &get_quads() const noexcept;
 
 private:
     enum class Phase { FRONTEND, IR_OPTIMIZATION };
@@ -50,7 +51,7 @@ private:
     std::unique_ptr<ScannerAdapter> scanner_;
     SemanticSystem semantic_system_;
     std::unique_ptr<IROptimizer> ir_optimizer_;
-    std::vector<Quad> ir_quads_;
+    std::vector<ir::Quad> ir_quads_;
 
     Once<int> parser_retval_;
 
@@ -73,10 +74,12 @@ public:
     void show_symbol_table() const;
     void show_diagnostics() const;
     void show_ir(bool detailed) const;
+    void show_abc() const;
     void export_symbol_table() const;
     void export_symbol_table_without_temps() const;
     void export_diagnostics() const;
     void export_ir() const;
+    void export_abc() const;
 
     [[nodiscard]] bool compiled_ok() const noexcept;
 

@@ -46,7 +46,9 @@ BytecodeGenerator::make_operand(const Expr& expr)
     case ET::LIBRARY_FUNCTION:
         return new vm::LibFuncArgument{intern_libfunc_name(static_cast<const LibFuncExpr&>(expr))};
     case ET::PROGRAM_FUNCTION:
-        return new vm::ProgramFuncArgument{static_cast<const ProgFuncExpr &>(expr).progfunc_symbol->address};
+        return new vm::ProgramFuncArgument{
+            static_cast<const ProgFuncExpr&>(expr).progfunc_symbol->address
+        };
 
     case ET::ARITHMETIC:
     case ET::BOOL:
@@ -64,5 +66,17 @@ BytecodeGenerator::make_operand(const Expr& expr)
     default:
         UNREACHABLE(FMT::format("Unknown Expr::Type: int(type) = {}", static_cast<int>(expr.type)));
     }
+}
+
+void
+BytecodeGenerator::generate(const vm::Opcode opcode, const ir::Quad& ir_quad)
+{
+    vm_instructions_.emplace_back(
+        opcode,
+        ir_quad.result ? make_operand(*ir_quad.result) : nullptr,
+        ir_quad.arg1 ? make_operand(*ir_quad.arg1) : nullptr,
+        ir_quad.arg2 ? make_operand(*ir_quad.arg2) : nullptr,
+        ir_quad.loc
+    );
 }
 } // namespace alpha

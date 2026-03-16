@@ -139,7 +139,7 @@ SemanticSystem::Gateway::notify_hard_error() noexcept
     host_->parse_ctx_->hard_error_occurred_.raise();
 }
 
-std::vector<Quad>
+std::vector<ir::Quad>
 SemanticSystem::Gateway::extract_quads()
 {
     if (extracted_quads)

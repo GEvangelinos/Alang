@@ -11,6 +11,7 @@
 #define STRING_SPAN_HPP
 
 #include <type_traits>
+#include <string>
 #include "numeric_types.hpp"
 
 namespace alpha

@@ -44,6 +44,15 @@ Driver::show_ir(const bool detailed) const
 }
 
 void
+Driver::show_abc() const
+{
+    if (!this->ok())
+        return;
+    for (const TranslationUnit &tu : translation_units_)
+        tu.show_abc();
+}
+
+void
 Driver::export_symbol_table() const
 {
     if (!this->ok())
@@ -75,6 +84,15 @@ Driver::export_ir() const
         return;
     for (const TranslationUnit &tu : translation_units_)
         tu.export_ir();
+}
+
+void
+Driver::export_abc() const
+{
+    if (!this->ok())
+        return;
+    for (const TranslationUnit &tu : translation_units_)
+        tu.export_abc();
 }
 
 void

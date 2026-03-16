@@ -1,6 +1,8 @@
 #include <sstream>
 #include <diagnostics/diagnostic_types.hpp>
 
+#include "core/source_location_tracker.hpp"
+
 namespace alpha
 {
 Suggestion::Suggestion(const std::string_view desc, const SourceLocation insert_after)
