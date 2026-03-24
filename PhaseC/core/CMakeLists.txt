@@ -7,5 +7,6 @@ add_library(alpha_core_impl STATIC
     src/source_location_tracker.cpp
     src/translation_unit_buffer.cpp
     src/ir/ir_expr.cpp
+    src/bytecode/vm_opcodes.cpp
 )
 target_link_libraries(alpha_core_impl PRIVATE alpha_core_api)

@@ -6,6 +6,7 @@
 
 #include "core/basics.hpp"
 #include "core/source_location_tracker.hpp"
+#include "core/bytecode/vm_program.hpp"
 #include "diagnostics/diagnostic_formatter.hpp"
 #include "L1_driver/semantic_system.hpp"
 #include "settings/compiler_settings.hpp"
@@ -21,10 +22,10 @@ class DiagnosticReporter;
 class SymbolTable;
 class ScannerAdapter;
 
-class PassManager : private Immobile
+class CompilationPipeline : private Immobile
 {
 public:
-    PassManager(
+    CompilationPipeline(
         const settings::ExprOpts &expr_opts,
         const settings::IROpts &ir_opts,
         TranslationUnitBuffer &tu_buffer,
@@ -38,6 +39,7 @@ public:
 
     [[nodiscard]] bool is_in_hard_error()const ;
     [[nodiscard]] const std::vector<ir::Quad> &get_quads() const noexcept;
+    [[nodiscard]] const vm::Program &get_program() const noexcept;
 
 private:
     enum class Phase { FRONTEND, IR_OPTIMIZATION };
@@ -52,6 +54,7 @@ private:
     SemanticSystem semantic_system_;
     std::unique_ptr<IROptimizer> ir_optimizer_;
     std::vector<ir::Quad> ir_quads_;
+    std::unique_ptr<vm::Program> program_;
 
     Once<int> parser_retval_;
 
@@ -92,7 +95,7 @@ private:
     LocationTracker loc_tracker_;
     DiagnosticFormatter diagnostic_formatter_;
     SymbolTable symbol_table_;
-    std::unique_ptr<PassManager> pass_manager_;
+    std::unique_ptr<CompilationPipeline> pass_manager_;
     bool execution_completed_ = false;
 
     void export_within_dir(

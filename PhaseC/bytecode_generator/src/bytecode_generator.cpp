@@ -2,24 +2,26 @@
 
 #include <assert.h>
 
+#include "parser/ir_opcode_info_traits.gen.hpp"
 #include "core/ir/ir_expr.hpp"
+#include "support/dependent_false.hpp"
 
 namespace alpha
 {
 u32
 BytecodeGenerator::intern_string_literal(const ConstStringExpr& string_expr)
 {
-    const auto retval = string_literal_pool_.size();
-    string_literal_pool_.push_back(string_expr.value);
+    const auto retval = result_.string_literal_pool.size();
+    result_.string_literal_pool.push_back(string_expr.value);
     return retval;
 }
 
 u32
 BytecodeGenerator::intern_libfunc_name(const LibFuncExpr& libfunc_expr)
 {
-    const auto retval = libfunc_name_pool_.size();
+    const auto retval = result_.libfunc_name_pool.size();
     const std::string& name = libfunc_expr.libfunc_symbol->name;
-    libfunc_name_pool_.push_back(StringSpan{.dataa = name.data(), .size = name.size()});
+    result_.libfunc_name_pool.push_back(StringSpan{.dataa = name.data(), .size = name.size()});
     return retval;
 }
 
@@ -30,7 +32,6 @@ BytecodeGenerator::make_operand(const Expr& expr)
     using ET = Expr::Type;
     switch (expr.type)
     {
-    case ET::ASSIGN:
     case ET::CONST_BOOL:
         return new vm::ConstBoolArgument{static_cast<const ConstBoolExpr&>(expr).value};
     case ET::CONST_INT:
@@ -49,8 +50,8 @@ BytecodeGenerator::make_operand(const Expr& expr)
         return new vm::ProgramFuncArgument{
             static_cast<const ProgFuncExpr&>(expr).progfunc_symbol->address
         };
-
     case ET::ARITHMETIC:
+    case ET::ASSIGN:
     case ET::BOOL:
     case ET::NEW_TABLE:
     case ET::TABLE_ITEM:
@@ -68,15 +69,112 @@ BytecodeGenerator::make_operand(const Expr& expr)
     }
 }
 
-void
-BytecodeGenerator::generate(const vm::Opcode opcode, const ir::Quad& ir_quad)
+template <ir::Opcode ir_quad_opcode, ir::info_traits::Requirement (*trait_func)(ir::Opcode)>
+const vm::Argument*
+BytecodeGenerator::extract_operant_by_trait(const Expr* const e)
 {
-    vm_instructions_.emplace_back(
-        opcode,
-        ir_quad.result ? make_operand(*ir_quad.result) : nullptr,
-        ir_quad.arg1 ? make_operand(*ir_quad.arg1) : nullptr,
-        ir_quad.arg2 ? make_operand(*ir_quad.arg2) : nullptr,
+    namespace IIT = ir::info_traits;
+    constexpr IIT::Requirement req = trait_func(ir_quad_opcode);
+    if constexpr (req == IIT::Requirement::REQUIRED)
+        return make_operand(*DEBUG_REQUIRE_PTR(e));
+    else if constexpr (req == IIT::Requirement::NONE)
+        return nullptr;
+    else if constexpr (req == IIT::Requirement::OPTIONAL)
+        return e ? make_operand(*e) : nullptr;
+    else static_assert(always_false_v<decltype(ir_quad_opcode)>, "Unknown Requirement value");
+}
+
+template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
+void
+BytecodeGenerator::generate(const ir::Quad& ir_quad)
+{
+    DEBUG_SMART_ASSERT(ir_opcode == ir_quad.opcode);
+    namespace IIT = ir::info_traits;
+    result_.code.emplace_back(
+        vm_opcode,
+        extract_operant_by_trait<ir_opcode, IIT::result>(ir_quad.result),
+        extract_operant_by_trait<ir_opcode, IIT::arg1>(ir_quad.arg1),
+        extract_operant_by_trait<ir_opcode, IIT::arg2>(ir_quad.arg2),
         ir_quad.loc
     );
+    target_addresses_.push_back(next_instruction_label());
+}
+
+template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
+void
+BytecodeGenerator::generate_relational(const ir::Quad& quad)
+{
+    DEBUG_SMART_ASSERT(ir_opcode == quad.opcode);
+    namespace IIT = ir::info_traits;
+    result_.code.emplace_back(
+        vm_opcode,
+        [&]()
+        {
+            DEBUG_SMART_ASSERT(quad.label != k_no_label && "All relational have labels");
+            LabelID patch_taddress = k_no_label;
+            if (quad.label < next_instruction_label_)
+            {
+                DEBUG_SMART_ASSERT(quad.label < target_addresses_.size());
+                patch_taddress = target_addresses_[quad.label];
+            }
+            else
+            {
+                // add_incomplete_jump(next_instruction_label(), );
+            }
+            return new vm::LabelArgument{patch_taddress};
+        }(),
+        extract_operant_by_trait<ir_opcode,IIT::arg1>(quad.arg1),
+        extract_operant_by_trait<ir_opcode, IIT::arg2>(quad.arg2),
+        quad.loc
+    );
+    target_addresses_.push_back(next_instruction_label());
+}
+
+
+vm::Program
+BytecodeGenerator::build_program(const std::vector<ir::Quad>& program_ir_quads)
+{
+    for (const auto& quad : program_ir_quads)
+    {
+    #define CASE_BASIC(ir_op, vm_op) case ir::Opcode::ir_op: generate<ir::Opcode::ir_op, vm::Opcode::vm_op>(quad); break
+    #define CASE_RELATIONAL(ir_op, vm_op) case ir::Opcode::ir_op: generate_relational<ir::Opcode::ir_op, vm::Opcode::vm_op>(quad); break
+        switch (quad.opcode)
+        {
+        CASE_BASIC(ASSIGN, ASSIGN);
+        case ir::Opcode::UMINUS: break;
+        CASE_BASIC(ADD, ADD);
+        CASE_BASIC(SUB, SUB);
+        CASE_BASIC(MUL, MUL);
+        CASE_BASIC(DIV, DIV);
+        CASE_BASIC(MOD, MOD);
+        CASE_RELATIONAL(IF_EQ, JEQ);
+        CASE_RELATIONAL(IF_NEQ, JNE);
+        CASE_RELATIONAL(IF_GT, JGT);
+        CASE_RELATIONAL(IF_GTE, JGE);
+        CASE_RELATIONAL(IF_LT, JLT);
+        CASE_RELATIONAL(IF_LTE, JLE);
+        CASE_RELATIONAL(JUMP, JUMP);
+        CASE_BASIC(TABLECREATE, NEWTABLE);
+        CASE_BASIC(TABLEGETELEM, TABLEGETELEM);
+        CASE_BASIC(TABLESETELEM, TABLESETELEM);
+        case ir::Opcode::PARAM:
+            break;
+        case ir::Opcode::CALL:
+            break;
+        case ir::Opcode::GETRETVAL:
+            break;
+        case ir::Opcode::RETURN:
+            break;
+        case ir::Opcode::FUNCSTART:
+            break;
+        case ir::Opcode::FUNCEND:
+            break;
+        case ir::Opcode::NOT:
+        case ir::Opcode::AND:
+        case ir::Opcode::OR: DEBUG_UNREACHABLE(false && "Should be unused ir opcodes");
+        }
+    #undef  CASE_BASIC
+    }
+    return std::move(result_);
 }
 } // namespace alpha

@@ -159,7 +159,7 @@ private:
 // Gateway also provides access to the generated quads.
 class SemanticSystem::Gateway
 {
-    friend class PassManager;
+    friend class CompilationPipeline;
     friend class SemanticSystem;
 
 private:

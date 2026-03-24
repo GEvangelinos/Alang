@@ -2,6 +2,7 @@
 #define VM_OPCODES_HPP
 
 #include <array>
+#include <string>
 
 #define ALPHA_VMOPCODES(X) \
     X(ASSIGN)              \
@@ -10,16 +11,17 @@
     X(MUL)                 \
     X(DIV)                 \
     X(MOD)                 \
+    X(JUMP)                \
     X(JEQ)                 \
     X(JNE)                 \
-    X(JLE)                 \
-    X(JGE)                 \
     X(JLT)                 \
+    X(JLE)                 \
     X(JGT)                 \
-    X(CALL)                \
+    X(JGE)                 \
+    X(CALLFUNC)            \
     X(PUSHARG)             \
-    X(FUNCENTER)           \
-    X(FUNCEXIT)            \
+    X(ENTERFUNC)           \
+    X(EXITFUNC)            \
     X(NEWTABLE)            \
     X(TABLEGETELEM)        \
     X(TABLESETELEM)        \
@@ -39,10 +41,11 @@ enum class Opcode
     #undef  AS_ENUM_MEMBER
 };
 
-constexpr std::array<Opcode, 24> all_vmopcodes_array{
+constexpr std::array<Opcode, 25> all_vmopcodes_array{
     #define AS_ARRAY_MEMBER(vmopcode) Opcode::vmopcode,
     ALPHA_VMOPCODES(AS_ARRAY_MEMBER)
     #undef  AS_ARRAY_MEMBER
 };
+[[nodiscard]] std::string to_string(vm::Opcode opc) noexcept;
 } // namespace alpha::vm
 #endif // VM_OPCODES_HPP

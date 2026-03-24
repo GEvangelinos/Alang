@@ -30,6 +30,14 @@ struct Argument
     explicit Argument(const Type type) : type(type) {}
 };
 
+struct LabelArgument : public Argument
+{
+    const LabelID value;
+
+    explicit LabelArgument(const LabelID value)
+        : Argument{Type::LABEL}, value{value} {}
+};
+
 struct ConstBoolArgument : public Argument
 {
     const bool value;
@@ -69,7 +77,6 @@ struct ConstNilArgument : public Argument
 
 struct VariableArgument : public Argument
 {
-protected:
     const u32 offset;
 
     VariableArgument(const Argument::Type type, const u32 offset)

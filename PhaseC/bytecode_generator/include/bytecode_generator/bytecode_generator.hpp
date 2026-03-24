@@ -4,8 +4,10 @@
 #include <vector>
 
 #include "internal_typedefs.hpp"
+#include "parser/ir_opcode_info_traits.gen.hpp"
 #include "core/string_span.hpp"
 #include "core/bytecode/vm_instructions.hpp"
+#include "core/bytecode/vm_program.hpp"
 #include "core/ir/ir_expr.hpp"
 #include "core/ir/ir_quad.hpp"
 
@@ -14,30 +16,33 @@ namespace alpha
 class BytecodeGenerator
 {
 public:
-
-
-
+    [[nodiscard]] static vm::Program run(const std::vector<ir::Quad>& program_ir_quads)
+    {
+        return BytecodeGenerator{}.build_program(program_ir_quads);
+    }
 
 private:
-    struct UserFunc
-    {
-        u32 address;
-        u32 local_size;
-        StringSpan id;
-    };
+    vm::Program result_;
 
-    // TODO: is it possible to inline the numbers? (Integers and/or floats?)
-    std::vector<StringSpan> string_literal_pool_;
-    std::vector<StringSpan> libfunc_name_pool_;
-    std::vector<UserFunc> userfunc_table;
+    std::vector<LabelID> target_addresses_;
+    LabelID next_instruction_label_ = 0;
 
-    std::vector<vm::Instruction> vm_instructions_;
+    BytecodeGenerator() = default;
+
+    [[nodiscard]] vm::Program build_program(const std::vector<ir::Quad>& program_ir_quads);
 
     [[nodiscard]] const vm::Argument* make_operand(const Expr& expr);
-    [[nodiscard]] u32 intern_string_literal(const ConstStringExpr & string_expr);
-    [[nodiscard]] u32 intern_libfunc_name(const LibFuncExpr & libfunc_expr);
+    [[nodiscard]] u32 intern_string_literal(const ConstStringExpr& string_expr);
+    [[nodiscard]] u32 intern_libfunc_name(const LibFuncExpr& libfunc_expr);
+    [[nodiscard]] LabelID next_instruction_label() noexcept { return ++next_instruction_label_; }
 
-    void generate(vm::Opcode opcode, const ir::Quad& ir_quad);
+    template <ir::Opcode ir_quad_opcode, ir::info_traits::Requirement (*trait_func)(ir::Opcode)>
+    [[nodiscard]] const vm::Argument* extract_operant_by_trait(const Expr* e);
+
+    template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
+    void generate(const ir::Quad& ir_quad);
+    template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
+    void generate_relational(const ir::Quad& quad);
 };
 } // namespace alpha
 

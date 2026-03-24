@@ -110,8 +110,8 @@
 
 %token <string>        STRING "string-literal"
 %token <string>        ID     "identifier"
-%token <const_int>      INT    "integer-constant"
-%token <const_float>    FLOAT  "float-constant"
+%token <const_int>     INT    "integer-constant"
+%token <const_float>   FLOAT  "float-constant"
 
 /* Keyword tokens */
 %token IF       "keyword if"
@@ -131,20 +131,20 @@
 %token FALSE    "keyword false"
 
 /* Operator tokens */
-%token ASSIGN    "assignment operator="
-%token PLUS      "arithmetic operator+"
-%token MINUS     "arithmetic operator-"
-%token MUL       "arithmetic operator*"
-%token DIV       "arithmetic operator/"
-%token MOD       "arithmetic operator%"
-%token LT        "relational operator<"
-%token GT        "relational operator>"
-%token GTE       "relational operator>="
-%token LTE       "relational operator<="
-%token EQ        "equality operator=="
-%token NEQ       "inequality operator!="
-%token DEC       "decrement operator --"
-%token INC       "increment operator ++"
+%token ASSIGN   "assignment operator="
+%token PLUS     "arithmetic operator+"
+%token MINUS    "arithmetic operator-"
+%token MUL      "arithmetic operator*"
+%token DIV      "arithmetic operator/"
+%token MOD      "arithmetic operator%"
+%token LT       "relational operator<"
+%token GT       "relational operator>"
+%token GTE      "relational operator>="
+%token LTE      "relational operator<="
+%token EQ       "equality operator=="
+%token NEQ      "inequality operator!="
+%token DEC      "decrement operator --"
+%token INC      "increment operator ++"
 
 /* Punctuation tokens */
 %token LEFT_BRACE    "left brace {"

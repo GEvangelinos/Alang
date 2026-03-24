@@ -38,7 +38,10 @@
 
 #include "support/dependent_false.hpp"
 
-#define NOP static_assert(true)
+#ifdef DISPATCHER_NOP
+#error "Macro collision detected"
+#endif
+#define DISPATCHER_NOP static_assert(true)
 #define CALL_STR call_string
 #define DISPATCH_TARGET restricted_
 
@@ -48,13 +51,13 @@
     {                                                \
         if constexpr (false)                         \
         {                                            \
-            NOP // Absorbs trailing `;`.
+            DISPATCHER_NOP // Absorbs trailing `;`.
 
 #define DISPATCH_DEFINE_HANDLER_END()        \
         }                                    \
         else UnknownCallStr<CALL_STR> dummy; \
     }                                        \
-    NOP // Absorbs trailing `;`.
+    DISPATCHER_NOP // Absorbs trailing `;`.
 
 
 
@@ -63,14 +66,14 @@
     else if constexpr (CALL_STR == #method_name)                            \
     {                                                                       \
         using return_type = decltype(DISPATCH_TARGET.method_name(args...)); \
-        NOP // Absorbs trailing `;`.
+        DISPATCHER_NOP // Absorbs trailing `;`.
 
 #define _SELECT_METHOD_CALL(method_name)                    \
     }                                                       \
     else if constexpr (CALL_STR == #method_name)            \
     {                                                       \
         using return_type = decltype(method_name(args...)); \
-        NOP // Absorbs trailing `;`.
+        DISPATCHER_NOP // Absorbs trailing `;`.
 
 #define _SELECT_INTERNAL_MODULE_CALL(module_name)                                             \
     }                                                                                         \
@@ -78,7 +81,7 @@
     {                                                                                         \
         constexpr auto subcall_str = CALL_STR.without_prefix(#module_name".");                \
         using return_type = decltype(DISPATCH_TARGET.module_name.call<subcall_str>(args...)); \
-        NOP // Absorbs trailing `;`.
+        DISPATCHER_NOP // Absorbs trailing `;`.
 
 #define _SELECT_MODULE_CALL(module_name)                                       \
     }                                                                          \
@@ -86,35 +89,35 @@
     {                                                                          \
         constexpr auto subcall_str = CALL_STR.without_prefix(#module_name"."); \
         using return_type = decltype(module_name.call<subcall_str>(args...));  \
-        NOP // Absorbs trailing `;`.
+        DISPATCHER_NOP // Absorbs trailing `;`.
 
 #define _FORWARD_INTERNAL_METHOD_CALL(method_name)   \
     if constexpr (std::is_void_v<return_type>)       \
         DISPATCH_TARGET.method_name(args...);        \
     else                                             \
         return DISPATCH_TARGET.method_name(args...); \
-    NOP // Absorbs trailing `;`.
+    DISPATCHER_NOP // Absorbs trailing `;`.
 
 #define _FORWARD_METHOD_CALL(method_name)      \
     if constexpr (std::is_void_v<return_type>) \
         method_name(args...);                  \
     else                                       \
         return method_name(args...);           \
-    NOP // Absorbs trailing `;`.
+    DISPATCHER_NOP // Absorbs trailing `;`.
 
 #define _FORWARD_INTERNAL_MODULE_CALL(module_name)                     \
     if constexpr (std::is_void_v<return_type>)                         \
         DISPATCH_TARGET.module_name.call<subcall_str>(args...);        \
     else                                                               \
         return DISPATCH_TARGET.module_name.call<subcall_str>(args...); \
-    NOP // Absorbs trailing `;`.
+    DISPATCHER_NOP // Absorbs trailing `;`.
 
 #define _FORWARD_MODULE_CALL(module_name)              \
     if constexpr (std::is_void_v<return_type>)         \
         module_name.call<subcall_str>(args...);        \
     else                                               \
         return module_name.call<subcall_str>(args...); \
-    NOP // Absorbs trailing `;`.
+    DISPATCHER_NOP // Absorbs trailing `;`.
 /**
  * Ensures safe and consistent return type deduction in dispatcher logic.
  *
@@ -145,23 +148,23 @@
     _SELECT_METHOD_CALL(method_name);            \
     _RETURN_IF_MAIN_DISPATCHER_IS_NOT_GOOD();    \
     _FORWARD_METHOD_CALL(method_name);           \
-    NOP // Absorbs trailing `;`.
+    DISPATCHER_NOP // Absorbs trailing `;`.
 
 #define DISPATCH_MASTER_MODULE_CALL(module_name) \
     _SELECT_MODULE_CALL(module_name);            \
     _RETURN_IF_MAIN_DISPATCHER_IS_NOT_GOOD();    \
     _FORWARD_MODULE_CALL(module_name);           \
-    NOP // Absorbs trailing `;`.
+    DISPATCHER_NOP // Absorbs trailing `;`.
 
 #define DISPATCH_SLAVE_METHOD_CALL(method_name) \
     _SELECT_INTERNAL_METHOD_CALL(method_name);  \
     _FORWARD_INTERNAL_METHOD_CALL(method_name); \
-    NOP // Absorbs trailing `;`.
+    DISPATCHER_NOP // Absorbs trailing `;`.
 
 #define DISPATCH_SLAVE_MODULE_CALL(module_name) \
     _SELECT_INTERNAL_MODULE_CALL(module_name);  \
     _FORWARD_INTERNAL_MODULE_CALL(module_name); \
-    NOP // Absorbs trailing `;`.
+    DISPATCHER_NOP // Absorbs trailing `;`.
 
 /**
  * This templated struct is an intentional hack 😄

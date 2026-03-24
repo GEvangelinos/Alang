@@ -6,7 +6,7 @@
         #include <string>                             // for basic_string, stod, stol
         #include <parser/alpha_parser.gen.hpp>                   // for alpha_yylloc, alpha_yyt...
         #include "diagnostics/diagnostic_engine.hpp"               // for CTError, ErrorTracker
-        #include "core/source_location.hpp"            // for LocationTracker
+        #include "core/source_location_tracker.hpp"            // for LocationTracker
         #include "scanner/scanner_token.hpp"            // for TokenString, TokenComment
         #include "scanner/scanner_context.hpp"
         #include "support/format_adapter.hpp"           // for format, FMT
