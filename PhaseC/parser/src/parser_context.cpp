@@ -139,7 +139,7 @@ FunctionCtxHandler::FunctionCtxHandler(ParseCtx* const host)
     // We push a stack-frame, for loops that might occur outside functions.
     // So every frame corresponds to a function except the first.
     frame_stack_.emplace(
-        k_global_data_frame_name,
+        StringSpan{.data = k_global_data_frame_name, .size = sizeof(k_global_data_frame_name)},
         k_global_scope,
         SourceLocation::none(),
         nullptr,
@@ -177,7 +177,7 @@ FunctionCtxHandler::~FunctionCtxHandler()
  */
 void
 FunctionCtxHandler::enter_function(
-    const std::string& func_name,
+    const StringSpan func_name,
     const SourceLocation func_loc,
     const ProgFuncSymbol* const func_symbol,
     const LabelID label_of_jump)
@@ -319,21 +319,26 @@ ParseCtx::ParseCtx(SymbolTable* const symbol_table)
       temp_ctx_handler(this),
       symbol_table_(support::require_ptr(symbol_table)) {}
 
-std::string
+StringSpan
 ParseCtx::generate_temp_name(const TempHandleID temp_handle)
-    noexcept(noexcept(std::to_string(temp_handle)))
 {
-    return k_temp_variable_prefix + FMT::to_string(temp_handle);
+    DEBUG_SMART_ASSERT(temp_handle <= temp_name_cache.size() && "Temp name-index mismatch");
+    if (temp_handle == temp_name_cache.size())
+    {
+        temp_name_cache.emplace_back(FMT::format(TEMP_VARIABLE_PREFIX"{}", temp_handle));
+        DEBUG_SMART_ASSERT(temp_name_cache[temp_handle] == temp_name_cache.back());
+    }
+    const std::string& name = temp_name_cache[temp_handle];
+    return {name.data(), name.size()};
 }
 
 const VarSymbol*
 ParseCtx::new_temp()
 {
     const TempHandleID temp_handle = temp_ctx_handler.acquire_temp_handle();
-    const std::string temp_name = ParseCtx::generate_temp_name(temp_handle);
-    const StringSpan temp_name_span = StringSpan::from_string(temp_name);
+    const StringSpan temp_name = ParseCtx::generate_temp_name(temp_handle);
 
-    const Symbol* symbol = symbol_table_->lookup_local(temp_name_span, scope_handler.scope());
+    const Symbol* symbol = symbol_table_->lookup_local(temp_name, scope_handler.scope());
     DEBUG_SMART_ASSERT(
         !symbol || symbol->is_variable(),
         !symbol || symbol->is_temp_variable()
@@ -349,7 +354,7 @@ ParseCtx::new_temp()
             : VarSymbol::Type::LOCAL_VARIABLE;
 
         var_symbol = symbol_table_->insert_variable(
-            temp_name_span,
+            temp_name,
             scope_handler.scope(),
             var_type,
             space_handler.space(),

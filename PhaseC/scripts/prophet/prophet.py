@@ -151,7 +151,11 @@ def run_testfiles(driver_path: Path, test_filepaths: list[Path]):
     test_filepaths.sort()
     print_simple_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
     for test_filepath in test_filepaths:
-        run_testfile(driver_path, test_filepath)
+        try:
+            run_testfile(driver_path, test_filepath)
+        except Exception as e:
+            print(f"{COLOR_RED}Testfile {test_filepath}: Error:{SGR_RESET} {e}")
+
         os.chdir(_workdir_path)
     print(end="\n" * 2)  # Required to move cursor past script's output and progress bar
 

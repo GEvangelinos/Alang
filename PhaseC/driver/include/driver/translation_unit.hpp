@@ -12,7 +12,7 @@
 #include "settings/compiler_settings.hpp"
 
 // Forward declaration instead of including the <parser/alpha_parser.gen.hpp> header
-typedef void *yyscan_t;
+typedef void* yyscan_t;
 
 namespace alpha
 {
@@ -26,28 +26,28 @@ class CompilationPipeline : private Immobile
 {
 public:
     CompilationPipeline(
-        const settings::ExprOpts &expr_opts,
-        const settings::IROpts &ir_opts,
-        TranslationUnitBuffer &tu_buffer,
-        LocationTracker &lt,
-        DiagnosticEngine &diagnostic_engine,
-        SymbolTable *symbol_table);
+        const settings::ExprOpts& expr_opts,
+        const settings::IROpts& ir_opts,
+        TranslationUnitBuffer& tu_buffer,
+        LocationTracker& lt,
+        DiagnosticEngine& diagnostic_engine,
+        SymbolTable* symbol_table);
 
     void scan_tokens();
     void execute();
     void notify_hard_error();
 
-    [[nodiscard]] bool is_in_hard_error()const ;
-    [[nodiscard]] const std::vector<ir::Quad> &get_quads() const noexcept;
-    [[nodiscard]] const vm::Program &get_program() const noexcept;
+    [[nodiscard]] bool is_poisoned() const; // Returns true if HARD or FATAL (Stop cascades)
+    [[nodiscard]] const std::vector<ir::Quad>& get_quads() const noexcept;
+    [[nodiscard]] const vm::Program& get_program() const noexcept;
 
 private:
-    enum class Phase { FRONTEND, IR_OPTIMIZATION };
+    enum class Phase { FRONTEND, IR_OPTIMIZATION, ABC_GENERATION };
 
     Phase running_phase_ = Phase::FRONTEND;
 
-    LocationTracker &lt_;
-    DiagnosticEngine &diagnostic_engine_;
+    LocationTracker& lt_;
+    DiagnosticEngine& diagnostic_engine_;
     ParseCtx parse_ctx_;
     LexerCtx lexer_ctx_;
     std::unique_ptr<ScannerAdapter> scanner_;
@@ -65,16 +65,17 @@ class TranslationUnit
 {
 public:
     TranslationUnit(
-        const std::filesystem::path &source_path,
+        const std::filesystem::path& source_path,
         std::size_t max_errors,
-        const alpha::settings::ExprOpts &expr_opts,
-        const alpha::settings::IROpts &ir_opts);
+        const alpha::settings::ExprOpts& expr_opts,
+        const alpha::settings::IROpts& ir_opts);
 
     ~TranslationUnit();
 
     void compile();
     void only_lex_tokens() const;
     void show_symbol_table() const;
+    void show_symbol_table_without_temps() const;
     void show_diagnostics() const;
     void show_ir(bool detailed) const;
     void show_abc() const;
@@ -95,14 +96,17 @@ private:
     LocationTracker loc_tracker_;
     DiagnosticFormatter diagnostic_formatter_;
     SymbolTable symbol_table_;
-    std::unique_ptr<CompilationPipeline> pass_manager_;
+    std::unique_ptr<CompilationPipeline> compilation_pipeline_;
     bool execution_completed_ = false;
 
     void export_within_dir(
         std::string_view dirname, void (TranslationUnit::*export_func)() const) const;
     void export_symbol_table_dispatch() const;
     void export_symbol_table_without_temps_dispatch() const;
-    void export_symbol_table_impl(bool export_temps) const;
+    template <bool export_temps>
+    void export_symbol_table_impl() const;
+    template<bool show_temps>
+    void show_symbol_table_impl() const;
     void export_diagnostics_impl() const;
     void export_ir_impl() const;
     [[nodiscard]] DiagnosticEngine::Policy create_diagnostic_engine_policy();

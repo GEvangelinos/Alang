@@ -17,6 +17,20 @@ std::string& strip(std::string& str);
 [[nodiscard]] bool is_blank_str(const std::string& str);
 [[nodiscard]] std::vector<std::string> split_lines(const std::string& str);
 
+template <typename T, unsigned char precision = 6>
+    requires std::is_floating_point_v<T>
+[[nodiscard]] std::string format_float(const T value)
+{
+    std::string s = FMT::format("{:.{}f}", value, precision);
+    if constexpr (precision > 0)
+    {
+        s.erase(s.find_last_not_of('0')+ 1);
+        if (s.back() == '.')
+            s.pop_back();
+    }
+    return s + "f";
+}
+
 // Basic implementation, so we can avoid using the slower std::isalpha() that looks up for locale.
 [[nodiscard]] constexpr bool is_alpha(const unsigned char c) noexcept
 {

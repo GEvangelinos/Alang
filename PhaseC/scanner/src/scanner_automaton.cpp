@@ -695,7 +695,7 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
         case TKN_STRING:
             {
                 const std::string_view text = last_token_text();
-                yylval->string = StringSpan{.dataa = text.data(), .size = text.size()};
+                yylval->string = StringSpan{.data = text.data(), .size = text.size()};
                 break;
             }
         case TKN_YYEOF:

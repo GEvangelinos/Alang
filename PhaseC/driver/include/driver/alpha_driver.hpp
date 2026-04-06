@@ -19,6 +19,7 @@ public:
     // Simple wrappers for now
     void only_lex_tokens() const;
     void show_symbol_table() const;
+    void show_symbol_table_without_temps() const;
     void show_diagnostics() const;
     void show_ir(bool detailed) const;
     void show_abc() const;

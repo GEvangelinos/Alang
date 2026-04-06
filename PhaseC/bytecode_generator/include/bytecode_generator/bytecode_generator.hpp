@@ -5,7 +5,6 @@
 
 #include "internal_typedefs.hpp"
 #include "parser/ir_opcode_info_traits.gen.hpp"
-#include "core/string_span.hpp"
 #include "core/bytecode/vm_instructions.hpp"
 #include "core/bytecode/vm_program.hpp"
 #include "core/ir/ir_expr.hpp"
@@ -32,8 +31,8 @@ private:
     [[nodiscard]] vm::Program build_program(const std::vector<ir::Quad>& program_ir_quads);
 
     [[nodiscard]] const vm::Argument* make_operand(const Expr& expr);
-    [[nodiscard]] u32 intern_string_literal(const ConstStringExpr& string_expr);
-    [[nodiscard]] u32 intern_libfunc_name(const LibFuncExpr& libfunc_expr);
+    [[nodiscard]] vm::Program::StringID intern_string_literal(const ConstStringExpr& string_expr);
+    [[nodiscard]] vm::Program::LibfuncID intern_libfunc_name(const LibFuncExpr& libfunc_expr);
     [[nodiscard]] LabelID next_instruction_label() noexcept { return ++next_instruction_label_; }
 
     template <ir::Opcode ir_quad_opcode, ir::info_traits::Requirement (*trait_func)(ir::Opcode)>
@@ -43,6 +42,7 @@ private:
     void generate(const ir::Quad& ir_quad);
     template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
     void generate_relational(const ir::Quad& quad);
+    void generate_getretval(const ir::Quad& quad);
 };
 } // namespace alpha
 

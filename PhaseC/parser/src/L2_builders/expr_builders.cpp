@@ -1099,13 +1099,13 @@ ConstBuilder::Restricted::build_nil_expr(const SourceLocation loc)
 void
 FunctionBuilder::Restricted::update_function_draft()
 {
-    update_function_draft(StringSpan::from_string(parse_ctx_->anonymous_generator.new_anonymous()));
+    update_function_draft(parse_ctx_->anonymous_generator.new_anonymous());
 }
 
 void
 FunctionBuilder::Restricted::update_function_draft(const StringSpan id)
 {
-    function_draft_.id = id.to_string();
+    function_draft_.id = id;
     // We probably enter next space before function_entry early on here, for formal arguments.
     parse_ctx_->space_handler.enter_space();
 }
@@ -1115,7 +1115,7 @@ FunctionBuilder::Restricted::collect_function_parameter(
     const StringSpan id,
     const SourceLocation id_loc)
 {
-    function_draft_.parameter_list.emplace_back(id.to_string(), id_loc);
+    function_draft_.parameter_list.emplace_back(id, id_loc);
 }
 
 void
@@ -1127,7 +1127,7 @@ FunctionBuilder::Restricted::register_function_parameters()
     for (const Parameter& p : function_draft_.parameter_list)
         if (validate_formal_param_name(p))
             symbol_table_->insert_variable(
-                StringSpan::from_string(p.name),
+                p.name,
                 parse_ctx_->scope_handler.scope(),
                 VarSymbol::Type::FORMAL_ARGUMENT,
                 space,
@@ -1138,27 +1138,26 @@ FunctionBuilder::Restricted::register_function_parameters()
 
 bool
 FunctionBuilder::Restricted::validate_funcdef_name(
-    const std::string& func_name,
+    const StringSpan func_name,
     const SourceLocation funcname_loc)
 {
-    const auto func_name_span = StringSpan::from_string(func_name);
-    if (symbol_table_->is_libfunc_name(func_name_span))
+    if (symbol_table_->is_libfunc_name(func_name))
     {
-        dr_->report_redefinition_of_libfunc(func_name, funcname_loc);
+        dr_->report_redefinition_of_libfunc(func_name.to_string(), funcname_loc);
         return false;
     }
 
     const auto curr_scope = parse_ctx_->scope_handler.scope();
-    if (const Symbol* const found_symbol = symbol_table_->lookup_local(func_name_span, curr_scope))
+    if (const Symbol* const found_symbol = symbol_table_->lookup_local(func_name, curr_scope))
     {
         if (found_symbol->is_function())
         {
-            dr_->report_redefinition_of_func(func_name, funcname_loc, found_symbol->loc);
+            dr_->report_redefinition_of_func(func_name.to_string(), funcname_loc, found_symbol->loc);
             return false;
         }
         if (found_symbol->is_variable())
         {
-            dr_->report_redefinition_of_var_as_func(func_name, funcname_loc, found_symbol->loc);
+            dr_->report_redefinition_of_var_as_func(func_name.to_string(), funcname_loc, found_symbol->loc);
             return false;
         }
     }
@@ -1168,16 +1167,15 @@ FunctionBuilder::Restricted::validate_funcdef_name(
 bool
 FunctionBuilder::Restricted::validate_formal_param_name(const Parameter& param)
 {
-    const auto param_name = StringSpan::from_string(param.name);
     // Library‐function conflict
-    if (symbol_table_->is_libfunc_name(param_name))
+    if (symbol_table_->is_libfunc_name(param.name))
     {
         dr_->report_libfunc_redefined_as_formal_parameter(param.name, param.loc);
         return false;
     }
 
     const auto curr_scope = parse_ctx_->scope_handler.scope();
-    if (const Symbol* const formal_symbol = symbol_table_->lookup_local(param_name, curr_scope))
+    if (const Symbol* const formal_symbol = symbol_table_->lookup_local(param.name, curr_scope))
     {
         // Parameter should produce name conflicts only with themselves.
         DEBUG_SMART_ASSERT(
@@ -1217,7 +1215,7 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation f
     if (validated_funcname)
     {
         func_symbol = symbol_table_->insert_program_function(
-            StringSpan::from_string(function_draft_.id),
+            function_draft_.id,
             parse_ctx_->scope_handler.scope(),
             next_function_address_++,
             function_draft_.parameter_list,

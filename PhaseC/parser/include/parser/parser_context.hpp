@@ -124,11 +124,11 @@ public:
 
     void enter_loop() noexcept;
     void exit_loop() noexcept;
-    void add_function_parameter(const std::string &name, SourceLocation loc);
+    void add_function_parameter(StringSpan name, SourceLocation loc);
     void clear_function_parameters() noexcept;
     void add_local() noexcept;
     void enter_function(
-        const std::string &func_name,
+        StringSpan func_name,
         SourceLocation func_loc,
         const ProgFuncSymbol *func_symbol,
         LabelID label_of_jump);
@@ -169,12 +169,12 @@ private:
         u32 local_variable_count = 0;
 
         FunctionDataFrame(
-            const std::string &name,
+            const StringSpan name,
             const u32 scope,
             const SourceLocation loc,
             const ProgFuncSymbol *const func_symbol,
             const u32 funcdef_skip_jump)
-            : name(std::move(name)),
+            : name(name.to_string()),
               scope(scope),
               loc(loc),
               func_symbol(func_symbol),
@@ -191,9 +191,10 @@ private:
 class AnonymousGenerator : private Immobile
 {
 public:
-    [[nodiscard]] std::string new_anonymous();
+    [[nodiscard]] StringSpan new_anonymous();
 
 private:
+    std::deque<std::string> anonymous_name_cache_;
     u32 anonymous_counter_ = 0;
 };
 
@@ -268,7 +269,9 @@ private:
     SymbolTable *const symbol_table_;
     OnceFlag hard_error_occurred_;
 
-    [[nodiscard]] static std::string generate_temp_name(TempHandleID temp_handle) noexcept;
+    std::deque<std::string> temp_name_cache;
+
+    [[nodiscard]] StringSpan generate_temp_name(TempHandleID temp_handle);
 };
 
 inline void
@@ -433,7 +436,7 @@ FunctionCtxHandler::loop_depth() const noexcept
 }
 
 inline void
-FunctionCtxHandler::add_function_parameter(const std::string &name, SourceLocation loc)
+FunctionCtxHandler::add_function_parameter(const StringSpan name, SourceLocation loc)
 {
     function_parameters_.emplace_back(name, loc);
 }
@@ -525,10 +528,12 @@ FunctionCtxHandler::add_local() noexcept
     ++frame_stack_.top().local_variable_count;
 }
 
-inline std::string
+inline StringSpan
 AnonymousGenerator::new_anonymous()
 {
-    return k_anonymous_prefix + FMT::to_string(anonymous_counter_++);
+    anonymous_name_cache_.emplace_back(FMT::format(ANONYMOUS_PREFIX"{}", anonymous_counter_++));
+    const std::string& name = anonymous_name_cache_.back();
+    return {name.data(), name.size()};
 }
 
 inline bool

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include "core/source_location.hpp"
+#include "core/string_span.hpp"
 
 
 namespace alpha
@@ -11,10 +12,10 @@ namespace alpha
 class Parameter
 {
 public:
-    const std::string name;
+    const StringSpan name;
     const SourceLocation loc;
 
-    Parameter(const std::string &name, const SourceLocation loc)
+    Parameter(const StringSpan name, const SourceLocation loc)
         : name(name), loc(loc) {}
 };
 } // namespace alpha

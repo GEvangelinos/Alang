@@ -21,8 +21,8 @@ static constexpr char k_global_data_frame_name[] = "__GLOBAL_DATA_FRAME__";
 static_assert(k_global_data_frame_count == 1, "This constant must always be set to 1");
 
 // SymbolTable's constants
-static constexpr char k_anonymous_prefix[] = "@";
-static constexpr char k_temp_variable_prefix[] = "$";
+#define ANONYMOUS_PREFIX "@"
+#define TEMP_VARIABLE_PREFIX "$"
 
 static constexpr u32 k_global_scope = 0;
 static constexpr u32 k_libfunc_scope = k_global_scope;

@@ -20,7 +20,7 @@ struct Argument
         CONST_FLOAT,
         CONST_STRING,
         CONST_NIL,
-        USERFUNC,
+        PROGRAMFUNC,
         LIBFUNC,
         RETVAL,
     };
@@ -30,12 +30,39 @@ struct Argument
     explicit Argument(const Type type) : type(type) {}
 };
 
+struct VariableArgument : public Argument
+{
+    const u32 offset;
+
+    VariableArgument(const Argument::Type type, const u32 offset)
+        : Argument{type}, offset{offset} {}
+};
+
+
 struct LabelArgument : public Argument
 {
     const LabelID value;
 
     explicit LabelArgument(const LabelID value)
         : Argument{Type::LABEL}, value{value} {}
+};
+
+struct GlobalVariableArgument : public VariableArgument
+{
+    explicit GlobalVariableArgument(const u32 offset)
+        : VariableArgument{Type::GLOBAL, offset} {}
+};
+
+struct FormalVariableArgument : public VariableArgument
+{
+    explicit FormalVariableArgument(const u32 offset)
+        : VariableArgument{Type::FORMAL, offset} {}
+};
+
+struct LocalVariableArgument : public VariableArgument
+{
+    explicit LocalVariableArgument(const u32 offset)
+        : VariableArgument{Type::LOCAL, offset} {}
 };
 
 struct ConstBoolArgument : public Argument
@@ -59,15 +86,15 @@ struct ConstFloatArgument : public Argument
     const AlphaFloat value;
 
     explicit ConstFloatArgument(const AlphaFloat value)
-        : Argument{Type::CONST_INT}, value(value) {}
+        : Argument{Type::CONST_FLOAT}, value(value) {}
 };
 
 struct ConstStringArgument : public Argument
 {
-    const u32 table_index;
+    const u32 pool_index;
 
     explicit ConstStringArgument(const u32 string_table_index)
-        : Argument{Type::CONST_STRING}, table_index(string_table_index) {}
+        : Argument{Type::CONST_STRING}, pool_index(string_table_index) {}
 };
 
 struct ConstNilArgument : public Argument
@@ -75,30 +102,9 @@ struct ConstNilArgument : public Argument
     ConstNilArgument() : Argument{Type::CONST_NIL} {}
 };
 
-struct VariableArgument : public Argument
+struct RetvalArgument : public Argument
 {
-    const u32 offset;
-
-    VariableArgument(const Argument::Type type, const u32 offset)
-        : Argument{type}, offset{offset} {}
-};
-
-struct GlobalVariableArgument : public VariableArgument
-{
-    explicit GlobalVariableArgument(const u32 offset)
-        : VariableArgument{Type::GLOBAL, offset} {}
-};
-
-struct FormalVariableArgument : public VariableArgument
-{
-    explicit FormalVariableArgument(const u32 offset)
-        : VariableArgument{Type::FORMAL, offset} {}
-};
-
-struct LocalVariableArgument : public VariableArgument
-{
-    explicit LocalVariableArgument(const u32 offset)
-        : VariableArgument{Type::LOCAL, offset} {}
+    RetvalArgument() : Argument(Type::RETVAL) {}
 };
 
 struct ProgramFuncArgument : public Argument
@@ -106,7 +112,7 @@ struct ProgramFuncArgument : public Argument
     const u32 address;
 
     explicit ProgramFuncArgument(const u32 func_address)
-        : Argument{Type::LOCAL}, address(func_address) {}
+        : Argument{Type::PROGRAMFUNC}, address(func_address) {}
 };
 
 struct LibFuncArgument : public Argument
@@ -114,15 +120,15 @@ struct LibFuncArgument : public Argument
     const u32 pool_index;
 
     explicit LibFuncArgument(const u32 pool_index)
-        : Argument{Type::LOCAL}, pool_index(pool_index) {}
+        : Argument{Type::LIBFUNC}, pool_index(pool_index) {}
 };
 
 struct Instruction
 {
     const vm::Opcode opcode;
-    const vm::Argument* const result;
-    const vm::Argument* const arg1;
-    const vm::Argument* const arg2;
+    const vm::Argument* result;
+    const vm::Argument* arg1;
+    const vm::Argument* arg2;
     SourceLocation loc;
 };
 } // namespace alpha::vm

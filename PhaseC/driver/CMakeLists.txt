@@ -23,6 +23,7 @@ target_link_libraries(alpha_driver_impl PRIVATE
     alpha_driver_api
     alpha_ir_optimizer_api
     alpha_settings_api
+    alpha_bytecode_generator_api
     arguinator_api
 )
 

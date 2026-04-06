@@ -54,7 +54,7 @@ SymbolTable::insert_symbol(const StringSpan name, u32 scope, Args &&... args)
 {
     DEBUG_SMART_ASSERT(!name.empty());
 
-    const auto symbol_map_it = symbol_map_.try_emplace(name.to_string()).first;
+    const auto symbol_map_it = symbol_map_.try_emplace(name).first;
     const auto &symbol_name_ref = symbol_map_it->first;
     auto &synonym_symbols = symbol_map_it->second;
     const auto symbol_it = find_insert_position(synonym_symbols, scope);
@@ -81,7 +81,7 @@ SymbolTable::SymbolTable()
     {
         const StringSpan name = k_library_function_names[i];
 
-        library_function_set_.insert(name.to_string());
+        library_function_set_.insert(name);
         (void) insert_symbol<LibFuncSymbol>(name, k_libfunc_scope);
     }
 }
@@ -114,7 +114,7 @@ const Symbol *
 SymbolTable::lookup_global(const StringSpan name) const
 {
     // Does `symbol_name` exist ?
-    const auto it = symbol_map_.find(name.to_string());
+    const auto it = symbol_map_.find(name);
     if (it == symbol_map_.end())
         return nullptr;
 
@@ -129,7 +129,7 @@ const Symbol *
 SymbolTable::lookup_nearest(const StringSpan name, const u32 scope) const
 {
     // Does `symbol_name` exist ?
-    const auto it = symbol_map_.find(name.to_string());
+    const auto it = symbol_map_.find(name);
     if (it == symbol_map_.end())
         return nullptr;
 
@@ -142,9 +142,9 @@ SymbolTable::lookup_nearest(const StringSpan name, const u32 scope) const
 }
 
 const Symbol *
-SymbolTable::lookup_local(const StringSpan symbol_name, const u32 scope) const
+SymbolTable::lookup_local(const StringSpan name, const u32 scope) const
 {
-    const auto it = symbol_map_.find(symbol_name.to_string());
+    const auto it = symbol_map_.find(name);
     if (it == symbol_map_.end())
         return nullptr;
 
@@ -186,7 +186,7 @@ SymbolTable::hide_scope_symbols(const u32 scope) noexcept
 bool
 SymbolTable::is_libfunc_name(const StringSpan name) const
 {
-    return library_function_set_.contains(name.to_string());
+    return library_function_set_.contains(name);
 }
 
 /// Note: This method is deliberately implemented as a static method of SymbolTable

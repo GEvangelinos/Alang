@@ -18,17 +18,23 @@ namespace alpha
 {
 struct StringSpan
 {
-    const char* dataa;
+    const char* data;
     u64 size;
 
     [[nodiscard]] bool empty() const { return size == 0; }
-    [[nodiscard]] const char* begin() const { return dataa; }
-    [[nodiscard]] const char* end() const { return dataa + size; }
-    [[nodiscard]] std::string to_string() const { return std::string{dataa, size}; }
+    [[nodiscard]] const char* begin() const { return data; }
+    [[nodiscard]] const char* end() const { return data + size; }
+    [[nodiscard]] std::string to_string() const { return {data, size}; }
+    [[nodiscard]] std::string_view to_string_view() const noexcept { return {data, size}; }
+
+    [[nodiscard]] bool operator==(const StringSpan other) const noexcept
+    {
+        return std::string_view{data, size} == std::string_view{other.data, other.size};
+    }
 
     void clear() noexcept
     {
-        dataa = nullptr;
+        data = nullptr;
         size = 0;
     }
 
@@ -36,16 +42,26 @@ struct StringSpan
     [[nodiscard]] static consteval StringSpan from_literal(const char (&str)[size]) noexcept
     {
         // Subtracting 1 is mandatory to exclude the null terminator.
-        return StringSpan{.dataa = str, .size = size - 1};
+        return StringSpan{.data = str, .size = size - 1};
     }
 
     [[nodiscard]] static constexpr StringSpan from_string(const std::string& str) noexcept
     {
-        return StringSpan{.dataa = str.data(), .size = str.size()};
+        return StringSpan{.data = str.data(), .size = str.size()};
     }
 };
 
 static_assert(StringSpan::from_literal("").size == 0);
 static_assert(std::is_trivial_v<StringSpan>);
-}
+} // namespace alpha
+
+template <>
+struct std::hash<alpha::StringSpan>
+{
+    [[nodiscard]] std::size_t operator()(const alpha::StringSpan ss) const noexcept
+    {
+        return std::hash<std::string_view>{}(std::string_view{ss.data, ss.size});
+    }
+};
+
 #endif // STRING_SPAN_HPP

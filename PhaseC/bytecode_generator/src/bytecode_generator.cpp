@@ -8,21 +8,24 @@
 
 namespace alpha
 {
-u32
+vm::Program::StringID
 BytecodeGenerator::intern_string_literal(const ConstStringExpr& string_expr)
 {
-    const auto retval = result_.string_literal_pool.size();
-    result_.string_literal_pool.push_back(string_expr.value);
-    return retval;
+    const auto it = result_.string_literal_table.try_emplace(
+        string_expr.value, result_.string_literal_table.size()
+    ).first;
+    const auto str_id = it->second;
+    return str_id;
 }
 
-u32
+vm::Program::LibfuncID
 BytecodeGenerator::intern_libfunc_name(const LibFuncExpr& libfunc_expr)
 {
-    const auto retval = result_.libfunc_name_pool.size();
-    const std::string& name = libfunc_expr.libfunc_symbol->name;
-    result_.libfunc_name_pool.push_back(StringSpan{.dataa = name.data(), .size = name.size()});
-    return retval;
+    const auto it = result_.libfunc_name_table.try_emplace(
+        libfunc_expr.libfunc_symbol->name, result_.libfunc_name_table.size()
+    ).first;
+    const auto libname_id = it->second;
+    return libname_id;
 }
 
 
@@ -119,17 +122,25 @@ BytecodeGenerator::generate_relational(const ir::Quad& quad)
             }
             else
             {
+                #warning "DOING NOTHING"
                 // add_incomplete_jump(next_instruction_label(), );
             }
             return new vm::LabelArgument{patch_taddress};
         }(),
-        extract_operant_by_trait<ir_opcode,IIT::arg1>(quad.arg1),
+        extract_operant_by_trait<ir_opcode, IIT::arg1>(quad.arg1),
         extract_operant_by_trait<ir_opcode, IIT::arg2>(quad.arg2),
         quad.loc
     );
     target_addresses_.push_back(next_instruction_label());
 }
 
+void
+BytecodeGenerator::generate_getretval(const ir::Quad& quad)
+{
+    generate<ir::Opcode::GETRETVAL, vm::Opcode::ASSIGN>(quad);
+    DEBUG_SMART_ASSERT(!result_.code.empty() && !result_.code.back().arg1);
+    result_.code.back().arg1 = new vm::RetvalArgument{};
+}
 
 vm::Program
 BytecodeGenerator::build_program(const std::vector<ir::Quad>& program_ir_quads)
@@ -157,11 +168,10 @@ BytecodeGenerator::build_program(const std::vector<ir::Quad>& program_ir_quads)
         CASE_BASIC(TABLECREATE, NEWTABLE);
         CASE_BASIC(TABLEGETELEM, TABLEGETELEM);
         CASE_BASIC(TABLESETELEM, TABLESETELEM);
-        case ir::Opcode::PARAM:
-            break;
-        case ir::Opcode::CALL:
-            break;
+        CASE_BASIC(PARAM, PUSHARG);
+        CASE_BASIC(CALL, CALLFUNC);
         case ir::Opcode::GETRETVAL:
+            generate_getretval(quad);
             break;
         case ir::Opcode::RETURN:
             break;
@@ -173,7 +183,8 @@ BytecodeGenerator::build_program(const std::vector<ir::Quad>& program_ir_quads)
         case ir::Opcode::AND:
         case ir::Opcode::OR: DEBUG_UNREACHABLE(false && "Should be unused ir opcodes");
         }
-    #undef  CASE_BASIC
+    #undef CASE_BASIC
+    #undef CASE_RELATIONAL
     }
     return std::move(result_);
 }

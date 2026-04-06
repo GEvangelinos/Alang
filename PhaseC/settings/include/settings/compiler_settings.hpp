@@ -13,6 +13,7 @@
     X(false, 0, list_opts,           "List available optimizations for IR generation.") \
     X(false, 0, show_parser_trace,   "Pretty-prints a message for each matched grammar rule.") \
     X(false, 0, show_symbol_table,   "Pretty-prints the symbol table on console.") \
+    X(false, 0, show_symbol_table_without_temps, "Pretty-prints the symbol table on console.") \
     X(false, 0, export_diagnostics,  "Write the compiler's diagnostics to a CSV file named <source_filename>.diag.csv.") \
     X(false, 0, no_show_diagnostics, "Disable diagnostic display (used for regression testing).")\
     X(false, 0, export_symbol_table, "Write the compiler's symbol table to a CSV file named <source_filename>.st.csv.") \

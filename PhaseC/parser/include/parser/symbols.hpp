@@ -8,6 +8,7 @@
 #include "_parser_common.hpp"
 #include "core/konstants.hpp"
 #include "core/source_location.hpp"
+#include "core/string_span.hpp"
 #include "parser/internal_typedefs.hpp"
 #include "support/misc_tools.hpp"
 
@@ -33,7 +34,7 @@ public:
         LOCAL_VARIABLE,
     };
 
-    const std::string &name;
+    const StringSpan name;
     const u32 scope;
     const Type type;
     const SourceLocation loc;
@@ -47,7 +48,7 @@ public:
     [[nodiscard]] bool is_active() const noexcept { return is_active_; }
 
 protected:
-    Symbol(const std::string &name, u32 scope, Type type, SourceLocation loc) noexcept;
+    Symbol(StringSpan name, u32 scope, Type type, SourceLocation loc) noexcept;
 
 private:
     bool is_active_ = true;
@@ -72,7 +73,7 @@ public:
     const u32 offset;
 
     VarSymbol(
-        const std::string &name,
+        StringSpan name,
         u32 scope,
         Type type,
         Space space,
@@ -80,7 +81,7 @@ public:
         SourceLocation loc) noexcept;
     ~VarSymbol() override = default;
 
-    [[nodiscard]] const ConstExpr *get_const_expr() const noexcept { return const_expr_; }
+    [[nodiscard]] const ConstExpr* get_const_expr() const noexcept { return const_expr_; }
     [[nodiscard]] bool has_const_value() const noexcept { return const_expr_; }
     [[nodiscard]] bool has_temp_handle() const noexcept { return temp_binding_.is_active(); }
     [[nodiscard]] TempHandleID temp_handle() const noexcept;
@@ -105,7 +106,7 @@ private:
 
     // Used to reference the const_expr in order to extract its const_value for constant_propagation
     // Only modified through friend class SymbolTable!
-    mutable const ConstExpr *const_expr_ = nullptr;
+    mutable const ConstExpr* const_expr_ = nullptr;
     mutable TempBinding temp_binding_;
 };
 
@@ -116,7 +117,7 @@ class LibFuncSymbol final : public Symbol
 public:
     // Constructor keeps a dummy 'scope' parameter for compatibility
     // with the generic SymbolTable::insert_symbol() template.
-    explicit LibFuncSymbol(const std::string &name, [[maybe_unused]] u32);
+    explicit LibFuncSymbol(StringSpan name, [[maybe_unused]] u32);
     ~LibFuncSymbol() override = default;
 };
 
@@ -129,20 +130,21 @@ public:
     const std::vector<Parameter> parameter_list;
 
     // Declared mutable, as we backpatch it after the function’s complete definition.
-    mutable Once<u32> stackframe_slot_count; // TODO: Is this required? (if you remove it... does it break anything?)
+    mutable Once<u32> stackframe_slot_count;
+    // TODO: Is this required? (if you remove it... does it break anything?)
 
     ProgFuncSymbol(
-        const std::string &name,
+        StringSpan name,
         u32 scope,
         u32 address,
-        const std::vector<Parameter> &parameter_list,
+        const std::vector<Parameter>& parameter_list,
         SourceLocation location);
     ~ProgFuncSymbol() override = default;
 };
 
 inline
 Symbol::Symbol(
-    const std::string &name,
+    const StringSpan name,
     const u32 scope,
     const Type type,
     const SourceLocation loc) noexcept
@@ -165,8 +167,9 @@ Symbol::type_to_string() const noexcept
 inline bool
 Symbol::is_temp_variable() const noexcept
 {
-    DEBUG(if (name.starts_with(k_temp_variable_prefix)) SMART_ASSERT(is_variable());)
-    return name.starts_with(k_temp_variable_prefix);
+    const bool is_temp = name.to_string_view().starts_with(TEMP_VARIABLE_PREFIX);
+    DEBUG_SMART_ASSERT(!is_temp || is_variable());
+    return is_temp;
 }
 
 inline bool
@@ -177,7 +180,7 @@ Symbol::is_function() const noexcept
 
 inline
 VarSymbol::VarSymbol(
-    const std::string &name,
+    const StringSpan name,
     const u32 scope,
     const Type type,
     const Space space,
@@ -185,10 +188,7 @@ VarSymbol::VarSymbol(
     const SourceLocation loc) noexcept
     : Symbol(name, scope, type, loc),
       space(space),
-      offset(offset)
-{
-    DEBUG_SMART_ASSERT(is_variable());
-}
+      offset(offset) { DEBUG_SMART_ASSERT(is_variable()); }
 
 inline Symbol::Type
 VarSymbol::scope_to_symbol_type(const u32 scope)
@@ -225,15 +225,15 @@ VarSymbol::TempBinding::id() const noexcept
 }
 
 inline
-LibFuncSymbol::LibFuncSymbol(const std::string &name, [[maybe_unused]] u32)
+LibFuncSymbol::LibFuncSymbol(const StringSpan name, [[maybe_unused]] u32)
     : Symbol(name, k_libfunc_scope, Symbol::Type::LIBRARY_FUNCTION, SourceLocation::none()) {}
 
 inline
 ProgFuncSymbol::ProgFuncSymbol(
-    const std::string &name,
+    const StringSpan name,
     const u32 scope,
     const u32 address,
-    const std::vector<Parameter> &parameter_list,
+    const std::vector<Parameter>& parameter_list,
     const SourceLocation location)
     : Symbol(name, scope, Symbol::Type::PROGRAM_FUNCTION, location),
       address(address),

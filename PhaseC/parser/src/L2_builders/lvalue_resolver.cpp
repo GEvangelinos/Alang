@@ -11,7 +11,7 @@ LvalueResolver::Restricted::Restricted(const SemanticSystemServices& ss_services
     : SemanticSubsystem(ss_services) {}
 
 const Expr*
-LvalueResolver::Restricted::resolve_id(StringSpan id_name, const SourceLocation id_loc)
+LvalueResolver::Restricted::resolve_id(const StringSpan id_name, const SourceLocation id_loc)
 {
     DEBUG_SMART_ASSERT(!id_name.empty());
     const Symbol* result = symbol_table_->

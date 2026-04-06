@@ -368,7 +368,7 @@ private:
     private:
         struct
         {
-            std::string id;
+            StringSpan id;
             std::vector<Parameter> parameter_list;
 
             void reset() { id.clear(), parameter_list.clear(); }
@@ -390,8 +390,7 @@ private:
             BlockSourceLocation block_loc);
 
         void register_function_parameters();
-        [[nodiscard]] bool validate_funcdef_name(
-            const std::string &func_name, SourceLocation funcname_loc);
+        [[nodiscard]] bool validate_funcdef_name(StringSpan func_name, SourceLocation funcname_loc);
         [[nodiscard]] bool validate_formal_param_name(const Parameter &param);
     };
 

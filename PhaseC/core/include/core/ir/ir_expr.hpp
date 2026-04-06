@@ -166,7 +166,7 @@ struct ConstStringExpr final : public ConstExpr
 
     ConstStringExpr(const SourceLocation loc, const StringSpan value)
         : ConstExpr(Type::CONST_STRING, loc),
-          value(support::cstrdup(value.dataa, value.size), value.size)
+          value(support::cstrdup(value.data, value.size), value.size)
     {
         DEBUG_SMART_ASSERT(!this->value.empty());
     }
@@ -174,7 +174,7 @@ struct ConstStringExpr final : public ConstExpr
     ~ConstStringExpr()
     {
         DEBUG_SMART_ASSERT(!value.empty());
-        delete [] value.dataa;
+        delete [] value.data;
     }
 };
 

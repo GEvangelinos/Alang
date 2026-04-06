@@ -1,6 +1,7 @@
 #ifndef VM_PROGRAM_HPP
 #define VM_PROGRAM_HPP
 
+#include <unordered_map>
 #include <vector>
 #include "core/numeric_types.hpp"
 #include "core/string_span.hpp"
@@ -10,6 +11,9 @@ namespace alpha::vm
 {
 struct Program
 {
+    using StringID = u32;
+    using LibfuncID = u32;
+
     struct UserFunc
     {
         u32 address;
@@ -18,9 +22,9 @@ struct Program
     };
 
     std::vector<Instruction> code;
-    std::vector<UserFunc> userfunc_table;
-    std::vector<StringSpan> string_literal_pool;
-    std::vector<StringSpan> libfunc_name_pool;
+    std::vector<UserFunc> userfuncs;
+    std::unordered_map<StringSpan, StringID> string_literal_table;
+    std::unordered_map<StringSpan, LibfuncID> libfunc_name_table;
 };
 } // namespace alpha::vm
 #endif //VM_PROGRAM_HPP

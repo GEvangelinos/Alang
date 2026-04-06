@@ -39,7 +39,7 @@ const std::array<StringSpan, 12> k_library_function_names = {
 class SymbolTable : private Immobile
 {
 public:
-    using SymbolName = std::string;
+    using SymbolName = alpha::StringSpan;
     using SymbolPtr = std::unique_ptr<Symbol>;
     using SymbolMap = std::unordered_map<SymbolName, std::list<SymbolPtr>>;
 

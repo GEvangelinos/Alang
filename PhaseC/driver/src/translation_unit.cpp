@@ -2,7 +2,6 @@
 #include <fstream>
 #include <driver/translation_unit.hpp>
 
-#include "../../bytecode_generator/include/bytecode_generator/bytecode_generator.hpp"
 #include "ir_optimizer/ir_optimizer.hpp"
 #include "core/konstants.hpp"
 #include "driver/exception.hpp"
@@ -13,6 +12,7 @@
 #include "driver/translation_unit_buffer_loader.hpp"
 #include "scanner/alpha_scanner.gen.hpp"
 #include "scanner/scanner_adapter.hpp"
+#include "bytecode_generator/bytecode_generator.hpp"
 
 #include "support/cli_color.h"
 
@@ -90,7 +90,7 @@ std::string escape(const alpha::StringSpan str)
     std::string out;
     for (std::size_t i = 0; i < str.size; ++i)
     {
-        switch (const char ch = str.dataa[i]; ch)
+        switch (const char ch = str.data[i]; ch)
         { // clang-format off
         case '\n': out += "\\n"; break;
         case '\r': out += "\\r"; break;
@@ -115,18 +115,23 @@ std::string expr_printer(const alpha::Expr* expr, const char* const missing_mark
     switch (expr->type)
     {
     case ET::CONST_BOOL: return static_cast<const ConstBoolExpr*>(expr)->value ? "true" : "false";
-    case ET::CONST_INT: return FMT::to_string(static_cast<const ConstIntExpr*>(expr)->value);
-    case ET::CONST_FLOAT: return FMT::to_string(static_cast<const ConstFloatExpr*>(expr)->value);
+    case ET::CONST_INT: return FMT::format("{}", static_cast<const ConstIntExpr*>(expr)->value);
+    case ET::CONST_FLOAT:
+        return support::format_float(static_cast<const ConstFloatExpr*>(expr)->value);
     case ET::CONST_STRING: return escape(static_cast<const ConstStringExpr*>(expr)->value);
     case ET::CONST_NIL: return "nil";
-    case ET::ARITHMETIC: return static_cast<const ArithmeticExpr*>(expr)->var_symbol->name;
-    case ET::ASSIGN: return static_cast<const AssignExpr*>(expr)->var_symbol->name;
-    case ET::BOOL: return static_cast<const BoolExpr*>(expr)->var_symbol->name;
-    case ET::LIBRARY_FUNCTION: return static_cast<const LibFuncExpr*>(expr)->libfunc_symbol->name;
-    case ET::NEW_TABLE: return static_cast<const NewTableExpr*>(expr)->var_symbol->name;
-    case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr*>(expr)->progfunc_symbol->name;
-    case ET::TABLE_ITEM: return static_cast<const TableItemExpr*>(expr)->var_symbol->name;
-    case ET::VARIABLE: return static_cast<const VariableExpr*>(expr)->var_symbol->name;
+    case ET::ARITHMETIC: return static_cast<const ArithmeticExpr*>(expr)->var_symbol->name.
+            to_string();
+    case ET::ASSIGN: return static_cast<const AssignExpr*>(expr)->var_symbol->name.to_string();
+    case ET::BOOL: return static_cast<const BoolExpr*>(expr)->var_symbol->name.to_string();
+    case ET::LIBRARY_FUNCTION: return static_cast<const LibFuncExpr*>(expr)->libfunc_symbol->name.
+            to_string();
+    case ET::NEW_TABLE: return static_cast<const NewTableExpr*>(expr)->var_symbol->name.to_string();
+    case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr*>(expr)->progfunc_symbol->name.
+            to_string();
+    case ET::TABLE_ITEM: return static_cast<const TableItemExpr*>(expr)->var_symbol->name.
+            to_string();
+    case ET::VARIABLE: return static_cast<const VariableExpr*>(expr)->var_symbol->name.to_string();
     default:
         UNREACHABLE(FMT::format("Unhandled Expr::Type: int({}) = {}",
             TO_STRING(expr->type), static_cast<int>(expr->type)
@@ -152,7 +157,7 @@ std::string argument_printer(
     case AT::CONST_FLOAT:
         return FMT::format("(float){}", static_cast<const vm::ConstFloatArgument*>(a)->value);
     case AT::CONST_STRING:
-        return FMT::to_string(static_cast<const vm::ConstStringArgument*>(a)->table_index);
+        return FMT::format("(str){}", static_cast<const vm::ConstStringArgument*>(a)->pool_index);
     case AT::CONST_NIL:
         return "nil";
     case vm::Argument::Type::LABEL:
@@ -163,12 +168,12 @@ std::string argument_printer(
         return FMT::format("(formal){}", static_cast<const vm::FormalVariableArgument*>(a)->offset);
     case vm::Argument::Type::LOCAL:
         return FMT::format("(local){}", static_cast<const vm::LocalVariableArgument*>(a)->offset);
-    case vm::Argument::Type::USERFUNC:
-        return FMT::to_string(static_cast<const vm::ProgramFuncArgument*>(a)->address);
+    case vm::Argument::Type::PROGRAMFUNC:
+        return FMT::format("(userfunc){}", static_cast<const vm::ProgramFuncArgument*>(a)->address);
     case vm::Argument::Type::LIBFUNC:
-        return FMT::to_string(static_cast<const vm::LibFuncArgument*>(a)->pool_index);
+        return FMT::format("(libfunc){}", static_cast<const vm::LibFuncArgument*>(a)->pool_index);
     case vm::Argument::Type::RETVAL:
-        DEBUG_SMART_ASSERT(false && "Unimplemented");
+        return "(retval)";
     default:
         UNREACHABLE(FMT::format("Unhandled vm::Argument::Type: int({}) = {}",
             TO_STRING(expr->type), static_cast<int>(a->type)
@@ -291,21 +296,53 @@ void print_bytecode(
         format_column<Colorize, 1, widths[1]>("size"),
         format_column<Colorize, 2, widths[2]>("id")
     );
-    for (const auto& userfunc : program.userfunc_table)
+    for (const auto& userfunc : program.userfuncs)
         out << FMT::format(
             "{0} {1} {2}\n",
             format_column<Colorize, 0, widths[0]>(FMT::to_string(userfunc.address)),
             format_column<Colorize, 1, widths[1]>(FMT::to_string(userfunc.local_size)),
-            format_column<Colorize, 2, widths[2]>(userfunc.id.to_string())
+            format_column<Colorize, 2, widths[2]>(userfunc.id.to_string_view())
         );
 
     out << "=============== LIBFUNC_POOL ===============\n";
-    for (const alpha::StringSpan& libfunc_name : program.libfunc_name_pool)
-        out << libfunc_name.to_string() << "\n";
+    const auto sorted_funcs = [&program]()
+    {
+        using MapType = decltype(program.libfunc_name_table);
+        using KeyType = MapType::key_type;
+        using ValueType = MapType::mapped_type;
+        std::vector<std::pair<KeyType, ValueType>> vec{
+            program.libfunc_name_table.begin(),
+            program.libfunc_name_table.end()
+        };
+        std::ranges::sort(vec, [](const auto& a, const auto& b)
+        {
+            return a.first.to_string_view() < b.first.to_string_view();
+        });
+        return vec;
+    }();
+
+    for (const auto [name, id] : sorted_funcs)
+        out << FMT::format("{:4}. {}\n", id, name.to_string_view());
 
     out << "=============== STRING_POOL ===============\n";
-    for (const auto& str : program.string_literal_pool)
-        out << escape(str) << "\n";
+    const auto sorted_strs = [&program]()
+    {
+        using MapType = decltype(program.string_literal_table);
+        using KeyType = MapType::key_type;
+        using ValueType = MapType::mapped_type;
+
+        std::vector<std::pair<KeyType, ValueType>> vec{
+            program.string_literal_table.begin(),
+            program.string_literal_table.end()
+        };
+        std::ranges::sort(vec, [](const auto& a, const auto& b)
+        {
+            return a.first.to_string_view() < b.first.to_string_view();
+        });
+        return vec;
+    }();
+    for (const auto [str, id] : sorted_strs)
+        out << FMT::format("{:4}. {}\n", id, escape(str));
 
     out << FMT::format( // Write export header.
         "=============== BYTECODE ===============\n"
@@ -337,7 +374,6 @@ void print_bytecode(
         );
     }
 }
-
 
 template <bool Colorize, typename Stream>
 void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::LocationTracker& lt)
@@ -415,10 +451,16 @@ CompilationPipeline::scan_tokens()
 void
 CompilationPipeline::execute()
 {
+    running_phase_ = Phase::FRONTEND;
     run_frontend();
     ir_quads_ = semantic_system_.gateway->extract_quads();
+
+    running_phase_ = Phase::IR_OPTIMIZATION;
     ir_quads_ = ir_optimizer_->run(std::move(ir_quads_));
-    program_ = std::make_unique<vm::Program>(BytecodeGenerator::run(ir_quads_));
+
+    running_phase_ = Phase::ABC_GENERATION;
+    if (!diagnostic_engine_.has_errors())
+        program_ = std::make_unique<vm::Program>(BytecodeGenerator::run(ir_quads_));
 }
 
 void
@@ -429,7 +471,6 @@ CompilationPipeline::run_frontend()
     // constexpr auto invalid_input = 1;
     // constexpr auto memory_exhaustion = 2;
 
-    running_phase_ = Phase::FRONTEND;
     parser_retval_ = alpha_yyparse(
         *scanner_,
         lexer_ctx_,
@@ -441,17 +482,7 @@ CompilationPipeline::run_frontend()
 }
 
 bool
-CompilationPipeline::is_in_hard_error() const
-{
-    switch (running_phase_)
-    {
-    case Phase::FRONTEND: return semantic_system_.good();
-    case Phase::IR_OPTIMIZATION:
-        DEBUG_SMART_ASSERT(false && "No such query should happen at this state (logically)");
-        return false;
-    default: UNREACHABLE("Unknown `Phase`");
-    }
-}
+CompilationPipeline::is_poisoned() const { return semantic_system_.good(); }
 
 const std::vector<ir::Quad>&
 CompilationPipeline::get_quads() const noexcept { return ir_quads_; }
@@ -477,14 +508,14 @@ DiagnosticEngine::Policy
 TranslationUnit::create_diagnostic_engine_policy()
 {
     return DiagnosticEngine::Policy{
-        .should_emit_diagnostic = [this]() { return pass_manager_->is_in_hard_error(); },
+        .should_emit_diagnostic = [this]() { return compilation_pipeline_->is_poisoned(); },
         .notify_max_errors_reached = []() { notify_max_errors_reached(); },
         .notify_fatal_error = [this]()
         {
-            pass_manager_->notify_hard_error();
+            compilation_pipeline_->notify_hard_error();
             notify_fatal_error();
         },
-        .notify_hard_error = [this]() { pass_manager_->notify_hard_error(); }
+        .notify_hard_error = [this]() { compilation_pipeline_->notify_hard_error(); }
     };
 }
 
@@ -504,7 +535,7 @@ TranslationUnit::TranslationUnit(
           source_path, loc_tracker_, *support::require_ptr(translation_unit_buffer_.get()), true
       ),
       symbol_table_(),
-      pass_manager_(std::make_unique<CompilationPipeline>(
+      compilation_pipeline_(std::make_unique<CompilationPipeline>(
           expr_opts,
           ir_opts,
           *support::require_ptr(translation_unit_buffer_.get()),
@@ -527,7 +558,7 @@ TranslationUnit::compile()
 
     try
     {
-        pass_manager_->execute();
+        compilation_pipeline_->execute();
         // If we reach this point, execute() completed without throwing any exceptions.
         execution_completed_ = true;
     }
@@ -547,10 +578,11 @@ void
 TranslationUnit::notify_max_errors_reached() { throw exception::DiagnosticLimitError(); }
 
 void
-TranslationUnit::only_lex_tokens() const { pass_manager_->scan_tokens(); }
+TranslationUnit::only_lex_tokens() const { compilation_pipeline_->scan_tokens(); }
 
+template <bool show_temps>
 void
-TranslationUnit::show_symbol_table() const
+TranslationUnit::show_symbol_table_impl() const
 {
     std::cout << COLOR_FG_ASCII_BLUE;
     const auto& symbol_per_scope_vector = symbol_table_.symbols_per_scope();
@@ -563,9 +595,13 @@ TranslationUnit::show_symbol_table() const
             scope
         );
         for (const Symbol* symbol_ptr : symbol_per_scope_vector[scope])
+        {
+            if constexpr (!show_temps)
+                if (symbol_ptr->is_temp_variable()) continue;
+
             std::cout << FMT::format(
                 "{:<30} {:<20} (line {:>5}) (scope {:>4}) {}\n",
-                FMT::format("\"{}\"", symbol_ptr->name),
+                FMT::format("\"{}\"", symbol_ptr->name.to_string_view()),
                 FMT::format("[{}]", symbol_ptr->type_to_string()),
                 loc_tracker_.find_symbol_line(symbol_ptr->loc).value,
                 symbol_ptr->scope,
@@ -573,10 +609,17 @@ TranslationUnit::show_symbol_table() const
                 ? FMT::format("(offset {})", static_cast<const VarSymbol*>(symbol_ptr)->offset)
                 : ""
             );
+        }
         std::cout << '\n';
     }
     std::cout << SGR_RESET << std::endl;
 }
+
+void
+TranslationUnit::show_symbol_table() const { show_symbol_table_impl<true>(); }
+
+void
+TranslationUnit::show_symbol_table_without_temps() const { show_symbol_table_impl<false>(); }
 
 void
 TranslationUnit::show_diagnostics() const
@@ -591,13 +634,13 @@ TranslationUnit::show_diagnostics() const
 void
 TranslationUnit::show_ir(const bool detailed) const
 {
-    print_ir<true>(std::cout, pass_manager_->get_quads(), loc_tracker_, detailed);
+    print_ir<true>(std::cout, compilation_pipeline_->get_quads(), loc_tracker_, detailed);
 }
 
 void
 TranslationUnit::show_abc() const
 {
-    print_abc<true>(std::cout, pass_manager_->get_program(), loc_tracker_);
+    print_abc<true>(std::cout, compilation_pipeline_->get_program(), loc_tracker_);
 }
 
 
@@ -607,15 +650,6 @@ TranslationUnit::export_symbol_table() const
     export_within_dir(
         k_symbol_table_exports_dirname,
         &TranslationUnit::export_symbol_table_dispatch
-    );
-}
-
-void
-TranslationUnit::export_symbol_table_without_temps() const
-{
-    export_within_dir(
-        k_symbol_table_exports_dirname,
-        &TranslationUnit::export_symbol_table_without_temps_dispatch
     );
 }
 
@@ -639,17 +673,9 @@ bool TranslationUnit::compiled_ok() const noexcept
     return execution_completed_ && !diagnostic_engine_.has_errors();
 }
 
+template <bool export_temps>
 void
-TranslationUnit::export_symbol_table_dispatch() const { export_symbol_table_impl(true); }
-
-void
-TranslationUnit::export_symbol_table_without_temps_dispatch() const
-{
-    export_symbol_table_impl(false);
-}
-
-void
-TranslationUnit::export_symbol_table_impl(const bool export_temps) const
+TranslationUnit::export_symbol_table_impl() const
 {
     const std::string outfile_name = source_path_.filename().string() + k_symbol_table_export_ext;
     std::ofstream outfile(outfile_name);
@@ -663,7 +689,7 @@ TranslationUnit::export_symbol_table_impl(const bool export_temps) const
     {
         outfile << FMT::format(
             "{0},{1},{2},{3}\n",
-            symbol_ptr->name,
+            symbol_ptr->name.to_string_view(),
             symbol_ptr->type_to_string(),
             loc_tracker_.find_symbol_line(symbol_ptr->loc).value,
             symbol_ptr->scope
@@ -673,8 +699,29 @@ TranslationUnit::export_symbol_table_impl(const bool export_temps) const
     const auto& symbol_per_scope_vector = symbol_table_.symbols_per_scope();
     for (u32 scope = k_global_scope; scope < symbol_per_scope_vector.size(); scope++)
         for (const Symbol* symbol_ptr : symbol_per_scope_vector[scope])
-            if (export_temps || !symbol_ptr->is_temp_variable())
-                write_symbol_line(symbol_ptr);
+        {
+            if constexpr (!export_temps)
+                if (symbol_ptr->is_temp_variable()) continue;
+            write_symbol_line(symbol_ptr);
+        }
+}
+
+void
+TranslationUnit::export_symbol_table_without_temps_dispatch() const
+{
+    export_symbol_table_impl<false>();
+}
+
+void
+TranslationUnit::export_symbol_table_dispatch() const { export_symbol_table_impl<true>(); }
+
+void
+TranslationUnit::export_symbol_table_without_temps() const
+{
+    export_within_dir(
+        k_symbol_table_exports_dirname,
+        &TranslationUnit::export_symbol_table_impl<false>
+    );
 }
 
 void
@@ -749,7 +796,7 @@ TranslationUnit::export_ir_impl() const
         );
     };
 
-    const auto& quads = pass_manager_->get_quads();
+    const auto& quads = compilation_pipeline_->get_quads();
     for (std::size_t i = 0; i < quads.size(); ++i)
         write_ir_line(i + 1, quads[i]); // +1 cause quad address 0 is indicating no-address
 }

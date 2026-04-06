@@ -309,7 +309,7 @@ StringSpan TokenString::export_string_token()
     latest_assembled_string_ = convert_content_escapes_to_ascii();
     TokenString::flush_assembling_buffer();
     return StringSpan{
-        .dataa = latest_assembled_string_.c_str(),
+        .data = latest_assembled_string_.c_str(),
         .size = latest_assembled_string_.size()
     };
 }

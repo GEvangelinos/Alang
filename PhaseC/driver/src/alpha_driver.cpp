@@ -28,6 +28,15 @@ Driver::show_symbol_table() const
 }
 
 void
+Driver::show_symbol_table_without_temps() const
+{
+    if (!this->ok())
+        return;
+    for (const TranslationUnit &tu : translation_units_)
+        tu.show_symbol_table_without_temps();
+}
+
+void
 Driver::show_diagnostics() const
 {
     for (const TranslationUnit &tu : translation_units_)

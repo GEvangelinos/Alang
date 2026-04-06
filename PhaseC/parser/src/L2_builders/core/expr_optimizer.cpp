@@ -158,8 +158,8 @@ ExprFolder::try_fold_relational_equality(
         {
             const StringSpan lhs_val = static_cast<const ConstStringExpr*>(lhs)->value;
             const StringSpan rhs_val = static_cast<const ConstStringExpr*>(rhs)->value;
-            return std::string_view{lhs_val.dataa, lhs_val.size} ==
-                   std::string_view{rhs_val.dataa, rhs_val.size};
+            return std::string_view{lhs_val.data, lhs_val.size} ==
+                   std::string_view{rhs_val.data, rhs_val.size};
         }
         if (lhs->type == ET::LIBRARY_FUNCTION && rhs->type == ET::LIBRARY_FUNCTION)
             return static_cast<const LibFuncExpr*>(lhs)->libfunc_symbol->name ==

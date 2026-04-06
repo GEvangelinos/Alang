@@ -54,19 +54,37 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/settings.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/tasks.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bytecode_generator/include/bytecode_generator/bytecode_generator.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode_generator/include/bytecode_generator/bytecode_generator.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bytecode_generator/src/bytecode_generator.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode_generator/src/bytecode_generator.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/core/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/vm_instructions.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/vm_instructions.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/vm_opcodes.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/vm_opcodes.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/vm_program.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/vm_program.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/ir/ir_expr.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/ir/ir_expr.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/konstants.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/konstants.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/string_span.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/string_span.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/driver/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/driver/src/translation_unit.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_dispatcher_dsl.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_dispatcher_dsl.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/alpha_parser_spec.y" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/alpha_scanner_spec.l" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/_parser_common.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/_parser_common.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/parser_context.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_context.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/symbol_table.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/symbol_table.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_automaton.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_automaton.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_token.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_token.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/scripts/prophet/prophet.py" beforeDir="false" afterPath="$PROJECT_DIR$/scripts/prophet/prophet.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/settings/include/settings/compiler_settings.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/settings/include/settings/compiler_settings.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -92,20 +110,10 @@
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/bytecode_generator/src/bytecode_generator.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/bytecode_generator/src/bytecode_generator.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///home/stygian/Documents/CSD/CS-340_Compilers/Project/AlphaLanguage/PhaseC/core/include/core/bytecode/vm_opcodes.hpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_manager.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/semantic_subsystem.hpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/parser/include/parser/parser_context.hpp" root0="FORCE_HIGHLIGHTING" />
-    <setting file="mock://vm_program.hpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock://vm_program.hpp" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="ProblemsViewState">
     <option name="selectedTabId" value="CurrentFile" />
@@ -174,11 +182,6 @@
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.alang">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="alang" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--source  ./.tests/testbed.asc  --show_ir_detailed --show_symbol_table  --opt_dead_code_elimination --show_abc" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang" CONFIG_NAME="Release" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang">
       <envs>
         <env name="ASAN_OPTIONS" value="halt_on_error=1:abort_on_error=1" />
@@ -301,6 +304,7 @@
     <list>
       <item itemvalue="CMake Application.alang" />
       <item itemvalue="CMake Application.alang.out" />
+      <item itemvalue="CMake Application.alpha_bytecode_generator_impl" />
       <item itemvalue="CMake Application.alpha_core_impl" />
       <item itemvalue="CMake Application.alpha_diagnostics_impl" />
       <item itemvalue="CMake Application.alpha_driver_impl" />
@@ -310,7 +314,6 @@
       <item itemvalue="CMake Application.alpha_scanner_impl" />
       <item itemvalue="CMake Application.alpha_settings_impl" />
       <item itemvalue="CMake Application.arguinator_impl" />
-      <item itemvalue="CMake Application.alpha_bytecode_generator_impl" />
       <item itemvalue="CMake Application.generate_ir_opcodes" />
       <item itemvalue="CMake Application.generate_parser" />
       <item itemvalue="CMake Application.generate_parser_scanner" />
@@ -396,7 +399,20 @@
       <workItem from="1772660790423" duration="85619000" />
       <workItem from="1772988032906" duration="121900000" />
       <workItem from="1774003363954" duration="19935000" />
-      <workItem from="1774380598885" duration="1511000" />
+      <workItem from="1774380598885" duration="1830000" />
+      <workItem from="1774533677977" duration="24178000" />
+      <workItem from="1774826850607" duration="3000" />
+      <workItem from="1775025329067" duration="8716000" />
+      <workItem from="1775034438898" duration="2028000" />
+      <workItem from="1775037387637" duration="524000" />
+      <workItem from="1775037986241" duration="466000" />
+      <workItem from="1775039307932" duration="10588000" />
+      <workItem from="1775050645146" duration="1770000" />
+      <workItem from="1775083044093" duration="3408000" />
+      <workItem from="1775139039041" duration="47000" />
+      <workItem from="1775200465770" duration="2450000" />
+      <workItem from="1775254181291" duration="617000" />
+      <workItem from="1775418025467" duration="6963000" />
     </task>
     <servers />
   </component>
@@ -494,6 +510,11 @@
           <url>file://$PROJECT_DIR$/scanner/src/scanner_automaton.cpp</url>
           <line>701</line>
           <option name="timeStamp" value="397" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_maker.hpp</url>
+          <line>78</line>
+          <option name="timeStamp" value="399" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
