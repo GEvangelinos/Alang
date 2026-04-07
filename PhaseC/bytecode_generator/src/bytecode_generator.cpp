@@ -175,8 +175,6 @@ BytecodeGenerator::generate_return(const ir::Quad& quad)
     // We generate the 2nd instruction `JUMP`:
     pending_returns_.top().push_back(reserve_next_label());
 
-    static_assert(false, "I THINK I dont need the extra variable flag... Size() of result_.code "
-                         "var is ENOUGH! If unnecessary... this creates synchronization bugs");
     result_.code.emplace_back(
         vm::Opcode::JUMP,
         nullptr,

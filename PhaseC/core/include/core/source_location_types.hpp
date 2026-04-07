@@ -1,104 +1,15 @@
 #ifndef SOURCE_LOCATION_TYPES_HPP
 #define SOURCE_LOCATION_TYPES_HPP
 
-#include "core/numeric_types.hpp" // for word
+#include "numeric_types.hpp"
+#include "strong_type.hpp"
 
 namespace alpha
 {
-#ifdef DEFINE_SRC_IDX_TYPE
-#error "Macro collision detected"
-#endif
-#define DEFINE_SRC_IDX_TYPE_STRUCT(StructName)                                                    \
-    struct StructName                                                                             \
-    {                                                                                             \
-        using UnderlyingType = Word;                                                              \
-        static_assert(std::is_unsigned_v<UnderlyingType>);                                        \
-                                                                                                  \
-        [[nodiscard]] static constexpr StructName none() { return {}; }                           \
-        UnderlyingType value;                                                                     \
-                                                                                                  \
-        constexpr StructName() : value(0) {}                                                      \
-        explicit constexpr StructName(const UnderlyingType value) noexcept : value(value) {}      \
-        constexpr StructName(const StructName &rhs) noexcept : value(rhs.value) {}                \
-        [[nodiscard]] constexpr auto operator<=>(const StructName &rhs) const noexcept = default; \
-        constexpr StructName &operator=(StructName rhs) noexcept;                                 \
-        constexpr StructName &operator+=(StructName rhs) noexcept;                                \
-        constexpr StructName &operator-=(StructName rhs) noexcept;                                \
-        [[nodiscard]] constexpr StructName operator+(StructName rhs) const noexcept;              \
-        [[nodiscard]] constexpr StructName operator-(StructName rhs) const noexcept;              \
-        constexpr StructName &operator++() noexcept;                                              \
-        constexpr StructName operator++(int) noexcept;                                            \
-        constexpr StructName &operator--() noexcept;                                              \
-        constexpr StructName operator--(int) noexcept;                                            \
-    };                                                                                            \
-    static_assert(sizeof(StructName) <= 8, "If false in overloaded operators I must reconsider pass rhs by ref (not by value)");
-
-    DEFINE_SRC_IDX_TYPE_STRUCT(SrcLineIdx)
-    DEFINE_SRC_IDX_TYPE_STRUCT(SrcColumnIdx)
-    DEFINE_SRC_IDX_TYPE_STRUCT(SrcBuffIdx)
-#undef DEFINE_SRC_IDX_TYPE_STRUCT
-
-#ifdef DEFINE_SRC_IDX_TYPE_METHOD_IMPLS
-#error "Macro collision detected"
-#endif
-#define DEFINE_SRC_IDX_TYPE_METHOD_IMPLS(StructName)                                \
-    constexpr StructName &StructName::operator=(const StructName rhs) noexcept      \
-    {                                                                               \
-        value = rhs.value;                                                          \
-        return *this;                                                               \
-    }                                                                               \
-                                                                                    \
-    constexpr StructName &StructName::operator+=(const StructName rhs) noexcept     \
-    {                                                                               \
-        value += rhs.value;                                                         \
-        return *this;                                                               \
-    }                                                                               \
-                                                                                    \
-    constexpr StructName &StructName::operator-=(const StructName rhs) noexcept     \
-    {                                                                               \
-        value -= rhs.value;                                                         \
-        return *this;                                                               \
-    }                                                                               \
-                                                                                    \
-    constexpr StructName StructName::operator+(const StructName rhs) const noexcept \
-    {                                                                               \
-        return StructName{value + rhs.value};                                       \
-    }                                                                               \
-                                                                                    \
-    constexpr StructName StructName::operator-(const StructName rhs) const noexcept \
-    {                                                                               \
-    return StructName{value - rhs.value};                                           \
-    }                                                                               \
-                                                                                    \
-    constexpr StructName &StructName::operator++() noexcept                         \
-    {                                                                               \
-        ++value;                                                                    \
-        return *this;                                                               \
-    }                                                                               \
-                                                                                    \
-    constexpr StructName StructName::operator++(int) noexcept                       \
-    {                                                                               \
-        auto tmp = *this;                                                           \
-        ++*this;                                                                    \
-        return tmp;                                                                 \
-    }                                                                               \
-                                                                                    \
-    constexpr StructName &StructName::operator--() noexcept                         \
-    {                                                                               \
-        --value;                                                                    \
-        return *this;                                                               \
-    }                                                                               \
-                                                                                    \
-    constexpr StructName StructName::operator--(int) noexcept                       \
-    {                                                                               \
-        auto tmp = *this;                                                           \
-        --*this;                                                                    \
-        return tmp;                                                                 \
-    }
-
-    DEFINE_SRC_IDX_TYPE_METHOD_IMPLS(SrcLineIdx)
-    DEFINE_SRC_IDX_TYPE_METHOD_IMPLS(SrcColumnIdx)
-    DEFINE_SRC_IDX_TYPE_METHOD_IMPLS(SrcBuffIdx)
-#undef DEFINE_SRC_IDX_TYPE_METHOD_IMPLS
+#define MAKE_STRONG_TYPE(NAME,TYPE) using NAME = StrongType<struct NAME##Tag, TYPE>
+MAKE_STRONG_TYPE(SrcLineIdx, u32);
+MAKE_STRONG_TYPE(SrcColumnIdx, u32);
+MAKE_STRONG_TYPE(SrcBuffIdx, u32);
+#undef MAKE_STRONG_TYPE
 } // namespace alpha
 #endif // SOURCE_LOCATION_TYPES_HPP

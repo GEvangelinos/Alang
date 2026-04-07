@@ -57,9 +57,8 @@
       <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/settings.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/tasks.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bytecode_generator/include/bytecode_generator/bytecode_generator.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode_generator/include/bytecode_generator/bytecode_generator.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bytecode_generator/src/bytecode_generator.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode_generator/src/bytecode_generator.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/vm_program.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/vm_program.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/source_location_types.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/source_location_types.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -150,10 +149,10 @@
     </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/core/include/core" />
+      <recent name="$PROJECT_DIR$/support/include/support" />
       <recent name="$PROJECT_DIR$/driver" />
       <recent name="$PROJECT_DIR$/scanner" />
       <recent name="$PROJECT_DIR$/support" />
-      <recent name="$PROJECT_DIR$/driver/src" />
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.alang">
@@ -388,7 +387,9 @@
       <workItem from="1775200465770" duration="2450000" />
       <workItem from="1775254181291" duration="617000" />
       <workItem from="1775418025467" duration="7070000" />
-      <workItem from="1775509068867" duration="7884000" />
+      <workItem from="1775509068867" duration="8203000" />
+      <workItem from="1775564975033" duration="356000" />
+      <workItem from="1775585227533" duration="3277000" />
     </task>
     <servers />
   </component>
