@@ -5,8 +5,6 @@
 
 namespace alpha
 {
-using TempHandleID = Word;
-using LabelID = Word;
 using AlphaInt = i64;
 using AlphaFloat = f64;
 

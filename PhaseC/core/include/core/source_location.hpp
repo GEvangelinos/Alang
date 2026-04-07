@@ -73,8 +73,7 @@ SourceLocation::to_raw() { return {.begin = begin.value, .end = end.value}; }
 inline bool
 SourceLocation::operator==(const SourceLocation rhs) const noexcept
 {
-    return this->begin.value == rhs.begin.value &&
-           this->end.value == rhs.end.value;
+    return this->begin == rhs.begin && this->end == rhs.end;
 }
 
 inline bool
@@ -117,6 +116,5 @@ struct LineRange
     const SrcLineIdx begin_line; // Inclusive
     const SrcLineIdx end_line;   // Inclusive
 };
-
 } // namespace alpha
 #endif // SOURCE_LOCATION_HPP

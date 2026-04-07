@@ -2,6 +2,7 @@
 #define VM_INSTRUCTIONS_HPP
 
 #include "vm_opcodes.hpp"
+#include "core/label_id.hpp"
 #include "core/numeric_types.hpp"
 #include "core/source_location.hpp"
 

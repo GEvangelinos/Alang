@@ -22,7 +22,7 @@ IROptimizer::run(std::vector<ir::Quad> quads) const
 bool
 IROptimizer::do_jump_threading(std::vector<ir::Quad> &quads)
 {
-    DEBUG_SMART_ASSERT(support::is_in_numeric_range<LabelID>(quads.size()));
+    DEBUG_SMART_ASSERT(support::is_in_numeric_range<LabelID::UnderlyingType>(quads.size()));
     bool changed_quads = false;
 
     VectorStack<std::size_t> jump_chain_indices;

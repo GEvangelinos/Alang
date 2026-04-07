@@ -38,12 +38,13 @@ public:
     void labelPatch_list(const std::vector<LabelID> &patch_list, LabelID destination_label);
     void locPatch_tablecreate(LabelID target_quad_label, SourceLocation new_loc);
 
-    [[nodiscard]] LabelID next_quad_label() const noexcept { return next_quad_label_; }
+    [[nodiscard]] LabelID next_quad_label() const noexcept
+    {
+        return LabelID{static_cast<LabelID::UnderlyingType>(ir_quads_.size() + 1)};
+    }
     [[nodiscard]] std::vector<ir::Quad> extract_quads() noexcept;
 
 private:
-    LabelID next_quad_label_ = k_first_label;
-    // TODO: write a container like deque but more efficient. (this can only store 9 or 10 elems before new malloc())
     std::vector<ir::Quad> ir_quads_;
 };
 

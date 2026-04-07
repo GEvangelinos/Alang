@@ -7,19 +7,19 @@
 namespace alpha
 {
 ExprNormalizer::ExprNormalizer(
-    ParseCtx *const parse_ctx,
-    ExprMaker *const expr_maker,
-    QuadHandler *const quad_handler,
-    QuadInterceptor *const quad_interceptor,
-    QuadYielder *const quad_yielder)
+    ParseCtx* const parse_ctx,
+    ExprMaker* const expr_maker,
+    QuadHandler* const quad_handler,
+    QuadInterceptor* const quad_interceptor,
+    QuadYielder* const quad_yielder)
     : parse_ctx_(support::require_ptr(parse_ctx)),
       expr_maker_(support::require_ptr(expr_maker)),
       quad_handler_(support::require_ptr(quad_handler)),
       quad_yielder_(support::require_ptr(quad_yielder)),
       quad_interceptor_(support::require_ptr(quad_interceptor)) {}
 
-const Expr *
-ExprNormalizer::materialize_if_table_item(const Expr *const expr)
+const Expr*
+ExprNormalizer::materialize_if_table_item(const Expr* const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
     if (expr->type != Expr::Type::TABLE_ITEM)
@@ -30,7 +30,7 @@ ExprNormalizer::materialize_if_table_item(const Expr *const expr)
         return expr_maker_->make_variable_expr(expr->loc, parse_ctx_->new_temp());
     };
 
-    const auto *const ti_expr = static_cast<const TableItemExpr *>(expr);
+    const auto* const ti_expr = static_cast<const TableItemExpr*>(expr);
     return quad_yielder_->yield_next(
         ir::Opcode::TABLEGETELEM,
         temp_factory,
@@ -41,13 +41,13 @@ ExprNormalizer::materialize_if_table_item(const Expr *const expr)
 }
 
 void
-ExprNormalizer::resolve_bool_short_circuit(const Expr *const expr)
+ExprNormalizer::resolve_bool_short_circuit(const Expr* const expr)
 {
     DEBUG_SMART_ASSERT(!!expr);
     if (expr->type != Expr::Type::BOOL)
         return; // Nothing to backpatch if not bool_expr.
 
-    const BoolExpr *const bool_expr = static_cast<const BoolExpr *>(expr);
+    const BoolExpr* const bool_expr = static_cast<const BoolExpr*>(expr);
 
     DEBUG_SMART_ASSERT(!!bool_expr->var_symbol);
 
@@ -64,7 +64,7 @@ ExprNormalizer::resolve_bool_short_circuit(const Expr *const expr)
     );
 
     // Offset to land after the false branch
-    constexpr LabelID past_false_branch_offset = 2; // Depends on how many emits occur after jump.
+    constexpr LabelID past_false_branch_offset{2}; // Depends on how many emits occur after jump.
     quad_interceptor_->emit(
         ir::Opcode::JUMP,
         nullptr,

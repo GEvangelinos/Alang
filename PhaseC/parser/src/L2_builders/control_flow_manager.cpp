@@ -35,7 +35,7 @@ ControlFlowManager::Restricted::manage_ifbranch_entry(
             FunctionCtxHandler::FlowLivenessTracker::FlowState::RUNTIME);
 
     // Offset = 2 the IF_EQ itself and the following unconditional jump which leads outside if block.
-    constexpr LabelID offset_to_if_branch = 2;
+    constexpr LabelID offset_to_if_branch = LabelID{2};
     quad_yielder_->yield_next(
         ir::Opcode::IF_EQ,
         nullptr,
@@ -85,7 +85,7 @@ ControlFlowManager::Restricted::manage_elsebranch_exit()
     // We basically patch untaken if branches inside else branch.
     quad_handler_->labelPatch_quad(
         build_ctx_.unpatched_if_bypass_jumps.top(),
-        build_ctx_.unpatched_else_bypass_jumps.top() + 1
+        build_ctx_.unpatched_else_bypass_jumps.top() + LabelID{1}
     );
     quad_handler_->labelPatch_quad(
         build_ctx_.unpatched_else_bypass_jumps.top(),
@@ -115,7 +115,7 @@ ControlFlowManager::Restricted::manage_whileloop_condition(
 {
     DEBUG_SMART_ASSERT(!!conditional);
 
-    constexpr LabelID offset_to_while_block = 2;
+    constexpr LabelID offset_to_while_block{2};
     conditional = expr_optimizer_->try_propagate_const(conditional);
     conditional = expr_normalizer_->materialize_if_table_item(conditional);
     expr_normalizer_->resolve_bool_short_circuit(conditional);
@@ -143,8 +143,8 @@ ControlFlowManager::Restricted::manage_whileloop_exit(const SourceLocation while
         auto &wlf_stack = build_ctx_.while_loop_patch_points;
         SMART_ASSERT(!wlf_stack.empty());
         SMART_ASSERT(
-            wlf_stack.top().before_condition != k_no_label,
-            wlf_stack.top().unpatched_bypass_jump != k_no_label,
+            wlf_stack.top().before_condition != LabelID::none(),
+            wlf_stack.top().unpatched_bypass_jump != LabelID::none(),
         );
     )
     auto &qe = quad_handler_;                                   // Short alias for readability.

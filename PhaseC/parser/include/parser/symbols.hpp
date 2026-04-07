@@ -9,6 +9,7 @@
 #include "core/konstants.hpp"
 #include "core/source_location.hpp"
 #include "core/string_span.hpp"
+#include "core/temp_handle_id.hpp"
 #include "parser/internal_typedefs.hpp"
 #include "support/misc_tools.hpp"
 

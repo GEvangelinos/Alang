@@ -6,7 +6,8 @@
 
 namespace alpha
 {
-#define MAKE_STRONG_TYPE(NAME,TYPE) using NAME = StrongType<struct NAME##Tag, TYPE>
+#define MAKE_STRONG_TYPE(NAME,TYPE) \
+    using NAME = StrongType<struct NAME##Tag, TYPE, 0 /* Underlying value for none() */ >
 MAKE_STRONG_TYPE(SrcLineIdx, u32);
 MAKE_STRONG_TYPE(SrcColumnIdx, u32);
 MAKE_STRONG_TYPE(SrcBuffIdx, u32);

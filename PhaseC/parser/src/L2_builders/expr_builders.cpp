@@ -612,12 +612,12 @@ skip_opt:
     {
         const BoolExpr* result_expr = expr_maker_->make_bool_expr(result_loc);
         result_expr->true_list.push_back(quad_handler_->next_quad_label());
-        result_expr->false_list.push_back(quad_handler_->next_quad_label() + 1); // +1 for jump quad
+        result_expr->false_list.push_back(quad_handler_->next_quad_label() + LabelID{1}); // +1 for jump quad
         return result_expr;
     };
 
     const auto hook_result = quad_yielder_->yield_returning_hook_result(
-        opc, nullptr, lhs, rhs, result_loc, k_no_label, hook
+        opc, nullptr, lhs, rhs, result_loc, LabelID::none(), hook
     );
     quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, result_loc);
     return hook_result;
@@ -731,12 +731,12 @@ BasicBuilder::Restricted::normalize_to_bool_expr(const Expr* const expr)
     {
         const BoolExpr* const bool_expr = expr_maker_->make_bool_expr(expr->loc);
         bool_expr->true_list.push_back(quad_handler_->next_quad_label());
-        bool_expr->false_list.push_back(quad_handler_->next_quad_label() + 1);
+        bool_expr->false_list.push_back(quad_handler_->next_quad_label() + LabelID{1});
         return bool_expr;
     };
 
     const Expr* const bool_expr = quad_yielder_->yield_returning_hook_result(
-        ir::Opcode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc, k_no_label, hook
+        ir::Opcode::IF_EQ, nullptr, expr, &k_static_true_expr, expr->loc, LabelID::none(), hook
     );
     quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, expr->loc);
     return bool_expr;
@@ -1209,7 +1209,7 @@ const ProgFuncSymbol*
 FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation func_signature_loc)
 {
     const bool validated_funcname = validate_funcdef_name(function_draft_.id, func_signature_loc);
-    const u32 skip_func_jump_label = quad_handler_->next_quad_label();
+    const LabelID skip_func_jump_label = quad_handler_->next_quad_label();
     quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, func_signature_loc);
     const ProgFuncSymbol* func_symbol = nullptr;
     if (validated_funcname)

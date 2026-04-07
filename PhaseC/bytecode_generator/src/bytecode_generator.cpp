@@ -100,7 +100,7 @@ BytecodeGenerator::generate(const ir::Quad& q)
         extract_operant_by_trait<ir_opcode, IIT::arg2>(q.arg2),
         q.loc
     );
-    target_addresses_.push_back(reserve_next_label());
+    target_addresses_.push_back(next_instruction_label());
 }
 
 template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
@@ -113,17 +113,18 @@ BytecodeGenerator::generate_relational(const ir::Quad& q)
         vm_opcode,
         [&]()
         {
-            DEBUG_SMART_ASSERT(q.label != k_no_label && "All relational have labels");
-            LabelID patch_taddress = k_no_label;
-            if (q.label < next_instruction_label_)
+            DEBUG_SMART_ASSERT(q.label != LabelID::none() && "All relational have labels");
+            LabelID patch_taddress = LabelID::none();
+            if (q.label < next_instruction_label())
             {
-                DEBUG_SMART_ASSERT(q.label < target_addresses_.size());
-                patch_taddress = target_addresses_[q.label];
+                DEBUG_SMART_ASSERT(q.label.value < target_addresses_.size());
+                patch_taddress = target_addresses_[q.label.value];
             }
             else
             {
                 #warning "DOING NOTHING"
-                // add_incomplete_jump(next_instruction_label(), );
+                std::cerr<<"INCOMPLETEJUMP\n";
+                 // add_incomplete_jump(next_instruction_label(), q.label);
             }
             return new vm::LabelArgument{patch_taddress};
         }(),
@@ -131,7 +132,7 @@ BytecodeGenerator::generate_relational(const ir::Quad& q)
         extract_operant_by_trait<ir_opcode, IIT::arg2>(q.arg2),
         q.loc
     );
-    target_addresses_.push_back(reserve_next_label());
+    target_addresses_.push_back(next_instruction_label());
 }
 
 void
@@ -173,13 +174,13 @@ BytecodeGenerator::generate_return(const ir::Quad& quad)
     DEBUG_SMART_ASSERT(!pending_returns_.empty() && "We are in RETURN, thus there is a function");
 
     // We generate the 2nd instruction `JUMP`:
-    pending_returns_.top().push_back(reserve_next_label());
+    pending_returns_.top().push_back(next_instruction_label());
 
     result_.code.emplace_back(
         vm::Opcode::JUMP,
         nullptr,
         nullptr,
-        new vm::LabelArgument{k_no_label},
+        new vm::LabelArgument{LabelID::none()},
         quad.loc
     );
 }

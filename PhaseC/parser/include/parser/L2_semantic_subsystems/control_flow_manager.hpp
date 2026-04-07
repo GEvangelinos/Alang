@@ -30,7 +30,7 @@ private:
     };
 
     // Friending outer namespace so its visible by ADL, making it usable by DiagnosticReporter.
-    [[nodiscard]] friend const char *to_string(const LoopKeyword lk)
+    [[nodiscard]] friend const char* to_string(const LoopKeyword lk)
     {
         switch (lk)
         {
@@ -54,20 +54,20 @@ private:
 
             struct WhileLoopPatchPoints
             {
-                LabelID unpatched_bypass_jump = k_no_label;
-                LabelID before_condition = k_no_label;
+                LabelID unpatched_bypass_jump = LabelID::none();
+                LabelID before_condition = LabelID::none();
             };
 
             struct ForLoopPatchPoints
             {
                 ForLoopSite next_patch_point = ForLoopSite::BEFORE_CONDITION;
-                LabelID before_condition = k_no_label;
-                LabelID condition_true = k_no_label;
-                LabelID condition_false = k_no_label;
-                LabelID before_update_list = k_no_label;
-                LabelID after_update_list = k_no_label;
-                LabelID before_body = k_no_label;
-                LabelID after_body = k_no_label;
+                LabelID before_condition = LabelID::none();
+                LabelID condition_true = LabelID::none();
+                LabelID condition_false = LabelID::none();
+                LabelID before_update_list = LabelID::none();
+                LabelID after_update_list = LabelID::none();
+                LabelID before_body = LabelID::none();
+                LabelID after_body = LabelID::none();
                 bool bad_clause;
             };
 
@@ -78,19 +78,19 @@ private:
             void push_new_forloop_patch_point_frame() { for_loop_patch_points.emplace(); }
         } build_ctx_;
 
-        Restricted(const SemanticSystemServices &ss_services);
+        Restricted(const SemanticSystemServices& ss_services);
 
-        void manage_ifbranch_entry(const Expr *conditional, SourceLocation if_clause_loc);
+        void manage_ifbranch_entry(const Expr* conditional, SourceLocation if_clause_loc);
         void manage_ifbranch_exit();
         void manage_elsebranch_entry(SourceLocation else_clause_loc);
         void manage_elsebranch_exit();
         void manage_whileloop_entry();
-        void manage_whileloop_condition(const Expr *conditional, SourceLocation while_clause_loc);
+        void manage_whileloop_condition(const Expr* conditional, SourceLocation while_clause_loc);
         void manage_whileloop_exit(SourceLocation while_stmt_loc);
         void mark_forloop_condition_entry();
         void mark_forloop_update_list_entry();
         void mark_forloop_update_list_exit(SourceLocation exit_loc);
-        void manage_forloop_condition(const Expr *conditional, SourceLocation condition_loc);
+        void manage_forloop_condition(const Expr* conditional, SourceLocation condition_loc);
         void manage_forloop_entry();
         void manage_forloop_exit(SourceLocation exit_loc);
         void enter_forloop_clause();
@@ -98,7 +98,7 @@ private:
         void mark_bad_forloop_clause();
         void manage_break(SourceLocation break_loc);
         void manage_continue(SourceLocation continue_loc);
-        void manage_return(SourceLocation return_loc, const Expr *retval = nullptr);
+        void manage_return(SourceLocation return_loc, const Expr* retval = nullptr);
 
         void mark_upcoming_forloop_sites();
         void manage_loop_keyword(LoopKeyword keyword, SourceLocation keyword_loc);
@@ -110,13 +110,13 @@ private:
     // Accessors exists to insulate call sites from the DISPATCH_TARGET macro
     // and to make the intended access point to Restricted state explicit.
     Restricted DISPATCH_TARGET;
-    [[nodiscard]] Restricted &restricted() noexcept { return DISPATCH_TARGET; }
-    [[nodiscard]] const Restricted &restricted() const noexcept { return DISPATCH_TARGET; }
+    [[nodiscard]] Restricted& restricted() noexcept { return DISPATCH_TARGET; }
+    [[nodiscard]] const Restricted& restricted() const noexcept { return DISPATCH_TARGET; }
 
-    ControlFlowManager(const SemanticSystemServices &ss_services);
+    ControlFlowManager(const SemanticSystemServices& ss_services);
 
     // Defined outside Restricted, so it can be accessed by SemanticSystem's generalized expr collector
-    void commit_forloop_header_expr(const Expr *header_expr);
+    void commit_forloop_header_expr(const Expr* header_expr);
 
     DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(manage_ifbranch_entry);

@@ -173,7 +173,7 @@ private:
             const u32 scope,
             const SourceLocation loc,
             const ProgFuncSymbol *const func_symbol,
-            const u32 funcdef_skip_jump)
+            const LabelID funcdef_skip_jump)
             : name(name.to_string()),
               scope(scope),
               loc(loc),
@@ -183,7 +183,7 @@ private:
 
     VectorStack<FunctionDataFrame> frame_stack_;
     std::vector<Parameter> function_parameters_;
-    u32 next_function_address_ = 1; // Function addresses are positive integers, so we start from 1.
+    u32 next_function_address_ = k_first_function_address;
 
     ParseCtx *const host_;
 };

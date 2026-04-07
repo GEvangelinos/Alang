@@ -143,7 +143,8 @@ FunctionCtxHandler::FunctionCtxHandler(ParseCtx* const host)
         k_global_scope,
         SourceLocation::none(),
         nullptr,
-        k_no_label);
+        LabelID::none()
+    );
 }
 
 FunctionCtxHandler::~FunctionCtxHandler()
@@ -279,7 +280,7 @@ TempHandleID
 TempCtxHandler::acquire_temp_handle()
 {
     static_assert(
-        std::numeric_limits<TempHandleID>::min() == 0,
+        std::numeric_limits<TempHandleID::UnderlyingType>::min() == 0,
         "TempHandleID must begin at 0 since IDs are used to generate temporary variable names."
     );
     DEBUG_SMART_ASSERT(!temp_frames.empty());
@@ -287,17 +288,17 @@ TempCtxHandler::acquire_temp_handle()
     auto& temp_handles = temp_frames.top().temp_handles_;
 
     // Scan for available
-    for (TempHandleID id = 0; id < temp_handles.size(); ++id)
-        if (temp_handles[id] == TempFrame::Handle::RELEASED)
+    for (TempHandleID id{0}; id.value < temp_handles.size(); ++id)
+        if (temp_handles[id.value] == TempFrame::Handle::RELEASED)
         {
-            temp_handles[id] = TempFrame::Handle::ACQUIRED;
+            temp_handles[id.value] = TempFrame::Handle::ACQUIRED;
             return id;
         }
 
     // If no available push new.
     temp_handles.emplace_back(TempFrame::Handle::ACQUIRED);
     const auto new_id = temp_handles.size() - 1;
-    DEBUG_SMART_ASSERT(static_cast<TempHandleID>(new_id) == new_id && "`new_id` out of range");
+    DEBUG_SMART_ASSERT(static_cast<TempHandleID>(new_id).value == new_id && "`new_id` out of range");
     return static_cast<TempHandleID>(new_id);
 }
 
@@ -306,8 +307,8 @@ TempCtxHandler::release_temp_handle(const TempHandleID id)
 {
     DEBUG_SMART_ASSERT(!temp_frames.empty());
     auto& temp_handles = temp_frames.top().temp_handles_;
-    DEBUG_SMART_ASSERT(!temp_handles.empty(), id < temp_handles.size());
-    temp_handles[id] = TempFrame::Handle::RELEASED;
+    DEBUG_SMART_ASSERT(!temp_handles.empty(), id.value < temp_handles.size());
+    temp_handles[id.value] = TempFrame::Handle::RELEASED;
 }
 
 ParseCtx::ParseCtx(SymbolTable* const symbol_table)
@@ -322,13 +323,13 @@ ParseCtx::ParseCtx(SymbolTable* const symbol_table)
 StringSpan
 ParseCtx::generate_temp_name(const TempHandleID temp_handle)
 {
-    DEBUG_SMART_ASSERT(temp_handle <= temp_name_cache.size() && "Temp name-index mismatch");
-    if (temp_handle == temp_name_cache.size())
+    DEBUG_SMART_ASSERT(temp_handle.value <= temp_name_cache.size() && "Temp name-index mismatch");
+    if (temp_handle.value == temp_name_cache.size())
     {
-        temp_name_cache.emplace_back(FMT::format(TEMP_VARIABLE_PREFIX"{}", temp_handle));
-        DEBUG_SMART_ASSERT(temp_name_cache[temp_handle] == temp_name_cache.back());
+        temp_name_cache.emplace_back(FMT::format(TEMP_VARIABLE_PREFIX"{}", temp_handle.value));
+        DEBUG_SMART_ASSERT(temp_name_cache[temp_handle.value] == temp_name_cache.back());
     }
-    const std::string& name = temp_name_cache[temp_handle];
+    const std::string& name = temp_name_cache[temp_handle.value];
     return {name.data(), name.size()};
 }
 

@@ -43,6 +43,14 @@ inline constexpr auto k_cya_mode_off_warning_banner =
     "           b) Assignment temps are no longer created except when strictly required (e.g., inside function calls).\n"
     SGR_RESET;
 
+namespace alpha
+{
+[[nodiscard]] std::string to_string(const LabelID label)
+{
+    return label.is_none() ? "NONE" : FMT::to_string(label.value);
+}
+} // namespace alpha
+
 namespace
 {
 void create_export_directory(std::string_view dirname);
@@ -114,24 +122,32 @@ std::string expr_printer(const alpha::Expr* expr, const char* const missing_mark
     using ET = Expr::Type;
     switch (expr->type)
     {
-    case ET::CONST_BOOL: return static_cast<const ConstBoolExpr*>(expr)->value ? "true" : "false";
-    case ET::CONST_INT: return FMT::format("{}", static_cast<const ConstIntExpr*>(expr)->value);
+    case ET::CONST_BOOL:
+        return static_cast<const ConstBoolExpr*>(expr)->value ? "true" : "false";
+    case ET::CONST_INT:
+        return FMT::format("{}", static_cast<const ConstIntExpr*>(expr)->value);
     case ET::CONST_FLOAT:
         return support::format_float(static_cast<const ConstFloatExpr*>(expr)->value);
-    case ET::CONST_STRING: return escape(static_cast<const ConstStringExpr*>(expr)->value);
-    case ET::CONST_NIL: return "nil";
-    case ET::ARITHMETIC: return static_cast<const ArithmeticExpr*>(expr)->var_symbol->name.
-            to_string();
-    case ET::ASSIGN: return static_cast<const AssignExpr*>(expr)->var_symbol->name.to_string();
-    case ET::BOOL: return static_cast<const BoolExpr*>(expr)->var_symbol->name.to_string();
-    case ET::LIBRARY_FUNCTION: return static_cast<const LibFuncExpr*>(expr)->libfunc_symbol->name.
-            to_string();
-    case ET::NEW_TABLE: return static_cast<const NewTableExpr*>(expr)->var_symbol->name.to_string();
-    case ET::PROGRAM_FUNCTION: return static_cast<const ProgFuncExpr*>(expr)->progfunc_symbol->name.
-            to_string();
-    case ET::TABLE_ITEM: return static_cast<const TableItemExpr*>(expr)->var_symbol->name.
-            to_string();
-    case ET::VARIABLE: return static_cast<const VariableExpr*>(expr)->var_symbol->name.to_string();
+    case ET::CONST_STRING:
+        return escape(static_cast<const ConstStringExpr*>(expr)->value);
+    case ET::CONST_NIL:
+        return "nil";
+    case ET::ARITHMETIC:
+        return static_cast<const ArithmeticExpr*>(expr)->var_symbol->name.to_string();
+    case ET::ASSIGN:
+        return static_cast<const AssignExpr*>(expr)->var_symbol->name.to_string();
+    case ET::BOOL:
+        return static_cast<const BoolExpr*>(expr)->var_symbol->name.to_string();
+    case ET::LIBRARY_FUNCTION:
+        return static_cast<const LibFuncExpr*>(expr)->libfunc_symbol->name.to_string();
+    case ET::NEW_TABLE:
+        return static_cast<const NewTableExpr*>(expr)->var_symbol->name.to_string();
+    case ET::PROGRAM_FUNCTION:
+        return static_cast<const ProgFuncExpr*>(expr)->progfunc_symbol->name.to_string();
+    case ET::TABLE_ITEM:
+        return static_cast<const TableItemExpr*>(expr)->var_symbol->name.to_string();
+    case ET::VARIABLE:
+        return static_cast<const VariableExpr*>(expr)->var_symbol->name.to_string();
     default:
         UNREACHABLE(FMT::format("Unhandled Expr::Type: int({}) = {}",
             TO_STRING(expr->type), static_cast<int>(expr->type)
@@ -161,7 +177,7 @@ std::string argument_printer(
     case AT::CONST_NIL:
         return "nil";
     case vm::Argument::Type::LABEL:
-        return FMT::to_string(static_cast<const vm::LabelArgument*>(a)->value);
+        return to_string(static_cast<const vm::LabelArgument*>(a)->value);
     case vm::Argument::Type::GLOBAL:
         return FMT::format("(global){}", static_cast<const vm::GlobalVariableArgument*>(a)->offset);
     case vm::Argument::Type::FORMAL:
@@ -254,7 +270,7 @@ void print_ir(
 
         const std::string quad_label_str =
             alpha::ir::info_traits::is_branching(quads[i].opcode)
-            ? std::to_string(q.label)
+            ? to_string(q.label)
             : alpha::k_not_available_pretty_marker;
 
         const auto [first_line, last_line] = lt.find_lines(q.loc);
@@ -347,7 +363,7 @@ void print_bytecode(
     out << FMT::format( // Write export header.
         "=============== BYTECODE ===============\n"
         "{0} {1} {2} {3} {4} {5}\n",
-        format_column<Colorize, 0, widths[0]>("bc#"),
+        format_column<Colorize, 0, widths[0]>("instr#"),
         format_column<Colorize, 1, widths[1]>("opcode"),
         format_column<Colorize, 2, widths[2]>("result"),
         format_column<Colorize, 3, widths[3]>("arg1"),
@@ -780,7 +796,7 @@ TranslationUnit::export_ir_impl() const
     {
         const auto [first_line, last_line] = loc_tracker_.find_lines(q.loc);
         std::string quad_label_str = alpha::ir::info_traits::is_branching(q.opcode)
-                                     ? std::to_string(q.label)
+                                     ? std::to_string(q.label.value)
                                      : alpha::k_not_available_marker;
 
         outfile << FMT::format(

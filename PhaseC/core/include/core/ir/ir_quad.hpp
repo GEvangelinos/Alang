@@ -20,7 +20,7 @@ struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
     const Expr *result;
     const Expr *arg1;
     const Expr *arg2;
-    LabelID label = k_no_label;
+    LabelID label = LabelID::none();
     const ir::Opcode opcode;
     const bool is_dead;
 
@@ -31,11 +31,16 @@ struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
 inline std::size_t
 Quad::label_to_index(const LabelID label)
 {
-    DEBUG_SMART_ASSERT(label != k_no_label);
-    return label - 1;
+    DEBUG_SMART_ASSERT(label != LabelID::none());
+    return label.value - 1;
 }
 
 inline LabelID
-Quad::index_to_label(const std::size_t index) { return index + 1; }
+Quad::index_to_label(const std::size_t index)
+{
+    static_assert(std::is_integral_v<LabelID::UnderlyingType>); // If fals following assertion fails
+    DEBUG_SMART_ASSERT(index < std::numeric_limits<LabelID::UnderlyingType>::max());
+    return LabelID{static_cast<LabelID::UnderlyingType>(index + 1)};
+}
 } // namespace alpha::ir
 #endif // IR_QUAD_HPP
