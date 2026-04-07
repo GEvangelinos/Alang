@@ -21,9 +21,12 @@ public:
     }
 
 private:
-    vm::Program result_;
+    using ReturnPatchList = std::vector<LabelID>;
+    using ReturnPatchStack = VectorStack<ReturnPatchList>;
 
+    vm::Program result_;
     std::vector<LabelID> target_addresses_;
+    ReturnPatchStack pending_returns_;
     LabelID next_instruction_label_ = 0;
 
     BytecodeGenerator() = default;
@@ -33,16 +36,21 @@ private:
     [[nodiscard]] const vm::Argument* make_operand(const Expr& expr);
     [[nodiscard]] vm::Program::StringID intern_string_literal(const ConstStringExpr& string_expr);
     [[nodiscard]] vm::Program::LibfuncID intern_libfunc_name(const LibFuncExpr& libfunc_expr);
-    [[nodiscard]] LabelID next_instruction_label() noexcept { return ++next_instruction_label_; }
+
+    [[nodiscard]] LabelID reserve_next_label() noexcept { return ++next_instruction_label_; }
 
     template <ir::Opcode ir_quad_opcode, ir::info_traits::Requirement (*trait_func)(ir::Opcode)>
     [[nodiscard]] const vm::Argument* extract_operant_by_trait(const Expr* e);
 
     template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
-    void generate(const ir::Quad& ir_quad);
+    void generate(const ir::Quad& q);
     template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
-    void generate_relational(const ir::Quad& quad);
-    void generate_getretval(const ir::Quad& quad);
+    void generate_relational(const ir::Quad& q);
+    void generate_getretval(const ir::Quad& q);
+    void generate_funcstart(const ir::Quad& quad);
+    void generate_fundend(const ir::Quad& quad);
+    void generate_return(const ir::Quad& quad);
+
 };
 } // namespace alpha
 

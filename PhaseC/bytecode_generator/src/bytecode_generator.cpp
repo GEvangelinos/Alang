@@ -89,36 +89,36 @@ BytecodeGenerator::extract_operant_by_trait(const Expr* const e)
 
 template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
 void
-BytecodeGenerator::generate(const ir::Quad& ir_quad)
+BytecodeGenerator::generate(const ir::Quad& q)
 {
-    DEBUG_SMART_ASSERT(ir_opcode == ir_quad.opcode);
+    DEBUG_SMART_ASSERT(ir_opcode == q.opcode);
     namespace IIT = ir::info_traits;
     result_.code.emplace_back(
         vm_opcode,
-        extract_operant_by_trait<ir_opcode, IIT::result>(ir_quad.result),
-        extract_operant_by_trait<ir_opcode, IIT::arg1>(ir_quad.arg1),
-        extract_operant_by_trait<ir_opcode, IIT::arg2>(ir_quad.arg2),
-        ir_quad.loc
+        extract_operant_by_trait<ir_opcode, IIT::result>(q.result),
+        extract_operant_by_trait<ir_opcode, IIT::arg1>(q.arg1),
+        extract_operant_by_trait<ir_opcode, IIT::arg2>(q.arg2),
+        q.loc
     );
-    target_addresses_.push_back(next_instruction_label());
+    target_addresses_.push_back(reserve_next_label());
 }
 
 template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
 void
-BytecodeGenerator::generate_relational(const ir::Quad& quad)
+BytecodeGenerator::generate_relational(const ir::Quad& q)
 {
-    DEBUG_SMART_ASSERT(ir_opcode == quad.opcode);
+    DEBUG_SMART_ASSERT(ir_opcode == q.opcode);
     namespace IIT = ir::info_traits;
     result_.code.emplace_back(
         vm_opcode,
         [&]()
         {
-            DEBUG_SMART_ASSERT(quad.label != k_no_label && "All relational have labels");
+            DEBUG_SMART_ASSERT(q.label != k_no_label && "All relational have labels");
             LabelID patch_taddress = k_no_label;
-            if (quad.label < next_instruction_label_)
+            if (q.label < next_instruction_label_)
             {
-                DEBUG_SMART_ASSERT(quad.label < target_addresses_.size());
-                patch_taddress = target_addresses_[quad.label];
+                DEBUG_SMART_ASSERT(q.label < target_addresses_.size());
+                patch_taddress = target_addresses_[q.label];
             }
             else
             {
@@ -127,19 +127,69 @@ BytecodeGenerator::generate_relational(const ir::Quad& quad)
             }
             return new vm::LabelArgument{patch_taddress};
         }(),
-        extract_operant_by_trait<ir_opcode, IIT::arg1>(quad.arg1),
-        extract_operant_by_trait<ir_opcode, IIT::arg2>(quad.arg2),
-        quad.loc
+        extract_operant_by_trait<ir_opcode, IIT::arg1>(q.arg1),
+        extract_operant_by_trait<ir_opcode, IIT::arg2>(q.arg2),
+        q.loc
     );
-    target_addresses_.push_back(next_instruction_label());
+    target_addresses_.push_back(reserve_next_label());
 }
 
 void
-BytecodeGenerator::generate_getretval(const ir::Quad& quad)
+BytecodeGenerator::generate_getretval(const ir::Quad& q)
 {
-    generate<ir::Opcode::GETRETVAL, vm::Opcode::ASSIGN>(quad);
+    DEBUG_SMART_ASSERT(q.opcode == ir::Opcode::GETRETVAL);
+    generate<ir::Opcode::GETRETVAL, vm::Opcode::ASSIGN>(q);
     DEBUG_SMART_ASSERT(!result_.code.empty() && !result_.code.back().arg1);
     result_.code.back().arg1 = new vm::RetvalArgument{};
+}
+
+void
+BytecodeGenerator::generate_funcstart(const ir::Quad& quad)
+{
+    DEBUG_SMART_ASSERT(quad.opcode == ir::Opcode::FUNCSTART);
+
+    namespace IIT = ir::info_traits;
+    static_assert(IIT::arg1(ir::Opcode::FUNCSTART) == IIT::Requirement::REQUIRED);
+
+    const auto* const fn_expr = DEBUG_REQUIRE_PTR(static_cast<const ProgFuncExpr *>(quad.arg1));
+    const auto* const fn_sym = DEBUG_REQUIRE_PTR(fn_expr->progfunc_symbol);
+    DEBUG_SMART_ASSERT(fn_sym->stackframe_slot_count.is_assigned());
+    result_.userfuncs.emplace_back(fn_sym->name, fn_sym->address, fn_sym->stackframe_slot_count);
+
+    pending_returns_.emplace();
+    generate<ir::Opcode::FUNCSTART, vm::Opcode::ENTERFUNC>(quad);
+}
+
+void
+BytecodeGenerator::generate_return(const ir::Quad& quad)
+{
+    DEBUG_SMART_ASSERT(quad.opcode == ir::Opcode::RETURN);
+
+    // We generate the 1st instruction `ASSIGN`:
+    generate<ir::Opcode::RETURN, vm::Opcode::ASSIGN>(quad);
+    DEBUG_SMART_ASSERT(!result_.code.empty() && !result_.code.back().result);
+    result_.code.back().result = new vm::RetvalArgument{};
+
+    DEBUG_SMART_ASSERT(!pending_returns_.empty() && "We are in RETURN, thus there is a function");
+
+    // We generate the 2nd instruction `JUMP`:
+    pending_returns_.top().push_back(reserve_next_label());
+
+    static_assert(false, "I THINK I dont need the extra variable flag... Size() of result_.code "
+                         "var is ENOUGH! If unnecessary... this creates synchronization bugs");
+    result_.code.emplace_back(
+        vm::Opcode::JUMP,
+        nullptr,
+        nullptr,
+        new vm::LabelArgument{k_no_label},
+        quad.loc
+    );
+}
+
+void
+BytecodeGenerator::generate_fundend(const ir::Quad& quad)
+{
+    DEBUG_SMART_ASSERT(quad.opcode == ir::Opcode::FUNCEND);
 }
 
 vm::Program
@@ -152,7 +202,9 @@ BytecodeGenerator::build_program(const std::vector<ir::Quad>& program_ir_quads)
         switch (quad.opcode)
         {
         CASE_BASIC(ASSIGN, ASSIGN);
-        case ir::Opcode::UMINUS: break;
+        case ir::Opcode::UMINUS:
+            DEBUG_SMART_ASSERT(false && "NIY");
+            break;
         CASE_BASIC(ADD, ADD);
         CASE_BASIC(SUB, SUB);
         CASE_BASIC(MUL, MUL);
@@ -174,10 +226,13 @@ BytecodeGenerator::build_program(const std::vector<ir::Quad>& program_ir_quads)
             generate_getretval(quad);
             break;
         case ir::Opcode::RETURN:
+            generate_return(quad);
             break;
         case ir::Opcode::FUNCSTART:
+            generate_funcstart(quad);
             break;
         case ir::Opcode::FUNCEND:
+            generate_fundend(quad);
             break;
         case ir::Opcode::NOT:
         case ir::Opcode::AND:

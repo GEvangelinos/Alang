@@ -16,9 +16,9 @@ struct Program
 
     struct UserFunc
     {
+        StringSpan id;
         u32 address;
         u32 local_size;
-        StringSpan id;
     };
 
     std::vector<Instruction> code;
