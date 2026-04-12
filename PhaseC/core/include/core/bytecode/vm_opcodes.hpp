@@ -4,6 +4,8 @@
 #include <array>
 #include <string>
 
+#include "core/numeric_types.hpp"
+
 #define ALPHA_VMOPCODES(X) \
     X(ASSIGN)              \
     X(ADD)                 \
@@ -34,7 +36,7 @@
 
 namespace alpha::vm
 {
-enum class Opcode
+enum class Opcode : u8
 {
     #define AS_ENUM_MEMBER(vmopcode) vmopcode,
     ALPHA_VMOPCODES(AS_ENUM_MEMBER)

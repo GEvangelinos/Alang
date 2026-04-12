@@ -56,70 +56,10 @@
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/settings.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/tasks.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W..OPT=[jump_threading]..PHASE3_p3t_const_maths.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W..OPT=[jump_threading]..NAME_ME0.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/.cached_files/OLD_semantic_manager.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bytecode_generator/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode_generator/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bytecode_generator/include/bytecode_generator/bytecode_generator.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode_generator/include/bytecode_generator/bytecode_generator.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bytecode_generator/src/bytecode_generator.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode_generator/src/bytecode_generator.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/basics.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/basics.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/vm_instructions.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/vm_instruction.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/vm_program.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/vm_program.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/ir/ir_expr.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/ir/ir_expr.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/ir/ir_quad.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/ir/ir_quad.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/label_id.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/label_id.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/source_location.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/source_location.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/source_location_types.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/source_location_types.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/strong_type.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/strong_type.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/temp_handle_id.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/temp_handle_id.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/translation_unit_buffer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/translation_unit_buffer.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/src/source_location.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/source_location.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/src/source_location_tracker.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/source_location_tracker.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/src/translation_unit_buffer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/translation_unit_buffer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/src/diagnostic_engine.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/diagnostic_engine.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/src/diagnostic_formatter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/diagnostic_formatter.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/src/diagnostic_types.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/diagnostic_types.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/src/issue_formatter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/src/issue_formatter.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/konstants.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/konstants.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/main.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/translation_unit.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/translation_unit_buffer_loader.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit_buffer_loader.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir_optimizer/src/ir_optimizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/ir_optimizer/src/ir_optimizer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/config/ir_opcode_spec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/parser/config/ir_opcode_spec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_maker.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_maker.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_optimizer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/expr_optimizer.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_yielder.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_yielder.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/konstants.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/konstants.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/parser_context.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/semantic_utils.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/semantic_utils.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L1_driver/semantic_system.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/control_flow_manager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/control_flow_manager.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_maker.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_maker.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_normalizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_normalizer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/expr_optimizer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/quad_handler.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/quad_handler.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/quad_yielder.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/quad_yielder.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/parser_context.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_context.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_epilogue_code.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/symbol_table.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/symbol_table.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/include/scanner/scanner_automaton.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/include/scanner/scanner_automaton.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_adapter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_adapter.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_automaton.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_automaton.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_context.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_context.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_prologue.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_prologue.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_token.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_token.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/settings/include/settings/compiler_settings.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/settings/include/settings/compiler_settings.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/settings/src/compiler_settings.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/settings/src/compiler_settings.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/support/include/support/debug_tools.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/support/include/support/debug_tools.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/support/include/support/string_tools.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/support/include/support/string_tools.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bytecode_generator/include/bytecode_generator/abc_serializer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode_generator/include/bytecode_generator/abc_serializer.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bytecode_generator/src/abc_serializer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode_generator/src/abc_serializer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/vm_opcodes.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/vm_opcodes.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -142,6 +82,8 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -809,7 +751,8 @@
       <workItem from="1775759340068" duration="17569000" />
       <workItem from="1775841186440" duration="13508000" />
       <workItem from="1775913192077" duration="14247000" />
-      <workItem from="1775932703015" duration="16221000" />
+      <workItem from="1775932703015" duration="18203000" />
+      <workItem from="1775993975493" duration="11867000" />
     </task>
     <servers />
   </component>
@@ -907,16 +850,6 @@
           <url>file://$PROJECT_DIR$/scanner/src/scanner_automaton.cpp</url>
           <line>698</line>
           <option name="timeStamp" value="397" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/bytecode_generator/src/abc_serializer.cpp</url>
-          <line>68</line>
-          <option name="timeStamp" value="408" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/bytecode_generator/src/abc_serializer.cpp</url>
-          <line>80</line>
-          <option name="timeStamp" value="409" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
