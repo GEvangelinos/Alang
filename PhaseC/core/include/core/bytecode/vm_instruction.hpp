@@ -42,7 +42,7 @@ struct VariableArgument : public Argument
 
 struct LabelArgument : public Argument
 {
-    const LabelID value;
+    mutable LabelID value;
 
     explicit LabelArgument(const LabelID value)
         : Argument{Type::LABEL}, value{value} {}
@@ -130,7 +130,7 @@ struct Instruction
     const vm::Argument* result;
     const vm::Argument* arg1;
     const vm::Argument* arg2;
-    SourceLocation loc;
+    const SourceLocation loc;
 };
 } // namespace alpha::vm
 
