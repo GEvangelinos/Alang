@@ -12,7 +12,7 @@
 #include "core/konstants.hpp"
 #include "core/source_location.hpp"  // for SourceLocation, SourceLocationTracker
 #include "support/misc_tools.hpp"
-#include "support/smart_assert.h" // for DEBUG_SMART_ASSERT
+#include "support/smart_assert.h" // for DMASSERT
 
 namespace alpha
 {

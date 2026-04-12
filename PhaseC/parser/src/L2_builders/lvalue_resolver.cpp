@@ -13,7 +13,7 @@ LvalueResolver::Restricted::Restricted(const SemanticSystemServices& ss_services
 const Expr*
 LvalueResolver::Restricted::resolve_id(const StringSpan id_name, const SourceLocation id_loc)
 {
-    DEBUG_SMART_ASSERT(!id_name.empty());
+    DMASSERT(!id_name.empty());
     const Symbol* result = symbol_table_->
         lookup_nearest(id_name, parse_ctx_->scope_handler.scope());
     if (!result) // Symbol not found, so insert it!
@@ -44,7 +44,7 @@ LvalueResolver::Restricted::resolve_local_id(
     const StringSpan lid_name,
     const SourceLocation lid_loc)
 {
-    DEBUG_SMART_ASSERT(!lid_name.empty());
+    DMASSERT(!lid_name.empty());
 
     const Symbol* result = symbol_table_->lookup_local(lid_name, parse_ctx_->scope_handler.scope());
     if (symbol_table_->is_libfunc_name(lid_name))
@@ -72,7 +72,7 @@ LvalueResolver::Restricted::resolve_local_id(
     if (result->type == Symbol::Type::PROGRAM_FUNCTION)
         return expr_maker_->make_prog_func_expr(
             lid_loc, static_cast<const ProgFuncSymbol*>(result));
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         result->type!= Symbol::Type::LIBRARY_FUNCTION &&
         "libfunc, should be resolved at name lookup"
     );
@@ -83,7 +83,7 @@ const Expr* LvalueResolver::Restricted::resolve_global_id(
     const StringSpan gid_name,
     const SourceLocation gid_loc)
 {
-    DEBUG_SMART_ASSERT(!gid_name.empty());
+    DMASSERT(!gid_name.empty());
     const Symbol* const result = symbol_table_->lookup_global(gid_name);
     if (!result)
     {
@@ -103,7 +103,7 @@ const Expr* LvalueResolver::Restricted::resolve_global_id(
 const Expr*
 LvalueResolver::Restricted::resolve_lvalue_to_rvalue(const Expr* const lvalue)
 {
-    DEBUG_SMART_ASSERT(!!lvalue);
+    DMASSERT(!!lvalue);
     return expr_normalizer_->materialize_if_table_item(lvalue);
 }
 

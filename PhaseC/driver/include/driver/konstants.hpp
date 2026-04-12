@@ -6,8 +6,10 @@ namespace alpha
 static constexpr char k_symbol_table_exports_dirname[] = "SYMBOL_TABLE_EXPORTS";
 static constexpr char k_diagnostic_exports_dirname[] = "DIAGNOSTIC_EXPORTS";
 static constexpr char k_ir_exports_dirname[] = "IR_EXPORTS";
+static constexpr char k_abc_binaries_dirname[] = "ABC_BINARIES";
 inline constexpr char k_symbol_table_export_ext[] = ".st.csv";
 inline constexpr char k_ir_export_ext[] = ".ir.csv";
+inline constexpr char k_abc_binary_ext[] = ".abc";
 inline constexpr char k_diagnostic_export_ext[] = ".diag.csv";
 static constexpr char k_symbol_table_csv_export_header[] = "symbol,type,line,scope\n";
 static constexpr char k_ir_csv_export_header[] =

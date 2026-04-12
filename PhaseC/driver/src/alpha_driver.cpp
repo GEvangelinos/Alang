@@ -96,12 +96,12 @@ Driver::export_ir() const
 }
 
 void
-Driver::export_abc() const
+Driver::emit_abc() const
 {
     if (!this->ok())
         return;
     for (const TranslationUnit &tu : translation_units_)
-        tu.export_abc();
+        tu.emit_abc();
 }
 
 void

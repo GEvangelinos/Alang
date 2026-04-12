@@ -6,6 +6,6 @@
 
 namespace alpha
 {
-using TempHandleID = StrongType<struct TempHandleIDTag, u32>;
+struct TempHandleID : StrongType<TempHandleID, u32> { using StrongType::StrongType; };
 } // namespace alpha
 #endif // TEMP_HANDLE_ID_HPP

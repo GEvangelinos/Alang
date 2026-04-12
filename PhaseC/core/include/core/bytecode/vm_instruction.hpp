@@ -1,10 +1,11 @@
-#ifndef VM_INSTRUCTIONS_HPP
-#define VM_INSTRUCTIONS_HPP
+#ifndef VM_INSTRUCTION_HPP
+#define VM_INSTRUCTION_HPP
 
 #include "vm_opcodes.hpp"
 #include "core/label_id.hpp"
 #include "core/numeric_types.hpp"
 #include "core/source_location.hpp"
+#include "parser/internal_typedefs.hpp"
 
 namespace alpha::vm
 {
@@ -134,4 +135,4 @@ struct Instruction
 };
 } // namespace alpha::vm
 
-#endif // VM_INSTRUCTIONS_HPP
+#endif // VM_INSTRUCTION_HPP

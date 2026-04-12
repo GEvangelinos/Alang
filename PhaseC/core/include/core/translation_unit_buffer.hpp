@@ -46,14 +46,14 @@ private:
 inline char
 TranslationUnitBuffer::operator[](const SrcBuffIdx i) const noexcept
 {
-    DEBUG_SMART_ASSERT(!!data_, i < size_);
+    DMASSERT(!!data_, i < size_);
     return data_[i.value];
 }
 
 inline char&
 TranslationUnitBuffer::operator[](const SrcBuffIdx i) noexcept
 {
-    DEBUG_SMART_ASSERT(!!data_, i < size_);
+    DMASSERT(!!data_, i < size_);
     return data_[i.value];
 }
 

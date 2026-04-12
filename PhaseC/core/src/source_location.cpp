@@ -3,7 +3,7 @@
 #include <cstddef>                  // for ptrdiff_t
 #include <iterator>                 // for distance
 #include <stdexcept>                // for logic_error
-#include "support/smart_assert.h"     // for DEBUG_SMART_ASSERT
+#include "support/smart_assert.h"     // for DMASSERT
 
 namespace alpha
 {

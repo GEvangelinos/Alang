@@ -9,7 +9,7 @@ ExprMaker::~ExprMaker() noexcept
 {
     for (const Expr *e : expr_sink_)
     {
-        DEBUG_SMART_ASSERT(!!e);
+        DMASSERT(!!e);
         using ET = Expr::Type;
         switch (e->type)
         {
@@ -37,7 +37,7 @@ ExprMaker::~ExprMaker() noexcept
 const Expr *
 ExprMaker::clone_with_updated_location(const SourceLocation new_loc, const Expr *const donor_expr)
 {
-    DEBUG_SMART_ASSERT(!!donor_expr);
+    DMASSERT(!!donor_expr);
     using ET = Expr::Type;
     switch (donor_expr->type)
     {

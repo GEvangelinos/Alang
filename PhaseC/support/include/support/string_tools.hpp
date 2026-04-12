@@ -41,12 +41,12 @@ template <typename T, unsigned char precision = 6>
     DEBUG(
         if (!std::is_constant_evaluated())
         if (std::isalpha(c))
-        DEBUG_SMART_ASSERT(lower == static_cast<decltype(c)>(std::tolower(c)));
+        DMASSERT(lower == static_cast<decltype(c)>(std::tolower(c)));
     )
 
     const bool result = lower >= 'a' && lower <= 'z';
     if (!std::is_constant_evaluated()) // std::isalpha() is not constexpr at the time of writing.
-        DEBUG_SMART_ASSERT(result == !!std::isalpha(c));
+        DMASSERT(result == !!std::isalpha(c));
     return result;
 }
 
@@ -82,7 +82,7 @@ static_assert(
 
 [[nodiscard]] inline char* cstrdup(const char* const src, const std::size_t size)
 {
-    DEBUG_SMART_ASSERT(!!src);
+    DMASSERT(!!src);
     if (!src)
         return nullptr;
 
@@ -99,7 +99,7 @@ static_assert(
 {
     const bool result = c >= '0' && c <= '9';
     if (!std::is_constant_evaluated()) // std::isdigit() is not constexpr at the time of writing.
-        DEBUG_SMART_ASSERT(result == !!std::isdigit(c));
+        DMASSERT(result == !!std::isdigit(c));
     return result;
 }
 
@@ -113,12 +113,12 @@ static_assert(
     DEBUG(
         if (!std::is_constant_evaluated())
         if (std::isalpha(c))
-        DEBUG_SMART_ASSERT(lower == static_cast<decltype(c)>(std::tolower(c)));
+        DMASSERT(lower == static_cast<decltype(c)>(std::tolower(c)));
     )
 
     const bool result = (c >= '0' && c <= '9') || (lower >= 'a' && lower <= 'f');
     if (!std::is_constant_evaluated()) // std::isxdigit() is not constexpr at the time of writing.
-        DEBUG_SMART_ASSERT(result == !!std::isxdigit(c));
+        DMASSERT(result == !!std::isxdigit(c));
     return result;
 }
 } // namespace alpha::support

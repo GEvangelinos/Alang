@@ -17,7 +17,7 @@ TranslationUnitBuffer::TranslationUnitBuffer(
       source_end_(data_.get() + source_size),
       end_([&]()
       {
-          DEBUG_SMART_ASSERT(size_ != SrcBuffIdx::none());
+          DMASSERT(size_ != SrcBuffIdx::none());
           if (size_ == SrcBuffIdx::none())
               throw std::logic_error{"Bad initialization order in TranslationUnitBuffer detected"};
           return data_.get() + size_.value;

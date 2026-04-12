@@ -2,6 +2,7 @@
 #include <fstream>
 #include <driver/translation_unit.hpp>
 
+#include "bytecode_generator/abc_serializer.hpp"
 #include "ir_optimizer/ir_optimizer.hpp"
 #include "core/konstants.hpp"
 #include "driver/exception.hpp"
@@ -71,12 +72,6 @@ void print_ir(
     const std::vector<alpha::ir::Quad>& quads,
     const alpha::LocationTracker& lt,
     bool print_detailed);
-
-template <bool colorize, typename Stream>
-void print_bytecode(
-    Stream& out,
-    const alpha::vm::Program& program,
-    const alpha::LocationTracker& lt);
 
 void create_export_directory(const std::string_view dirname)
 {
@@ -296,12 +291,8 @@ void print_ir(
     out << std::endl;
 }
 
-
 template <bool Colorize, typename Stream>
-void print_bytecode(
-    Stream& out,
-    const alpha::vm::Program& program,
-    const alpha::LocationTracker& lt)
+void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::LocationTracker& lt)
 {
     constexpr alpha::u32 widths[] = {10, 15, 20, 20, 20, 10, 10, 10};
 
@@ -343,13 +334,13 @@ void print_bytecode(
     out << "=============== STRING_POOL ===============\n";
     const auto sorted_strs = [&program]()
     {
-        using MapType = decltype(program.string_literal_table);
+        using MapType = decltype(program.str_literal_table);
         using KeyType = MapType::key_type;
         using ValueType = MapType::mapped_type;
 
         std::vector<std::pair<KeyType, ValueType>> vec{
-            program.string_literal_table.begin(),
-            program.string_literal_table.end()
+            program.str_literal_table.begin(),
+            program.str_literal_table.end()
         };
         std::ranges::sort(vec, [](const auto& a, const auto& b)
         {
@@ -390,12 +381,6 @@ void print_bytecode(
         );
     }
 }
-
-template <bool Colorize, typename Stream>
-void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::LocationTracker& lt)
-{
-    print_bytecode<Colorize>(out, program, lt);
-}
 } // namespace
 namespace alpha
 {
@@ -421,7 +406,7 @@ CompilationPipeline::CompilationPipeline(
           support::require_ptr(symbol_table),
           diagnostic_engine_.reporter.get()
       ),
-      ir_optimizer_(std::make_unique<IROptimizer>(ir_opts)) { DEBUG_SMART_ASSERT(!!ir_optimizer_); }
+      ir_optimizer_(std::make_unique<IROptimizer>(ir_opts)) { DMASSERT(!!ir_optimizer_); }
 
 void
 CompilationPipeline::scan_tokens()
@@ -506,7 +491,7 @@ CompilationPipeline::get_quads() const noexcept { return ir_quads_; }
 const vm::Program&
 CompilationPipeline::get_program() const noexcept
 {
-    DEBUG_SMART_ASSERT(!!program_);
+    DMASSERT(!!program_);
     return *program_;
 }
 
@@ -665,24 +650,102 @@ TranslationUnit::export_symbol_table() const
 {
     export_within_dir(
         k_symbol_table_exports_dirname,
-        &TranslationUnit::export_symbol_table_dispatch
+        [this]() { export_symbol_table_dispatch(); }
     );
 }
 
 void
 TranslationUnit::export_diagnostics() const
 {
-    export_within_dir(k_diagnostic_exports_dirname, &TranslationUnit::export_diagnostics_impl);
+    const auto impl = [this]()
+    {
+        const std::string outfile_name = source_path_.filename().string() + k_diagnostic_export_ext;
+        std::ofstream outfile(outfile_name);
+        if (!outfile)
+            throw std::runtime_error(FMT::format(
+                "Failed opening file {} to export compile errors", outfile_name));
+
+        outfile << k_diagnostic_csv_export_header; // Write CSV header.
+        auto write_issue_line = [&](const DiagnosticCode code, const Issue& issue)
+        {
+            outfile << FMT::format(
+                "{0},{1},{2},{3}\n",
+                to_string(code),
+                issue.line(loc_tracker_).value,
+                issue.column(loc_tracker_).value,
+                to_string(issue.type)
+            );
+        };
+
+        for (const auto& d : diagnostic_engine_.get_diagnostics())
+        {
+            write_issue_line(d->code, d->primary);
+            for (const Issue& note : d->note_list)
+                write_issue_line(d->code, note);
+        }
+    };
+
+    export_within_dir(k_diagnostic_exports_dirname, [impl]() { impl(); });
 }
 
 void
 TranslationUnit::export_ir() const
 {
-    export_within_dir(k_ir_exports_dirname, &TranslationUnit::export_ir_impl);
+    const auto impl = [this]()
+    {
+        const std::string outfile_name = source_path_.filename().string() + k_ir_export_ext;
+        std::ofstream outfile(outfile_name);
+        if (!outfile)
+            throw std::runtime_error(
+                FMT::format("Failed opening file {} to export ir", outfile_name));
+
+        outfile << k_ir_csv_export_header; // Write CSV header.
+
+        auto write_ir_line = [&](const std::size_t quad_no, const ir::Quad& q)
+        {
+            const auto [first_line, last_line] = loc_tracker_.find_lines(q.loc);
+            std::string quad_label_str = alpha::ir::info_traits::is_branching(q.opcode)
+                                         ? std::to_string(q.label.value)
+                                         : alpha::k_not_available_marker;
+
+            outfile << FMT::format(
+                "{0},{1},{2},{3},{4},{5},{6},{7}\n",
+                quad_no,
+                to_string(q.opcode),
+                expr_printer(q.result, k_not_available_marker),
+                expr_printer(q.arg1, k_not_available_marker),
+                expr_printer(q.arg2, k_not_available_marker),
+                quad_label_str,
+                first_line.value,
+                last_line.value
+            );
+        };
+
+        const auto& quads = compilation_pipeline_->get_quads();
+        for (std::size_t i = 0; i < quads.size(); ++i)
+            write_ir_line(i + 1, quads[i]); // +1 cause quad address 0 is indicating no-address
+    };
+
+    export_within_dir(k_ir_exports_dirname, [impl]() { impl(); });
 }
 
 void
-TranslationUnit::export_abc() const {}
+TranslationUnit::emit_abc() const
+{
+    const std::vector<u8> abc = ABC_Serializer::serialize(compilation_pipeline_->get_program());
+
+    const auto impl = [this, &abc]()
+    {
+        const std::string outfile_name = source_path_.stem().string() + k_abc_binary_ext;
+        std::ofstream outfile(outfile_name, std::ios::out | std::ios::binary);
+        if (!outfile)
+            throw std::runtime_error(
+                FMT::format("Failed opening file for emitting {}", outfile_name));
+        outfile.write(reinterpret_cast<const char*>(abc.data()), abc.size());
+    };
+
+    export_within_dir(k_abc_binaries_dirname, impl);
+}
 
 bool TranslationUnit::compiled_ok() const noexcept
 {
@@ -736,84 +799,19 @@ TranslationUnit::export_symbol_table_without_temps() const
 {
     export_within_dir(
         k_symbol_table_exports_dirname,
-        &TranslationUnit::export_symbol_table_impl<false>
+        [this]() { export_symbol_table_impl<false>(); }
     );
 }
 
 void
 TranslationUnit::export_within_dir(
     const std::string_view dirname,
-    void (TranslationUnit::*export_func)() const) const
+    std::function<void()> export_func) const
 {
     const auto original_path = std::filesystem::current_path();
     create_export_directory(dirname);
     enter_export_directory(dirname);
-    (this->*export_func)();
+    export_func();
     exit_export_directory(original_path);
-}
-
-void
-TranslationUnit::export_diagnostics_impl() const
-{
-    const std::string outfile_name = source_path_.filename().string() + k_diagnostic_export_ext;
-    std::ofstream outfile(outfile_name);
-    if (!outfile)
-        throw std::runtime_error(FMT::format(
-            "Failed opening file {} to export compile errors", outfile_name));
-
-    outfile << k_diagnostic_csv_export_header; // Write CSV header.
-    auto write_issue_line = [&](const DiagnosticCode code, const Issue& issue)
-    {
-        outfile << FMT::format(
-            "{0},{1},{2},{3}\n",
-            to_string(code),
-            issue.line(loc_tracker_).value,
-            issue.column(loc_tracker_).value,
-            to_string(issue.type)
-        );
-    };
-
-    for (const auto& d : diagnostic_engine_.get_diagnostics())
-    {
-        write_issue_line(d->code, d->primary);
-        for (const Issue& note : d->note_list)
-            write_issue_line(d->code, note);
-    }
-}
-
-void
-TranslationUnit::export_ir_impl() const
-{
-    const std::string outfile_name = source_path_.filename().string() + k_ir_export_ext;
-    std::ofstream outfile(outfile_name);
-    if (!outfile)
-        throw std::runtime_error(
-            FMT::format("Failed opening file {} to export ir", outfile_name));
-
-    outfile << k_ir_csv_export_header; // Write CSV header.
-
-    auto write_ir_line = [&](const std::size_t quad_no, const ir::Quad& q)
-    {
-        const auto [first_line, last_line] = loc_tracker_.find_lines(q.loc);
-        std::string quad_label_str = alpha::ir::info_traits::is_branching(q.opcode)
-                                     ? std::to_string(q.label.value)
-                                     : alpha::k_not_available_marker;
-
-        outfile << FMT::format(
-            "{0},{1},{2},{3},{4},{5},{6},{7}\n",
-            quad_no,
-            to_string(q.opcode),
-            expr_printer(q.result, k_not_available_marker),
-            expr_printer(q.arg1, k_not_available_marker),
-            expr_printer(q.arg2, k_not_available_marker),
-            quad_label_str,
-            first_line.value,
-            last_line.value
-        );
-    };
-
-    const auto& quads = compilation_pipeline_->get_quads();
-    for (std::size_t i = 0; i < quads.size(); ++i)
-        write_ir_line(i + 1, quads[i]); // +1 cause quad address 0 is indicating no-address
 }
 } // namespace alpha

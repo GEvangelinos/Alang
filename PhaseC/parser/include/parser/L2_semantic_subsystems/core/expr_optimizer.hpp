@@ -109,7 +109,7 @@ ExprOptimizer::try_fold_optimize(const SourceLocation result_loc, const Exprs &.
     static_assert(ir::opt_traits::is_foldable(opc), "`folding` not supported for this Opcode");
     static_assert(sizeof...(exprs) == ir::info_traits::opt_operands(opc),
         "exprs-opt_operands mismatch");
-    DEBUG_SMART_ASSERT(expr_opts_.opt_const_eval && "Expr folding is OFF, shouldn't be called");
+    DMASSERT(expr_opts_.opt_const_eval && "Expr folding is OFF, shouldn't be called");
 
     auto expr_tuple = std::forward_as_tuple(exprs...);
     if constexpr (ir::info_traits::opt_operands(opc) == 1)
@@ -153,7 +153,7 @@ ExprOptimizer::try_trim_optimize(const SourceLocation result_loc, const Exprs &.
     static_assert(ir::opt_traits::is_trimmable(opc), "`trimming` not supported for this Opcode");
     static_assert(sizeof...(exprs) == ir::info_traits::opt_operands(opc),
                   "Expr* argument count does not match Opcode's expected opt_operand count");
-    DEBUG_SMART_ASSERT(expr_opts_.opt_const_eval && "Expr trimming is OFF, shouldn't be called");
+    DMASSERT(expr_opts_.opt_const_eval && "Expr trimming is OFF, shouldn't be called");
 
     if constexpr (ir::info_traits::opt_operands(opc) == 2)
     {

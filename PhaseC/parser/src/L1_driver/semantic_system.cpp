@@ -105,7 +105,7 @@ SemanticSystem::commit_expr_of_elist(const Expr *expr)
 {
     const auto opt_region = parse_ctx_->elist_ctx_handler.region();
 
-    DEBUG_SMART_ASSERT(opt_region.has_value() && "Without a region value routing is impossible");
+    DMASSERT(opt_region.has_value() && "Without a region value routing is impossible");
     switch (opt_region.value())
     {
     case ElistCtxHandler::Region::CALL:

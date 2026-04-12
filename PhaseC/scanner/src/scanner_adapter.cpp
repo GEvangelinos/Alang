@@ -28,7 +28,7 @@ ScannerAdapter::ScannerHandle::ScannerHandle(TranslationUnitBuffer& tu_buffer)
     if (alpha_yylex_init(&scanner_) != 0)
         throw std::runtime_error(ATTACH_CONTEXT("Failed to initializing scanner"));
 
-    DEBUG_SMART_ASSERT(!!tu_buffer.data());
+    DMASSERT(!!tu_buffer.data());
     if (alpha_yy_scan_buffer(tu_buffer.data(), tu_buffer.size().value, scanner_) == nullptr)
     {
         std::string error =
@@ -42,7 +42,7 @@ ScannerAdapter::ScannerHandle::ScannerHandle(TranslationUnitBuffer& tu_buffer)
 
 ScannerAdapter::ScannerHandle::~ScannerHandle()
 {
-    DEBUG_SMART_ASSERT_EVAL(alpha_yylex_destroy(scanner_) == 0);
+    DMASSERT_EVAL(alpha_yylex_destroy(scanner_) == 0);
 }
 #endif
 } // namespace alpha

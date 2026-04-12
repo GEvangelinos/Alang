@@ -6,6 +6,9 @@
 
 namespace alpha
 {
-using LabelID = StrongType<struct LabelIDTag, u32>;
+struct LabelID : StrongType<LabelID, u32>
+{
+    using StrongType::StrongType;
+};
 } // namespace alpha
 #endif // LABEL_ID_HPP

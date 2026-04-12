@@ -20,7 +20,7 @@
 #include "parser/alpha_parser_context.hpp" // for ParseCtx
 #include "support/format_adapter.hpp"        // for format, FMT
 #include "support/misc_tools.hpp"                  // for DEBUG_ALWAYS_INLINE
-#include "support/smart_assert.h"            // for DEBUG_SMART_ASSERT
+#include "support/smart_assert.h"            // for DMASSERT
 
 namespace Alpha
 {

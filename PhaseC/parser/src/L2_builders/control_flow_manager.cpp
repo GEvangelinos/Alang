@@ -5,18 +5,18 @@
 namespace alpha
 {
 ControlFlowManager::ControlFlowManager(
-    const SemanticSystemServices &ss_services)
+    const SemanticSystemServices& ss_services)
     : DISPATCH_TARGET(ss_services) {}
 
-ControlFlowManager::Restricted::Restricted(const SemanticSystemServices &ss_services)
+ControlFlowManager::Restricted::Restricted(const SemanticSystemServices& ss_services)
     : SemanticSubsystem(ss_services) {}
 
 void
 ControlFlowManager::Restricted::manage_ifbranch_entry(
-    const Expr *conditional,
+    const Expr* conditional,
     const SourceLocation if_clause_loc)
 {
-    DEBUG_SMART_ASSERT(!!conditional);
+    DMASSERT(!!conditional);
     conditional = expr_optimizer_->try_propagate_const(conditional);
     conditional = expr_normalizer_->materialize_if_table_item(conditional);
     expr_normalizer_->resolve_bool_short_circuit(conditional);
@@ -53,7 +53,7 @@ ControlFlowManager::Restricted::manage_ifbranch_entry(
 void
 ControlFlowManager::Restricted::manage_ifbranch_exit()
 {
-    DEBUG_SMART_ASSERT(!build_ctx_.unpatched_if_bypass_jumps.empty());
+    DMASSERT(!build_ctx_.unpatched_if_bypass_jumps.empty());
     const LabelID bypass_jump_quad_label = build_ctx_.unpatched_if_bypass_jumps.top();
     build_ctx_.unpatched_if_bypass_jumps.pop();
     quad_handler_->labelPatch_quad(bypass_jump_quad_label, quad_handler_->next_quad_label());
@@ -63,7 +63,7 @@ ControlFlowManager::Restricted::manage_ifbranch_exit()
 void
 ControlFlowManager::Restricted::manage_elsebranch_entry(const SourceLocation else_clause_loc)
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         !build_ctx_.unpatched_if_bypass_jumps.empty() &&
         "For an 'else' statement to exist, there must be a preceding 'if'"
     );
@@ -75,9 +75,9 @@ ControlFlowManager::Restricted::manage_elsebranch_entry(const SourceLocation els
 void
 ControlFlowManager::Restricted::manage_elsebranch_exit()
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         !build_ctx_.unpatched_else_bypass_jumps.empty()
-       ,
+        ,
         !build_ctx_.unpatched_if_bypass_jumps.empty() &&
         "For an 'else' statement to exist, there must be a preceding 'if'"
     );
@@ -110,10 +110,10 @@ ControlFlowManager::Restricted::manage_whileloop_entry()
 
 void
 ControlFlowManager::Restricted::manage_whileloop_condition(
-    const Expr *conditional,
+    const Expr* conditional,
     const SourceLocation while_clause_loc)
 {
-    DEBUG_SMART_ASSERT(!!conditional);
+    DMASSERT(!!conditional);
 
     constexpr LabelID offset_to_while_block{2};
     conditional = expr_optimizer_->try_propagate_const(conditional);
@@ -147,9 +147,9 @@ ControlFlowManager::Restricted::manage_whileloop_exit(const SourceLocation while
             wlf_stack.top().unpatched_bypass_jump != LabelID::none(),
         );
     )
-    auto &qe = quad_handler_;                                   // Short alias for readability.
-    const auto &wlf = build_ctx_.while_loop_patch_points.top(); // Short alias for readability.
-    auto &fctx = parse_ctx_->func_ctx_handler;                  // Short alias for readability.
+    auto& qe = quad_handler_;                                   // Short alias for readability.
+    const auto& wlf = build_ctx_.while_loop_patch_points.top(); // Short alias for readability.
+    auto& fctx = parse_ctx_->func_ctx_handler;                  // Short alias for readability.
 
     quad_yielder_->yield(
         ir::Opcode::JUMP,
@@ -205,12 +205,12 @@ ControlFlowManager::Restricted::mark_forloop_update_list_exit(const SourceLocati
 
 void
 ControlFlowManager::Restricted::manage_forloop_condition(
-    const Expr *conditional,
+    const Expr* conditional,
     const SourceLocation condition_loc)
 {
     DEBUG(auto &flf_stack = build_ctx_.for_loop_patch_points;)
-    DEBUG_SMART_ASSERT(!flf_stack.empty());
-    DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::CONDITION_TRUE);
+    DMASSERT(!!conditional, !flf_stack.empty());
+    DMASSERT(flf_stack.top().next_patch_point == ForLoopSite::CONDITION_TRUE);
 
     conditional = expr_optimizer_->try_propagate_const(conditional);
     conditional = expr_normalizer_->materialize_if_table_item(conditional);
@@ -225,7 +225,7 @@ ControlFlowManager::Restricted::manage_forloop_condition(
         condition_loc
     );
 
-    DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::CONDITION_FALSE);
+    DMASSERT(flf_stack.top().next_patch_point == ForLoopSite::CONDITION_FALSE);
     mark_upcoming_forloop_sites();
     quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, condition_loc);
 }
@@ -234,14 +234,14 @@ void
 ControlFlowManager::Restricted::manage_forloop_entry()
 {
     DEBUG(auto & flf_stack = build_ctx_.for_loop_patch_points;)
-    DEBUG_SMART_ASSERT(!flf_stack.empty());
+    DMASSERT(!flf_stack.empty());
     // Increment loop counter to keep stack balanced, even if the for-clause is malformed.
     parse_ctx_->func_ctx_handler.enter_loop();
 
     if (build_ctx_.for_loop_patch_points.top().bad_clause)
         return;
 
-    DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::BEFORE_BODY);
+    DMASSERT(flf_stack.top().next_patch_point == ForLoopSite::BEFORE_BODY);
     mark_upcoming_forloop_sites();
 }
 
@@ -249,32 +249,32 @@ void
 ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_loc)
 {
     DEBUG(auto & flf_stack = build_ctx_.for_loop_patch_points;)
-    DEBUG_SMART_ASSERT(!flf_stack.empty());
+    DMASSERT(!flf_stack.empty());
 
-    auto *const qe = quad_handler_; // Short alias to improve readability.
+    auto* const qh = quad_handler_; // Short alias to improve readability.
 
-    const auto &flf = build_ctx_.for_loop_patch_points.top(); // Short alias to improve readability.
+    const auto& flf = build_ctx_.for_loop_patch_points.top(); // Short alias to improve readability.
     if (!flf.bad_clause)
     {
         // Emit closure loop jump.
-        DEBUG_SMART_ASSERT(flf_stack.top().next_patch_point == ForLoopSite::AFTER_BODY);
+        DMASSERT(flf_stack.top().next_patch_point == ForLoopSite::AFTER_BODY);
         mark_upcoming_forloop_sites();
         quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, exit_loc);
 
-        const LabelID after_loop_quad_label = qe->next_quad_label(); // First quad outside for-loop.
+        const LabelID after_loop_quad_label = qh->next_quad_label(); // First quad outside for-loop.
 
-        qe->labelPatch_quad(flf.condition_true, flf.before_body); // Set IF_EQ true jump inside body
-        qe->labelPatch_quad(flf.condition_false, after_loop_quad_label);
+        qh->labelPatch_quad(flf.condition_true, flf.before_body); // Set IF_EQ true jump inside body
+        qh->labelPatch_quad(flf.condition_false, after_loop_quad_label);
         // Set IF_EQ false jump outside body
-        qe->labelPatch_quad(flf.after_update_list, flf.before_condition);
+        qh->labelPatch_quad(flf.after_update_list, flf.before_condition);
         // After update go check condition
-        qe->labelPatch_quad(flf.after_body, flf.before_update_list);
+        qh->labelPatch_quad(flf.after_body, flf.before_update_list);
         // After closure go update iterators
 
         // We route all breaks outside the body of the for loop.
-        qe->labelPatch_list(parse_ctx_->func_ctx_handler.break_list(), after_loop_quad_label);
+        qh->labelPatch_list(parse_ctx_->func_ctx_handler.break_list(), after_loop_quad_label);
         // We route all continues at the beginning of the update_list
-        qe->labelPatch_list(parse_ctx_->func_ctx_handler.continue_list(), flf.before_update_list);
+        qh->labelPatch_list(parse_ctx_->func_ctx_handler.continue_list(), flf.before_update_list);
     }
 
     parse_ctx_->func_ctx_handler.exit_loop(); // This kills break and continue lists.
@@ -297,7 +297,7 @@ ControlFlowManager::Restricted::exit_forloop_clause()
 void
 ControlFlowManager::Restricted::mark_bad_forloop_clause()
 {
-    DEBUG_SMART_ASSERT(!build_ctx_.for_loop_patch_points.empty());
+    DMASSERT(!build_ctx_.for_loop_patch_points.empty());
     build_ctx_.for_loop_patch_points.top().bad_clause = true;
     parse_ctx_->temp_ctx_handler.reset_temp_ctx_frame();
 }
@@ -317,7 +317,7 @@ ControlFlowManager::Restricted::manage_continue(const SourceLocation continue_lo
 void
 ControlFlowManager::Restricted::manage_return(
     const SourceLocation return_loc,
-    const Expr *retval)
+    const Expr* retval)
 {
     if (parse_ctx_->func_ctx_handler.function_nesting_depth() == 0)
     {
@@ -325,11 +325,14 @@ ControlFlowManager::Restricted::manage_return(
         return;
     }
 
-    retval = expr_optimizer_->try_propagate_const(retval);
-    retval = expr_normalizer_->materialize_if_table_item(retval);
-    expr_normalizer_->resolve_bool_short_circuit(retval);
+    if (retval)
+    {
+        retval = expr_optimizer_->try_propagate_const(retval);
+        retval = expr_normalizer_->materialize_if_table_item(retval);
+        expr_normalizer_->resolve_bool_short_circuit(retval);
+        quad_yielder_->yield_next(ir::Opcode::RETURN, nullptr, retval, nullptr, return_loc);
+    }
 
-    quad_yielder_->yield_next(ir::Opcode::RETURN, nullptr, retval, nullptr, return_loc);
     parse_ctx_->func_ctx_handler.add_label_to_returnlist(quad_handler_->next_quad_label());
     quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, return_loc);
 }
@@ -337,10 +340,10 @@ ControlFlowManager::Restricted::manage_return(
 void
 ControlFlowManager::Restricted::mark_upcoming_forloop_sites()
 {
-    DEBUG_SMART_ASSERT(!build_ctx_.for_loop_patch_points.empty());
+    DMASSERT(!build_ctx_.for_loop_patch_points.empty());
     using FLS = ForLoopSite;
 
-    auto &flf = build_ctx_.for_loop_patch_points.top(); // Short alias to improve readability.
+    auto& flf = build_ctx_.for_loop_patch_points.top(); // Short alias to improve readability.
 
     // clang-format off
     switch (const LabelID next_jump_label = quad_handler_->next_quad_label(); flf.next_patch_point)
@@ -411,11 +414,11 @@ ControlFlowManager::Restricted::next(const ForLoopSite fls) noexcept
 }
 
 void
-ControlFlowManager::commit_forloop_header_expr(const Expr *header_expr)
+ControlFlowManager::commit_forloop_header_expr(const Expr* header_expr)
 {
-    DEBUG_SMART_ASSERT(!!header_expr);
-    const auto &r = restricted();
-    DEBUG_SMART_ASSERT(
+    DMASSERT(!!header_expr);
+    const auto& r = restricted();
+    DMASSERT(
         r.parse_ctx_->elist_ctx_handler.region().has_value() &&
         r.parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::FORLOOP_CLAUSE
     );

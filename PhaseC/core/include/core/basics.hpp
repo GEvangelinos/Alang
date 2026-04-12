@@ -43,13 +43,13 @@ public:
 
     constexpr void enable() noexcept
     {
-        DEBUG_SMART_ASSERT(state_ == false);
+        DMASSERT(state_ == false);
         state_ = true;
     }
 
     constexpr void disable() noexcept
     {
-        DEBUG_SMART_ASSERT(state_ == true);
+        DMASSERT(state_ == true);
         state_ = false;
     }
 

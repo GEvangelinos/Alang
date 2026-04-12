@@ -7,6 +7,7 @@
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <scanner/scanner_automaton.hpp>
 
+#include "escape_code_list.hpp"
 #include "core/source_location_tracker.hpp"
 #include "core/translation_unit_buffer.hpp"
 #include "scanner/scanner_context.hpp"
@@ -104,10 +105,10 @@ ScannerAutomaton::get_nth_char() const noexcept
 {
     // Guard the multi-character lookahead contract
     static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= n.value);
-    DEBUG_SMART_ASSERT(tub_.null_padding >= n);
+    DMASSERT(tub_.null_padding >= n);
 
     const char* const result_addr = cursor_ + n.value;
-    DEBUG_SMART_ASSERT(tub_.is_in_buffer(result_addr));
+    DMASSERT(tub_.is_in_buffer(result_addr));
     return *result_addr;
 }
 
@@ -115,7 +116,7 @@ char
 ScannerAutomaton::get_nth_char(const SrcBuffIdx n) const noexcept
 {
     const char* const result_addr = cursor_ + n.value;
-    DEBUG_SMART_ASSERT(tub_.is_in_buffer(result_addr));
+    DMASSERT(tub_.is_in_buffer(result_addr));
     return *result_addr;
 }
 
@@ -124,34 +125,34 @@ const char*
 ScannerAutomaton::advance_cursor() noexcept
 {
     static_assert(n.value > 0, "Why advance by zero?");
-    DEBUG_SMART_ASSERT(cursor_ < tub_.source_end()); // Is OK before?
+    DMASSERT(cursor_ < tub_.source_end()); // Is OK before?
     const auto result = cursor_ += n.value;
     // After: Can be AT source_size_ (EOF), but not past it.
-    DEBUG_SMART_ASSERT(cursor_ <= tub_.source_end()); // Is OK after?
+    DMASSERT(cursor_ <= tub_.source_end()); // Is OK after?
     return result;
 }
 
 const char*
 ScannerAutomaton::advance_cursor(const SrcBuffIdx n) noexcept
 {
-    DEBUG_SMART_ASSERT(tub_.is_in_source(cursor_), n.value > 0 && "why advance 0?"); // OK before?
+    DMASSERT(tub_.is_in_source(cursor_), n.value > 0 && "why advance 0?"); // OK before?
     const auto result = cursor_ += n.value;
     // After: Can be AT source_size_ (EOF), but not past it.
-    DEBUG_SMART_ASSERT(tub_.is_in_buffer(cursor_)); // OK after?
+    DMASSERT(tub_.is_in_buffer(cursor_)); // OK after?
     return result;
 }
 
 char
 ScannerAutomaton::get_curr_char() const noexcept
 {
-    DEBUG_SMART_ASSERT(!has_reached_eof());
+    DMASSERT(!has_reached_eof());
     return get_nth_char<SrcBuffIdx{0}>();
 }
 
 char
 ScannerAutomaton::get_next_char() const noexcept
 {
-    DEBUG_SMART_ASSERT(!has_reached_eof());
+    DMASSERT(!has_reached_eof());
     return get_nth_char<SrcBuffIdx{1}>();
 }
 
@@ -170,9 +171,9 @@ ScannerAutomaton::last_token_location() const noexcept
 SourceLocation
 ScannerAutomaton::last_token_location_eof_trimmed() const noexcept
 {
-    DEBUG_SMART_ASSERT(has_reached_eof() && "Should only be called when eof is reached");
+    DMASSERT(has_reached_eof() && "Should only be called when eof is reached");
     SourceLocation loc = last_token_location();
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         loc.end > SrcBuffIdx{1} &&
         "Invalid EOF-trim: SourceLocation is empty or too small. "
         "`end` is exclusive and must reference a real character before trimming."
@@ -224,7 +225,7 @@ ScannerAutomaton::register_and_return(const LexerReturnType token_id) noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_equal_char() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '=');
+    DMASSERT(get_curr_char() == '=');
     if (*advance_cursor() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -236,7 +237,7 @@ ScannerAutomaton::handle_equal_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_exclamation_char() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '!');
+    DMASSERT(get_curr_char() == '!');
     if (*advance_cursor() == '=') // Only place we support '!', is a part of != token.
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -249,7 +250,7 @@ ScannerAutomaton::handle_exclamation_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_plus_char() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '+');
+    DMASSERT(get_curr_char() == '+');
     if (*advance_cursor() == '+')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -261,7 +262,7 @@ ScannerAutomaton::handle_plus_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_minus_char() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '-');
+    DMASSERT(get_curr_char() == '-');
     if (*advance_cursor() == '-')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -273,7 +274,7 @@ ScannerAutomaton::handle_minus_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_left_angle_bracket_char() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '<');
+    DMASSERT(get_curr_char() == '<');
     if (*advance_cursor() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -285,7 +286,7 @@ ScannerAutomaton::handle_left_angle_bracket_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_right_angle_bracket_char() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '>');
+    DMASSERT(get_curr_char() == '>');
     if (*advance_cursor() == '=')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -297,7 +298,7 @@ ScannerAutomaton::handle_right_angle_bracket_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_dot_char() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '.');
+    DMASSERT(get_curr_char() == '.');
     const char next_ch = get_next_char();
     if (support::is_digit(next_ch))
         return handle_float_number();
@@ -314,7 +315,7 @@ ScannerAutomaton::handle_dot_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_colon_char() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == ':');
+    DMASSERT(get_curr_char() == ':');
     if (*advance_cursor() == ':')
     {
         advance_cursor(); // We need to advance cursor, as we just peeked (cursor wasn't moved).
@@ -332,7 +333,7 @@ ScannerAutomaton::register_newline_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_comment_line() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '/');
+    DMASSERT(get_curr_char() == '/', get_next_char() == '/');
     char curr_ch = *advance_cursor<SrcBuffIdx{2}>(); // for consume 1st and 2nd `/` (fast-path)
     while (!has_reached_eof() && curr_ch != '\n')
         curr_ch = *advance_cursor();
@@ -342,7 +343,7 @@ ScannerAutomaton::handle_comment_line() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_comment_block_nested() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '*');
+    DMASSERT(get_curr_char() == '/', get_next_char() == '*');
 
     // Code could be more nicely written, but I specifically choose these patterns, to achieve max scanning speed. (micro opts)
     u64 block_comment_depth = 1;
@@ -381,7 +382,7 @@ ScannerAutomaton::handle_comment_block_nested() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_comment_block_standard() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '/', get_next_char() == '*');
+    DMASSERT(get_curr_char() == '/', get_next_char() == '*');
     char ch = *advance_cursor<SrcBuffIdx{2}>();
     while (!has_reached_eof())
     {
@@ -408,7 +409,7 @@ ScannerAutomaton::handle_comment_block_standard() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_slash_char() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '/');
+    DMASSERT(get_curr_char() == '/');
     const char next_ch = get_next_char();
     if (next_ch == '/')
         return handle_comment_line();
@@ -421,7 +422,7 @@ ScannerAutomaton::handle_slash_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_double_quote_char() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '\"');
+    DMASSERT(get_curr_char() == '\"');
     // Just started handling string, so we first things first consume the initialization marker.
     advance_cursor();
     while (!has_reached_eof())
@@ -439,14 +440,10 @@ ScannerAutomaton::handle_double_quote_char() noexcept
             advance_cursor(); // Consume ch2.
             switch (ch2)
             {
-            case 'n':
-            case 'r':
-            case 't':
-            case 'v':
-            case 'f':
-            case '\\':
-            case '\"':
-                DEBUG_SMART_ASSERT(!has_reached_eof() && "If ch2 past EOF, ch2 must be NULL-byte");
+            #define EXTRACT_ESCAPE_CHARS(ch, escape_) case ch :
+            ESCAPE_CODE_LIST(EXTRACT_ESCAPE_CHARS)
+            #undef EXTRACT_ESCAPE_CHARS
+                DMASSERT(!has_reached_eof() && "If ch2 past EOF, ch2 must be NULL-byte");
                 break;
             default:
                 const char chartext[] = {ch2, '\0'};
@@ -463,7 +460,7 @@ ScannerAutomaton::handle_double_quote_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_hex_number() noexcept
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         get_nth_char<SrcBuffIdx{0}>() == '0',
         get_nth_char<SrcBuffIdx{1}>() == 'x' || get_nth_char<SrcBuffIdx{1}>() == 'X',
         support::is_xdigit(get_nth_char<SrcBuffIdx{2}>())
@@ -472,7 +469,7 @@ ScannerAutomaton::handle_hex_number() noexcept
     char curr_ch = *advance_cursor<SrcBuffIdx{3}>();
     while (support::is_xdigit(curr_ch))
         curr_ch = *advance_cursor();
-    DEBUG_SMART_ASSERT(!support::is_xdigit(get_curr_char()));
+    DMASSERT(!support::is_xdigit(get_curr_char()));
     return TKN_INT;
 }
 
@@ -481,7 +478,7 @@ ScannerAutomaton::handle_hex_number() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_float_number() noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == '.', support::is_digit(get_next_char()));
+    DMASSERT(get_curr_char() == '.', support::is_digit(get_next_char()));
     // --- Float digits consumption loop(in case of scientific, are all otherwise) --- //
     char curr_ch = '\0'; // Initializing to a sentinel, zero cost (Dead Store Elimination)
     while (support::is_digit(curr_ch = *advance_cursor())) // On first iteration consumes '.'
@@ -501,7 +498,7 @@ ScannerAutomaton::handle_float_number() noexcept
         else if (support::is_digit(next_ch))
             consume_scientific_digits.operator()<2>();
     }
-    DEBUG_SMART_ASSERT(!support::is_digit(get_curr_char()));
+    DMASSERT(!support::is_digit(get_curr_char()));
     return TKN_FLOAT;
 }
 
@@ -509,7 +506,7 @@ ScannerAutomaton::handle_float_number() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_decimal_number() noexcept
 {
-    DEBUG_SMART_ASSERT(support::is_digit(get_curr_char()), !has_reached_eof());
+    DMASSERT(support::is_digit(get_curr_char()), !has_reached_eof());
 
     char curr_ch = '\0'; // Initializing to a sentinel, zero cost (Dead Store Elimination)
     while (support::is_digit(curr_ch = *advance_cursor()))
@@ -523,7 +520,7 @@ ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_number_char() noexcept
 {
     const char curr_ch = get_curr_char();
-    DEBUG_SMART_ASSERT(support::is_digit(curr_ch));
+    DMASSERT(support::is_digit(curr_ch));
 
     // For HEX nums we require at least a hex digit after 0x as without it, 0x is just a decimal 0 and an id x.
     if (curr_ch == '0')
@@ -542,12 +539,12 @@ ScannerAutomaton::handle_number_char() noexcept
 ScannerAutomaton::LexerReturnType
 ScannerAutomaton::handle_alpha_char() noexcept
 {
-    DEBUG_SMART_ASSERT(support::is_alpha(get_curr_char()));
+    DMASSERT(support::is_alpha(get_curr_char()));
     SrcBuffIdx word_length{1};
     while (g_id_body_table[get_nth_char(word_length)])
         ++word_length;
 
-    DEBUG_SMART_ASSERT(g_id_body_table[get_curr_char()]);
+    DMASSERT(g_id_body_table[get_curr_char()]);
 
     const auto find_possible_keyword = [this, word_length]() -> KeywordId
     {
@@ -601,7 +598,7 @@ ScannerAutomaton::handle_alpha_char() noexcept
     }
 
     advance_cursor(SrcBuffIdx{word_length.value});
-    DEBUG_SMART_ASSERT(has_reached_eof() || !g_id_body_table[get_curr_char()]);
+    DMASSERT(has_reached_eof() || !g_id_body_table[get_curr_char()]);
     return result_token;
 }
 
@@ -616,7 +613,7 @@ ScannerAutomaton::handle_newline_char() noexcept
 void
 ScannerAutomaton::handle_invalid_char(const char curr_ch) noexcept
 {
-    DEBUG_SMART_ASSERT(get_curr_char() == curr_ch);
+    DMASSERT(get_curr_char() == curr_ch);
     advance_cursor();
     const char chartext[] = {curr_ch, '\0'};
     dr_.report_invalid_character(chartext, last_token_location());
@@ -644,7 +641,7 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noex
         return token;
     };
 
-    // DEBUG_SMART_ASSERT(tub_.is_in_source(cursor_));
+    // DMASSERT(tub_.is_in_source(cursor_));
 
     while (true)
     {

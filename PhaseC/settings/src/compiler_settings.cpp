@@ -101,7 +101,7 @@ SettingManager::parse_config_flag_settings(const arguinator::Parser& arg_parser)
 settings::ConfigData
 SettingManager::parse_config_data_settings(const arguinator::Parser& arg_parser)
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         arg_parser[settings::ConfigDataNames::source].is_provided() &&
         "This field should be required!"
     );

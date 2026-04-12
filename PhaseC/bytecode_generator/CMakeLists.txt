@@ -10,6 +10,7 @@ target_link_libraries(alpha_bytecode_generator_api INTERFACE
 # === alpha_bytecode_generator_impl: Implementation (compiled source) ===
 add_library(alpha_bytecode_generator_impl STATIC
     src/bytecode_generator.cpp
+    src/abc_serializer.cpp
 )
 target_link_libraries(alpha_bytecode_generator_impl PRIVATE
     alpha_bytecode_generator_api

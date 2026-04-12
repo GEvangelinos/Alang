@@ -21,7 +21,7 @@ ExprNormalizer::ExprNormalizer(
 const Expr*
 ExprNormalizer::materialize_if_table_item(const Expr* const expr)
 {
-    DEBUG_SMART_ASSERT(!!expr);
+    DMASSERT(!!expr);
     if (expr->type != Expr::Type::TABLE_ITEM)
         return expr;
 
@@ -43,13 +43,13 @@ ExprNormalizer::materialize_if_table_item(const Expr* const expr)
 void
 ExprNormalizer::resolve_bool_short_circuit(const Expr* const expr)
 {
-    DEBUG_SMART_ASSERT(!!expr);
+    DMASSERT(!!expr);
     if (expr->type != Expr::Type::BOOL)
         return; // Nothing to backpatch if not bool_expr.
 
     const BoolExpr* const bool_expr = static_cast<const BoolExpr*>(expr);
 
-    DEBUG_SMART_ASSERT(!!bool_expr->var_symbol);
+    DMASSERT(!!bool_expr->var_symbol);
 
     // true branch: patch to here and assign true
     quad_handler_->labelPatch_list(bool_expr->true_list, quad_handler_->next_quad_label());

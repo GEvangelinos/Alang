@@ -19,8 +19,8 @@ using namespace alpha;
     const char* op_symbol,
     const char* lvalue_subject)
 {
-    DEBUG_SMART_ASSERT(!!dr, !!expr, !!op_name, !!op_symbol, !!lvalue_subject);
-    DEBUG_SMART_ASSERT(!!*op_name, !!*op_symbol, !!*lvalue_subject);
+    DMASSERT(!!dr, !!expr, !!op_name, !!op_symbol, !!lvalue_subject);
+    DMASSERT(!!*op_name, !!*op_symbol, !!*lvalue_subject);
     if (expr->is_lvalue_type() && expr->is_rvalue_casted())
     {
         const SourceLocation lhs_cast_loc{expr->loc.begin, SrcBuffIdx{expr->loc.begin.value + 1}};
@@ -47,8 +47,8 @@ using namespace alpha;
     const char* lvalue_subject)
 
 {
-    DEBUG_SMART_ASSERT(!!expr);
-    DEBUG_SMART_ASSERT(
+    DMASSERT(!!expr);
+    DMASSERT(
         expr->type != Expr::Type::TABLE_ITEM &&
         "validate_direct_lvalue: TABLE_ITEM is not a direct lvalue (use table-item path)"
     );
@@ -158,7 +158,7 @@ const Expr*
 AggregateBuilder::Restricted::finalize_table_literal(const SourceLocation table_loc)
 {
     auto& tls = draft_.table_literal_stack; // Short alias for readability.
-    DEBUG_SMART_ASSERT(!tls.empty() && "No active table literal to finalize");
+    DMASSERT(!tls.empty() && "No active table literal to finalize");
 
     // TODO: provide a locpatch_expr method of expr_maker.. instead of cloining
     // Clone the table expression with its finalized source location for accurate diagnostics
@@ -178,7 +178,7 @@ void AggregateBuilder::Restricted::commit_dict_element(
     const Expr* value,
     const SourceLocation dict_elem_loc)
 {
-    DEBUG_SMART_ASSERT(!!key, !!value);
+    DMASSERT(!!key, !!value);
 
     key = expr_optimizer_->try_propagate_const(key);
     key = expr_normalizer_->materialize_if_table_item(key);
@@ -187,7 +187,7 @@ void AggregateBuilder::Restricted::commit_dict_element(
     value = expr_normalizer_->materialize_if_table_item(value);
     expr_normalizer_->resolve_bool_short_circuit(value);
 
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         !draft_.table_literal_stack.empty() &&
         "If we collect a dict_entry, then we must be inside a table_literal"
     );
@@ -210,10 +210,10 @@ void AggregateBuilder::Restricted::commit_dict_element(
 void
 AggregateBuilder::commit_list_element(const Expr* list_elem)
 {
-    DEBUG_SMART_ASSERT(!!list_elem);
+    DMASSERT(!!list_elem);
     auto& r = restricted(); // Local alias for clarity
 
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         r.parse_ctx_->elist_ctx_handler.region().has_value() &&
         r.parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::TABLE
     );
@@ -222,7 +222,7 @@ AggregateBuilder::commit_list_element(const Expr* list_elem)
     list_elem = r.expr_normalizer_->materialize_if_table_item(list_elem);
     r.expr_normalizer_->resolve_bool_short_circuit(list_elem);
 
-    DEBUG_SMART_ASSERT(!r.draft_.table_literal_stack.empty());
+    DMASSERT(!r.draft_.table_literal_stack.empty());
     auto& top_table = r.draft_.table_literal_stack.top();
 
     const Expr* const index_expr = r.expr_maker_->make_const_int_expr(
@@ -243,7 +243,7 @@ AggregateBuilder::commit_list_element(const Expr* list_elem)
 bool
 AssignBuilder::Restricted::try_record_const_expr(const Expr* const lvalue, const Expr* const rvalue)
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         !!lvalue, !!rvalue,
         options_.record_constant_variables &&
         "Recording values of constant variables is OFF, shouldn't be called"
@@ -267,8 +267,8 @@ AssignBuilder::Restricted::handle_direct_assignment(
     const Expr* rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    DEBUG_SMART_ASSERT(lhs->type != Expr::Type::TABLE_ITEM && "goto handle_table_item_assignment");
+    DMASSERT(!!lhs, !!rhs);
+    DMASSERT(lhs->type != Expr::Type::TABLE_ITEM && "goto handle_table_item_assignment");
 
     rhs = expr_optimizer_->try_propagate_const(rhs);
     rhs = expr_normalizer_->materialize_if_table_item(rhs);
@@ -296,8 +296,8 @@ AssignBuilder::Restricted::handle_table_item_assignment(
     const Expr* rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::TABLE_ITEM);
+    DMASSERT(!!lhs, !!rhs);
+    DMASSERT(lhs->type == Expr::Type::TABLE_ITEM);
 
     const auto* const ti = static_cast<const TableItemExpr*>(lhs);
     rhs = expr_optimizer_->try_propagate_const(rhs);
@@ -309,7 +309,7 @@ AssignBuilder::Restricted::handle_table_item_assignment(
     // We resurface the assigned element of table to allow chained assignment. Ex.: a = b.c = d;
     // This is also useful for call(t[i]=1, t[i]=2, t[i]=3);
     const Expr* const materialized = expr_normalizer_->materialize_if_table_item(ti);
-    DEBUG_SMART_ASSERT(materialized->has_var_symbol());
+    DMASSERT(materialized->has_var_symbol());
 
     // We semantically transform materialized to an ASSIGN expression
     return expr_maker_->make_assign_expr(
@@ -324,7 +324,7 @@ AssignBuilder::Restricted::build_assignment(
     const Expr* const rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    DMASSERT(!!lhs, !!rhs);
     if (!validate_assignment(lhs, result_loc))
         return nullptr;
 
@@ -375,7 +375,7 @@ AssignBuilder::Restricted::validate_assignment(
     const Expr* const lhs,
     const SourceLocation assign_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs);
+    DMASSERT(!!lhs);
     if (lhs->type == Expr::Type::LIBRARY_FUNCTION)
     {
         const auto* const func_symbol = static_cast<const LibFuncExpr*>(lhs)->libfunc_symbol;
@@ -403,7 +403,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
     const SourceLocation result_loc)
 {
     static_assert(std::is_same_v<Policy, IncPolicy> || std::is_same_v<Policy, DecPolicy>);
-    DEBUG_SMART_ASSERT(!!lvalue);
+    DMASSERT(!!lvalue);
     auto* qy = quad_yielder_;
 
     if (lvalue->type == Expr::Type::TABLE_ITEM)
@@ -411,13 +411,13 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
         const auto* const ti_host = static_cast<const TableItemExpr*>(lvalue);
         // External materialization is required, as ti is also used on quad's result field.
         const Expr* const ti = expr_normalizer_->materialize_if_table_item(ti_host);
-        DEBUG_SMART_ASSERT(ti_host->index->type != Expr::Type::TABLE_ITEM && "Materialize index!");
+        DMASSERT(ti_host->index->type != Expr::Type::TABLE_ITEM && "Materialize index!");
         qy->yield_next(Policy::opc, ti, ti, &k_static_int_1_expr, result_loc);
         qy->yield_next(ir::Opcode::TABLESETELEM, ti_host, ti_host->index, ti, result_loc);
 
         if (!assignment_requires_temp())
         {
-            DEBUG_SMART_ASSERT(ti->has_var_symbol());
+            DMASSERT(ti->has_var_symbol());
             const auto ti_symbol = static_cast<const ExprWVarSymbol*>(ti)->var_symbol;
             return expr_maker_->make_arithmetic_expr(result_loc, ti_symbol);
         }
@@ -434,7 +434,7 @@ AssignBuilder::Restricted::handle_pre_inc_dec(
         qy->yield_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
         if (!assignment_requires_temp())
         {
-            DEBUG_SMART_ASSERT(lvalue->has_var_symbol());
+            DMASSERT(lvalue->has_var_symbol());
             const auto lvalue_symbol = static_cast<const ExprWVarSymbol*>(lvalue)->var_symbol;
             return expr_maker_->make_arithmetic_expr(result_loc, lvalue_symbol);
         }
@@ -465,7 +465,7 @@ AssignBuilder::Restricted::handle_post_inc_dec(
     {
         const auto* const ti_host = static_cast<const TableItemExpr*>(lvalue);
         const Expr* const ti = expr_normalizer_->materialize_if_table_item(lvalue);
-        DEBUG_SMART_ASSERT(ti->has_active_temp());
+        DMASSERT(ti->has_active_temp());
         // We externally materialize as we need `ti` in more than a single yield.
         // IMPORTANT: For table items we must allocate the result temp before `yield_next` call.
         // Deferring (by passing `temp_factory` as a callable, like in the else branch) would
@@ -478,7 +478,7 @@ AssignBuilder::Restricted::handle_post_inc_dec(
     }
     else
     {
-        DEBUG_SMART_ASSERT(!lvalue->has_active_temp() &&
+        DMASSERT(!lvalue->has_active_temp() &&
             "if lvalue has temp we need to set result before yield_next call");
         result = qy->yield_next(ir::Opcode::ASSIGN, temp_factory, lvalue, nullptr, result_loc);
         qy->yield_next(Policy::opc, lvalue, lvalue, &k_static_int_1_expr, result_loc);
@@ -507,7 +507,7 @@ AssignBuilder::Restricted::build_inc_dec(const Expr* const expr, const SourceLoc
     else
         static_assert(always_false_v<void>, "build_inc_dec(): Unknown OpVariant");
 
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         support::require_ptr(result)->type == Expr::Type::ARITHMETIC &&
         "increment/decrement is an arithmetic expression"
     );
@@ -540,7 +540,7 @@ BasicBuilder::Restricted::build_uminus(
     const SourceLocation uminus_loc,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr);
+    DMASSERT(!!expr);
     if (!validate_arithmetic_expr(OperandSide::UNARY, ir::Opcode::UMINUS, expr, uminus_loc))
         goto skip_opt;
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::UMINUS>(result_loc, expr))
@@ -561,7 +561,7 @@ BasicBuilder::Restricted::build_arithmetic(
     const SourceLocation arith_op_loc,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    DMASSERT(!!lhs, !!rhs);
     // Always build IR. On validation errors we report error diagnostics and never export bad IR.
     if (!validate_arithmetic_operation(opc, lhs, rhs, arith_op_loc))
         goto skip_opt;
@@ -591,7 +591,7 @@ BasicBuilder::Restricted::build_relational(
     const SourceLocation operator_loc,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    DMASSERT(!!lhs, !!rhs);
 
     lhs = expr_normalizer_->materialize_if_table_item(lhs);
     rhs = expr_normalizer_->materialize_if_table_item(rhs);
@@ -626,13 +626,13 @@ skip_opt:
 const Expr*
 BasicBuilder::Restricted::build_logical_not(const Expr* expr, const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr);
-    DEBUG_SMART_ASSERT(expr->is_bool_or_const_bool());
+    DMASSERT(!!expr);
+    DMASSERT(expr->is_bool_or_const_bool());
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::NOT>(result_loc, expr))
         return optimized;
     // Sanity check, CONST_BOOL must be consumed by the optimizer.
-    DEBUG_SMART_ASSERT(expr->type == Expr::Type::BOOL);
+    DMASSERT(expr->type == Expr::Type::BOOL);
 
     static_cast<const BoolExpr*>(expr)->invert();
     return expr;
@@ -644,8 +644,8 @@ BasicBuilder::Restricted::build_logical_and(
     const Expr* rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    DEBUG_SMART_ASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
+    DMASSERT(!!lhs, !!rhs);
+    DMASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::AND>(result_loc, lhs, rhs))
         return optimized;
@@ -662,8 +662,8 @@ BasicBuilder::Restricted::build_logical_or(
     const Expr* rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
-    DEBUG_SMART_ASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
+    DMASSERT(!!lhs, !!rhs);
+    DMASSERT(lhs->is_bool_or_const_bool(), rhs->is_bool_or_const_bool());
 
     if (const auto optimized = expr_optimizer_->try_optimize<ir::Opcode::OR>(result_loc, lhs, rhs))
         return optimized;
@@ -687,13 +687,13 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
         "Unknown backpatching policy"
     );
 
-    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::BOOL && rhs->type == Expr::Type::BOOL);
+    DMASSERT(lhs->type == Expr::Type::BOOL && rhs->type == Expr::Type::BOOL);
     const BoolExpr* const lhs_bool = static_cast<const BoolExpr*>(lhs);
     const BoolExpr* const rhs_bool = static_cast<const BoolExpr*>(rhs);
     const BoolExpr* const bool_result_expr = expr_maker_->make_bool_expr(result_loc);
 
     // Patching left side.
-    DEBUG_SMART_ASSERT(!short_circuit_jump_stack_.empty());
+    DMASSERT(!short_circuit_jump_stack_.empty());
     for (const LabelID quad_label : Policy::backpatch_list(lhs_bool))
         quad_handler_->labelPatch_quad(quad_label, short_circuit_jump_stack_.top());
     short_circuit_jump_stack_.pop();
@@ -716,7 +716,7 @@ BasicBuilder::Restricted::build_short_circuit_bool_expr(
 const Expr*
 BasicBuilder::Restricted::normalize_to_bool_expr(const Expr* const expr)
 {
-    DEBUG_SMART_ASSERT(!!expr);
+    DMASSERT(!!expr);
 
     if (expr->type == Expr::Type::BOOL)
         return expr;
@@ -749,7 +749,7 @@ BasicBuilder::Restricted::validate_arithmetic_expr(
     const Expr* expr,
     const SourceLocation arith_op_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr);
+    DMASSERT(!!expr);
     if (expr->is_arithmetic_convertible())
         return true;
 
@@ -785,11 +785,11 @@ BasicBuilder::Restricted::validate_relational_operation(
     const Expr* const rhs,
     const SourceLocation operator_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs, SemUtils::is_relational_iropcode(opc));
+    DMASSERT(!!lhs, !!rhs, SemUtils::is_relational_iropcode(opc));
 
     const auto validate_numeric = [opc, lhs, rhs, operator_loc, this]() -> bool
     {
-        DEBUG_SMART_ASSERT(SemUtils::is_relational_numeric_iropcode(opc));
+        DMASSERT(SemUtils::is_relational_numeric_iropcode(opc));
         if (lhs->is_arithmetic_convertible() && rhs->is_arithmetic_convertible())
             return true;
         const auto opc_str = SemUtils::relop_str(opc);
@@ -807,7 +807,7 @@ BasicBuilder::Restricted::validate_relational_operation(
     const auto validate_equality = [opc, lhs, rhs, operator_loc, this]() -> bool
     {
         using ET = Expr::Type;
-        DEBUG_SMART_ASSERT(SemUtils::is_relational_equality_iropcode(opc));
+        DMASSERT(SemUtils::is_relational_equality_iropcode(opc));
 
         // Pass rhs->type through specific masks/filters to detect invalid comparisons.
         const bool passes_mask = [lhs, rhs]()
@@ -958,7 +958,7 @@ CallBuilder::Restricted::check_for_argument_mismatch(
     if (callable_lvalue->type != Expr::Type::PROGRAM_FUNCTION)
         return;
 
-    DEBUG_SMART_ASSERT(callable_lvalue->type == Expr::Type::PROGRAM_FUNCTION);
+    DMASSERT(callable_lvalue->type == Expr::Type::PROGRAM_FUNCTION);
     const auto func_symbol = static_cast<const ProgFuncExpr*>(callable_lvalue)->progfunc_symbol;
     if (func_symbol->parameter_list.size() == arg_stack.size())
         return;
@@ -977,9 +977,9 @@ CallBuilder::Restricted::build_call_consuming(
     const SourceLocation call_loc,
     const ConstStringExpr* const method_name)
 {
-    DEBUG_SMART_ASSERT(!!callable);
-    DEBUG_SMART_ASSERT(callable->is_callable());
-    DEBUG_SMART_ASSERT(!draft_.call_info_stack.empty());
+    DMASSERT(!!callable);
+    DMASSERT(callable->is_callable());
+    DMASSERT(!draft_.call_info_stack.empty());
     auto* qy = quad_yielder_; // Short alias for readability.
 
     auto& call_args = draft_.call_info_stack.top().arguments;
@@ -1002,7 +1002,7 @@ CallBuilder::Restricted::build_call_consuming(
         call_target = expr_maker_->make_table_item_expr(method_get_loc, method_keeper, method_name);
     }
     const Expr* const callee = expr_normalizer_->materialize_if_table_item(call_target);
-    DEBUG_SMART_ASSERT(callee->is_callable());
+    DMASSERT(callee->is_callable());
     qy->yield_next(ir::Opcode::CALL, nullptr, callee, nullptr, call_loc);
 
     // At these point we have used everything required to make a call.
@@ -1017,8 +1017,8 @@ CallBuilder::Restricted::build_method_call_consuming(
     const Expr* const method_host,
     const SourceLocation call_loc)
 {
-    DEBUG_SMART_ASSERT(!draft_.call_info_stack.empty());
-    DEBUG_SMART_ASSERT(draft_.call_info_stack.top().pending_method_info.has_value());
+    DMASSERT(!draft_.call_info_stack.empty());
+    DMASSERT(draft_.call_info_stack.top().pending_method_info.has_value());
 
     if (!validate_lvalue(dr_, method_host, call_loc, "method access", "..", "base expression"))
         return nullptr;
@@ -1035,16 +1035,16 @@ CallBuilder::Restricted::build_iife_call_consuming(
     const ProgFuncSymbol* const func_symbol,
     const SourceLocation call_loc)
 {
-    DEBUG_SMART_ASSERT(!!func_symbol);
+    DMASSERT(!!func_symbol);
     const auto* const prog_func_expr = expr_maker_->make_prog_func_expr(call_loc, func_symbol);
     return build_call_consuming(prog_func_expr, call_loc);
 }
 
 void CallBuilder::commit_call_argument(const Expr* call_arg)
 {
-    DEBUG_SMART_ASSERT(!!call_arg);
+    DMASSERT(!!call_arg);
     auto& r = restricted();
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         r.parse_ctx_->elist_ctx_handler.region().has_value() &&
         r.parse_ctx_->elist_ctx_handler.region().value() == ElistCtxHandler::Region::CALL
     );
@@ -1055,7 +1055,7 @@ void CallBuilder::commit_call_argument(const Expr* call_arg)
     call_arg = r.expr_normalizer_->materialize_if_table_item(call_arg);
     r.expr_normalizer_->resolve_bool_short_circuit(call_arg);
 
-    DEBUG_SMART_ASSERT(!r.draft_.call_info_stack.empty());
+    DMASSERT(!r.draft_.call_info_stack.empty());
     r.draft_.call_info_stack.top().arguments.push(call_arg);
 }
 
@@ -1086,7 +1086,7 @@ ConstBuilder::Restricted::build_float_expr(const AlphaFloat value, const SourceL
 const Expr*
 ConstBuilder::Restricted::build_string_expr(const StringSpan value, const SourceLocation loc)
 {
-    DEBUG_SMART_ASSERT(!value.empty());
+    DMASSERT(!value.empty());
     return expr_maker_->make_const_string_expr(loc, value);
 }
 
@@ -1122,7 +1122,7 @@ void
 FunctionBuilder::Restricted::register_function_parameters()
 {
     constexpr auto space = VarSymbol::Space::FORMAL_ARGUMENT;
-    DEBUG_SMART_ASSERT(parse_ctx_->space_handler.space() == VarSymbol::Space::FORMAL_ARGUMENT);
+    DMASSERT(parse_ctx_->space_handler.space() == VarSymbol::Space::FORMAL_ARGUMENT);
 
     for (const Parameter& p : function_draft_.parameter_list)
         if (validate_formal_param_name(p))
@@ -1178,7 +1178,7 @@ FunctionBuilder::Restricted::validate_formal_param_name(const Parameter& param)
     if (const Symbol* const formal_symbol = symbol_table_->lookup_local(param.name, curr_scope))
     {
         // Parameter should produce name conflicts only with themselves.
-        DEBUG_SMART_ASSERT(
+        DMASSERT(
             !!dynamic_cast<const VarSymbol *>(formal_symbol), // non-nullptr == valid conversion
             formal_symbol->is_variable(),
             formal_symbol->type == VarSymbol::Type::FORMAL_ARGUMENT
@@ -1194,7 +1194,7 @@ FunctionBuilder::Restricted::forward_program_function(
     const ProgFuncSymbol* const func_symbol,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!func_symbol);
+    DMASSERT(!!func_symbol);
     return expr_maker_->make_prog_func_expr(result_loc, func_symbol);
 }
 
@@ -1231,7 +1231,7 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation f
         );
     }
     // Sanity check
-    DEBUG_SMART_ASSERT(!(validated_funcname ^ !!func_symbol));
+    DMASSERT(!(validated_funcname ^ !!func_symbol));
 
     parse_ctx_->func_ctx_handler.enter_function(
         function_draft_.id, func_signature_loc, func_symbol, skip_func_jump_label);
@@ -1276,7 +1276,7 @@ TableAccessBuilder::Restricted::build_member_access(
     const SourceLocation member_id_loc,
     const SourceLocation access_loc)
 {
-    DEBUG_SMART_ASSERT(!!base, !member_id.empty());
+    DMASSERT(!!base, !member_id.empty());
     if (!validate_lvalue(dr_, base, access_loc, "member access", ".", "base expression"))
         return nullptr;
     const Expr* const materialized_lvalue = expr_normalizer_->materialize_if_table_item(base);
@@ -1290,7 +1290,7 @@ TableAccessBuilder::Restricted::build_subscript_access(
     const Expr* subscript,
     const SourceLocation access_loc)
 {
-    DEBUG_SMART_ASSERT(!!base, !!subscript);
+    DMASSERT(!!base, !!subscript);
 
     if (!validate_lvalue(dr_, base, access_loc, "subscript", "[]", "base expression"))
         return nullptr;

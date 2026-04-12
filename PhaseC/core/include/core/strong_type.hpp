@@ -9,7 +9,7 @@ namespace alpha
 {
 template
 <
-    typename TypeTag,
+    typename DerivedType,
     std::integral UnderlyingType_,
     UnderlyingType_ none_value = std::numeric_limits<UnderlyingType_>::max()
 >
@@ -19,7 +19,7 @@ struct StrongType
     using UnderlyingType = UnderlyingType_;
     UnderlyingType value;
 
-    [[nodiscard]] static constexpr StrongType none() { return {}; }
+    [[nodiscard]] static constexpr DerivedType none() { return {}; }
 
     constexpr StrongType() : value(none_value) {}
 
@@ -32,51 +32,51 @@ struct StrongType
     // Logic helper for better ergonomics!
     [[nodiscard]] constexpr bool is_none() const noexcept { return value == none_value; }
 
-    constexpr StrongType& operator+=(const StrongType rhs) noexcept
+    constexpr DerivedType& operator+=(const DerivedType rhs) noexcept
     {
         value += rhs.value;
-        return *this;
+        return static_cast<DerivedType&>(*this);
     }
 
-    constexpr StrongType& operator-=(const StrongType rhs) noexcept
+    constexpr DerivedType& operator-=(const DerivedType rhs) noexcept
     {
         value -= rhs.value;
-        return *this;
+        return static_cast<DerivedType&>(*this);
     }
 
-    [[nodiscard]] constexpr StrongType operator+(const StrongType rhs) const noexcept
+    [[nodiscard]] constexpr DerivedType operator+(const DerivedType rhs) const noexcept
     {
-        return StrongType{value + rhs.value};
+        return DerivedType{value + rhs.value};
     }
 
-    [[nodiscard]] constexpr StrongType operator-(const StrongType rhs) const noexcept
+    [[nodiscard]] constexpr DerivedType operator-(const DerivedType rhs) const noexcept
     {
-        return StrongType{value - rhs.value};
+        return DerivedType{value - rhs.value};
     }
 
-    constexpr StrongType& operator++() noexcept
+    constexpr DerivedType& operator++() noexcept
     {
         ++value;
-        return *this;
+        return static_cast<DerivedType&>(*this);
     }
 
-    constexpr StrongType operator++(int) noexcept
+    constexpr DerivedType operator++(int) noexcept
     {
-        auto tmp = *this;
-        ++*this;
+        auto tmp = static_cast<DerivedType&>(*this);
+        ++static_cast<DerivedType&>(*this);
         return tmp;
     }
 
-    constexpr StrongType& operator--() noexcept
+    constexpr DerivedType& operator--() noexcept
     {
         --value;
-        return *this;
+        return static_cast<DerivedType&>(*this);
     }
 
-    constexpr StrongType operator--(int) noexcept
+    constexpr DerivedType operator--(int) noexcept
     {
-        auto tmp = *this;
-        --*this;
+        auto tmp = static_cast<DerivedType&>(*this);
+        --static_cast<DerivedType&>(*this);
         return tmp;
     }
 };

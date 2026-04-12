@@ -12,7 +12,7 @@
     {                                                                                                           \
         yylloc->begin = lexer_ctx.source_index;                                                                 \
         const auto end_result = lexer_ctx.source_index.value + yyleng;                                          \
-        DEBUG_SMART_ASSERT(alpha::support::is_in_numeric_range<alpha::SrcBuffIdx::UnderlyingType>(end_result)); \
+        DMASSERT(alpha::support::is_in_numeric_range<alpha::SrcBuffIdx::UnderlyingType>(end_result)); \
         yylloc->end = alpha::SrcBuffIdx{static_cast<alpha::SrcBuffIdx::UnderlyingType>(end_result)};            \
         lexer_ctx.source_index.value = end_result;                                                              \
     } while (0); /* Semi-Colon is not placed by flex, we place it manually. */

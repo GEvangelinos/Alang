@@ -169,7 +169,7 @@ inline bool
 Symbol::is_temp_variable() const noexcept
 {
     const bool is_temp = name.to_string_view().starts_with(TEMP_VARIABLE_PREFIX);
-    DEBUG_SMART_ASSERT(!is_temp || is_variable());
+    DMASSERT(!is_temp || is_variable());
     return is_temp;
 }
 
@@ -189,7 +189,7 @@ VarSymbol::VarSymbol(
     const SourceLocation loc) noexcept
     : Symbol(name, scope, type, loc),
       space(space),
-      offset(offset) { DEBUG_SMART_ASSERT(is_variable()); }
+      offset(offset) { DMASSERT(is_variable()); }
 
 inline Symbol::Type
 VarSymbol::scope_to_symbol_type(const u32 scope)
@@ -200,7 +200,7 @@ VarSymbol::scope_to_symbol_type(const u32 scope)
 inline TempHandleID
 VarSymbol::temp_handle() const noexcept
 {
-    DEBUG_SMART_ASSERT(has_temp_handle() && "Variable symbol has no temp_handle to return");
+    DMASSERT(has_temp_handle() && "Variable symbol has no temp_handle to return");
     return temp_binding_.id();
 }
 
@@ -221,7 +221,7 @@ VarSymbol::TempBinding::release() noexcept
 inline TempHandleID
 VarSymbol::TempBinding::id() const noexcept
 {
-    DEBUG_SMART_ASSERT(is_active());
+    DMASSERT(is_active());
     return id_;
 }
 

@@ -21,7 +21,7 @@ TranslationUnitBufferLoader::load_tub(
     for (auto i = filesize; i < tub_size; ++i)
         data[i] = '\0';
 
-    DEBUG_SMART_ASSERT(!!data);
+    DMASSERT(!!data);
     return std::make_unique<TranslationUnitBuffer>(data.release(), filesize, null_padding);
 }
 

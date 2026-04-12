@@ -2,7 +2,7 @@
 #include "core/konstants.hpp"  // for k_global_scope, k_private_anony...
 #include "parser/_parser_common.hpp"
 #include "support/format_adapter.hpp"  // for format, FMT
-#include "support/smart_assert.h"      // for DEBUG_SMART_ASSERT
+#include "support/smart_assert.h"      // for DMASSERT
 #include <utility>                   // for move, pair, forward
 
 #include "core/string_span.hpp"
@@ -18,7 +18,7 @@ namespace // (Anonymous)
     [[maybe_unused]] const Key &get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
     {
         auto [item_it, inserted] = umap.try_emplace(key);
-        DEBUG_SMART_ASSERT(!inserted);       // This function is meant to be used for existing keys.
+        DMASSERT(!inserted);       // This function is meant to be used for existing keys.
         const Key &key_ref = item_it->first; // First item part of item is Key, second is Value.
         return key_ref;
     }
@@ -32,7 +32,7 @@ namespace // (Anonymous)
         {
             // Same scope and active symbol before insert is error
             // User of `insert_FUNCTION` should do lookup_first.
-            DEBUG_SMART_ASSERT((*symbol_it)->scope != scope || !(*symbol_it)->is_active());
+            DMASSERT((*symbol_it)->scope != scope || !(*symbol_it)->is_active());
             if ((*symbol_it)->scope >= scope) // A bug with a bugged, bug patch lived here :D.
                 break;
             // This comments pays its respects to Savvidis for teaching defensive programming.
@@ -52,7 +52,7 @@ template<typename SymbolKind, typename... Args>
 const SymbolKind *
 SymbolTable::insert_symbol(const StringSpan name, u32 scope, Args &&... args)
 {
-    DEBUG_SMART_ASSERT(!name.empty());
+    DMASSERT(!name.empty());
 
     const auto symbol_map_it = symbol_map_.try_emplace(name).first;
     const auto &symbol_name_ref = symbol_map_it->first;
@@ -164,7 +164,7 @@ SymbolTable::lookup_local(const StringSpan name, const u32 scope) const
 void
 SymbolTable::hide_scope_symbols(const u32 scope) noexcept
 {
-    DEBUG_SMART_ASSERT(scope > k_global_scope);
+    DMASSERT(scope > k_global_scope);
 
     if (scope >= actives_per_scope_.size())
         return; // We don't have symbols at that scope yet. (Empty block at higher scope)
@@ -173,7 +173,7 @@ SymbolTable::hide_scope_symbols(const u32 scope) noexcept
 
     for (Symbol *symbol_ptr: actives_in_scope)
     {
-        DEBUG_SMART_ASSERT(!!symbol_ptr);
+        DMASSERT(!!symbol_ptr);
         symbol_ptr->deactivate();
     }
 
@@ -219,7 +219,7 @@ SymbolTable::attach_const_expr(
     const VarSymbol *var_symbol,
     const ConstExpr *const const_expr)
 {
-    DEBUG_SMART_ASSERT(!!const_expr, const_expr->is_const());
+    DMASSERT(!!const_expr, const_expr->is_const());
     var_symbol->const_expr_ = const_expr;
 }
 

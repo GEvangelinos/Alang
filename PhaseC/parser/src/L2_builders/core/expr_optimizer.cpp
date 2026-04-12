@@ -32,7 +32,7 @@ ExprTrimmer::ExprTrimmer(ExprMaker* const expr_maker)
 const Expr*
 ExprFolder::try_fold_arithmetic_uminus(const Expr* const expr, const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr);
+    DMASSERT(!!expr);
     if (!ExprFolder::should_fold_arithmetic(expr))
         return nullptr;
 
@@ -82,7 +82,7 @@ ExprFolder::try_fold_arithmetic_binary(
         }
     };
 
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs, SemUtils::is_binary_arithmetic_opcode(opc));
+    DMASSERT(!!lhs, !!rhs, SemUtils::is_binary_arithmetic_opcode(opc));
     if (!ExprFolder::should_fold_arithmetic(lhs, rhs))
         return nullptr;
 
@@ -116,7 +116,7 @@ ExprFolder::try_fold_relational_numeric(
         }
     };
 
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         !!lhs, !!rhs,
         SemUtils::is_relational_numeric_iropcode(opc)
     );
@@ -138,7 +138,7 @@ ExprFolder::try_fold_relational_equality(
     const SourceLocation result_loc)
 
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         !!lhs, !!rhs,
         SemUtils::is_relational_equality_iropcode(opc)
     );
@@ -183,11 +183,11 @@ ExprFolder::try_fold_logical_or(
     const Expr* const rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    DMASSERT(!!lhs, !!rhs);
     if (!ExprFolder::should_fold_logical(lhs, rhs))
         return nullptr;
 
-    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::CONST_BOOL, rhs->type == Expr::Type::CONST_BOOL);
+    DMASSERT(lhs->type == Expr::Type::CONST_BOOL, rhs->type == Expr::Type::CONST_BOOL);
     const auto bool_lhs = static_cast<const ConstBoolExpr*>(lhs)->value;
     const auto bool_rhs = static_cast<const ConstBoolExpr*>(rhs)->value;
 
@@ -200,11 +200,11 @@ ExprFolder::try_fold_logical_and(
     const Expr* const rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    DMASSERT(!!lhs, !!rhs);
     if (!ExprFolder::should_fold_logical(lhs, rhs))
         return nullptr;
 
-    DEBUG_SMART_ASSERT(lhs->type == Expr::Type::CONST_BOOL, rhs->type == Expr::Type::CONST_BOOL);
+    DMASSERT(lhs->type == Expr::Type::CONST_BOOL, rhs->type == Expr::Type::CONST_BOOL);
     const auto bool_lhs = static_cast<const ConstBoolExpr*>(lhs)->value;
     const auto bool_rhs = static_cast<const ConstBoolExpr*>(rhs)->value;
 
@@ -216,7 +216,7 @@ ExprFolder::try_fold_logical_not(
     const Expr* const expr,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr);
+    DMASSERT(!!expr);
     if (!ExprFolder::should_fold_logical(expr))
         return nullptr;
 
@@ -272,7 +272,7 @@ ExprTrimmer::try_trim_binary_arithmetic(
     const Expr* const rhs,
     const SourceLocation result_loc)
 {
-    DEBUG_SMART_ASSERT(!!lhs, !!rhs);
+    DMASSERT(!!lhs, !!rhs);
     switch (opc)
     {
     case ir::Opcode::ADD: return try_trim_add(expr_maker_, lhs, rhs, result_loc);
@@ -341,13 +341,13 @@ ExprTrimmer::try_trim_binary_logical(
 const Expr*
 ExprOptimizer::try_propagate_const(const Expr* const expr)
 {
-    DEBUG_SMART_ASSERT(!!expr);
+    DMASSERT(!!expr);
     if (!expr_opts_.opt_const_propagation) [[unlikely]] // We optimize for fully optimized setups.
         return expr;
     if (expr->type != Expr::Type::VARIABLE)
         return expr;
     const VarSymbol* const var_symbol = static_cast<const VariableExpr*>(expr)->var_symbol;
-    DEBUG_SMART_ASSERT(!!var_symbol); // All VariableExpr must be tied to a Variable(Symbol);
+    DMASSERT(!!var_symbol); // All VariableExpr must be tied to a Variable(Symbol);
     if (!var_symbol->has_const_value())
         return expr;
 
@@ -362,7 +362,7 @@ try_trim_add(
     const Expr* const rhs,
     const SourceLocation add_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
+    DMASSERT(!!expr_maker, !!lhs, !!rhs);
     // 0 + x -> x and x + 0 -> x
     if (lhs->is_const_0()) return expr_maker->clone_with_updated_location(add_loc, rhs);
     if (rhs->is_const_0()) return expr_maker->clone_with_updated_location(add_loc, lhs);
@@ -376,7 +376,7 @@ try_trim_sub(
     const Expr* const rhs,
     const SourceLocation sub_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
+    DMASSERT(!!expr_maker, !!lhs, !!rhs);
     // x - 0 -> x
     if (rhs->is_const_0()) return expr_maker->clone_with_updated_location(sub_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
@@ -389,7 +389,7 @@ try_trim_mul(
     const Expr* const rhs,
     const SourceLocation mul_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
+    DMASSERT(!!expr_maker, !!lhs, !!rhs);
     // x * 0 -> 0 and 0 * x -> 0
     if (lhs->is_const_0() || rhs->is_const_0())
         return expr_maker->make_const_int_expr(mul_loc, 0);
@@ -407,7 +407,7 @@ try_trim_div(
     const Expr* const rhs,
     const SourceLocation div_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
+    DMASSERT(!!expr_maker, !!lhs, !!rhs);
     if (rhs->is_const_1()) return expr_maker->clone_with_updated_location(div_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
 }
@@ -419,7 +419,7 @@ try_trim_mod(
     const Expr* const rhs,
     const SourceLocation mod_loc)
 {
-    DEBUG_SMART_ASSERT(!!expr_maker, !!lhs, !!rhs);
+    DMASSERT(!!expr_maker, !!lhs, !!rhs);
     // x % 1 -> 0
     if (rhs->is_const_1()) return expr_maker->make_const_int_expr(mod_loc, 0);
     return nullptr; // Trimming failed (most common scenario)

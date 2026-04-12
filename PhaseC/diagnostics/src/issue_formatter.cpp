@@ -178,7 +178,7 @@ IssueFormatterImpl::IssueFormatterImpl(
       colorize_(colorize),
       working_line_(rendering_span_.begin_line)
 {
-    DEBUG_SMART_ASSERT(working_line_.value > 0 && "Line number is invalid (lines start at 1).");
+    DMASSERT(working_line_.value > 0 && "Line number is invalid (lines start at 1).");
 }
 
 // Number of columns (spaces) to indent the suggestion so its first char
@@ -189,7 +189,7 @@ IssueFormatterImpl::compute_visual_suggestion_indent_width(const Suggestion& sug
     const SrcLineIdx line_no = loc_tracker_.find_last_line(suggestion.insert_after);
     const SrcBuffIdx line_start_index = loc_tracker_.find_index_of_line(line_no);
 
-    DEBUG_SMART_ASSERT(suggestion.insert_after.end >= line_start_index);
+    DMASSERT(suggestion.insert_after.end >= line_start_index);
 
     SrcColumnIdx column = SrcColumnIdx::none();
     // Instead of computing suggestion width with plain subtraction
@@ -266,7 +266,7 @@ IssueFormatterImpl::format_issue_line()
 
     if (!highlight_anchors.empty())
     {
-        DEBUG_SMART_ASSERT(!highlight_labels.empty() && "There are anchors -> thee must be labels");
+        DMASSERT(!highlight_labels.empty() && "There are anchors -> thee must be labels");
         for (const std::string& anchor : highlight_anchors)
             out << FMT::format("{0:>{1}} | {2}\n", "", linebox_width, anchor);
         for (const std::string& label : highlight_labels)
@@ -286,7 +286,7 @@ IssueFormatterImpl::format_issue_line_with_suggestion(
     const std::vector<std::string>& highlight_anchors,
     const std::vector<std::string>& highlight_labels)
 {
-    DEBUG_SMART_ASSERT(target_.suggestion.has_value() && " Shouldn't be called w/o suggestion");
+    DMASSERT(target_.suggestion.has_value() && " Shouldn't be called w/o suggestion");
 
     const auto suggestion_line_no = loc_tracker_.find_last_line(target_.suggestion->insert_after);
     const auto split_point = compute_visual_suggestion_indent_width(target_.suggestion.value());
@@ -463,7 +463,7 @@ IssueFormatterImpl::make_underline()
         else
             line_accumulator.append(slots, ' ');
     }
-    // DEBUG_SMART_ASSERT(crossed_highlights.empty() && "Some highlight(s) wasn't shown correctly");
+    // DMASSERT(crossed_highlights.empty() && "Some highlight(s) wasn't shown correctly");
     finalize_colored_line_accumulator(line_accumulator);
     return line_accumulator;
 }
@@ -493,8 +493,8 @@ IssueFormatterImpl::make_highlight_anchors(
         for (SrcBuffIdx line_idx = line_start_idx; ; ++line_idx)
         {
             const char ch = source_buffer_[line_idx];
-            DEBUG_SMART_ASSERT(ch != '\0' && "all initiating highlights before end of buffer=");
-            DEBUG_SMART_ASSERT(initiating_highlights.size() >= stems_printed);
+            DMASSERT(ch != '\0' && "all initiating highlights before end of buffer=");
+            DMASSERT(initiating_highlights.size() >= stems_printed);
             const TaggedHighlight& next_highlight = initiating_highlights[stems_printed];
             OnceFlag printed;
             const auto slots = calculate_slots(column, ch);
@@ -539,8 +539,8 @@ IssueFormatterImpl::make_highlight_labels()
         for (SrcBuffIdx line_idx = initial_line_idx; ; ++line_idx)
         {
             const char ch = source_buffer_[line_idx];
-            DEBUG_SMART_ASSERT(ch != '\0' && "all initiating highlights before end of buffer=");
-            DEBUG_SMART_ASSERT(initiating_highlights.size() > labels_printed);
+            DMASSERT(ch != '\0' && "all initiating highlights before end of buffer=");
+            DMASSERT(initiating_highlights.size() > labels_printed);
             const TaggedHighlight& next_highlight = initiating_highlights[labels_printed];
             const auto slots = calculate_slots(column, ch);
             OnceFlag printed;
@@ -683,7 +683,7 @@ IssueFormatterImpl::find_end_of_code_in_line(const SrcBuffIdx line_start_idx) co
 
     // -1 to move 1 chars before line comment token '//'
     const auto before_comment = line_start_idx.value + line_comment_pos - 1;
-    DEBUG_SMART_ASSERT(support::is_in_numeric_range<SrcBuffIdx::UnderlyingType>(before_comment));
+    DMASSERT(support::is_in_numeric_range<SrcBuffIdx::UnderlyingType>(before_comment));
     return SrcBuffIdx{static_cast<SrcBuffIdx::UnderlyingType>(before_comment)};
 }
 
@@ -831,7 +831,7 @@ swap_markers(std::string& str, const char old_marker, const char new_marker)
 [[maybe_unused]] std::optional<HighlightTag>
 find_highlight_tag_at(const std::vector<TaggedHighlight>& highlights, const SrcBuffIdx idx)
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         std::is_sorted(highlights.begin(),highlights.end(), &sort_policy::leftmost_first)&&
         "Invariant violation: 'highlights' must be sorted in ascending order by loc.begin\n"
         "(per sort_policy::leftmost_first) before calling current function."

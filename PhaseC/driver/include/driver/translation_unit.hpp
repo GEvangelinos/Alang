@@ -83,7 +83,7 @@ public:
     void export_symbol_table_without_temps() const;
     void export_diagnostics() const;
     void export_ir() const;
-    void export_abc() const;
+    void emit_abc() const;
 
     [[nodiscard]] bool compiled_ok() const noexcept;
 
@@ -99,16 +99,13 @@ private:
     std::unique_ptr<CompilationPipeline> compilation_pipeline_;
     bool execution_completed_ = false;
 
-    void export_within_dir(
-        std::string_view dirname, void (TranslationUnit::*export_func)() const) const;
+    void export_within_dir(std::string_view dirname, std::function<void()> export_func) const;
     void export_symbol_table_dispatch() const;
     void export_symbol_table_without_temps_dispatch() const;
     template <bool export_temps>
     void export_symbol_table_impl() const;
     template<bool show_temps>
     void show_symbol_table_impl() const;
-    void export_diagnostics_impl() const;
-    void export_ir_impl() const;
     [[nodiscard]] DiagnosticEngine::Policy create_diagnostic_engine_policy();
 
     // Notifiers (used as callbacks)

@@ -15,14 +15,14 @@ SpaceHandler::~SpaceHandler()
     // so assertions are skipped in that case.
     DEBUG(
         if (host_->hard_error_occurred()) return;
-        DEBUG_SMART_ASSERT(variable_offset_stack_.size() == 1);
+        DMASSERT(variable_offset_stack_.size() == 1);
     )
 }
 
 ScopeHandler::ScopeHandler(const ParseCtx* host)
     : host_(support::require_ptr(host))
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         scope_ == k_global_scope &&
         "Scope should always start from global scope",
         !skip_next_scope_increment_ &&
@@ -34,7 +34,7 @@ ScopeHandler::~ScopeHandler()
 {
     DEBUG(
         if (host_->hard_error_occurred()) return;
-        DEBUG_SMART_ASSERT(scope_ == k_global_scope);
+        DMASSERT(scope_ == k_global_scope);
     )
 }
 
@@ -45,7 +45,7 @@ CallCtxHandler::~CallCtxHandler()
 {
     DEBUG(
         if (host_->hard_error_occurred()) return;
-        DEBUG_SMART_ASSERT(call_nesting_depth_ == 0);
+        DMASSERT(call_nesting_depth_ == 0);
     )
 }
 
@@ -56,7 +56,7 @@ TableCtxHandler::~TableCtxHandler()
 {
     DEBUG(
         if (host_->hard_error_occurred()) return;
-        DEBUG_SMART_ASSERT(dict_entry_nesting_depth_ == 0);
+        DMASSERT(dict_entry_nesting_depth_ == 0);
     )
 }
 
@@ -92,14 +92,14 @@ FunctionCtxHandler::FlowLivenessTracker::push_if_flow_state(const FlowState flow
 void
 FunctionCtxHandler::FlowLivenessTracker::switch_to_else()
 {
-    DEBUG_SMART_ASSERT(!flow_states_.empty() && "At least last if-branch must have pushed frame");
+    DMASSERT(!flow_states_.empty() && "At least last if-branch must have pushed frame");
 
     if (flow_states_.size() > 1) // Parent exists
     {
         const auto lastest_parent_index = flow_states_.size() - 2;
         if (flow_states_[lastest_parent_index] == FlowState::DEAD)
         {
-            DEBUG_SMART_ASSERT(flow_states_.back() == FlowState::DEAD && "dead parent==dead child");
+            DMASSERT(flow_states_.back() == FlowState::DEAD && "dead parent==dead child");
             return; // If parent is dead, then both if and else cases are dead.
         }
     }
@@ -129,7 +129,7 @@ FunctionCtxHandler::FlowLivenessTracker::push_loop_flow_state(const FlowState fl
 void
 FunctionCtxHandler::FlowLivenessTracker::pop_flow_state()
 {
-    DEBUG_SMART_ASSERT(!flow_states_.empty() && "Sync error occurred");
+    DMASSERT(!flow_states_.empty() && "Sync error occurred");
     flow_states_.pop_back();
 }
 
@@ -151,7 +151,7 @@ FunctionCtxHandler::~FunctionCtxHandler()
 {
     DEBUG(
         if (host_->hard_error_occurred()) return;
-        DEBUG_SMART_ASSERT(
+        DMASSERT(
             frame_stack_.size() == k_global_data_frame_count,
             function_parameters_.empty() // All parameters must be used.
         );
@@ -183,9 +183,9 @@ FunctionCtxHandler::enter_function(
     const ProgFuncSymbol* const func_symbol,
     const LabelID label_of_jump)
 {
-    DEBUG_SMART_ASSERT(frame_stack_.size() < k_max_function_nesting && "A safe small sanity limit");
+    DMASSERT(frame_stack_.size() < k_max_function_nesting && "A safe small sanity limit");
     DEBUG(
-        if (!!func_symbol) DEBUG_SMART_ASSERT(
+        if (!!func_symbol) DMASSERT(
             func_symbol->name == func_name,
             func_symbol->scope == host_->scope_handler.scope() &&
             "FuncSymbol's scope must match the parser scope at the point of entering the function" ,
@@ -211,11 +211,11 @@ FunctionCtxHandler::enter_function(
 FunctionCtxHandler::FunctionBackpatchInfo
 FunctionCtxHandler::exit_function() noexcept
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         frame_stack_.size() > k_global_data_frame_count &&
         "A function frame must always exist for loops outside functions."
     );
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         frame_stack_.top().loop_nesting_count == 0 &&
         "All loops must be closed before exiting a function."
     );
@@ -244,13 +244,13 @@ TempCtxHandler::~TempCtxHandler()
         if (host_->hard_error_occurred()) return;
         // On normal termination, there should be exactly one slot frame left:
         // the initial frame pushed at construction.
-        DEBUG_SMART_ASSERT(temp_frames.size() == 1);
+        DMASSERT(temp_frames.size() == 1);
     )
 
     // The stack of slot handlers should never be completely empty.
     // Even in error cases, grammar actions that push frames run before
     // any possible mismatched symbols, so at least the initial frame survives.
-    DEBUG_SMART_ASSERT(!temp_frames.empty());
+    DMASSERT(!temp_frames.empty());
 }
 
 void
@@ -259,11 +259,11 @@ TempCtxHandler::push_temp_ctx_frame() { temp_frames.emplace(); }
 void
 TempCtxHandler::pop_temp_ctx_frame()
 {
-    DEBUG_SMART_ASSERT(!temp_frames.empty());
+    DMASSERT(!temp_frames.empty());
     DEBUG(
         if (!host_->hard_error_occurred())
         /**/for (const auto temp_handle : temp_frames.top().temp_handles_)
-        /******/DEBUG_SMART_ASSERT(temp_handle == TempFrame::Handle::RELEASED);
+        /******/DMASSERT(temp_handle == TempFrame::Handle::RELEASED);
     )
     temp_frames.pop();
 }
@@ -271,7 +271,7 @@ TempCtxHandler::pop_temp_ctx_frame()
 void
 TempCtxHandler::reset_temp_ctx_frame()
 {
-    DEBUG_SMART_ASSERT(!temp_frames.empty());
+    DMASSERT(!temp_frames.empty());
     pop_temp_ctx_frame();
     push_temp_ctx_frame();
 }
@@ -283,7 +283,7 @@ TempCtxHandler::acquire_temp_handle()
         std::numeric_limits<TempHandleID::UnderlyingType>::min() == 0,
         "TempHandleID must begin at 0 since IDs are used to generate temporary variable names."
     );
-    DEBUG_SMART_ASSERT(!temp_frames.empty());
+    DMASSERT(!temp_frames.empty());
 
     auto& temp_handles = temp_frames.top().temp_handles_;
 
@@ -298,16 +298,16 @@ TempCtxHandler::acquire_temp_handle()
     // If no available push new.
     temp_handles.emplace_back(TempFrame::Handle::ACQUIRED);
     const auto new_id = temp_handles.size() - 1;
-    DEBUG_SMART_ASSERT(static_cast<TempHandleID>(new_id).value == new_id && "`new_id` out of range");
+    DMASSERT(static_cast<TempHandleID>(new_id).value == new_id && "`new_id` out of range");
     return static_cast<TempHandleID>(new_id);
 }
 
 void
 TempCtxHandler::release_temp_handle(const TempHandleID id)
 {
-    DEBUG_SMART_ASSERT(!temp_frames.empty());
+    DMASSERT(!temp_frames.empty());
     auto& temp_handles = temp_frames.top().temp_handles_;
-    DEBUG_SMART_ASSERT(!temp_handles.empty(), id.value < temp_handles.size());
+    DMASSERT(!temp_handles.empty(), id.value < temp_handles.size());
     temp_handles[id.value] = TempFrame::Handle::RELEASED;
 }
 
@@ -323,11 +323,11 @@ ParseCtx::ParseCtx(SymbolTable* const symbol_table)
 StringSpan
 ParseCtx::generate_temp_name(const TempHandleID temp_handle)
 {
-    DEBUG_SMART_ASSERT(temp_handle.value <= temp_name_cache.size() && "Temp name-index mismatch");
+    DMASSERT(temp_handle.value <= temp_name_cache.size() && "Temp name-index mismatch");
     if (temp_handle.value == temp_name_cache.size())
     {
         temp_name_cache.emplace_back(FMT::format(TEMP_VARIABLE_PREFIX"{}", temp_handle.value));
-        DEBUG_SMART_ASSERT(temp_name_cache[temp_handle.value] == temp_name_cache.back());
+        DMASSERT(temp_name_cache[temp_handle.value] == temp_name_cache.back());
     }
     const std::string& name = temp_name_cache[temp_handle.value];
     return {name.data(), name.size()};
@@ -340,7 +340,7 @@ ParseCtx::new_temp()
     const StringSpan temp_name = ParseCtx::generate_temp_name(temp_handle);
 
     const Symbol* symbol = symbol_table_->lookup_local(temp_name, scope_handler.scope());
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         !symbol || symbol->is_variable(),
         !symbol || symbol->is_temp_variable()
     );
@@ -373,12 +373,12 @@ ElistCtxHandler::enter_region(const Region r) { region_stack_.push(r); }
 void
 ElistCtxHandler::exit_region(DEBUG(const Region r))
 {
-    DEBUG_SMART_ASSERT(!region_stack_.empty());
+    DMASSERT(!region_stack_.empty());
 
     // Ensure we are exiting the same region we most recently entered.
     // Regions must be balanced: every enter_region() must be matched
     // with a corresponding exit_region() for the same Region.
-    DEBUG_SMART_ASSERT(region() == r && "Mismatched region exit");
+    DMASSERT(region() == r && "Mismatched region exit");
     region_stack_.pop();
 }
 

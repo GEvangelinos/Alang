@@ -28,7 +28,7 @@ QuadHandler::emit(
                (req == Requirement::REQUIRED && !!expr);
     };
 
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         ir_quads_.size() + 1 == next_quad_label().value,
         !ir::info_traits::is_non_emittable(opc),
         requirement_matches(ii::result(opc), result),
@@ -36,11 +36,11 @@ QuadHandler::emit(
         requirement_matches(ii::arg2(opc), arg2),
     );
     if (opc != ir::Opcode::TABLECREATE)
-        DEBUG_SMART_ASSERT(
+        DMASSERT(
         loc != SourceLocation::none()
     );
     if (opc == ir::Opcode::JUMP && label == next_quad_label())
-        DEBUG_SMART_ASSERT(
+        DMASSERT(
         false && "ir::Opcode::JUMP jumps to itself"
     );
     #endif
@@ -61,7 +61,7 @@ QuadHandler::labelPatch_quad(const LabelID target_quad_label, const LabelID dest
 {
     // First quad at index 0, has quad with label 1.
     const u32 idx = ir::Quad::label_to_index(target_quad_label);
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         idx < ir_quads_.size(),
         ir_quads_[idx].label == LabelID::none(),
         destination_label != LabelID::none()
@@ -74,7 +74,7 @@ QuadHandler::labelPatch_list(
     const std::vector<LabelID> &patch_list,
     const LabelID destination_label)
 {
-    DEBUG_SMART_ASSERT(destination_label != LabelID::none());
+    DMASSERT(destination_label != LabelID::none());
     for (const LabelID target_quad_label : patch_list)
         labelPatch_quad(target_quad_label, destination_label);
 }
@@ -82,7 +82,7 @@ QuadHandler::labelPatch_list(
 void
 QuadHandler::locPatch_tablecreate(const LabelID target_quad_label, const SourceLocation new_loc)
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         target_quad_label != LabelID::none() && "Can't loc-patch quad without valid LabelID",
         new_loc != SourceLocation::none() && "Can't loc-patch quad without valid SourceLocation"
     );
@@ -90,8 +90,8 @@ QuadHandler::locPatch_tablecreate(const LabelID target_quad_label, const SourceL
     const u32 idx = ir::Quad::label_to_index(target_quad_label);
 
     // Keep asserts separate, as dereferencing might segfault
-    DEBUG_SMART_ASSERT(idx < ir_quads_.size());
-    DEBUG_SMART_ASSERT(
+    DMASSERT(idx < ir_quads_.size());
+    DMASSERT(
         ir_quads_[idx].opcode == ir::Opcode::TABLECREATE && "Only loc-patching tablecreate quads",
         ir_quads_[idx].loc == SourceLocation::none() &&
         "SourceLocation is already assigned, should'nt be called"

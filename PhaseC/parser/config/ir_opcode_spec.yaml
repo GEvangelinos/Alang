@@ -34,7 +34,7 @@
 
 IROPCODE_INFO_ENUMS:
   Requirement: [ NONE, OPTIONAL, REQUIRED ], DEFAULT: NONE
-
+  VmOpcode: [NOP], DEFAULT: NOP
 
   # Negated flag by design: this is the less common case, so we name it negatively
   # to exploit the default bool value of false. That way we avoid explicitly writing
@@ -210,7 +210,7 @@ IROPCODE_LIST:
 
   RETURN: # ✔
     result: NONE
-    arg1: OPTIONAL
+    arg1: REQUIRED
     arg2: NONE
 
   FUNCSTART: # ✔

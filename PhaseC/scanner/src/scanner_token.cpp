@@ -251,6 +251,7 @@ SourceLocation TokenString::string_starting_location_ = SourceLocation::none();
 std::string TokenString::latest_assembled_string_;
 
 /* TODO: FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */
+#warning "I DO NOT WANT TO CONVERT SHIT... We should convert escapes only at the end of ABC making... NOT HERE (in lexer state)"
 std::string
 TokenString::convert_content_escapes_to_ascii()
 {

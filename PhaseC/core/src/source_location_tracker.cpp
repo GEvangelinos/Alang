@@ -12,7 +12,7 @@ LocationTracker::LocationTracker(const SrcBuffIdx max_valid_index)
 void
 LocationTracker::append_line(const SrcBuffIdx linestart_index)
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         !lines_frozen &&
         "Lines are frozen, meaning scanning of the source file should have ended."
         "Therefore there should be no extra lines to add."
@@ -59,7 +59,7 @@ LocationTracker::find_index_of_line(const SrcLineIdx line) const
             "BUG: LocationTracker was asked to find index of k_no_line = `{}`)",
             SrcLineIdx::none
         )));
-    DEBUG_SMART_ASSERT(line.value <= linestart_buffer_indices_.size());
+    DMASSERT(line.value <= linestart_buffer_indices_.size());
     return linestart_buffer_indices_[line.value - 1]; // -1 as line starts at pos 0.
 }
 
@@ -71,7 +71,7 @@ LocationTracker::find_first_column(const SourceLocation loc) const
             "BUG: LocationTracker was asked to find column of k_no_loc"));
 
     const SrcLineIdx starting_line = find_first_line(loc);
-    DEBUG_SMART_ASSERT(starting_line.value <= linestart_buffer_indices_.size());
+    DMASSERT(starting_line.value <= linestart_buffer_indices_.size());
     // -1 as line starts at pos 0.
     const SrcBuffIdx index_at_starting_line = linestart_buffer_indices_[starting_line.value - 1];
 
@@ -82,7 +82,7 @@ LocationTracker::find_first_column(const SourceLocation loc) const
     }
     else
     {
-        DEBUG_SMART_ASSERT(loc.begin >= index_at_starting_line);
+        DMASSERT(loc.begin >= index_at_starting_line);
         // +1 to convert index offset to columns.
         const SrcColumnIdx starting_column{loc.begin.value - index_at_starting_line.value + 1};
         return starting_column;
@@ -120,12 +120,12 @@ LocationTracker::find_lines(const SourceLocation loc) const
 bool
 LocationTracker::is_virtual_line(const SrcLineIdx line) const noexcept
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         lines_frozen &&
         "Querying if a line is virtual is only possible after lines are frozen. "
         "(aka after whole source file is scanned)"
     );
-    DEBUG_SMART_ASSERT(!linestart_buffer_indices_.empty() && "There must be at least phony line 0");
+    DMASSERT(!linestart_buffer_indices_.empty() && "There must be at least phony line 0");
     const auto current_existing_line_count = linestart_buffer_indices_.size() - 1;
     return line == SrcLineIdx::none() || line.value > current_existing_line_count;
 }
@@ -141,7 +141,7 @@ LocationTracker::eof_line() const noexcept
 SrcLineIdx
 LocationTracker::find_line(const SrcBuffIdx idx) const
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         std::is_sorted(linestart_buffer_indices_.begin(), linestart_buffer_indices_.end())
     );
 
@@ -155,13 +155,13 @@ LocationTracker::find_line(const SrcBuffIdx idx) const
         idx
     );
 
-    DEBUG_SMART_ASSERT(!linestart_buffer_indices_.empty() && "There must be at least phony line 0");
+    DMASSERT(!linestart_buffer_indices_.empty() && "There must be at least phony line 0");
     const std::ptrdiff_t lineno = std::distance(linestart_buffer_indices_.begin(), it);
 
     if (lineno < 0 || lineno > static_cast<std::ptrdiff_t>(linestart_buffer_indices_.size()))
         throw std::logic_error(ATTACH_CONTEXT("BUG: Invalid computed line index."));
 
-    DEBUG_SMART_ASSERT(support::is_in_numeric_range<SrcLineIdx::UnderlyingType>(lineno));
+    DMASSERT(support::is_in_numeric_range<SrcLineIdx::UnderlyingType>(lineno));
     return SrcLineIdx{static_cast<SrcLineIdx::UnderlyingType>(lineno)};
 }
 } // namespace alpha

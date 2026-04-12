@@ -166,15 +166,9 @@ struct ConstStringExpr final : public ConstExpr
 
     ConstStringExpr(const SourceLocation loc, const StringSpan value)
         : ConstExpr(Type::CONST_STRING, loc),
-          value(support::cstrdup(value.data, value.size), value.size)
+          value(value)
     {
-        DEBUG_SMART_ASSERT(!this->value.empty());
-    }
-
-    ~ConstStringExpr()
-    {
-        DEBUG_SMART_ASSERT(!value.empty());
-        delete [] value.data;
+        DMASSERT(!this->value.empty());
     }
 };
 
@@ -221,7 +215,7 @@ struct TableItemExpr final : public ExprWVarSymbol
 struct VariableExpr final : public ExprWVarSymbol
 {
     VariableExpr(const SourceLocation loc, const VarSymbol *const var)
-        : ExprWVarSymbol(Type::VARIABLE, loc, var) { DEBUG_SMART_ASSERT(var->is_variable()); }
+        : ExprWVarSymbol(Type::VARIABLE, loc, var) { DMASSERT(var->is_variable()); }
 };
 
 inline void

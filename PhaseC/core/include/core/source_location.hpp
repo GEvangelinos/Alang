@@ -58,13 +58,13 @@ private:
 // ======================================================================================
 constexpr
 SourceLocation::SourceLocation(const SrcBuffIdx begin, const SrcBuffIdx end)
-    : begin(begin), end(end) { DEBUG_SMART_ASSERT(is_valid()); }
+    : begin(begin), end(end) { DMASSERT(is_valid()); }
 
 constexpr
 SourceLocation::SourceLocation(const SourceLocationRaw raw_loc)
     : begin(SrcBuffIdx{raw_loc.begin}), end(SrcBuffIdx{raw_loc.end})
 {
-    DEBUG_SMART_ASSERT(is_valid());
+    DMASSERT(is_valid());
 }
 
 inline SourceLocationRaw
@@ -83,7 +83,7 @@ SourceLocation::operator!=(const SourceLocation rhs) const noexcept { return !(*
 inline SourceLocation
 merge(const SourceLocation left, const SourceLocation right)
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         left.begin < left.end,   // Verify correct SourceLocation
         right.begin < right.end, // Verify correct SourceLocation
         left.begin < right.begin,

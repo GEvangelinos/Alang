@@ -28,7 +28,7 @@ DiagnosticFormatter::~DiagnosticFormatter()
 std::string
 DiagnosticFormatter::format(const Diagnostic &diagnostic) const
 {
-    DEBUG_SMART_ASSERT(!!issue_formatter_);
+    DMASSERT(!!issue_formatter_);
 
     std::stringstream ss;
     ss << issue_formatter_->format(diagnostic.primary);

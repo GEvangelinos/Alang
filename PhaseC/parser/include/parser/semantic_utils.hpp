@@ -57,7 +57,7 @@ namespace alpha::SemUtils
 
 [[nodiscard]] constexpr const char* relop_str(const ir::Opcode opc)
 {
-    DEBUG_SMART_ASSERT(is_relational_iropcode(opc));
+    DMASSERT(is_relational_iropcode(opc));
     switch (opc)
     {
     case ir::Opcode::IF_LT: return "<";
@@ -74,7 +74,7 @@ namespace alpha::SemUtils
 
 [[nodiscard]] constexpr const char* arith_op_str(const ir::Opcode opc)
 {
-    DEBUG_SMART_ASSERT(is_binary_arithmetic_opcode(opc));
+    DMASSERT(is_binary_arithmetic_opcode(opc));
     switch (opc)
     {
     case ir::Opcode::ADD: return "+";
@@ -90,8 +90,8 @@ namespace alpha::SemUtils
 
 [[nodiscard]] inline bool as_bool(const Expr* const e) noexcept
 {
-    DEBUG_SMART_ASSERT(!!e);
-    DEBUG_SMART_ASSERT(e->is_static() && "Can only evaluate as bool is given expr is static");
+    DMASSERT(!!e);
+    DMASSERT(e->is_static() && "Can only evaluate as bool is given expr is static");
     using ET = Expr::Type;
     switch (e->type)
     {
@@ -110,7 +110,7 @@ namespace alpha::SemUtils
 {
     if (e->type == Expr::Type::CONST_INT)
         return static_cast<const ConstIntExpr*>(e)->value;
-    DEBUG_SMART_ASSERT(e->type == Expr::Type::CONST_FLOAT && "Logic error");
+    DMASSERT(e->type == Expr::Type::CONST_FLOAT && "Logic error");
     return static_cast<const ConstFloatExpr*>(e)->value;
 }
 } // namespace alpha::SemanticUtils

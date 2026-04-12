@@ -17,7 +17,7 @@ Suggestion::compute_printing_span() const
         return 0;
 
     const auto newline_count = std::count(desc.begin(), desc.end(), '\n');
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         newline_count >= 0,
         newline_count < std::numeric_limits<u32>::max() - k_line_offset
     );
@@ -86,7 +86,7 @@ Issue::compute_rendering_span(const LocationTracker &loc_tracker) const
         for (const Highlight &hl : *highlights)
             adjust_to_fit_span(hl.loc);
 
-    DEBUG_SMART_ASSERT(result.begin_line <= result.end_line);
+    DMASSERT(result.begin_line <= result.end_line);
     return result;
 }
 

@@ -13,7 +13,7 @@ cmake <OPTIONS> ..
 ## CMake Options
 
 - **DEBUG_MODE**  
-  Enables debug symbols (`-g`) and additional sanity checks. Sanity checks and debugging code are conditionally compiled within `#ifdef DEBUG_MODE` guards and `DEBUG_SMART_ASSERT` macros.
+  Enables debug symbols (`-g`) and additional sanity checks. Sanity checks and debugging code are conditionally compiled within `#ifdef DEBUG_MODE` guards and `DMASSERT` macros.
 
 - **OPTIMIZED_MODE**  
   Enables compiler optimizations (`-O3`, `-march=native`, `(-flto)`) and disables parser tracing. (The option `--show-parser-trace` becomes inert.)

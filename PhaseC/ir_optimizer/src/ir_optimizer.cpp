@@ -22,7 +22,7 @@ IROptimizer::run(std::vector<ir::Quad> quads) const
 bool
 IROptimizer::do_jump_threading(std::vector<ir::Quad> &quads)
 {
-    DEBUG_SMART_ASSERT(support::is_in_numeric_range<LabelID::UnderlyingType>(quads.size()));
+    DMASSERT(support::is_in_numeric_range<LabelID::UnderlyingType>(quads.size()));
     bool changed_quads = false;
 
     VectorStack<std::size_t> jump_chain_indices;
@@ -30,7 +30,7 @@ IROptimizer::do_jump_threading(std::vector<ir::Quad> &quads)
     {
         if (quads[i].opcode != ir::Opcode::JUMP)
             continue;
-        DEBUG_SMART_ASSERT(jump_chain_indices.empty() && "Must always be emptied past while loop");
+        DMASSERT(jump_chain_indices.empty() && "Must always be emptied past while loop");
 
         auto quad_index_to_jump_thread = i;
         LabelID jump_target = quads[i].label;

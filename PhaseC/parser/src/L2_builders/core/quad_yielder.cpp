@@ -17,7 +17,7 @@ QuadYielder::QuadYielder(
 void
 QuadYielder::release_temp_handle_if_active(const Expr *const expr)
 {
-    DEBUG_SMART_ASSERT(!!expr);
+    DMASSERT(!!expr);
     // Rvalue operands don't persist, so temp names can be safely reused.
     if (expr->has_active_temp())
     {

@@ -83,7 +83,7 @@ ExprMaker::make_arithmetic_expr(
     const SourceLocation expr_loc,
     const VarSymbol *const var_symbol)
 {
-    DEBUG_SMART_ASSERT(!!var_symbol);
+    DMASSERT(!!var_symbol);
     const auto *const arithmetic_expr = new const ArithmeticExpr(expr_loc, var_symbol);
     expr_sink_.push_back(arithmetic_expr);
     return arithmetic_expr;
@@ -94,7 +94,7 @@ ExprMaker::make_bool_expr(
     const SourceLocation expr_loc,
     const VarSymbol *const var_symbol)
 {
-    DEBUG_SMART_ASSERT(!!var_symbol);
+    DMASSERT(!!var_symbol);
     const auto *const bool_expr = new const BoolExpr(expr_loc, var_symbol);
     expr_sink_.push_back(bool_expr);
     return bool_expr;
@@ -105,7 +105,7 @@ ExprMaker::make_new_table_expr(
     const SourceLocation expr_loc,
     const VarSymbol *const var_symbol)
 {
-    DEBUG_SMART_ASSERT(!!var_symbol);
+    DMASSERT(!!var_symbol);
     const auto *const new_table_expr = new const NewTableExpr(expr_loc, var_symbol);
     expr_sink_.push_back(new_table_expr);
     return new_table_expr;
@@ -116,7 +116,7 @@ ExprMaker::make_assign_expr(
     const SourceLocation expr_loc,
     const VarSymbol *const var_symbol)
 {
-    DEBUG_SMART_ASSERT(!!var_symbol);
+    DMASSERT(!!var_symbol);
     const auto *const assign_expr = new const AssignExpr(expr_loc, var_symbol);
     expr_sink_.push_back(assign_expr);
     return assign_expr;
@@ -149,7 +149,7 @@ ExprMaker::make_const_float_expr(const SourceLocation expr_loc, const AlphaFloat
 inline const ConstStringExpr *
 ExprMaker::make_const_string_expr(const SourceLocation expr_loc, const StringSpan str_value)
 {
-    DEBUG_SMART_ASSERT(!str_value.empty());
+    DMASSERT(!str_value.empty());
     const auto *const const_str_expr = new const ConstStringExpr(expr_loc, str_value);
     expr_sink_.push_back(const_str_expr);
     return const_str_expr;
@@ -166,7 +166,7 @@ ExprMaker::make_nil_expr(const SourceLocation expr_loc)
 inline const LibFuncExpr *
 ExprMaker::make_lib_func_expr(const SourceLocation expr_loc, const LibFuncSymbol *const func_symbol)
 {
-    DEBUG_SMART_ASSERT(!!func_symbol);
+    DMASSERT(!!func_symbol);
     const auto *const lib_func_expr = new const LibFuncExpr(expr_loc, func_symbol);
     expr_sink_.push_back(lib_func_expr);
     return lib_func_expr;
@@ -177,7 +177,7 @@ ExprMaker::make_prog_func_expr(
     const SourceLocation expr_loc,
     const ProgFuncSymbol *const func_symbol)
 {
-    DEBUG_SMART_ASSERT(!!func_symbol);
+    DMASSERT(!!func_symbol);
     const auto *const prog_func_expr = new const ProgFuncExpr(expr_loc, func_symbol);
     expr_sink_.push_back(prog_func_expr);
     return prog_func_expr;
@@ -189,13 +189,13 @@ ExprMaker::make_table_item_expr(
     const Expr *const base,
     const Expr *const index)
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         !!base, !!index,
         base->is_lvalue(),
         base->has_symbol()
     );
     // TODO POLISH
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         base->type == Expr::Type::VARIABLE &&
         "if it fails then we must check for lib and prog, assign , tableitem "
     );
@@ -209,7 +209,7 @@ ExprMaker::make_table_item_expr(
 inline const VariableExpr *
 ExprMaker::make_variable_expr(const SourceLocation expr_loc, const VarSymbol *const var_symbol)
 {
-    DEBUG_SMART_ASSERT(!!var_symbol);
+    DMASSERT(!!var_symbol);
     const auto *const variable_expr = new const VariableExpr(expr_loc, var_symbol);
     expr_sink_.push_back(variable_expr);
     return variable_expr;

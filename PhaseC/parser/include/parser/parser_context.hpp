@@ -139,7 +139,6 @@ public:
     [[nodiscard]] SourceLocation current_function_location() const noexcept;
     [[nodiscard]] u32 loop_depth() const noexcept;
     [[nodiscard]] const std::vector<Parameter> &function_parameters() const noexcept;
-    [[nodiscard]] u32 next_function_address() noexcept { return next_function_address_++; }
     [[nodiscard]] const std::vector<LabelID> &break_list();
     void add_label_to_breaklist(LabelID jump_label); // Quad label of jump used to break.
     void add_label_to_continuelist(LabelID jump_label);
@@ -183,8 +182,6 @@ private:
 
     VectorStack<FunctionDataFrame> frame_stack_;
     std::vector<Parameter> function_parameters_;
-    u32 next_function_address_ = k_first_function_address;
-
     ParseCtx *const host_;
 };
 
@@ -282,7 +279,7 @@ SpaceHandler::exit_space()
 {
     constexpr auto spaces_for_closure = 2; // 1 formalArg + 1 functionLocal
 
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         variable_offset_stack_.size() > spaces_for_closure,
         support::is_odd(variable_offset_stack_.size())
     );
@@ -294,7 +291,7 @@ SpaceHandler::exit_space()
 inline VarSymbol::Space
 SpaceHandler::space() const noexcept
 {
-    DEBUG_SMART_ASSERT(!variable_offset_stack_.empty() && " A stack frame must always exist");
+    DMASSERT(!variable_offset_stack_.empty() && " A stack frame must always exist");
     const auto frame_index = variable_offset_stack_.size() - 1; // -1 for size to index
 
     if (frame_index == k_initial_space)
@@ -307,7 +304,7 @@ SpaceHandler::space() const noexcept
 inline u32
 SpaceHandler::next_offset() noexcept
 {
-    DEBUG_SMART_ASSERT(!variable_offset_stack_.empty());
+    DMASSERT(!variable_offset_stack_.empty());
     return variable_offset_stack_.top()++;
 }
 
@@ -322,7 +319,7 @@ ScopeHandler::enter_scope() noexcept
         skip_next_scope_increment_.disable();
         return;
     }
-    DEBUG_SMART_ASSERT(scope_ < k_max_scope);
+    DMASSERT(scope_ < k_max_scope);
     ++scope_;
 }
 
@@ -334,7 +331,7 @@ ScopeHandler::exit_scope() noexcept
     // entered it. So if you exit a block and the
     // `skip_next_scope_increment` switch is enabled, there is a logic
     // issue.
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         scope_ > k_global_scope,
         !skip_next_scope_increment_
     );
@@ -344,21 +341,21 @@ ScopeHandler::exit_scope() noexcept
 inline void
 CallCtxHandler::enter_call() noexcept
 {
-    DEBUG_SMART_ASSERT(call_nesting_depth_< k_max_call_nesting && "A safe small sanity limit");
+    DMASSERT(call_nesting_depth_< k_max_call_nesting && "A safe small sanity limit");
     ++call_nesting_depth_;
 }
 
 inline void
 CallCtxHandler::exit_call() noexcept
 {
-    DEBUG_SMART_ASSERT(call_nesting_depth_ > 0);
+    DMASSERT(call_nesting_depth_ > 0);
     --call_nesting_depth_;
 }
 
 inline void
 TableCtxHandler::enter_dict_entry() noexcept
 {
-    DEBUG_SMART_ASSERT(dict_entry_nesting_depth_< k_max_dict_nesting && "A safe small sanity limit")
+    DMASSERT(dict_entry_nesting_depth_< k_max_dict_nesting && "A safe small sanity limit")
     ;
     ++dict_entry_nesting_depth_;
 }
@@ -366,7 +363,7 @@ TableCtxHandler::enter_dict_entry() noexcept
 inline void
 TableCtxHandler::exit_dict_entry() noexcept
 {
-    DEBUG_SMART_ASSERT(dict_entry_nesting_depth_ > 0);
+    DMASSERT(dict_entry_nesting_depth_ > 0);
     --dict_entry_nesting_depth_;
 }
 
@@ -379,29 +376,29 @@ FunctionCtxHandler::function_nesting_depth() const noexcept
 inline u32
 FunctionCtxHandler::current_function_scope() const noexcept
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
     return frame_stack_.top().scope;
 }
 
 inline const std::string &
 FunctionCtxHandler::current_function_name() const noexcept
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
     return frame_stack_.top().name;
 }
 
 inline SourceLocation
 FunctionCtxHandler::current_function_location() const noexcept
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
     return frame_stack_.top().loc;
 }
 
 inline void
 FunctionCtxHandler::enter_loop() noexcept
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
-    DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count < k_max_loop_nesting);
+    DMASSERT(!frame_stack_.empty());
+    DMASSERT(frame_stack_.top().loop_nesting_count < k_max_loop_nesting);
 
     ++frame_stack_.top().loop_nesting_count;
 
@@ -415,12 +412,12 @@ FunctionCtxHandler::enter_loop() noexcept
 inline void
 FunctionCtxHandler::exit_loop() noexcept
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
-    DEBUG_SMART_ASSERT(frame_stack_.top().loop_nesting_count > 0);
+    DMASSERT(!frame_stack_.empty());
+    DMASSERT(frame_stack_.top().loop_nesting_count > 0);
     --frame_stack_.top().loop_nesting_count;
 
-    DEBUG_SMART_ASSERT(!frame_stack_.top().function_breaklist_stack.empty());
-    DEBUG_SMART_ASSERT(!frame_stack_.top().function_continuelist_stack.empty());
+    DMASSERT(!frame_stack_.top().function_breaklist_stack.empty());
+    DMASSERT(!frame_stack_.top().function_continuelist_stack.empty());
     // Emplace empty breaklist (vector)
     frame_stack_.top().function_breaklist_stack.pop();
 
@@ -431,7 +428,7 @@ FunctionCtxHandler::exit_loop() noexcept
 inline u32
 FunctionCtxHandler::loop_depth() const noexcept
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
     return frame_stack_.top().loop_nesting_count;
 }
 
@@ -447,9 +444,9 @@ FunctionCtxHandler::function_parameters() const noexcept { return function_param
 inline const std::vector<LabelID> &
 FunctionCtxHandler::break_list()
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
     // We must be in a LOOP
-    DEBUG_SMART_ASSERT(!frame_stack_.top().function_breaklist_stack.empty());
+    DMASSERT(!frame_stack_.top().function_breaklist_stack.empty());
 
     return frame_stack_.top().function_breaklist_stack.top();
 }
@@ -457,9 +454,9 @@ FunctionCtxHandler::break_list()
 inline const std::vector<LabelID> &
 FunctionCtxHandler::continue_list()
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
     // We must be in a LOOP
-    DEBUG_SMART_ASSERT(!frame_stack_.top().function_continuelist_stack.empty());
+    DMASSERT(!frame_stack_.top().function_continuelist_stack.empty());
 
     return frame_stack_.top().function_continuelist_stack.top();
 }
@@ -468,9 +465,9 @@ inline void
 FunctionCtxHandler::add_label_to_breaklist(const LabelID jump_label)
 // Quad label of jump used to break.
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
     // We must be in a LOOP
-    DEBUG_SMART_ASSERT(!frame_stack_.top().function_breaklist_stack.empty());
+    DMASSERT(!frame_stack_.top().function_breaklist_stack.empty());
 
     // we used Stack so each loop has its own break list
     frame_stack_.top().function_breaklist_stack.top().push_back(jump_label);
@@ -480,10 +477,10 @@ inline void
 FunctionCtxHandler::add_label_to_continuelist(const LabelID jump_label)
 // Quad label of jump used to break.
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
 
     // We must be in a LOOP
-    DEBUG_SMART_ASSERT(!frame_stack_.top().function_continuelist_stack.empty());
+    DMASSERT(!frame_stack_.top().function_continuelist_stack.empty());
 
     // we used Stack so each loop has its own continue list.
     frame_stack_.top().function_continuelist_stack.top().push_back(jump_label);
@@ -492,21 +489,21 @@ FunctionCtxHandler::add_label_to_continuelist(const LabelID jump_label)
 inline const std::vector<LabelID> &
 FunctionCtxHandler::return_list()
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
     return frame_stack_.top().function_returnlist;
 }
 
 inline const FunctionCtxHandler::FlowLivenessTracker &
 FunctionCtxHandler::flow_liveness() const
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
     return frame_stack_.top().flow_liveness_tracker;
 }
 
 inline FunctionCtxHandler::FlowLivenessTracker &
 FunctionCtxHandler::flow_liveness()
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
     return frame_stack_.top().flow_liveness_tracker;
 }
 
@@ -514,7 +511,7 @@ inline void
 FunctionCtxHandler::add_label_to_returnlist(const LabelID jump_label)
 {
     // We must be in function
-    DEBUG_SMART_ASSERT(frame_stack_.size() > 1);
+    DMASSERT(frame_stack_.size() > 1);
     frame_stack_.top().function_returnlist.push_back(jump_label);
 }
 
@@ -524,7 +521,7 @@ FunctionCtxHandler::clear_function_parameters() noexcept { function_parameters_.
 inline void
 FunctionCtxHandler::add_local() noexcept
 {
-    DEBUG_SMART_ASSERT(!frame_stack_.empty());
+    DMASSERT(!frame_stack_.empty());
     ++frame_stack_.top().local_variable_count;
 }
 

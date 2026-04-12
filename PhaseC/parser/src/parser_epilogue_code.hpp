@@ -50,7 +50,7 @@ determine_suggested_token_based_on_parsing_heuristics(
     const LexerCtx& lexer_ctx,
     const Info& info)
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY &&
         "Should not be called without unexpected symbol"
     );
@@ -99,7 +99,7 @@ made_diagnostic_based_on_semantic_heuristics(
     DiagnosticReporter& dr,
     const Info& info)
 {
-    DEBUG_SMART_ASSERT(info.unexpected_token != YYSYMBOL_YYEMPTY &&
+    DMASSERT(info.unexpected_token != YYSYMBOL_YYEMPTY &&
         "Should not be called without unexpected symbol");
 
     if (!lexer_ctx.second_last_token_info().has_value())
@@ -184,10 +184,10 @@ yypcontext_expected_tokens_or_throw(
     yysymbol_kind_t yyarg[],
     const unsigned int yyargn)
 {
-    DEBUG_SMART_ASSERT(!!yyctx, !!yyarg || !yyargn);
+    DMASSERT(!!yyctx, !!yyarg || !yyargn);
 
     // We assert this, as original yypcontext_expected_tokens(), receives int for yyargn.
-    DEBUG_SMART_ASSERT(yyargn <= std::numeric_limits<int>::max());
+    DMASSERT(yyargn <= std::numeric_limits<int>::max());
 
     int expected_count = yypcontext_expected_tokens(yyctx, yyarg, yyargn);
     if (expected_count >= 0)
@@ -206,7 +206,7 @@ yypcontext_expected_tokens_or_throw(
 [[nodiscard]] static unsigned int
 expected_size(const yypcontext_t* const yyctx)
 {
-    DEBUG_SMART_ASSERT(!!yyctx);
+    DMASSERT(!!yyctx);
     return yypcontext_expected_tokens_or_throw(yyctx, nullptr, 0);
 }
 
@@ -221,14 +221,14 @@ collect_expected_tokens(const yypcontext_t* const yyctx)
 
     [[maybe_unused]] unsigned int filled = // Only used in DEBUG
         yypcontext_expected_tokens_or_throw(yyctx, result.data(), count);
-    DEBUG_SMART_ASSERT(filled == count && filled == result.size());
+    DMASSERT(filled == count && filled == result.size());
     return result;
 }
 
 [[nodiscard]] static std::string
 get_formatted_unexpected_token_name(const Info& info)
 {
-    DEBUG_SMART_ASSERT(!!info.unexpected_token_name, !!info.unexpected_token_source_text.data());
+    DMASSERT(!!info.unexpected_token_name, !!info.unexpected_token_source_text.data());
     std::string out(info.unexpected_token_name);
     switch (info.unexpected_token)
     {
@@ -252,7 +252,7 @@ get_formatted_unexpected_token_name(const Info& info)
 [[maybe_unused]][[nodiscard]] static Suggestion
 make_symbol_suggestion(const LexerCtx& lexer_ctx, yysymbol_kind_t suggested_symbol)
 {
-    DEBUG_SMART_ASSERT(suggested_symbol != YYSYMBOL_YYEMPTY);
+    DMASSERT(suggested_symbol != YYSYMBOL_YYEMPTY);
     const TokenInfo token_info = lexer_ctx.last_token_info().value();
     return Suggestion{yysymbol_name(suggested_symbol), token_info.loc};
 }
@@ -260,9 +260,9 @@ make_symbol_suggestion(const LexerCtx& lexer_ctx, yysymbol_kind_t suggested_symb
 static void
 report_no_expected_diagnostic(const Info& info, DiagnosticReporter& dr)
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
-    DEBUG_SMART_ASSERT(info.expected_tokens.empty());
+    DMASSERT(info.expected_tokens.empty());
 
     dr.report_syntax_error_unexpected(
         get_formatted_unexpected_token_name(info),
@@ -279,9 +279,9 @@ report_few_expected_diagnostic(
     DiagnosticReporter& dr
 )
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
-    DEBUG_SMART_ASSERT(info.expected_tokens.size() <= FEW_TOKENS);
+    DMASSERT(info.expected_tokens.size() <= FEW_TOKENS);
     const auto join_expected = [&](const char* const sep, const bool wrap_with_decorator)
     {
         std::string out;
@@ -321,7 +321,7 @@ static void report_unexpected_eof(
     DiagnosticReporter& dr,
     const Info& info)
 {
-    DEBUG_SMART_ASSERT(info.unexpected_token == YYSYMBOL_YYEOF);
+    DMASSERT(info.unexpected_token == YYSYMBOL_YYEOF);
     const std::optional<TokenInfo> last_token_info_opt = lexer_ctx.last_token_info();
     std::optional<Suggestion> suggestion;
 
@@ -408,9 +408,9 @@ report_many_expected_diagnostic(
     const Info& info,
     DiagnosticReporter& dr)
 {
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         info.unexpected_token != YYSYMBOL_YYEMPTY && "No Lookahead, shouldn't be called");
-    DEBUG_SMART_ASSERT(info.expected_tokens.size() > FEW_TOKENS);
+    DMASSERT(info.expected_tokens.size() > FEW_TOKENS);
     const auto unexpected_token_str = get_formatted_unexpected_token_name(info);
     std::optional<Suggestion> suggestion;
     std::list<Note> notes;
@@ -460,7 +460,7 @@ report_many_expected_diagnostic(
 
         if (opener_loc.has_value() && lexer_ctx.last_token_info().has_value())
         {
-            DEBUG_SMART_ASSERT(opener_loc.value() != SourceLocation::none());
+            DMASSERT(opener_loc.value() != SourceLocation::none());
             dr.report_syntax_error_expected_closer(
                 yysymbol_name(suggested_symbol),
                 unexpected_token_str,
@@ -486,7 +486,7 @@ report_many_expected_diagnostic(
 static void
 report_no_unexpected_diagnostic(const YYLTYPE unexpected_loc, DiagnosticReporter& dr)
 {
-    DEBUG_SMART_ASSERT(false &&
+    DMASSERT(false &&
         "HOLD YOUR HORSES... You just caused an error,\n"
         "you have no idea how to replicate. Somehow parse\n"
         "encountered an error without a token (an unexpected)\n"

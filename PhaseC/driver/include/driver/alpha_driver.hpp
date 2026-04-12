@@ -27,7 +27,7 @@ public:
     void export_symbol_table_without_temps() const;
     void export_diagnostics() const;
     void export_ir() const;
-    void export_abc() const;
+    void emit_abc() const;
 
     void run();
 

@@ -87,16 +87,16 @@
         #define DEBUG_NULLIFY(pointer) ((pointer) = nullptr)
 
 //  Active in debug mode: evaluates and runs full SMART_ASSERT logic
-        #ifdef DEBUG_SMART_ASSERT
+        #ifdef DMASSERT
         #error "Macro collision detected"
         #endif
-        #define DEBUG_SMART_ASSERT(...) SMART_ASSERT(__VA_ARGS__)
+        #define DMASSERT(...) SMART_ASSERT(__VA_ARGS__)
 
 //  Also active in debug mode: same as above, runs full logic
-        #ifdef DEBUG_SMART_ASSERT_EVAL
+        #ifdef DMASSERT_EVAL
         #error "Macro collision detected"
         #endif
-        #define DEBUG_SMART_ASSERT_EVAL(...) SMART_ASSERT(__VA_ARGS__)
+        #define DMASSERT_EVAL(...) SMART_ASSERT(__VA_ARGS__)
 #else
         #ifdef DEBUG
         #error "Macro collision detected"
@@ -115,16 +115,16 @@
         #define DEBUG_NULLIFY(pointer) ((void)0)
 
 //  In release mode: disables assertion and also skips evaluating expressions (no side effects)
-        #ifdef DEBUG_SMART_ASSERT
+        #ifdef DMASSERT
         #error "Macro collision detected"
         #endif
-        #define DEBUG_SMART_ASSERT(...) ((void)0)
+        #define DMASSERT(...) ((void)0)
 
 //  In release mode: disables assertion logic, but still evaluates expressions (preserves side effects)
-        #ifdef DEBUG_SMART_ASSERT_EVAL
+        #ifdef DMASSERT_EVAL
         #error "Macro collision detected"
         #endif
-        #define DEBUG_SMART_ASSERT_EVAL(...) ((void)(__VA_ARGS__))
+        #define DMASSERT_EVAL(...) ((void)(__VA_ARGS__))
 #endif
 
 #ifdef REPORT_UNREACHABLE_VIOLATION

@@ -162,7 +162,7 @@ inline u64
 ScannerAutomaton::last_token_length() const noexcept
 {
     const auto result = last_token_end() - last_token_begin();
-    DEBUG_SMART_ASSERT(
+    DMASSERT(
         result > 0 ||has_reached_eof()
         && "A non phony token must have a at least size 1 to exit"
     );

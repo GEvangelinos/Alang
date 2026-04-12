@@ -139,10 +139,8 @@ QuadYielder::yield_returning_hook_result(
 {
     // Release temps before making result (which usually creates a new temp)
     // Order first arg2 then arg1 is mandatory, in release, as acquiring happens in reverse.
-    if (arg2)
-        release_temp_handle_if_active(arg2);
-    if (arg1)
-        release_temp_handle_if_active(arg1);
+    if (arg2) release_temp_handle_if_active(arg2);
+    if (arg1) release_temp_handle_if_active(arg1);
 
     const Expr* const hook_result = std::forward<PreEmitHook>(pre_emit_hook)();
     quad_interceptor_->emit(opc, result, arg1, arg2, loc, label, QuadInterceptor::EmitKey{});
