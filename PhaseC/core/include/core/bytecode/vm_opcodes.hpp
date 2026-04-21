@@ -26,13 +26,7 @@
     X(EXITFUNC)            \
     X(NEWTABLE)            \
     X(TABLEGETELEM)        \
-    X(TABLESETELEM)        \
-    X(NOP)                 \
-                           \
-    X(UMINUS)              \
-    X(AND)                 \
-    X(OR)                  \
-    X(NOT)
+    X(TABLESETELEM)
 
 namespace alpha::vm
 {
@@ -43,7 +37,7 @@ enum class Opcode : u8
     #undef  AS_ENUM_MEMBER
 };
 
-constexpr std::array<Opcode, 25> all_vmopcodes_array{
+constexpr std::array all_vmopcodes_array{
     #define AS_ARRAY_MEMBER(vmopcode) Opcode::vmopcode,
     ALPHA_VMOPCODES(AS_ARRAY_MEMBER)
     #undef  AS_ARRAY_MEMBER

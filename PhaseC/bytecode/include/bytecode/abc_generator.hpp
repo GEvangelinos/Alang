@@ -1,5 +1,5 @@
-#ifndef BYTECODE_GENERATOR_HPP
-#define BYTECODE_GENERATOR_HPP
+#ifndef ABC_GENERATOR_HPP
+#define ABC_GENERATOR_HPP
 
 #include <vector>
 
@@ -12,19 +12,19 @@
 
 namespace alpha
 {
-class BytecodeGenerator
+class ABC_Generator
 {
 public:
     [[nodiscard]] static vm::Program run(const std::vector<ir::Quad>& program_ir_quads)
     {
-        return BytecodeGenerator{}.build_program(program_ir_quads);
+        return ABC_Generator{}.build_program(program_ir_quads);
     }
 
 private:
     vm::Program result_;
     std::vector<LabelID> target_addresses_;
 
-    BytecodeGenerator() = default;
+    ABC_Generator() = default;
 
     [[nodiscard]] vm::Program build_program(const std::vector<ir::Quad>& program_ir_quads) &&;
 
@@ -45,11 +45,11 @@ private:
     void generate(const ir::Quad& q);
     template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
     void generate_relational(const ir::Quad& q);
+    void generate_uminus(const ir::Quad& q);
     void generate_getretval(const ir::Quad& q);
     void generate_funcstart(const ir::Quad& quad);
-    void generate_funcend(const ir::Quad& quad);
     void generate_return(const ir::Quad& quad);
 };
 } // namespace alpha
 
-#endif // BYTECODE_GENERATOR_HPP
+#endif // ABC_GENERATOR_HPP

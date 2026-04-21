@@ -1,5 +1,4 @@
-#include "bytecode_generator/bytecode_generator.hpp"
-
+#include "bytecode/abc_generator.hpp"
 #include <assert.h>
 
 #include "parser/ir_opcode_info_traits.gen.hpp"
@@ -9,7 +8,7 @@
 namespace alpha
 {
 vm::Program::StringID
-BytecodeGenerator::intern_string_literal(const ConstStringExpr& string_expr)
+ABC_Generator::intern_string_literal(const ConstStringExpr& string_expr)
 {
     const auto it = result_.str_literal_table.try_emplace(
         string_expr.value, result_.str_literal_table.size()
@@ -20,7 +19,7 @@ BytecodeGenerator::intern_string_literal(const ConstStringExpr& string_expr)
 }
 
 vm::Program::LibfuncID
-BytecodeGenerator::intern_libfunc_name(const LibFuncExpr& libfunc_expr)
+ABC_Generator::intern_libfunc_name(const LibFuncExpr& libfunc_expr)
 {
     const auto it = result_.libfunc_name_table.try_emplace(
         libfunc_expr.libfunc_symbol->name, result_.libfunc_name_table.size()
@@ -31,7 +30,7 @@ BytecodeGenerator::intern_libfunc_name(const LibFuncExpr& libfunc_expr)
 
 
 const vm::Argument*
-BytecodeGenerator::make_argument(const Expr& expr)
+ABC_Generator::make_argument(const Expr& expr)
 {
     using ET = Expr::Type;
     switch (expr.type)
@@ -75,7 +74,7 @@ BytecodeGenerator::make_argument(const Expr& expr)
 
 template <ir::Opcode ir_quad_opcode, ir::info_traits::Requirement (*trait_func)(ir::Opcode)>
 const vm::Argument*
-BytecodeGenerator::extract_operant_by_requirement_trait(const Expr* const e)
+ABC_Generator::extract_operant_by_requirement_trait(const Expr* const e)
 {
     namespace IIT = ir::info_traits;
     constexpr IIT::Requirement req = trait_func(ir_quad_opcode);
@@ -90,7 +89,7 @@ BytecodeGenerator::extract_operant_by_requirement_trait(const Expr* const e)
 
 template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
 void
-BytecodeGenerator::generate(const ir::Quad& q)
+ABC_Generator::generate(const ir::Quad& q)
 {
     namespace IIT = ir::info_traits;
     DMASSERT(ir_opcode == q.opcode);
@@ -99,21 +98,22 @@ BytecodeGenerator::generate(const ir::Quad& q)
         vm_opcode,
         extract_operant_by_requirement_trait<ir_opcode, IIT::result>(q.result),
         extract_operant_by_requirement_trait<ir_opcode, IIT::arg1>(q.arg1),
-        extract_operant_by_requirement_trait<ir_opcode, IIT::arg2>(q.arg2),
+        extract_operant_by_requirement_trait<ir_opcode, IIT::arg2>(
+            ir_opcode == ir::Opcode::UMINUS ? &k_static_int_neg1_expr : q.arg2),
         q.loc
     );
 }
 
 template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
 void
-BytecodeGenerator::generate_relational(const ir::Quad& q)
+ABC_Generator::generate_relational(const ir::Quad& q)
 {
     namespace IIT = ir::info_traits;
     DMASSERT(ir_opcode == q.opcode);
     target_addresses_.push_back(next_instruction_label());
     result_.code.emplace_back(
         vm_opcode,
-        [&]() { return new vm::LabelArgument{q.label}; }(),
+        new vm::LabelArgument{q.label},
         extract_operant_by_requirement_trait<ir_opcode, IIT::arg1>(q.arg1),
         extract_operant_by_requirement_trait<ir_opcode, IIT::arg2>(q.arg2),
         q.loc
@@ -121,7 +121,22 @@ BytecodeGenerator::generate_relational(const ir::Quad& q)
 }
 
 void
-BytecodeGenerator::generate_getretval(const ir::Quad& q)
+ABC_Generator::generate_uminus(const ir::Quad& q)
+{
+    namespace IIT = ir::info_traits;
+    DMASSERT(ir::Opcode::UMINUS == q.opcode);
+    target_addresses_.push_back(next_instruction_label());
+    result_.code.emplace_back(
+        vm::Opcode::MUL,
+        extract_operant_by_requirement_trait<ir::Opcode::MUL, IIT::result>(q.result),
+        extract_operant_by_requirement_trait<ir::Opcode::MUL, IIT::arg1>(q.arg1),
+        extract_operant_by_requirement_trait<ir::Opcode::MUL, IIT::arg2>(&k_static_int_neg1_expr),
+        q.loc
+    );
+}
+
+void
+ABC_Generator::generate_getretval(const ir::Quad& q)
 {
     DMASSERT(q.opcode == ir::Opcode::GETRETVAL);
     generate<ir::Opcode::GETRETVAL, vm::Opcode::ASSIGN>(q);
@@ -130,7 +145,7 @@ BytecodeGenerator::generate_getretval(const ir::Quad& q)
 }
 
 void
-BytecodeGenerator::generate_funcstart(const ir::Quad& quad)
+ABC_Generator::generate_funcstart(const ir::Quad& quad)
 {
     DMASSERT(quad.opcode == ir::Opcode::FUNCSTART);
 
@@ -145,7 +160,7 @@ BytecodeGenerator::generate_funcstart(const ir::Quad& quad)
 }
 
 void
-BytecodeGenerator::generate_return(const ir::Quad& quad)
+ABC_Generator::generate_return(const ir::Quad& quad)
 {
     DMASSERT(quad.opcode == ir::Opcode::RETURN);
 
@@ -155,14 +170,8 @@ BytecodeGenerator::generate_return(const ir::Quad& quad)
     result_.code.back().result = new vm::RetvalArgument{};
 }
 
-void
-BytecodeGenerator::generate_funcend(const ir::Quad& quad)
-{
-    generate<ir::Opcode::FUNCEND, vm::Opcode::EXITFUNC>(quad);
-}
-
 vm::Program
-BytecodeGenerator::build_program(const std::vector<ir::Quad>& program_ir_quads) &&
+ABC_Generator::build_program(const std::vector<ir::Quad>& program_ir_quads) &&
 {
     for (u64 i = 0; i < program_ir_quads.size(); ++i)
     {
@@ -171,9 +180,6 @@ BytecodeGenerator::build_program(const std::vector<ir::Quad>& program_ir_quads) 
         switch (auto& quad = program_ir_quads[i]; quad.opcode)
         {
         CASE_BASIC(ASSIGN, ASSIGN);
-        case ir::Opcode::UMINUS:
-            DMASSERT(false && "NIY");
-            break;
         CASE_BASIC(ADD, ADD);
         CASE_BASIC(SUB, SUB);
         CASE_BASIC(MUL, MUL);
@@ -191,14 +197,13 @@ BytecodeGenerator::build_program(const std::vector<ir::Quad>& program_ir_quads) 
         CASE_BASIC(TABLESETELEM, TABLESETELEM);
         CASE_BASIC(PARAM, PUSHARG);
         CASE_BASIC(CALL, CALLFUNC);
-        case ir::Opcode::GETRETVAL:
-            generate_getretval(quad);
+        case ir::Opcode::UMINUS: generate_uminus(quad);
             break;
-        case ir::Opcode::RETURN:
-            generate_return(quad);
+        case ir::Opcode::GETRETVAL: generate_getretval(quad);
             break;
-        case ir::Opcode::FUNCSTART:
-            generate_funcstart(quad);
+        case ir::Opcode::RETURN: generate_return(quad);
+            break;
+        case ir::Opcode::FUNCSTART: generate_funcstart(quad);
             break;
         CASE_BASIC(FUNCEND, EXITFUNC);
         case ir::Opcode::NOT:

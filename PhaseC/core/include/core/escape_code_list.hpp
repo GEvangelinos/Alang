@@ -11,5 +11,4 @@
     X('b', '\b') \
     X('\\','\\') \
     X('\"', '\"')
-
 #endif //ESCAPE_CODE_LIST_HPP

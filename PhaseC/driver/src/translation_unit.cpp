@@ -2,7 +2,7 @@
 #include <fstream>
 #include <driver/translation_unit.hpp>
 
-#include "bytecode_generator/abc_serializer.hpp"
+#include "bytecode/abc_serializer.hpp"
 #include "ir_optimizer/ir_optimizer.hpp"
 #include "core/konstants.hpp"
 #include "driver/exception.hpp"
@@ -13,7 +13,8 @@
 #include "driver/translation_unit_buffer_loader.hpp"
 #include "scanner/alpha_scanner.gen.hpp"
 #include "scanner/scanner_adapter.hpp"
-#include "bytecode_generator/bytecode_generator.hpp"
+#include "bytecode/abc_generator.hpp"
+#include "bytecode/abc_loader.hpp"
 
 #include "support/cli_color.h"
 
@@ -461,7 +462,7 @@ CompilationPipeline::execute()
 
     running_phase_ = Phase::ABC_GENERATION;
     if (!diagnostic_engine_.has_errors())
-        program_ = std::make_unique<vm::Program>(BytecodeGenerator::run(ir_quads_));
+        program_ = std::make_unique<vm::Program>(ABC_Generator::run(ir_quads_));
 }
 
 void
@@ -737,11 +738,22 @@ TranslationUnit::emit_abc() const
     const auto impl = [this, &abc]()
     {
         const std::string outfile_name = source_path_.stem().string() + k_abc_binary_ext;
-        std::ofstream outfile(outfile_name, std::ios::out | std::ios::binary);
+        std::ofstream outfile{outfile_name, std::ios::binary};
         if (!outfile)
             throw std::runtime_error(
                 FMT::format("Failed opening file for emitting {}", outfile_name));
         outfile.write(reinterpret_cast<const char*>(abc.data()), abc.size());
+        outfile.close();
+
+        const auto filesize = std::filesystem::file_size(outfile_name);
+        std::vector<u8> load_vector(filesize);
+
+        std::ifstream infile{outfile_name, std::ios::binary};
+        if (!infile)
+            DMASSERT(false);
+        infile.read(reinterpret_cast<char*>(load_vector.data()), filesize);
+
+        ABC_Loader::load(load_vector);
     };
 
     export_within_dir(k_abc_binaries_dirname, impl);

@@ -35,11 +35,8 @@ namespace alpha::abc
  * 10      | 2      | v_minor         | Compatible change version
  * 12      | 4      | alignment_pad   | Explicit 0-fill for 8-byte alignment
  * 16      | 8      | timestamp       | Unix Epoch (seconds since 1970)
- * 24      | 8      | off_strings     | Absolute offset to String Pool
- * 32      | 8      | off_userfuncs   | Absolute offset to User Function Table
- * 40      | 8      | off_libfuncs    | Absolute offset to Lib Function Table
- * 48      | 8      | off_code        | Absolute offset to Code Segment
- * 56      | 8      | file_size       | Full file size in bytes
+ * 24      | 8      | file_size       | Full file size in bytes
+ * 32      | 8      | Sections        | Section table.
  * ----------------------------------------------------------------------------
  * * DATA SEGMENTS:
  * * 1. String Pool:
@@ -60,6 +57,17 @@ namespace alpha::abc
 
 struct Header
 {
+    struct Sections
+    {
+        struct Region { u64 offset; u64 size; };
+        struct Component { Region index; Region blob; };
+
+        Component strs;
+        Component libfuncs;
+        Component progfuncs;
+        Component instructions;
+    };
+
     abc::spec::MagicT magic;
     u32 header_size; /* The "Gatekeeper" for extensibility */
 
@@ -68,13 +76,9 @@ struct Header
     u32 alignment_pad; /* Explicit padding for 64-bit alignment */
 
     u64 timestamp;
-
-    u64 off_strings;
-    u64 off_userfuncs;
-    u64 off_libfuncs;
-    u64 off_code;
-
     u64 file_size;
+
+    Sections sections;
 };
 
 // If the compiler adds hidden padding, this sum will NOT equal sizeof(struct ABC_Header)

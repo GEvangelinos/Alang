@@ -1,7 +1,7 @@
-#include "bytecode_generator/abc_serializer.hpp"
+#include "bytecode/abc_serializer.hpp"
 #include <concepts>
 #include <chrono>
-#include "escape_code_list.hpp"
+#include "core/escape_code_list.hpp"
 #include "core/bytecode/abc_spec.hpp"
 #include "core/bytecode/abc_header.hpp"
 
@@ -41,7 +41,10 @@ get_usec_timestamp() noexcept
 }
 
 static void
-serialize_header(std::vector<u8>& abc_buffer, const vm::Program& program)
+serialize_header(
+    std::vector<u8>& abc_buffer,
+    const vm::Program& program,
+    const abc::Header::Offsets& offsets)
 {
     const abc::Header header{
         .magic = abc::spec::k_magic_value,
@@ -50,15 +53,10 @@ serialize_header(std::vector<u8>& abc_buffer, const vm::Program& program)
         .v_minor = 2,
         .alignment_pad = 0x00000000,
         .timestamp = get_usec_timestamp(),
-        .off_strings = sizeof(abc::Header),
-        .off_userfuncs = 0,
-        .off_libfuncs = 0,
-        .off_code = 0,
-        .file_size = 0,
+        .offsets = offsets,
+        .file_size = abc_buffer.size(),
     };
-
-    const auto* const header_addr = reinterpret_cast<const u8*>(&header);
-    abc_buffer.insert(abc_buffer.end(), header_addr, header_addr + sizeof(decltype(header)));
+    std::memcpy(abc_buffer.data(), &header, sizeof(decltype(header)));
 }
 
 template <typename T>
@@ -92,6 +90,8 @@ serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
     if (*str.begin() == '\"')
     {
         constexpr auto delimiting_quote_count = 2; // 1 left & 1 right
+        for (const char ch : str)
+            std::cout << "CH = " << ch << std::endl;
         DMASSERT(*(str.end() - 1) == '\"', serialized_len >= delimiting_quote_count && "Empty str");
         serialized_len -= delimiting_quote_count;
         ++start;
@@ -135,16 +135,25 @@ serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
 }
 
 static void
-serialize_string_table(std::vector<u8>& abc_buffer, const vm::Program& program)
+serialize_table(std::vector<u8>& abc_buffer, const std::unordered_map<StringSpan, u32>& table)
 {
-    std::vector<StringSpan> str_literals{program.str_literal_table.size()};
-    for (const auto [str, idx] : program.str_literal_table)
+    std::vector<StringSpan> str_literals{table.size()};
+    for (const auto [str, idx] : table)
         str_literals[idx] = str;
-
-    for (u64 i = 0; i < str_literals.size(); ++i)
-        serialize_string_content(abc_buffer, str_literals[i]);
+    for (const StringSpan literal : str_literals)
+        serialize_string_content(abc_buffer, literal);
 }
 
+static void
+serialize_progfuncs(std::vector<u8>& abc_buffer, const vm::Program& program)
+{
+    for (const vm::Program::UserFunc& func : program.userfuncs)
+    {
+        serialize_string_content(abc_buffer, func.id);
+        store_little_endian(abc_buffer, func.address);
+        store_little_endian(abc_buffer, func.local_size);
+    }
+}
 
 static void
 serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument& arg)
@@ -155,40 +164,26 @@ serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument& arg)
     // Storing Argument content.
     switch (arg.type)
     {
-    case vm::Argument::Type::LABEL:
-        store_little_endian(buffer, static_cast<const vm::LabelArgument&>(arg).value.value);
-        break;
-    case vm::Argument::Type::GLOBAL:
-        store_little_endian(buffer, static_cast<const vm::GlobalVariableArgument&>(arg).offset);
-        break;
-    case vm::Argument::Type::FORMAL:
-        store_little_endian(buffer, static_cast<const vm::FormalVariableArgument&>(arg).offset);
-        break;
-    case vm::Argument::Type::LOCAL:
-        store_little_endian(buffer, static_cast<const vm::LocalVariableArgument&>(arg).offset);
-        break;
-    case vm::Argument::Type::CONST_BOOL:
-        store_little_endian(buffer, static_cast<const vm::ConstBoolArgument&>(arg).value);
-        break;
-    case vm::Argument::Type::CONST_INT:
-        store_little_endian(buffer, static_cast<const vm::ConstIntArgument&>(arg).value);
-        break;
-    case vm::Argument::Type::CONST_FLOAT:
-        store_little_endian(buffer, static_cast<const vm::ConstFloatArgument&>(arg).value);
-        break;
-    case vm::Argument::Type::CONST_STRING:
-        store_little_endian(buffer, static_cast<const vm::ConstStringArgument&>(arg).pool_index);
-        break;
-    case vm::Argument::Type::PROGRAMFUNC:
-        store_little_endian(buffer, static_cast<const vm::ProgramFuncArgument&>(arg).address);
-        break;
-    case vm::Argument::Type::LIBFUNC:
-        store_little_endian(buffer, static_cast<const vm::LibFuncArgument&>(arg).pool_index);
-        break;
+    #define CASE(ARG_TYPE, ARG_CLASS, ARG_ATTR)\
+    case vm::Argument::Type::ARG_TYPE: \
+        store_little_endian(buffer, static_cast<const vm::ARG_CLASS&>(arg).ARG_ATTR); break
+
+    CASE(LABEL, LabelArgument, value.value);
+    CASE(GLOBAL, GlobalVariableArgument, offset);
+    CASE(FORMAL, FormalVariableArgument, offset);
+    CASE(LOCAL, LocalVariableArgument, offset);
+    CASE(CONST_BOOL, ConstBoolArgument, value);
+    CASE(CONST_INT, ConstIntArgument, value);
+    CASE(CONST_FLOAT, ConstFloatArgument, value);
+    CASE(CONST_STRING, ConstStringArgument, pool_index);
+    CASE(PROGRAMFUNC, ProgramFuncArgument, address);
+    CASE(LIBFUNC, LibFuncArgument, pool_index);
+
     // Semantic Flags: The type itself carries all necessary information.
     case vm::Argument::Type::CONST_NIL:
     case vm::Argument::Type::RETVAL:
         break;
+        #undef CASE
     }
 }
 
@@ -200,15 +195,33 @@ serialize_instructions(std::vector<u8>& abc_buffer, const vm::Program& program)
         using OpcodeUT = std::underlying_type_t<decltype(inst.opcode)>;
         static_assert(std::is_same_v<OpcodeUT, u8>, "Following push is wrong");
         abc_buffer.push_back(static_cast<OpcodeUT>(inst.opcode));
+        if (inst.result)
+            serialize_vm_argument(abc_buffer, *inst.result);
+        if (inst.arg1)
+            serialize_vm_argument(abc_buffer, *inst.arg1);
+        if (inst.arg2)
+            serialize_vm_argument(abc_buffer, *inst.arg2);
     }
 }
 
 std::vector<u8>
 ABC_Serializer::serialize(const vm::Program& program)
 {
-    std::vector<u8> abc_buffer;
-    serialize_header( abc_buffer, program);
-    serialize_string_table(abc_buffer, program);
+    std::vector<u8> abc_buffer(sizeof(abc::Header), 0);
+    const auto run = [&](auto&& lambda)
+    {
+        lambda();
+        return abc_buffer.size();
+    };
+
+    const abc::Header::Offsets offsets{
+        .strings = abc_buffer.size(),
+        .libfuncs = run([&] { serialize_table(abc_buffer, program.str_literal_table); }),
+        .progfuncs = run([&] { serialize_table(abc_buffer, program.libfunc_name_table); }),
+        .code = run([&] { serialize_progfuncs(abc_buffer, program); }),
+    };
+    serialize_instructions(abc_buffer, program);
+    serialize_header(abc_buffer, program, offsets);
     return abc_buffer;
 }
 } // namespace alpha

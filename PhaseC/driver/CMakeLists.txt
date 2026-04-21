@@ -23,7 +23,7 @@ target_link_libraries(alpha_driver_impl PRIVATE
     alpha_driver_api
     alpha_ir_optimizer_api
     alpha_settings_api
-    alpha_bytecode_generator_api
+    alpha_bytecode_api
     arguinator_api
 )
 
@@ -45,7 +45,7 @@ target_link_libraries("${COMPILER_EXE_NAME}" PRIVATE
     alpha_scanner_impl
     alpha_settings_impl
     alpha_ir_optimizer_impl
-    alpha_bytecode_generator_impl
+    alpha_bytecode_impl
 )
 
 # === Custom generation step (scanner + parser) ===
