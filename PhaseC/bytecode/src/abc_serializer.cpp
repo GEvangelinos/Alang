@@ -1,4 +1,6 @@
 #include "bytecode/abc_serializer.hpp"
+
+#include <assert.h>
 #include <concepts>
 #include <chrono>
 #include "core/escape_code_list.hpp"
@@ -17,10 +19,11 @@ calculate_serialized_string_table_size(const vm::Program& program) noexcept
 [[nodiscard]] static u32
 calculate_abc_filesize(const vm::Program& program) noexcept
 {
-    constexpr auto k_instruction_size = sizeof(std::decay_t<decltype(program.code)>::value_type);
+    constexpr auto k_instruction_size = sizeof(std::decay_t<decltype(program.instructions
+    )>::value_type);
 
     const auto total_str_meta_size = sizeof(abc::spec::StrLenT) * program.str_literal_table.size();
-    const auto total_instruction_size = k_instruction_size * program.code.size();
+    const auto total_instruction_size = k_instruction_size * program.instructions.size();
 
     return sizeof(abc::Header)
            + total_str_meta_size
@@ -44,7 +47,7 @@ static void
 serialize_header(
     std::vector<u8>& abc_buffer,
     const vm::Program& program,
-    const abc::Header::Offsets& offsets)
+    const abc::Header::Sections& sections)
 {
     const abc::Header header{
         .magic = abc::spec::k_magic_value,
@@ -53,8 +56,8 @@ serialize_header(
         .v_minor = 2,
         .alignment_pad = 0x00000000,
         .timestamp = get_usec_timestamp(),
-        .offsets = offsets,
         .file_size = abc_buffer.size(),
+        .sections = sections,
     };
     std::memcpy(abc_buffer.data(), &header, sizeof(decltype(header)));
 }
@@ -134,24 +137,78 @@ serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
     buffer[len_idx + 3] = static_cast<u8>(serialized_len >> 24 & 0xFF);
 }
 
-static void
-serialize_table(std::vector<u8>& abc_buffer, const std::unordered_map<StringSpan, u32>& table)
+[[nodiscard]] static bool
+is_zeroed_range(
+    const std::vector<u8>& abc_buffer,
+    const abc::Header::Sections::Component& component) noexcept
 {
+    const auto range_begin = abc_buffer.begin() + component.index.begin();
+    const auto range_end = abc_buffer.begin() + component.index.end();
+
+    return !!component.index.offset &&
+           abc_buffer.size() > component.index.begin() &&
+           abc_buffer.size() > component.index.end() &&
+           std::all_of(range_begin, range_end, [](const u8 b) { return b == 0; });
+}
+
+
+static void
+serialize_region(
+    std::vector<u8>& abc_buffer,
+    const abc::Header::Sections::Component& component,
+    auto serializer)
+{
+    auto* const target_region_addr = abc_buffer.data() + component.index.begin();
+
+    const auto buff_size_before = abc_buffer.size();
+    serializer();
+    const auto buff_size_after = abc_buffer.size();
+    const auto serialized_string_size = buff_size_before - buff_size_after;
+
+    using Region = abc::Header::Sections::Component::Region;
+    const Region region{
+        .offset = static_cast<decltype(Region::offset)>(buff_size_before),
+        .size = static_cast<decltype(Region::size)>(serialized_string_size),
+    };
+    std::memcpy(target_region_addr, &region, sizeof(region));
+}
+
+static void
+serialize_table(
+    std::vector<u8>& abc_buffer,
+    const abc::Header::Sections::Component& component,
+    const std::unordered_map<StringSpan, u32>& table)
+{
+    DMASSERT(is_zeroed_range(abc_buffer,component));
     std::vector<StringSpan> str_literals{table.size()};
     for (const auto [str, idx] : table)
         str_literals[idx] = str;
     for (const StringSpan literal : str_literals)
-        serialize_string_content(abc_buffer, literal);
+    {
+        const auto serializer = [&abc_buffer, literal]()
+        {
+            serialize_string_content(abc_buffer, literal);
+        };
+        serialize_region(abc_buffer, component, serializer);
+    }
 }
 
 static void
-serialize_progfuncs(std::vector<u8>& abc_buffer, const vm::Program& program)
+serialize_progfuncs(
+    std::vector<u8>& abc_buffer,
+    const abc::Header::Sections::Component& component,
+    const std::vector<vm::Program::ProgFunc>& progfuncs)
 {
-    for (const vm::Program::UserFunc& func : program.userfuncs)
+    DMASSERT(is_zeroed_range(abc_buffer,component));
+    for (const vm::Program::ProgFunc& func : progfuncs)
     {
-        serialize_string_content(abc_buffer, func.id);
-        store_little_endian(abc_buffer, func.address);
-        store_little_endian(abc_buffer, func.local_size);
+        const auto serializer = [&abc_buffer, &func]()
+        {
+            store_little_endian(abc_buffer, func.address);
+            store_little_endian(abc_buffer, func.local_size);
+            serialize_string_content(abc_buffer, func.id);
+        };
+        serialize_region(abc_buffer, component, serializer);
     }
 }
 
@@ -190,18 +247,29 @@ serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument& arg)
 static void
 serialize_instructions(std::vector<u8>& abc_buffer, const vm::Program& program)
 {
-    for (const vm::Instruction& inst : program.code)
+    for (const vm::Instruction& inst : program.instructions)
     {
         using OpcodeUT = std::underlying_type_t<decltype(inst.opcode)>;
         static_assert(std::is_same_v<OpcodeUT, u8>, "Following push is wrong");
         abc_buffer.push_back(static_cast<OpcodeUT>(inst.opcode));
-        if (inst.result)
-            serialize_vm_argument(abc_buffer, *inst.result);
-        if (inst.arg1)
-            serialize_vm_argument(abc_buffer, *inst.arg1);
-        if (inst.arg2)
-            serialize_vm_argument(abc_buffer, *inst.arg2);
+        if (inst.result) serialize_vm_argument(abc_buffer, *inst.result);
+        if (inst.arg1) serialize_vm_argument(abc_buffer, *inst.arg1);
+        if (inst.arg2) serialize_vm_argument(abc_buffer, *inst.arg2);
     }
+}
+
+template <std::ranges::sized_range ContainerType>
+[[nodiscard]] static abc::Header::Sections::Component::Region
+reserve_index_region(std::vector<u8>& abc_buffer, const ContainerType& container)
+{
+    const auto number_of_items = std::ranges::size(container);
+    const abc::Header::Sections::Component::Region index_region{
+        .offset = abc_buffer.size(),
+        .size = number_of_items * sizeof(abc::Header::Sections::Component::Region),
+    };
+    // Reserve Space for Section's index region, with zero-initialized bytes.
+    abc_buffer.insert(abc_buffer.end(), index_region.size, 0);
+    return index_region;
 }
 
 std::vector<u8>
@@ -214,14 +282,18 @@ ABC_Serializer::serialize(const vm::Program& program)
         return abc_buffer.size();
     };
 
-    const abc::Header::Offsets offsets{
-        .strings = abc_buffer.size(),
-        .libfuncs = run([&] { serialize_table(abc_buffer, program.str_literal_table); }),
-        .progfuncs = run([&] { serialize_table(abc_buffer, program.libfunc_name_table); }),
-        .code = run([&] { serialize_progfuncs(abc_buffer, program); }),
+    const abc::Header::Sections data_sections{
+        .strs = {.index = reserve_index_region(abc_buffer, program.str_literal_table)},
+        .libfuncs = {.index = reserve_index_region(abc_buffer, program.libfunc_name_table)},
+        .progfuncs = {.index = reserve_index_region(abc_buffer, program.progfuncs)},
+        .instructions = {.index = reserve_index_region(abc_buffer, program.instructions)},
     };
+
+    serialize_table(abc_buffer, data_sections.strs, program.str_literal_table);
+    serialize_table(abc_buffer, data_sections.libfuncs, program.libfunc_name_table);
+    serialize_progfuncs(abc_buffer, data_sections.progfuncs, program.progfuncs);
     serialize_instructions(abc_buffer, program);
-    serialize_header(abc_buffer, program, offsets);
+    serialize_header(abc_buffer, program, data_sections);
     return abc_buffer;
 }
 } // namespace alpha

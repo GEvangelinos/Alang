@@ -14,7 +14,7 @@ struct Program
     using StringID = u32;
     using LibfuncID = u32;
 
-    struct UserFunc
+    struct ProgFunc
     {
         StringSpan id;
         u32 address;
@@ -26,8 +26,8 @@ struct Program
         u32 total_string_size = 0;
     } metadata;
 
-    std::vector<Instruction> code;
-    std::vector<UserFunc> userfuncs;
+    std::vector<Instruction> instructions;
+    std::vector<ProgFunc> progfuncs;
     std::unordered_map<StringSpan, StringID> str_literal_table;
     std::unordered_map<StringSpan, LibfuncID> libfunc_name_table;
 };

@@ -59,8 +59,19 @@ struct Header
 {
     struct Sections
     {
-        struct Region { u64 offset; u64 size; };
-        struct Component { Region index; Region blob; };
+        struct Component
+        {
+            struct Region
+            {
+                u32 offset; // Where the region starts inside the binary.
+                u32 size;
+
+                [[nodiscard]] auto begin() const noexcept { return offset; }      // Inclusive
+                [[nodiscard]] auto end() const noexcept { return offset + size; } // Exclusive
+            };
+
+            Region index; // Region of the index: (region0)(region1)(region2)...
+        };
 
         Component strs;
         Component libfuncs;
@@ -87,8 +98,9 @@ static_assert(
     sizeof(uint32_t) * 2 + // magic, header_size
     sizeof(uint16_t) * 2 + // v_major, v_minor
     sizeof(uint32_t) +     // alignment_pad
-    sizeof(uint64_t) * 6   // timestamp through file_size
-    , "Error: Compiler added implicit padding to ABC_Header. Fix alignment manually."
+    sizeof(uint64_t) * 2 + // timestamp, file_size
+    sizeof(Header::Sections),
+    "Error: Compiler added implicit padding to ABC_Header. Fix alignment manually."
 );
 } // namespace alpha::abc
 #endif //ABC_HEADER_HPP

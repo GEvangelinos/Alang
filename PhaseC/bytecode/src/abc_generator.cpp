@@ -94,7 +94,7 @@ ABC_Generator::generate(const ir::Quad& q)
     namespace IIT = ir::info_traits;
     DMASSERT(ir_opcode == q.opcode);
     target_addresses_.push_back(next_instruction_label());
-    result_.code.emplace_back(
+    result_.instructions.emplace_back(
         vm_opcode,
         extract_operant_by_requirement_trait<ir_opcode, IIT::result>(q.result),
         extract_operant_by_requirement_trait<ir_opcode, IIT::arg1>(q.arg1),
@@ -111,7 +111,7 @@ ABC_Generator::generate_relational(const ir::Quad& q)
     namespace IIT = ir::info_traits;
     DMASSERT(ir_opcode == q.opcode);
     target_addresses_.push_back(next_instruction_label());
-    result_.code.emplace_back(
+    result_.instructions.emplace_back(
         vm_opcode,
         new vm::LabelArgument{q.label},
         extract_operant_by_requirement_trait<ir_opcode, IIT::arg1>(q.arg1),
@@ -126,7 +126,7 @@ ABC_Generator::generate_uminus(const ir::Quad& q)
     namespace IIT = ir::info_traits;
     DMASSERT(ir::Opcode::UMINUS == q.opcode);
     target_addresses_.push_back(next_instruction_label());
-    result_.code.emplace_back(
+    result_.instructions.emplace_back(
         vm::Opcode::MUL,
         extract_operant_by_requirement_trait<ir::Opcode::MUL, IIT::result>(q.result),
         extract_operant_by_requirement_trait<ir::Opcode::MUL, IIT::arg1>(q.arg1),
@@ -140,8 +140,8 @@ ABC_Generator::generate_getretval(const ir::Quad& q)
 {
     DMASSERT(q.opcode == ir::Opcode::GETRETVAL);
     generate<ir::Opcode::GETRETVAL, vm::Opcode::ASSIGN>(q);
-    DMASSERT(!result_.code.empty() && !result_.code.back().arg1);
-    result_.code.back().arg1 = new vm::RetvalArgument{};
+    DMASSERT(!result_.instructions.empty() && !result_.instructions.back().arg1);
+    result_.instructions.back().arg1 = new vm::RetvalArgument{};
 }
 
 void
@@ -155,7 +155,7 @@ ABC_Generator::generate_funcstart(const ir::Quad& quad)
     const auto* const fn_expr = DEBUG_REQUIRE_PTR(static_cast<const ProgFuncExpr *>(quad.arg1));
     const auto* const fn_sym = DEBUG_REQUIRE_PTR(fn_expr->progfunc_symbol);
     DMASSERT(fn_sym->stackframe_slot_count.is_assigned());
-    result_.userfuncs.emplace_back(fn_sym->name, fn_sym->address, fn_sym->stackframe_slot_count);
+    result_.progfuncs.emplace_back(fn_sym->name, fn_sym->address, fn_sym->stackframe_slot_count);
     generate<ir::Opcode::FUNCSTART, vm::Opcode::ENTERFUNC>(quad);
 }
 
@@ -166,8 +166,8 @@ ABC_Generator::generate_return(const ir::Quad& quad)
 
     // We generate the 1st instruction `ASSIGN`:
     generate<ir::Opcode::RETURN, vm::Opcode::ASSIGN>(quad);
-    DMASSERT(!result_.code.empty() && !result_.code.back().result);
-    result_.code.back().result = new vm::RetvalArgument{};
+    DMASSERT(!result_.instructions.empty() && !result_.instructions.back().result);
+    result_.instructions.back().result = new vm::RetvalArgument{};
 }
 
 vm::Program
@@ -214,7 +214,7 @@ ABC_Generator::build_program(const std::vector<ir::Quad>& program_ir_quads) &&
         #undef CASE_BASIC
         #undef CASE_RELATIONAL
         DMASSERT(
-            i + 1 == result_.code.size() &&
+            i + 1 == result_.instructions.size() &&
             "Instruction pointer desync: 1:1 mapping between Quads and ABC instructions violated. "
             "Absolute jump offsets are now corrupted. Check the last generated opcode for "
             "unintended expansion (1:N) or omission (1:0)."

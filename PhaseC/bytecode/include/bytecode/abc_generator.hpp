@@ -34,8 +34,8 @@ private:
 
     [[nodiscard]] LabelID next_instruction_label() const noexcept
     {
-        DMASSERT(result_.code.size() <= std::numeric_limits<LabelID::UnderlyingType>::max());
-        return LabelID{static_cast<LabelID::UnderlyingType>(result_.code.size())};
+        DMASSERT(result_.instructions.size() <= std::numeric_limits<LabelID::UnderlyingType>::max());
+        return LabelID{static_cast<LabelID::UnderlyingType>(result_.instructions.size())};
     }
 
     template <ir::Opcode ir_quad_opcode, ir::info_traits::Requirement (*trait_func)(ir::Opcode)>

@@ -56,25 +56,13 @@
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/settings.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/tasks.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.GOSPEL/W..OPT=[]..return_v001.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.GOSPEL/W..OPT=[]..return_v001.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ABC_BINARIES/testbed.abc" beforeDir="false" afterPath="$PROJECT_DIR$/ABC_BINARIES/testbed.abc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bytecode_generator/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bytecode_generator/include/bytecode_generator/abc_serializer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/include/bytecode/abc_serializer.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bytecode_generator/include/bytecode_generator/bytecode_generator.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/include/bytecode/abc_generator.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bytecode_generator/src/abc_serializer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/src/abc_serializer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bytecode_generator/src/bytecode_generator.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/src/abc_generator.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bytecode/include/bytecode/abc_generator.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/include/bytecode/abc_generator.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bytecode/src/abc_generator.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/src/abc_generator.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bytecode/src/abc_serializer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/src/abc_serializer.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/abc_header.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/abc_header.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/vm_opcodes.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/vm_opcodes.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/ir/ir_expr.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/ir/ir_expr.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/escape_code_list.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/escape_code_list.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/driver/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/vm_program.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/vm_program.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/driver/src/translation_unit.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/config/ir_opcode_spec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/parser/config/ir_opcode_spec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scanner/src/scanner_automaton.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/scanner/src/scanner_automaton.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -455,7 +443,7 @@
       <workItem from="1776462280525" duration="421000" />
       <workItem from="1776538084667" duration="8280000" />
       <workItem from="1776667103735" duration="7982000" />
-      <workItem from="1776799224524" duration="7715000" />
+      <workItem from="1776799224524" duration="21124000" />
     </task>
     <servers />
   </component>

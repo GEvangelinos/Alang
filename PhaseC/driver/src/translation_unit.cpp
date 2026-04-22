@@ -304,7 +304,7 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
         format_column<Colorize, 1, widths[1]>("size"),
         format_column<Colorize, 2, widths[2]>("id")
     );
-    for (const auto& userfunc : program.userfuncs)
+    for (const auto& userfunc : program.progfuncs)
         out << FMT::format(
             "{0} {1} {2}\n",
             format_column<Colorize, 0, widths[0]>(FMT::to_string(userfunc.address)),
@@ -363,9 +363,9 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
         format_column<Colorize, 5, widths[5]>("line")
     );
 
-    for (alpha::u32 i = 0; i < program.code.size(); ++i)
+    for (alpha::u32 i = 0; i < program.instructions.size(); ++i)
     {
-        const auto& c = program.code[i];
+        const auto& c = program.instructions[i];
         const auto [first_line, last_line] = lt.find_lines(c.loc);
         const std::string quad_line_str =
             first_line == last_line
