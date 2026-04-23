@@ -59,6 +59,7 @@ void create_export_directory(std::string_view dirname);
 void enter_export_directory(std::string_view dirname);
 void exit_export_directory(const std::filesystem::path& original_path);
 [[nodiscard]] std::string escape(alpha::StringSpan str);
+[[nodiscard]] std::string ensure_quote_wrapped(const std::string& str);
 [[nodiscard]] std::string expr_printer(const alpha::Expr* expr, const char* missing_marker = "");
 [[nodiscard]] std::string argument_printer(
     const alpha::vm::Argument* a, const char* missing_marker = "");
@@ -110,11 +111,21 @@ std::string escape(const alpha::StringSpan str)
     return out;
 }
 
+std::string ensure_quote_wrapped(const std::string& str)
+{
+    if (str.size() >= 2 && str.front() == '"')
+    {
+        DMASSERT(str.back() == '"' && "String didn't start with \" so it shouldn't end");
+        return str;
+    }
+    return FMT::format("\"{}\"", str); // Add quotes around str.
+}
+
 std::string expr_printer(const alpha::Expr* expr, const char* const missing_marker)
 {
     using namespace alpha;
-    if (!expr)
-        return missing_marker;
+    if (!expr) return missing_marker;
+
     using ET = Expr::Type;
     switch (expr->type)
     {
@@ -125,7 +136,7 @@ std::string expr_printer(const alpha::Expr* expr, const char* const missing_mark
     case ET::CONST_FLOAT:
         return support::format_float(static_cast<const ConstFloatExpr*>(expr)->value);
     case ET::CONST_STRING:
-        return escape(static_cast<const ConstStringExpr*>(expr)->value);
+        return ensure_quote_wrapped(escape(static_cast<const ConstStringExpr*>(expr)->value));
     case ET::CONST_NIL:
         return "nil";
     case ET::ARITHMETIC:
@@ -156,8 +167,7 @@ std::string argument_printer(
     const char* const missing_marker)
 {
     using namespace alpha;
-    if (!a)
-        return missing_marker;
+    if (!a) return missing_marker;
     using AT = vm::Argument::Type;
 
     switch (a->type)
@@ -705,9 +715,10 @@ TranslationUnit::export_ir() const
         auto write_ir_line = [&](const std::size_t quad_no, const ir::Quad& q)
         {
             const auto [first_line, last_line] = loc_tracker_.find_lines(q.loc);
-            std::string quad_label_str = alpha::ir::info_traits::is_branching(q.opcode)
-                                         ? std::to_string(q.label.value)
-                                         : alpha::k_not_available_marker;
+            std::string quad_label_str =
+                alpha::ir::info_traits::is_branching(q.opcode)
+                ? std::to_string(q.label.value)
+                : alpha::k_not_available_marker;
 
             outfile << FMT::format(
                 "{0},{1},{2},{3},{4},{5},{6},{7}\n",
@@ -753,7 +764,7 @@ TranslationUnit::emit_abc() const
             DMASSERT(false);
         infile.read(reinterpret_cast<char*>(load_vector.data()), filesize);
 
-        ABC_Loader::load(load_vector);
+        // ABC_Loader::load(load_vector);
     };
 
     export_within_dir(k_abc_binaries_dirname, impl);

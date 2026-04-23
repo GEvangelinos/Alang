@@ -102,8 +102,9 @@ void handle_exports(const arguinator::Parser& cli_parser, const alpha::Driver& d
         driver.export_diagnostics();
     if (cli_parser[ASJ::export_ir].is_provided())
         driver.export_ir();
-    if (!cli_parser[ASJ::no_bin].is_provided())
-        driver.emit_abc();
+    #warning " UNCOMMENT "
+    // if (!cli_parser[ASJ::no_bin].is_provided())
+    //     driver.emit_abc();
 }
 
 void handle_shows(const arguinator::Parser& cli_parser, const alpha::Driver& driver)

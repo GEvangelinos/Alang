@@ -92,8 +92,8 @@ private:
         KeywordToken{"nil"     , TKN_NIL     , DEBUG(KeywordId::NIL)},
     }; // clang-format on
 
-    static constexpr u32 block_comment_marker_size = 2; // for /*
-    static constexpr u32 string_marker_size = 1;        // for "
+    static constexpr u32 block_comment_marker_size = sizeof("/*") - 1; // for /*
+    static constexpr u32 string_marker_size = sizeof("\"") - 1;        // for "
 
     LexerCtx& lexer_ctx_;
     LocationTracker& lt_;

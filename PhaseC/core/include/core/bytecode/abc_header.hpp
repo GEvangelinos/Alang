@@ -59,24 +59,24 @@ struct Header
 {
     struct Sections
     {
-        struct Component
+        struct Span
         {
-            struct Region
-            {
-                u32 offset; // Where the region starts inside the binary.
-                u32 size;
+            u32 offset; // Where the region starts inside the binary.
+            u32 size;
 
-                [[nodiscard]] auto begin() const noexcept { return offset; }      // Inclusive
-                [[nodiscard]] auto end() const noexcept { return offset + size; } // Exclusive
-            };
-
-            Region index; // Region of the index: (region0)(region1)(region2)...
+            [[nodiscard]] auto begin() const noexcept { return offset; }      // Inclusive
+            [[nodiscard]] auto end() const noexcept { return offset + size; } // Exclusive
         };
 
-        Component strs;
-        Component libfuncs;
-        Component progfuncs;
-        Component instructions;
+        struct Catalog
+        {
+            Span lut; // Points to the [Span0, Span1, Span2...] array
+        };
+
+        Catalog strs;
+        Catalog libfuncs;
+        Catalog progfuncs;
+        Span instructions;
     };
 
     abc::spec::MagicT magic;

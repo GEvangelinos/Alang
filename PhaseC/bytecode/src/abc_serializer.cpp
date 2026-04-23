@@ -140,46 +140,46 @@ serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
 [[nodiscard]] static bool
 is_zeroed_range(
     const std::vector<u8>& abc_buffer,
-    const abc::Header::Sections::Component& component) noexcept
+    const abc::Header::Sections::Catalog& catalog) noexcept
 {
-    const auto range_begin = abc_buffer.begin() + component.index.begin();
-    const auto range_end = abc_buffer.begin() + component.index.end();
+    const auto range_begin = abc_buffer.begin() + catalog.lut.begin();
+    const auto range_end = abc_buffer.begin() + catalog.lut.end();
 
-    return !!component.index.offset &&
-           abc_buffer.size() > component.index.begin() &&
-           abc_buffer.size() > component.index.end() &&
+    return !!catalog.lut.offset &&
+           abc_buffer.size() > catalog.lut.begin() &&
+           abc_buffer.size() > catalog.lut.end() &&
            std::all_of(range_begin, range_end, [](const u8 b) { return b == 0; });
 }
 
 
 static void
-serialize_region(
+serialize_catalog(
     std::vector<u8>& abc_buffer,
-    const abc::Header::Sections::Component& component,
+    const abc::Header::Sections::Catalog& catalog,
     auto serializer)
 {
-    auto* const target_region_addr = abc_buffer.data() + component.index.begin();
+    auto* const target_span_addr = abc_buffer.data() + catalog.lut.begin();
 
     const auto buff_size_before = abc_buffer.size();
     serializer();
     const auto buff_size_after = abc_buffer.size();
     const auto serialized_string_size = buff_size_before - buff_size_after;
 
-    using Region = abc::Header::Sections::Component::Region;
-    const Region region{
-        .offset = static_cast<decltype(Region::offset)>(buff_size_before),
-        .size = static_cast<decltype(Region::size)>(serialized_string_size),
+    using Span = abc::Header::Sections::Span;
+    const Span span{
+        .offset = static_cast<decltype(Span::offset)>(buff_size_before),
+        .size = static_cast<decltype(Span::size)>(serialized_string_size),
     };
-    std::memcpy(target_region_addr, &region, sizeof(region));
+    std::memcpy(target_span_addr, &span, sizeof(span));
 }
 
 static void
 serialize_table(
     std::vector<u8>& abc_buffer,
-    const abc::Header::Sections::Component& component,
+    const abc::Header::Sections::Catalog& catalog,
     const std::unordered_map<StringSpan, u32>& table)
 {
-    DMASSERT(is_zeroed_range(abc_buffer,component));
+    DMASSERT(is_zeroed_range(abc_buffer,catalog));
     std::vector<StringSpan> str_literals{table.size()};
     for (const auto [str, idx] : table)
         str_literals[idx] = str;
@@ -189,26 +189,27 @@ serialize_table(
         {
             serialize_string_content(abc_buffer, literal);
         };
-        serialize_region(abc_buffer, component, serializer);
+        serialize_catalog(abc_buffer, catalog, serializer);
     }
 }
 
 static void
 serialize_progfuncs(
     std::vector<u8>& abc_buffer,
-    const abc::Header::Sections::Component& component,
+    const abc::Header::Sections::Catalog& component,
     const std::vector<vm::Program::ProgFunc>& progfuncs)
 {
     DMASSERT(is_zeroed_range(abc_buffer,component));
     for (const vm::Program::ProgFunc& func : progfuncs)
     {
-        const auto serializer = [&abc_buffer, &func]()
+        const auto serializer = [&abc_buffer, func]()
         {
+            static_assert(sizeof(func) < 32, "If false capture by reference");
             store_little_endian(abc_buffer, func.address);
             store_little_endian(abc_buffer, func.local_size);
             serialize_string_content(abc_buffer, func.id);
         };
-        serialize_region(abc_buffer, component, serializer);
+        serialize_catalog(abc_buffer, component, serializer);
     }
 }
 
@@ -259,17 +260,19 @@ serialize_instructions(std::vector<u8>& abc_buffer, const vm::Program& program)
 }
 
 template <std::ranges::sized_range ContainerType>
-[[nodiscard]] static abc::Header::Sections::Component::Region
-reserve_index_region(std::vector<u8>& abc_buffer, const ContainerType& container)
+[[nodiscard]] static abc::Header::Sections::Span
+reserve_catalog_span(std::vector<u8>& abc_buffer, const ContainerType& container)
 {
+    using Span = abc::Header::Sections::Span;
     const auto number_of_items = std::ranges::size(container);
-    const abc::Header::Sections::Component::Region index_region{
-        .offset = abc_buffer.size(),
-        .size = number_of_items * sizeof(abc::Header::Sections::Component::Region),
+    const Span catalog_span{
+        .offset = static_cast<decltype(catalog_span.offset)>(abc_buffer.size()),
+        .size = static_cast<decltype(catalog_span.size)>(
+            number_of_items * sizeof(abc::Header::Sections::Span)),
     };
     // Reserve Space for Section's index region, with zero-initialized bytes.
-    abc_buffer.insert(abc_buffer.end(), index_region.size, 0);
-    return index_region;
+    abc_buffer.insert(abc_buffer.end(), catalog_span.size, 0);
+    return catalog_span;
 }
 
 std::vector<u8>
@@ -282,17 +285,21 @@ ABC_Serializer::serialize(const vm::Program& program)
         return abc_buffer.size();
     };
 
-    const abc::Header::Sections data_sections{
-        .strs = {.index = reserve_index_region(abc_buffer, program.str_literal_table)},
-        .libfuncs = {.index = reserve_index_region(abc_buffer, program.libfunc_name_table)},
-        .progfuncs = {.index = reserve_index_region(abc_buffer, program.progfuncs)},
-        .instructions = {.index = reserve_index_region(abc_buffer, program.instructions)},
+    abc::Header::Sections data_sections{
+        .strs = {.lut = reserve_catalog_span(abc_buffer, program.str_literal_table)},
+        .libfuncs = {.lut = reserve_catalog_span(abc_buffer, program.libfunc_name_table)},
+        .progfuncs = {.lut = reserve_catalog_span(abc_buffer, program.progfuncs)},
+        .instructions = {},
     };
 
     serialize_table(abc_buffer, data_sections.strs, program.str_literal_table);
     serialize_table(abc_buffer, data_sections.libfuncs, program.libfunc_name_table);
     serialize_progfuncs(abc_buffer, data_sections.progfuncs, program.progfuncs);
+
+    data_sections.instructions.offset = abc_buffer.size();
     serialize_instructions(abc_buffer, program);
+    data_sections.instructions.size = abc_buffer.size() - data_sections.instructions.offset;
+
     serialize_header(abc_buffer, program, data_sections);
     return abc_buffer;
 }

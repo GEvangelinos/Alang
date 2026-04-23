@@ -635,7 +635,7 @@ BasicBuilder::Restricted::build_logical_not(const Expr* expr, const SourceLocati
     DMASSERT(expr->type == Expr::Type::BOOL);
 
     static_cast<const BoolExpr*>(expr)->invert();
-    return expr;
+    return expr_maker_->clone_with_updated_location(result_loc, expr);
 }
 
 const Expr*

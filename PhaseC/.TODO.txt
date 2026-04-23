@@ -1449,3 +1449,28 @@ at compile time for certainly undefined variables, using levenstein distance (se
 239)
 if commands that can conditionally jump like IF_EQ or IF_LT
 jump to a JUMP command, do jump threading.
+
+240) if getretval is only taken inside a tempory.. and never used and never saved to a real variable.
+that getreval is useless (remove)
+
+241) if a function is not used anywhere.. well remove the function (in an optimization pass)
+dont even show in IR
+
+242) optimize while true loops
+they produce
+1          if_eq                                true                 true                 3          1
+
+could be converted to a JUMP to LABEL 3, so VM doesnt have to do the silly comparison.
+
+243)
+Do retval detection..
+in the following example function foo never returns anything..
+it doesnt even have a branch.. I mean the most silly way to do this.. is have a flag.
+if you ever see a return expr in the function turn it ON if not remains OFF..
+(this is the most unsophisticated approach without doing branch analysis)
+
+then you could emit warning here.. you call a function on the result fo a function returning nothing
+CODE:
+    function foo(a, b){}
+    foo();
+    foo()(1)(2, true);

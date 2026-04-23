@@ -132,9 +132,22 @@ class TestfileExecutor:
             0 → match, 1 → differ, 2 → I/O error
         """
         try:
-            golden_rows = TestfileExecutor.load_csv(golden)
-            export_rows = TestfileExecutor.load_csv(out)
-            return (0, "") if golden_rows == export_rows else (1, "")
+            with open(golden, 'r') as f1, open(out, 'r') as f2:
+                golden_lines = [line.rstrip() for line in f1]
+                export_lines = [line.rstrip() for line in f2]
+
+            if golden_lines == export_lines:
+                return 0, ""
+            # Optional: Find the first line that differs for the extra_msg
+            for i, (l1, l2) in enumerate(zip(golden_lines, export_lines)):
+                if l1 != l2:
+                    return 1, f"Mismatch at line {i+1}: '{l1.strip()}' vs '{l2.strip()}'"
+            return 1, "Files have different line counts"
+
+            ###  DEPRECATED WAY OF DOING THE COMPARISON (CSV Readers ignore quotes)  ###
+            # golden_rows = TestfileExecutor.load_csv(golden)
+            # export_rows = TestfileExecutor.load_csv(out)
+            # return (0, "") if golden_rows == export_rows else (1, "")
         except FileNotFoundError as e:
             return 2, f"{COLOR_BLACK}FileNotFound: {e}{SGR_RESET}"
         except PermissionError as e:
