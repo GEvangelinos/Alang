@@ -1474,3 +1474,24 @@ CODE:
     function foo(a, b){}
     foo();
     foo()(1)(2, true);
+
+244) Emit warnings when using undefined variables.
+like x(); when x is never specified in code
+(not found in SymbolTable and thus it will just insert a new var).
+For this to work.. maybe there is a need to know if a variable is ever used are lvalue (assigned any value);
+even if in branches , etc... if never then var 'x' is certainly undefined. and thus doing x(); would certainly
+result in a runtime error. So a warning is the least we can do.
+
+245) Note code like the one below :
+if(true){
+    x;
+}
+
+produces 2 useless instructions:
+1          if_eq                                true                 true                 3          3
+2          jump                                                                           3          3
+
+
+You can manually find the empty case.. and remove the if_eq and jump pair.. but is there a more clever way to prune.
+we see both if_eq and jump go to the same label (here at label 3)
+

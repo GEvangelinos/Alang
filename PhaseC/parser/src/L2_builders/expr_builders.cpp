@@ -163,7 +163,7 @@ AggregateBuilder::Restricted::finalize_table_literal(const SourceLocation table_
     // TODO: provide a locpatch_expr method of expr_maker.. instead of cloining
     // Clone the table expression with its finalized source location for accurate diagnostics
     const Expr* const table_literal =
-        expr_maker_->clone_with_updated_location(table_loc, tls.top().host_expr);
+        expr_maker_->consume_and_relocate(table_loc, tls.top().host_expr);
 
     // Backpatch the TABLECREATE quad with the correct source location
     quad_handler_->locPatch_tablecreate(tls.top().host_quad_label, table_loc);
@@ -633,9 +633,8 @@ BasicBuilder::Restricted::build_logical_not(const Expr* expr, const SourceLocati
         return optimized;
     // Sanity check, CONST_BOOL must be consumed by the optimizer.
     DMASSERT(expr->type == Expr::Type::BOOL);
-
     static_cast<const BoolExpr*>(expr)->invert();
-    return expr_maker_->clone_with_updated_location(result_loc, expr);
+    return expr_maker_->consume_and_relocate(result_loc, expr);
 }
 
 const Expr*

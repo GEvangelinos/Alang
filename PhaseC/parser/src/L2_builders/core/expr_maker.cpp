@@ -35,7 +35,7 @@ ExprMaker::~ExprMaker() noexcept
 }
 
 const Expr *
-ExprMaker::clone_with_updated_location(const SourceLocation new_loc, const Expr *const donor_expr)
+ExprMaker::consume_and_relocate(const SourceLocation new_loc, const Expr *const donor_expr)
 {
     DMASSERT(!!donor_expr);
     using ET = Expr::Type;

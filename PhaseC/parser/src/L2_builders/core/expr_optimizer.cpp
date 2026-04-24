@@ -296,16 +296,16 @@ ExprTrimmer::try_trim_relational_equality(
     {
         // 1 == var(true) -> var(true), 1 == var(false) -> var(false) => 1 == var -> var
         if (lhs->is_static() && SemUtils::as_bool(lhs) == true)
-            return expr_maker_->clone_with_updated_location(result_loc, rhs);
+            return expr_maker_->consume_and_relocate(result_loc, rhs);
         if (rhs->is_static() && SemUtils::as_bool(rhs))
-            return expr_maker_->clone_with_updated_location(result_loc, lhs);
+            return expr_maker_->consume_and_relocate(result_loc, lhs);
     }
     if (opc == ir::Opcode::IF_NEQ) // var != 0 -> var  ,  0 != var -> var
     {
         if (lhs->is_static() && SemUtils::as_bool(lhs) == false)
-            return expr_maker_->clone_with_updated_location(result_loc, rhs);
+            return expr_maker_->consume_and_relocate(result_loc, rhs);
         if (rhs->is_static() && SemUtils::as_bool(rhs) == false)
-            return expr_maker_->clone_with_updated_location(result_loc, lhs);
+            return expr_maker_->consume_and_relocate(result_loc, lhs);
     }
     return nullptr; // Trimming failed (most common scenario)
 }
@@ -320,18 +320,18 @@ ExprTrimmer::try_trim_binary_logical(
     if (opc == ir::Opcode::OR)
     {
         if (lhs->is_const_false()) // false OR var = var
-            return expr_maker_->clone_with_updated_location(result_loc, rhs);
+            return expr_maker_->consume_and_relocate(result_loc, rhs);
         if (rhs->is_const_false()) // var OR false = var
-            return expr_maker_->clone_with_updated_location(result_loc, lhs);
+            return expr_maker_->consume_and_relocate(result_loc, lhs);
         if (lhs->is_const_true() || rhs->is_const_true())
             return expr_maker_->make_const_bool_expr(result_loc, true);
     }
     if (opc == ir::Opcode::AND)
     {
         if (lhs->is_const_true()) // true AND var = var
-            return expr_maker_->clone_with_updated_location(result_loc, rhs);
+            return expr_maker_->consume_and_relocate(result_loc, rhs);
         if (rhs->is_const_true()) // var AND true = var
-            return expr_maker_->clone_with_updated_location(result_loc, lhs);
+            return expr_maker_->consume_and_relocate(result_loc, lhs);
         if (lhs->is_const_false() || rhs->is_const_false())
             return expr_maker_->make_const_bool_expr(result_loc, false);
     }
@@ -352,7 +352,7 @@ ExprOptimizer::try_propagate_const(const Expr* const expr)
         return expr;
 
     // We need to update the location cause the point of use is different from point of const decl.
-    return expr_maker_->clone_with_updated_location(expr->loc, var_symbol->get_const_expr());
+    return expr_maker_->consume_and_relocate(expr->loc, var_symbol->get_const_expr());
 }
 
 const Expr*
@@ -364,8 +364,8 @@ try_trim_add(
 {
     DMASSERT(!!expr_maker, !!lhs, !!rhs);
     // 0 + x -> x and x + 0 -> x
-    if (lhs->is_const_0()) return expr_maker->clone_with_updated_location(add_loc, rhs);
-    if (rhs->is_const_0()) return expr_maker->clone_with_updated_location(add_loc, lhs);
+    if (lhs->is_const_0()) return expr_maker->consume_and_relocate(add_loc, rhs);
+    if (rhs->is_const_0()) return expr_maker->consume_and_relocate(add_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
 }
 
@@ -378,7 +378,7 @@ try_trim_sub(
 {
     DMASSERT(!!expr_maker, !!lhs, !!rhs);
     // x - 0 -> x
-    if (rhs->is_const_0()) return expr_maker->clone_with_updated_location(sub_loc, lhs);
+    if (rhs->is_const_0()) return expr_maker->consume_and_relocate(sub_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
 }
 
@@ -395,8 +395,8 @@ try_trim_mul(
         return expr_maker->make_const_int_expr(mul_loc, 0);
 
     // x * 1 -> x and 1 * x -> x
-    if (lhs->is_const_1()) return expr_maker->clone_with_updated_location(mul_loc, rhs);
-    if (rhs->is_const_1()) return expr_maker->clone_with_updated_location(mul_loc, lhs);
+    if (lhs->is_const_1()) return expr_maker->consume_and_relocate(mul_loc, rhs);
+    if (rhs->is_const_1()) return expr_maker->consume_and_relocate(mul_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
 }
 
@@ -408,7 +408,7 @@ try_trim_div(
     const SourceLocation div_loc)
 {
     DMASSERT(!!expr_maker, !!lhs, !!rhs);
-    if (rhs->is_const_1()) return expr_maker->clone_with_updated_location(div_loc, lhs);
+    if (rhs->is_const_1()) return expr_maker->consume_and_relocate(div_loc, lhs);
     return nullptr; // Trimming failed (most common scenario)
 }
 

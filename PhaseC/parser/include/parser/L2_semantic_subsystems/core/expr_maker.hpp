@@ -52,7 +52,7 @@ public:
     [[nodiscard]] const VariableExpr *make_variable_expr(
         SourceLocation expr_loc, const VarSymbol *var_symbol);
 
-    [[nodiscard]] const Expr *clone_with_updated_location(
+    [[nodiscard]] const Expr *consume_and_relocate(
         SourceLocation new_loc, const Expr *donor_expr);
 
 private:

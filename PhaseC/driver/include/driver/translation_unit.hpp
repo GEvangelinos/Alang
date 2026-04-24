@@ -1,5 +1,6 @@
 #ifndef TRANSLATION_UNIT_HPP
 #define TRANSLATION_UNIT_HPP
+
 #include <filesystem>
 #include <memory>
 #include <scanner/scanner_context.hpp>

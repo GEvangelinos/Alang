@@ -124,7 +124,7 @@ SemanticSystem::commit_expr_of_elist(const Expr *expr)
 const Expr *
 SemanticSystem::force_rvalue_cast(const Expr *const expr, const SourceLocation cast_loc)
 {
-    const Expr *const result = expr_maker_->clone_with_updated_location(cast_loc, expr);
+    const Expr *const result = expr_maker_->consume_and_relocate(cast_loc, expr);
     result->rvalue_cast();
     return result;
 }
