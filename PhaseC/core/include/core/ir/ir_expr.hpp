@@ -69,6 +69,7 @@ struct Expr : private Immobile
     [[nodiscard]] bool is_const_false() const noexcept;
     [[nodiscard]] bool is_const_arithmetic() const noexcept;
     [[nodiscard]] bool is_const() const noexcept;
+    [[nodiscard]] bool has_uninitialized_variable() const noexcept;
     [[nodiscard]] bool is_lvalue_type() const noexcept;
     [[nodiscard]] bool is_lvalue() const noexcept;
     [[nodiscard]] bool is_rvalue() const noexcept;

@@ -85,6 +85,7 @@ public:
     [[nodiscard]] const ConstExpr* get_const_expr() const noexcept { return const_expr_; }
     [[nodiscard]] bool has_const_value() const noexcept { return const_expr_; }
     [[nodiscard]] bool has_temp_handle() const noexcept { return temp_binding_.is_active(); }
+    [[nodiscard]] bool is_initialized() const noexcept { return is_initialized_; }
     [[nodiscard]] TempHandleID temp_handle() const noexcept;
 
     [[nodiscard]] static Type scope_to_symbol_type(u32 scope);
@@ -109,6 +110,7 @@ private:
     // Only modified through friend class SymbolTable!
     mutable const ConstExpr* const_expr_ = nullptr;
     mutable TempBinding temp_binding_;
+    mutable OnceFlag is_initialized_;
 };
 
 class LibFuncSymbol final : public Symbol

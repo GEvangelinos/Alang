@@ -31,7 +31,7 @@ public:
         const TranslationUnitBuffer& tub
     );
 
-    [[nodiscard]] LexerReturnType yield_token(YYSTYPE* yylval, YYLTYPE* yylloc) noexcept;
+    [[nodiscard]] LexerReturnType yield_token(YYSTYPE* yylval, YYLTYPE* yylloc);
 
     [[nodiscard]] const char* last_token_begin() const noexcept;
     [[nodiscard]] const char* last_token_end() const noexcept;
@@ -130,7 +130,7 @@ private:
     [[nodiscard]] LexerReturnType handle_right_angle_bracket_char() noexcept;
     [[nodiscard]] LexerReturnType handle_dot_char() noexcept;
     [[nodiscard]] LexerReturnType handle_colon_char() noexcept;
-    [[nodiscard]] LexerReturnType handle_double_quote_char() noexcept;
+    [[nodiscard]] LexerReturnType handle_double_quote_char();
 
     [[nodiscard]] LexerReturnType handle_number_char() noexcept;
     [[nodiscard]] LexerReturnType handle_hex_number() noexcept;

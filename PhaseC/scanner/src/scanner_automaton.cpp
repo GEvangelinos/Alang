@@ -420,7 +420,7 @@ ScannerAutomaton::handle_slash_char() noexcept
 }
 
 ScannerAutomaton::LexerReturnType
-ScannerAutomaton::handle_double_quote_char() noexcept
+ScannerAutomaton::handle_double_quote_char()
 {
     DMASSERT(get_curr_char() == '\"');
     // Just started handling string, so we first things first consume the initialization marker.
@@ -633,7 +633,7 @@ ScannerAutomaton::handle_invalid_char(const char curr_ch) noexcept
     case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z'
 
 ScannerAutomaton::LexerReturnType
-ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc) noexcept
+ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc)
 {
     const auto consume_token = [this]<LexerReturnType token>()
     {

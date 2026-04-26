@@ -133,8 +133,9 @@ class TokenString final : public Token
 public:
     static void set_starting_location(SourceLocation location);
     [[nodiscard]] static SourceLocation get_starting_location();
+    static void set_string_begin_addr(const char *str_addr);
     static void append_to_assembling_buffer(std::string string_chunk);
-    [[nodiscard]] static StringSpan export_string_token();
+    [[nodiscard]] static StringSpan assemble_string_span();
     [[nodiscard]] static SourceLocation export_location(SourceLocation closing_quote_loc);
     TokenString(u32 line_number, u32 token_number, const std::string& string_content);
     [[nodiscard]] std::string to_string() const override;
@@ -144,6 +145,7 @@ private:
     static std::string latest_assembled_string_;
     // TODO: use std::vector<char> stringstream is locale aware and slow.
     static std::stringstream string_assembling_buffer_;
+    static const char *last_string_begin_addr_;
     static SourceLocation string_starting_location_;
     static void flush_assembling_buffer();
     [[nodiscard]] static std::string convert_content_escapes_to_ascii();
@@ -180,6 +182,13 @@ inline void
 TokenString::set_starting_location(const SourceLocation location)
 {
     TokenString::string_starting_location_ = location;
+}
+
+inline void
+TokenString::set_string_begin_addr(const char* const str_addr)
+{
+    TokenString::last_string_begin_addr_ = str_addr;
+
 }
 
 inline SourceLocation

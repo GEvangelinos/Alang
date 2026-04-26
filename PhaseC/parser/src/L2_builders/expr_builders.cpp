@@ -328,9 +328,14 @@ AssignBuilder::Restricted::build_assignment(
     if (!validate_assignment(lhs, result_loc))
         return nullptr;
 
-    return AssignBuilder::Restricted::is_direct_target_expr(lhs)
-           ? handle_direct_assignment(lhs, rhs, result_loc)
-           : handle_table_item_assignment(lhs, rhs, result_loc);
+    if (AssignBuilder::Restricted::is_direct_target_expr(lhs))
+    {
+        DMASSERT(lhs->is_lvalue(), lhs->has_var_symbol());
+        SymbolTable::mark_as_initialized(static_cast<const ExprWVarSymbol *>(lhs)->var_symbol);
+        return handle_direct_assignment(lhs, rhs, result_loc);
+    }
+
+    return handle_table_item_assignment(lhs, rhs, result_loc);
 }
 
 const Expr*
@@ -612,7 +617,8 @@ skip_opt:
     {
         const BoolExpr* result_expr = expr_maker_->make_bool_expr(result_loc);
         result_expr->true_list.push_back(quad_handler_->next_quad_label());
-        result_expr->false_list.push_back(quad_handler_->next_quad_label() + LabelID{1}); // +1 for jump quad
+        result_expr->false_list.push_back(quad_handler_->next_quad_label() + LabelID{1});
+        // +1 for jump quad
         return result_expr;
     };
 
@@ -1112,10 +1118,7 @@ FunctionBuilder::Restricted::update_function_draft(const StringSpan id)
 void
 FunctionBuilder::Restricted::collect_function_parameter(
     const StringSpan id,
-    const SourceLocation id_loc)
-{
-    function_draft_.parameter_list.emplace_back(id, id_loc);
-}
+    const SourceLocation id_loc) { function_draft_.parameter_list.emplace_back(id, id_loc); }
 
 void
 FunctionBuilder::Restricted::register_function_parameters()
@@ -1151,12 +1154,14 @@ FunctionBuilder::Restricted::validate_funcdef_name(
     {
         if (found_symbol->is_function())
         {
-            dr_->report_redefinition_of_func(func_name.to_string(), funcname_loc, found_symbol->loc);
+            dr_->report_redefinition_of_func(func_name.to_string(), funcname_loc,
+                                             found_symbol->loc);
             return false;
         }
         if (found_symbol->is_variable())
         {
-            dr_->report_redefinition_of_var_as_func(func_name.to_string(), funcname_loc, found_symbol->loc);
+            dr_->report_redefinition_of_var_as_func(func_name.to_string(), funcname_loc,
+                                                    found_symbol->loc);
             return false;
         }
     }

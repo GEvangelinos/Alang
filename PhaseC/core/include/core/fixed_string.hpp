@@ -1,9 +1,11 @@
 #ifndef FIXED_STRING_HPP
 #define FIXED_STRING_HPP
+
 #include <iosfwd>
 #include <type_traits>
+#include <string_view>
 
-template<std::size_t N>
+template <std::size_t N>
 struct FixedString
 {
     char data[N]{};
@@ -17,13 +19,13 @@ struct FixedString
             data[i] = str[i];
     }
 
-    consteval FixedString(const FixedString &other)
+    consteval FixedString(const FixedString& other)
     {
         for (decltype(N) i = 0; i < N; ++i)
             data[i] = other[i];
     }
 
-    template<typename Int>
+    template <typename Int>
     consteval char operator[](Int idx) const
     {
         static_assert(std::is_integral_v<Int>, "Argument `idx` must be integral.");
@@ -32,8 +34,8 @@ struct FixedString
         return data[idx];
     }
 
-    template<typename Int>
-    consteval char &operator[](Int idx)
+    template <typename Int>
+    consteval char& operator[](Int idx)
     {
         static_assert(std::is_integral_v<Int>, "Argument `idx` must be integral.");
         if (idx >= N)
@@ -41,8 +43,8 @@ struct FixedString
         return data[idx];
     }
 
-    template<decltype(N) M>
-    consteval bool operator==(const FixedString<M> &fs) const
+    template <decltype(N) M>
+    consteval bool operator==(const FixedString<M>& fs) const
     {
         if (N != M) return false;
         for (decltype(N) i = 0; i < N; ++i)
@@ -51,14 +53,31 @@ struct FixedString
         return true;
     }
 
-    template<decltype(N) M>
+    template <decltype(N) M>
     consteval bool operator==(const char (&array_str)[M]) const
     {
         return operator==(FixedString<M>(array_str));
     }
 
-    template<decltype(N) M>
-    consteval bool starts_with(const FixedString<M> &sub_fs) const
+    template <decltype(N) M>
+    consteval bool contains(const FixedString<M>& sub_fs) const
+    {
+        if (M > N)
+            return false;
+        const std::string_view haystack{data, N};
+        const std::string_view needle{sub_fs.data, M};
+        return haystack.find(needle) != std::string_view::npos;
+    }
+
+
+    template <decltype(N) M>
+    consteval bool contains(const char (&substr)[M]) const
+    {
+        return contains(FixedString<M>(substr));
+    }
+
+    template <decltype(N) M>
+    consteval bool starts_with(const FixedString<M>& sub_fs) const
     {
         if (M > N) return false;                // `substr` doesn't even fit inside the string.
         for (decltype(N) i = 0; i < M - 1; ++i) // M-1: ignore `substr`'s trailing '\0'.
@@ -67,7 +86,7 @@ struct FixedString
         return true;
     }
 
-    template<decltype(N) M>
+    template <decltype(N) M>
     consteval bool starts_with(const char (&substr)[M]) const
     {
         return starts_with(FixedString<M>(substr));
@@ -75,7 +94,7 @@ struct FixedString
 
     // `prefix` is unused as a value; it's only passed so we can deduce M,
     // the compile-time length of the prefix (including the null terminator).
-    template<decltype(N) M>
+    template <decltype(N) M>
     consteval auto without_prefix([[maybe_unused]] const char (&prefix)[M])
     const
     {
@@ -89,7 +108,7 @@ struct FixedString
         return result;
     }
 
-    friend std::ostream &operator <<(std::ostream &os, const FixedString &rhs)
+    friend std::ostream& operator <<(std::ostream& os, const FixedString& rhs)
     {
         return os << rhs.data;
     }

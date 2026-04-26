@@ -249,6 +249,7 @@ std::string TokenComment::to_string() const
 std::stringstream TokenString::string_assembling_buffer_;
 SourceLocation TokenString::string_starting_location_ = SourceLocation::none();
 std::string TokenString::latest_assembled_string_;
+const char * TokenString::last_string_begin_addr_ = nullptr;
 
 /* TODO: FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */
 #warning "I DO NOT WANT TO CONVERT SHIT... We should convert escapes only at the end of ABC making... NOT HERE (in lexer state)"
@@ -299,24 +300,27 @@ void TokenString::append_to_assembling_buffer(std::string string_chunk)
     string_assembling_buffer_ << string_chunk;
 }
 
+StringSpan
+TokenString::assemble_string_span()
+{
+    // This work because we know that everytime Flex tokenizes part of code it add momentarily a '\0'
+    // so we can use this to find the string-length.
+    return StringSpan{
+        .data = TokenString::last_string_begin_addr_,
+        .size = std::strlen(TokenString::last_string_begin_addr_),
+    };
+
+}
+
+
 void TokenString::flush_assembling_buffer()
 {
     string_assembling_buffer_.str("");
     string_assembling_buffer_.clear();
 }
 
-StringSpan TokenString::export_string_token()
-{
-    latest_assembled_string_ = convert_content_escapes_to_ascii();
-    TokenString::flush_assembling_buffer();
-    return StringSpan{
-        .data = latest_assembled_string_.c_str(),
-        .size = latest_assembled_string_.size()
-    };
-}
-
 SourceLocation
-TokenString::export_location(SourceLocation closing_quote_loc)
+TokenString::export_location(const SourceLocation closing_quote_loc)
 {
     return merge(get_starting_location(), closing_quote_loc);
 }

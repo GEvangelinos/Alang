@@ -584,10 +584,10 @@ TranslationUnit::compile()
 }
 
 void
-TranslationUnit::notify_fatal_error() { throw exception::DiagnosticFatalError(); }
+TranslationUnit::notify_fatal_error() { throw exception::DiagnosticFatalError{}; }
 
 void
-TranslationUnit::notify_max_errors_reached() { throw exception::DiagnosticLimitError(); }
+TranslationUnit::notify_max_errors_reached() { throw exception::DiagnosticLimitError{}; }
 
 void
 TranslationUnit::only_lex_tokens() const { compilation_pipeline_->scan_tokens(); }

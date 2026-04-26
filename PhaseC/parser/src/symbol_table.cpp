@@ -14,18 +14,18 @@ inline constexpr std::vector<Parameter> k_empty_parameter_list;
 
 namespace // (Anonymous)
 {
-    template<typename Key, typename Value>
-    [[maybe_unused]] const Key &get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
+    template <typename Key, typename Value>
+    [[maybe_unused]] const Key& get_umap_key_ref(std::unordered_map<Key, Value> umap, Key key)
     {
         auto [item_it, inserted] = umap.try_emplace(key);
-        DMASSERT(!inserted);       // This function is meant to be used for existing keys.
-        const Key &key_ref = item_it->first; // First item part of item is Key, second is Value.
+        DMASSERT(!inserted);                 // This function is meant to be used for existing keys.
+        const Key& key_ref = item_it->first; // First item part of item is Key, second is Value.
         return key_ref;
     }
 
-    template<typename SynonymContainer>
+    template <typename SynonymContainer>
     typename SynonymContainer::const_iterator
-    find_insert_position(const SynonymContainer &synonym_symbols, u32 scope)
+    find_insert_position(const SynonymContainer& synonym_symbols, u32 scope)
     {
         auto symbol_it = synonym_symbols.begin();
         for (; symbol_it != synonym_symbols.end(); ++symbol_it)
@@ -40,23 +40,23 @@ namespace // (Anonymous)
         return symbol_it;
     }
 
-    void ensure_scope_slot(auto &symbols_per_scope, u32 scope)
+    void ensure_scope_slot(auto& symbols_per_scope, u32 scope)
     {
         if (scope >= symbols_per_scope.size())
             symbols_per_scope.resize(scope + 1);
     }
 } // namespace
 
-template<typename SymbolKind, typename... Args>
+template <typename SymbolKind, typename... Args>
     requires std::is_base_of_v<Symbol, SymbolKind>
-const SymbolKind *
-SymbolTable::insert_symbol(const StringSpan name, u32 scope, Args &&... args)
+const SymbolKind*
+SymbolTable::insert_symbol(const StringSpan name, u32 scope, Args&&... args)
 {
     DMASSERT(!name.empty());
 
     const auto symbol_map_it = symbol_map_.try_emplace(name).first;
-    const auto &symbol_name_ref = symbol_map_it->first;
-    auto &synonym_symbols = symbol_map_it->second;
+    const auto& symbol_name_ref = symbol_map_it->first;
+    auto& synonym_symbols = symbol_map_it->second;
     const auto symbol_it = find_insert_position(synonym_symbols, scope);
     SymbolPtr symbol_ptr = std::make_unique<SymbolKind>(
         symbol_name_ref,
@@ -82,23 +82,23 @@ SymbolTable::SymbolTable()
         const StringSpan name = k_library_function_names[i];
 
         library_function_set_.insert(name);
-        (void) insert_symbol<LibFuncSymbol>(name, k_libfunc_scope);
+        (void)insert_symbol<LibFuncSymbol>(name, k_libfunc_scope);
     }
 }
 
 // Used for inserting PROGRAM_FUNCTIONS (USER FUNCTIONS)
-const ProgFuncSymbol *
+const ProgFuncSymbol*
 SymbolTable::insert_program_function(
     const StringSpan name,
     const u32 scope,
     const u32 address,
-    const std::vector<Parameter> &parameter_list,
+    const std::vector<Parameter>& parameter_list,
     const SourceLocation location)
 {
     return insert_symbol<ProgFuncSymbol>(name, scope, address, parameter_list, location);
 }
 
-const VarSymbol *
+const VarSymbol*
 SymbolTable::insert_variable(
     const StringSpan name,
     const u32 scope,
@@ -110,7 +110,7 @@ SymbolTable::insert_variable(
     return insert_symbol<VarSymbol>(name, scope, type, space, offset, location);
 }
 
-const Symbol *
+const Symbol*
 SymbolTable::lookup_global(const StringSpan name) const
 {
     // Does `symbol_name` exist ?
@@ -119,13 +119,13 @@ SymbolTable::lookup_global(const StringSpan name) const
         return nullptr;
 
     // Scope lists are sorted; global scope is always at the front if present.
-    const auto &scope_list = it->second;
+    const auto& scope_list = it->second;
     if (!scope_list.empty() && scope_list.front()->scope == k_global_scope)
         return scope_list.front().get();
     return nullptr;
 }
 
-const Symbol *
+const Symbol*
 SymbolTable::lookup_nearest(const StringSpan name, const u32 scope) const
 {
     // Does `symbol_name` exist ?
@@ -134,22 +134,22 @@ SymbolTable::lookup_nearest(const StringSpan name, const u32 scope) const
         return nullptr;
 
     // We search from inner to outer scope (end to begin)
-    const auto &scope_list = it->second;
+    const auto& scope_list = it->second;
     for (auto symbol_it = scope_list.crbegin(); symbol_it != scope_list.crend(); ++symbol_it)
         if (symbol_it->get()->scope <= scope && symbol_it->get()->is_active())
             return symbol_it->get();
     return nullptr;
 }
 
-const Symbol *
+const Symbol*
 SymbolTable::lookup_local(const StringSpan name, const u32 scope) const
 {
     const auto it = symbol_map_.find(name);
     if (it == symbol_map_.end())
         return nullptr;
 
-    const auto &scope_list = it->second;
-    for (auto &symbol_ptr: scope_list)
+    const auto& scope_list = it->second;
+    for (auto& symbol_ptr : scope_list)
     {
         if (symbol_ptr->scope < scope)
             continue;
@@ -169,9 +169,9 @@ SymbolTable::hide_scope_symbols(const u32 scope) noexcept
     if (scope >= actives_per_scope_.size())
         return; // We don't have symbols at that scope yet. (Empty block at higher scope)
 
-    std::vector<Symbol *> &actives_in_scope = actives_per_scope_[scope];
+    std::vector<Symbol*>& actives_in_scope = actives_per_scope_[scope];
 
-    for (Symbol *symbol_ptr: actives_in_scope)
+    for (Symbol* symbol_ptr : actives_in_scope)
     {
         DMASSERT(!!symbol_ptr);
         symbol_ptr->deactivate();
@@ -211,27 +211,37 @@ SymbolTable::is_libfunc_name(const StringSpan name) const
 ///   it's *their bug*. This method trusts that the pipeline is well-formed.
 
 void
-SymbolTable::detach_const_expr(const VarSymbol *var_symbol) { var_symbol->const_expr_ = nullptr; }
+SymbolTable::detach_const_expr(const VarSymbol* const var_symbol)
+{
+    DEBUG_REQUIRE_PTR(var_symbol)->const_expr_ = nullptr;
+}
 
 // Related method — refer to rationale above
 void
 SymbolTable::attach_const_expr(
-    const VarSymbol *var_symbol,
-    const ConstExpr *const const_expr)
+    const VarSymbol* const var_symbol,
+    const ConstExpr* const const_expr)
 {
-    DMASSERT(!!const_expr, const_expr->is_const());
+    DMASSERT(!!var_symbol, !!const_expr, const_expr->is_const());
     var_symbol->const_expr_ = const_expr;
 }
 
 void
-SymbolTable::attach_temp_handle(const VarSymbol *const var_symbol, const TempHandleID id)
+SymbolTable::attach_temp_handle(const VarSymbol* const var_symbol, const TempHandleID id)
 {
-    var_symbol->temp_binding_.bind(id);
+    DMASSERT(!id.is_none());
+    DEBUG_REQUIRE_PTR(var_symbol)->temp_binding_.bind(id);
 }
 
 TempHandleID
-SymbolTable::detach_temp_handle(const VarSymbol *const var_symbol)
+SymbolTable::detach_temp_handle(const VarSymbol* const var_symbol)
 {
-    return var_symbol->temp_binding_.release();
+    return DEBUG_REQUIRE_PTR(var_symbol)->temp_binding_.release();
+}
+
+void
+SymbolTable::mark_as_initialized(const VarSymbol* const var_symbol)
+{
+    DEBUG_REQUIRE_PTR(var_symbol)->is_initialized_.raise();
 }
 } // namespace alpha

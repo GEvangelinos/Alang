@@ -58,6 +58,16 @@
     - Message: "integer to floating-point implicit conversion results in integral precision loss"
       Location: conversion_loc
 
+- Diagnostic: UNINITIALIZED_RVALUE
+  Type: WARNING
+  Primary:
+    - Message: "Use of uninitialized variable as rvalue"
+      Location: variable_loc
+  Notes:
+    - Message: "Variable first declared here"
+      Location: variable_decl_loc
+
+
 - Diagnostic: EQUALITY_REL_OP_OPERAND_MISMATCH
   Type: SOFT_ERROR
   Primary:
@@ -165,26 +175,6 @@
       Args: [ func_name ]
       Location: var_def_loc
 
-# ======================================================================================
-# NOTE ON UNCLOSED TOKENS
-# --------------------------------------------------------------------------------------
-# UNCLOSED_COMMENT and UNCLOSED_STRING are marked as SOFT_ERROR. They act like "blackholes":
-# once triggered, the lexer may still hit EOF. Making them SOFT allows the EOF diagnostic
-# to also be reported, which is helpful if a prior statement was left unfinished. If they
-# were HARD_ERROR, parsing would stop immediately, blocking EOF from being shown.
-# ======================================================================================
-- Diagnostic: UNCLOSED_COMMENT
-  Type: SOFT_ERROR
-  Primary:
-    - Message: "unclosed comment, missing terminating `*/`"
-      Location: comment_start_loc
-
-- Diagnostic: UNCLOSED_STRING
-  Type: SOFT_ERROR
-  Primary:
-    - Message: "unclosed string literal, missing terminating `\"` character"
-      Location: string_start_loc
-
 - Diagnostic: ASSIGN_TO_FUNC
   Type: HARD_ERROR
   Primary:
@@ -207,10 +197,10 @@
 - Diagnostic: ASSIGN_DIRECTLY_TO_TEMP
   Type: HARD_ERROR
   Primary:
-    - Message: "assignment to temporary value"
+    - Message: "assignment to temporary rvalue"
       Location: assign_expr_loc
       Highlights:
-        - Message: "^temporary value"
+        - Message: "^temporary rvalue"
           Location: lhs_loc
 
 - Diagnostic: INACCESSIBLE_VAR_IN_FUNC
@@ -262,7 +252,7 @@
       Args: [ operator_name, operator_symbol, lvalue_subject ]
       Location: full_expr_loc
   Notes:
-    - Message: "current {0} is a temporary `{1}`"
+    - Message: "current `{0}` is a temporary `{1}`"
       Args: [ lvalue_subject, found_type ]
       Location: rvalue_loc
       Highlights:
@@ -320,7 +310,6 @@
         - Message: "{0}"
           Args: [ closer_token ]
           Location: insert_after_loc
-
   Notes:
     - Message: "to match this `{0}`"
       Args: [ opener_token ]
@@ -382,6 +371,25 @@
     - Message: "symbol `{0}` not found in global scope"
       Args: [ symbol_name ]
       Location: symbol_use_loc
+
+# ======================================================================================
+# NOTE ON UNCLOSED TOKENS
+# --------------------------------------------------------------------------------------
+# UNCLOSED_COMMENT and UNCLOSED_STRING are marked as FATAL_ERROR. They act like "vacuums":
+# once triggered, the lexer may still hit EOF. Making them FATAL, skips the rest hallucinating
+# diagnostics.
+# ======================================================================================
+- Diagnostic: UNCLOSED_COMMENT
+  Type: FATAL_ERROR
+  Primary:
+    - Message: "unclosed comment, missing terminating `*/`"
+      Location: comment_start_loc
+
+- Diagnostic: UNCLOSED_STRING
+  Type: FATAL_ERROR
+  Primary:
+    - Message: "unclosed string literal, missing terminating `\"` character"
+      Location: string_start_loc
 
 - Diagnostic: PARSER_STACK_EXHAUSTED
   Type: FATAL_ERROR

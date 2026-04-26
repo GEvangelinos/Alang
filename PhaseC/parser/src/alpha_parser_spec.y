@@ -435,7 +435,6 @@ func_prefix:
 func_params:
   ID                   { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
 | func_params COMMA ID { ss.call<"function_builder.collect_function_parameter">($ID, @ID); }
-
 ;
 
 funcArgList:

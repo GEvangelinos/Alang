@@ -43,9 +43,57 @@
 
 namespace alpha
 {
+
 // Order of initialization is intentional.
 // As the subsystems of semantic driver utilize its internal state,
 // for their own initialization.
+template <FixedString S>
+consteval bool is_assignment_v()
+{
+    // Check if the string contains "assign" or matches specific builder names
+    return S.contains("assign_builder") && S.contains("build_assignment");
+}
+
+template <FixedString CALL_STR, typename... Args>
+void filter_rvalues(alpha::DiagnosticReporter& dr, Args&&... args)
+{
+    const auto validate_rvalue = [&dr](const alpha::Expr* const e)
+    {
+        std::cerr << "PASSING THROUGH FILTER FOR RVALUES" << std::endl;
+        // #error "What if you do the check in QUAD_YIELDER? basically mark if an OPCODE require initialized argument / expr"
+        DMASSERT(!!e);
+        if (e->is_lvalue() && !e->has_uninitialized_variable())
+            dr.report_uninitialized_rvalue(
+                e->loc,
+                static_cast<const alpha::ExprWVarSymbol*>(e)->var_symbol->loc
+            );
+    };
+
+    /* Generate the index sequence for the pack */
+    [&] < std::size_t ... Is >(std::index_sequence<Is...>)
+        {
+            (([&]
+            {
+                using ArgT = std::tuple_element_t<Is, std::tuple<Args...>>;
+
+                /* Check if argument is an Expr pointer */
+                if constexpr (std::is_convertible_v<ArgT, const alpha::Expr*>)
+                {
+                    /* Context check: Skip LHS of assignment */
+                    // constexpr bool lvalue =  Is == 0;
+                    constexpr bool lvalue = is_assignment_v<CALL_STR>() ;
+
+                    if constexpr (!lvalue)
+                    {
+                        /* std::get works on the forwarded tuple of args */
+                        validate_rvalue(std::get<Is>(std::forward_as_tuple(args...)));
+                    }
+                }
+            }()), ...);
+        }
+    (std::index_sequence_for<Args...>{});
+}
+
 class SemanticSystem : private Immobile
 {
     friend class SemanticSystemBridge;
@@ -63,7 +111,8 @@ public: // More public stuff at the end (check it out)
     void recover() noexcept { ss_status_ = Status::OK; }
     [[nodiscard]] bool good() const noexcept { return ss_status_ == Status::OK; }
 
-    DISPATCH_DEFINE_HANDLER_BEGIN();
+
+    DISPATCH_DEFINE_MASTER_HANDLER_BEGIN(filter_rvalues<CALL_STR>(* dr_, args...););
     DISPATCH_MASTER_MODULE_CALL(assign_builder);
     DISPATCH_MASTER_MODULE_CALL(basic_builder);
     DISPATCH_MASTER_MODULE_CALL(block_manager);

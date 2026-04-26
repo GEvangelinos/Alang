@@ -46,7 +46,7 @@ LvalueResolver::Restricted::resolve_local_id(
 {
     DMASSERT(!lid_name.empty());
 
-        const auto current_scope = parse_ctx_->scope_handler.scope();
+    const auto current_scope = parse_ctx_->scope_handler.scope();
     if (current_scope != k_libfunc_scope && symbol_table_->is_libfunc_name(lid_name))
     {
         dr_->report_local_id_shadows_libfunc(lid_name, lid_loc);
@@ -73,9 +73,9 @@ LvalueResolver::Restricted::resolve_local_id(
     if (result->type == Symbol::Type::PROGRAM_FUNCTION)
         return expr_maker_->make_prog_func_expr(
             lid_loc, static_cast<const ProgFuncSymbol*>(result));
-    DMASSERT (result->type == Symbol::Type::LIBRARY_FUNCTION);
+    DMASSERT(result->type == Symbol::Type::LIBRARY_FUNCTION);
     return expr_maker_->make_lib_func_expr(
-        SourceLocation::none(), static_cast<const LibFuncSymbol *>(result));
+        SourceLocation::none(), static_cast<const LibFuncSymbol*>(result));
     UNREACHABLE("Unexpected symbol type");
 }
 

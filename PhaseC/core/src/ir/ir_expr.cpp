@@ -127,6 +127,13 @@ Expr::is_const() const noexcept
 }
 
 bool
+Expr::has_uninitialized_variable() const noexcept
+{
+    const auto var_symbol = static_cast<const ExprWVarSymbol*>(this)->var_symbol;
+    return has_var_symbol() && !var_symbol->is_initialized();
+}
+
+bool
 Expr::is_lvalue_type() const noexcept
 {
     switch (type)

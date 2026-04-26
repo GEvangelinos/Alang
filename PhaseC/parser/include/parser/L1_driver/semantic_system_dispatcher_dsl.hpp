@@ -35,7 +35,9 @@
  */
 
 #include <core/fixed_string.hpp>
+#include <diagnostics/diagnostic_reporter.gen.hpp>
 
+#include "core/ir/ir_expr.hpp"
 #include "support/dependent_false.hpp"
 
 #ifdef DISPATCHER_NOP
@@ -45,7 +47,16 @@
 #define CALL_STR call_string
 #define DISPATCH_TARGET restricted_
 
-#define DISPATCH_DEFINE_HANDLER_BEGIN()              \
+#define DISPATCH_DEFINE_MASTER_HANDLER_BEGIN(...)        \
+    template<FixedString CALL_STR, typename... Args> \
+    auto call(Args... args)                          \
+    {                                                \
+        __VA_ARGS__                                    \
+        if constexpr (false)                         \
+        {                                            \
+            DISPATCHER_NOP // Absorbs trailing `;`.
+
+#define DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN()        \
     template<FixedString CALL_STR, typename... Args> \
     auto call(Args... args)                          \
     {                                                \
@@ -58,7 +69,6 @@
         else UnknownCallStr<CALL_STR> dummy; \
     }                                        \
     DISPATCHER_NOP // Absorbs trailing `;`.
-
 
 
 #define _SELECT_INTERNAL_METHOD_CALL(method_name)                           \
@@ -178,7 +188,7 @@
  * Used to signal that a dispatcher call was made with an unrecognized key.
  * We also circle the static_assert() error message with RED emojis to be eye catching and hint ERROR.
  */
-template<FixedString unused_dummy>
+template <FixedString unused_dummy>
 struct UnknownCallStr
 {
     // "\nUnknown call_str used in `call` dispatcher\n"

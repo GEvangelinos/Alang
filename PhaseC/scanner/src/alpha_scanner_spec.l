@@ -134,17 +134,15 @@ string_invalid_escape_code "\\"([^tnr"\\])
 {string_begin_rule} {
         BEGIN(INSIDE_STRING);
         alpha::TokenString::set_starting_location(*yylloc);
-        alpha::TokenString::append_to_assembling_buffer(yytext);
+        alpha::TokenString::set_string_begin_addr(yytext);
 }
 <INSIDE_STRING>{newline} {
-        alpha::TokenString::append_to_assembling_buffer(yytext);
         lt.append_line(lexer_ctx.source_index);
 }
 <INSIDE_STRING>{string_valid_inner_part} {
         alpha::TokenString::append_to_assembling_buffer(yytext);
 }
 <INSIDE_STRING>{string_invalid_escape_code} {
-        alpha::TokenString::append_to_assembling_buffer(yytext);
         dr.report_invalid_escape_code(yytext, *yylloc);
 }
 <INSIDE_STRING><<EOF>> {
@@ -155,8 +153,7 @@ string_invalid_escape_code "\\"([^tnr"\\])
 }
 <INSIDE_STRING>{string_end_rule} {
         BEGIN(INITIAL);
-        alpha::TokenString::append_to_assembling_buffer(yytext);
-        yylval->string = alpha::TokenString::export_string_token();
+        yylval->string = alpha::TokenString::assemble_string_span();
         *yylloc = alpha::TokenString::export_location(*yylloc);
         YIELD_TOKEN(TKN_STRING);
 }

@@ -39,7 +39,7 @@ private:
 
     explicit LvalueResolver(const SemanticSystemServices &ss_services);
 
-    DISPATCH_DEFINE_HANDLER_BEGIN();
+    DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(resolve_id);
     DISPATCH_SLAVE_METHOD_CALL(resolve_local_id);
     DISPATCH_SLAVE_METHOD_CALL(resolve_global_id);
