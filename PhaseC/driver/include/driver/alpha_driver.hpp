@@ -9,10 +9,7 @@ namespace alpha
 class Driver : private Immobile
 {
 public:
-    Driver(
-        const alpha::settings::ConfigData &config_data,
-        const alpha::settings::ExprOpts &expr_opts,
-        const alpha::settings::IROpts &ir_opts);
+    explicit Driver(const SettingManager& setting_manager);
 
     ~Driver() = default;
 

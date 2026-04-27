@@ -118,7 +118,7 @@ private:
     // Defined outside Restricted, so it can be accessed by SemanticSystem's generalized expr collector
     void commit_forloop_header_expr(const Expr* header_expr);
 
-    DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(manage_ifbranch_entry);
     DISPATCH_SLAVE_METHOD_CALL(manage_ifbranch_exit);
     DISPATCH_SLAVE_METHOD_CALL(manage_elsebranch_entry);

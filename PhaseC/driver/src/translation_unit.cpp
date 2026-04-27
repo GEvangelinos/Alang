@@ -3,7 +3,7 @@
 #include <driver/translation_unit.hpp>
 
 #include "bytecode/abc_serializer.hpp"
-#include "ir_optimizer/ir_optimizer.hpp"
+#include "ir_postprocess/ir_optimizer.hpp"
 #include "core/konstants.hpp"
 #include "driver/exception.hpp"
 #include "driver/konstants.hpp"
@@ -15,6 +15,7 @@
 #include "scanner/scanner_adapter.hpp"
 #include "bytecode/abc_generator.hpp"
 #include "bytecode/abc_loader.hpp"
+#include "ir_postprocess/ir_validator.hpp"
 
 #include "support/cli_color.h"
 
@@ -398,8 +399,9 @@ namespace alpha
 inline constexpr auto k_scanner_eof_null_padding = 2; // For 2 consecutive NULL bytes.
 
 CompilationPipeline::CompilationPipeline(
-    const alpha::settings::ExprOpts& expr_opts,
-    const alpha::settings::IROpts& ir_opts,
+    const settings::ExprOpts& expr_opts,
+    const settings::IROpts& ir_opts,
+    const settings::ConfigFlags& config_flags,
     TranslationUnitBuffer& tu_buffer,
     LocationTracker& lt,
     DiagnosticEngine& diagnostic_engine,
@@ -417,6 +419,7 @@ CompilationPipeline::CompilationPipeline(
           support::require_ptr(symbol_table),
           diagnostic_engine_.reporter.get()
       ),
+      ir_validator_(std::make_unique<IRValidator>(config_flags, *diagnostic_engine.reporter)),
       ir_optimizer_(std::make_unique<IROptimizer>(ir_opts)) { DMASSERT(!!ir_optimizer_); }
 
 void
@@ -466,6 +469,9 @@ CompilationPipeline::execute()
     running_phase_ = Phase::FRONTEND;
     run_frontend();
     ir_quads_ = semantic_system_.gateway->extract_quads();
+    DMASSERT(!!diagnostic_engine_.reporter);
+
+    ir_validator_->run(ir_quads_);
 
     running_phase_ = Phase::IR_OPTIMIZATION;
     ir_quads_ = ir_optimizer_->run(std::move(ir_quads_));
@@ -535,7 +541,8 @@ TranslationUnit::TranslationUnit(
     const std::filesystem::path& source_path,
     const std::size_t max_errors,
     const settings::ExprOpts& expr_opts,
-    const settings::IROpts& ir_opts)
+    const settings::IROpts& ir_opts,
+    const settings::ConfigFlags& config_flags)
     : source_path_(source_path),
       expr_opts_(expr_opts),
       diagnostic_engine_(create_diagnostic_engine_policy(), max_errors),
@@ -550,6 +557,7 @@ TranslationUnit::TranslationUnit(
       compilation_pipeline_(std::make_unique<CompilationPipeline>(
           expr_opts,
           ir_opts,
+          config_flags,
           *support::require_ptr(translation_unit_buffer_.get()),
           loc_tracker_,
           diagnostic_engine_,
@@ -609,7 +617,8 @@ TranslationUnit::show_symbol_table_impl() const
         for (const Symbol* symbol_ptr : symbol_per_scope_vector[scope])
         {
             if constexpr (!show_temps)
-                if (symbol_ptr->is_temp_variable()) continue;
+                if (symbol_ptr->is_variable() && static_cast<const VarSymbol*>(symbol_ptr)->is_temp)
+                    continue;
 
             std::cout << FMT::format(
                 "{:<30} {:<20} (line {:>5}) (scope {:>4}) {}\n",
@@ -803,7 +812,8 @@ TranslationUnit::export_symbol_table_impl() const
         for (const Symbol* symbol_ptr : symbol_per_scope_vector[scope])
         {
             if constexpr (!export_temps)
-                if (symbol_ptr->is_temp_variable()) continue;
+                if (symbol_ptr->is_variable() && static_cast<const VarSymbol*>(symbol_ptr)->is_temp)
+                    continue;
             write_symbol_line(symbol_ptr);
         }
 }

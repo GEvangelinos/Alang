@@ -63,7 +63,7 @@ private:
     // Defined outside Restricted, so it can be accessed by SemanticSystem's generalized expr collector
     void commit_list_element(const Expr *list_elem);
 
-    DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(init_table_literal);
     DISPATCH_SLAVE_METHOD_CALL(finalize_table_literal);
     DISPATCH_SLAVE_METHOD_CALL(begin_dict_entry);
@@ -131,13 +131,15 @@ private:
         handle_post_inc_dec(const Expr *lvalue, SourceLocation result_loc);
         template<OpVariant op_variant, typename Policy>
         [[nodiscard]] const Expr *build_inc_dec(const Expr *expr, SourceLocation result_loc);
+
+        static void handle_variable_initialization(const Expr* lhs, const Expr* rhs);
     };
 
     Restricted DISPATCH_TARGET;
 
     AssignBuilder(Options &&options, const SemanticSystemServices &ss_services);
 
-    DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(build_assignment);
     DISPATCH_SLAVE_METHOD_CALL(build_pre_inc);
     DISPATCH_SLAVE_METHOD_CALL(build_post_inc);
@@ -235,7 +237,7 @@ private:
 
     BasicBuilder(Options &&options, const SemanticSystemServices &ss_services);
 
-    DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(prepare_logical_operand_expr);
     DISPATCH_SLAVE_METHOD_CALL(mark_short_circuit_jump_point);
     DISPATCH_SLAVE_METHOD_CALL(build_uminus);
@@ -312,7 +314,7 @@ private:
 
     void commit_call_argument(const Expr *call_arg);
 
-    DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(update_method_call_draft);
     DISPATCH_SLAVE_METHOD_CALL(init_call);
     DISPATCH_SLAVE_METHOD_CALL(build_call_consuming);
@@ -346,7 +348,7 @@ private:
 
     explicit ConstBuilder(const SemanticSystemServices &ss_services);
 
-    DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(build_true_expr);
     DISPATCH_SLAVE_METHOD_CALL(build_false_expr);
     DISPATCH_SLAVE_METHOD_CALL(build_int_expr);
@@ -398,7 +400,7 @@ private:
 
     explicit FunctionBuilder(const SemanticSystemServices &ss_services);
 
-    DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(update_function_draft);
     DISPATCH_SLAVE_METHOD_CALL(collect_function_parameter);
     DISPATCH_SLAVE_METHOD_CALL(forward_program_function);
@@ -433,7 +435,7 @@ private:
 
     explicit TableAccessBuilder(const SemanticSystemServices &ss_services);
 
-    DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(build_member_access);
     DISPATCH_SLAVE_METHOD_CALL(build_subscript_access);
     DISPATCH_DEFINE_HANDLER_END();

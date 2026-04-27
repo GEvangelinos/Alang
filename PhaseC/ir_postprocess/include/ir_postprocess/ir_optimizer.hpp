@@ -3,7 +3,6 @@
 
 #include <vector>
 #include "settings/compiler_settings.hpp"
-
 #include "core/ir/ir_quad.hpp"
 
 namespace alpha

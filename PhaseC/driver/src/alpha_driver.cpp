@@ -1,16 +1,16 @@
 #include "driver/alpha_driver.hpp"
 
-#include "core/exception.hpp"
-#include "driver/exception.hpp"
-
 namespace alpha
 {
-Driver::Driver(
-    const alpha::settings::ConfigData& config_data,
-    const alpha::settings::ExprOpts& expr_opts,
-    const alpha::settings::IROpts& ir_opts)
+Driver::Driver(const SettingManager& setting_manager)
 {
-    translation_units_.emplace_back(config_data.source, config_data.max_errors, expr_opts, ir_opts);
+    translation_units_.emplace_back(
+        setting_manager.config_data_settings().source,
+        setting_manager.config_data_settings().max_errors,
+        setting_manager.expr_opt_settings(),
+        setting_manager.ir_opt_settings(),
+        setting_manager.config_flag_settings()
+    );
 }
 
 void

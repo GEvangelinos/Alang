@@ -59,7 +59,8 @@ public:
         VarSymbol::Type type,
         VarSymbol::Space space,
         u32 offset,
-        SourceLocation location);
+        SourceLocation location,
+        bool is_temp);
 
     [[nodiscard]] const Symbol* lookup_global(StringSpan name) const;
     [[nodiscard]] const Symbol* lookup_nearest(StringSpan name, u32 scope) const;

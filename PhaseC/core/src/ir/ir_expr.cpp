@@ -2,7 +2,7 @@
 
 namespace alpha
 {
-const char *
+const char*
 to_string(const OperandSide pos) noexcept
 {
     switch (pos)
@@ -14,7 +14,7 @@ to_string(const OperandSide pos) noexcept
     UNREACHABLE(FMT::format( "Unknown OperandSide. int(pos) = {}", static_cast<int>(pos)));
 }
 
-const char *
+const char*
 to_string(const Expr::Type type) noexcept
 {
     using ET = Expr::Type;
@@ -77,8 +77,8 @@ Expr::is_const_0() const noexcept
 {
     switch (type)
     {
-    case Type::CONST_INT: return static_cast<const ConstIntExpr *>(this)->value == 0;
-    case Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(this)->value == 0.0;
+    case Type::CONST_INT: return static_cast<const ConstIntExpr*>(this)->value == 0;
+    case Type::CONST_FLOAT: return static_cast<const ConstFloatExpr*>(this)->value == 0.0;
     default: return false;
     }
 }
@@ -88,8 +88,8 @@ Expr::is_const_1() const noexcept
 {
     switch (type)
     {
-    case Type::CONST_INT: return static_cast<const ConstIntExpr *>(this)->value == 1;
-    case Type::CONST_FLOAT: return static_cast<const ConstFloatExpr *>(this)->value == 1.0;
+    case Type::CONST_INT: return static_cast<const ConstIntExpr*>(this)->value == 1;
+    case Type::CONST_FLOAT: return static_cast<const ConstFloatExpr*>(this)->value == 1.0;
     default: return false;
     }
 }
@@ -97,13 +97,13 @@ Expr::is_const_1() const noexcept
 bool
 Expr::is_const_true() const noexcept
 {
-    return type == Type::BOOL && static_cast<const ConstBoolExpr *>(this)->value == true;
+    return type == Type::BOOL && static_cast<const ConstBoolExpr*>(this)->value == true;
 }
 
 bool
 Expr::is_const_false() const noexcept
 {
-    return type == Type::BOOL && static_cast<const ConstBoolExpr *>(this)->value == false;
+    return type == Type::BOOL && static_cast<const ConstBoolExpr*>(this)->value == false;
 }
 
 bool
@@ -129,8 +129,13 @@ Expr::is_const() const noexcept
 bool
 Expr::has_uninitialized_variable() const noexcept
 {
-    const auto var_symbol = static_cast<const ExprWVarSymbol*>(this)->var_symbol;
-    return has_var_symbol() && !var_symbol->is_initialized();
+    if (type == Expr::Type::VARIABLE)
+    {
+        DMASSERT(has_var_symbol());
+        const auto var_symbol = static_cast<const ExprWVarSymbol*>(this)->var_symbol;
+        return !var_symbol->is_temp && !var_symbol->is_initialized();
+    }
+    return false;
 }
 
 bool
@@ -174,7 +179,7 @@ Expr::has_active_temp() const noexcept
     case Type::NEW_TABLE:
     case Type::TABLE_ITEM:
     case Type::VARIABLE:
-        return static_cast<const ExprWVarSymbol *>(this)->var_symbol->has_temp_handle();
+        return static_cast<const ExprWVarSymbol*>(this)->var_symbol->has_temp_handle();
     default: return false;
     }
 }

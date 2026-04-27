@@ -1,4 +1,4 @@
-#include "ir_optimizer/ir_optimizer.hpp"
+#include "ir_postprocess/ir_optimizer.hpp"
 
 namespace alpha
 {

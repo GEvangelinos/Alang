@@ -318,6 +318,18 @@ AssignBuilder::Restricted::handle_table_item_assignment(
     );
 }
 
+void
+AssignBuilder::Restricted::handle_variable_initialization(
+    const Expr* const lhs,
+    const Expr* const  rhs)
+{
+        DMASSERT(lhs->is_lvalue(), lhs->has_var_symbol());
+        const bool is_initialized_if_variable = !rhs->has_uninitialized_variable();
+        if (is_initialized_if_variable)
+            SymbolTable::mark_as_initialized(static_cast<const ExprWVarSymbol *>(lhs)->var_symbol);
+}
+
+
 const Expr*
 AssignBuilder::Restricted::build_assignment(
     const Expr* const lhs,
@@ -330,11 +342,9 @@ AssignBuilder::Restricted::build_assignment(
 
     if (AssignBuilder::Restricted::is_direct_target_expr(lhs))
     {
-        DMASSERT(lhs->is_lvalue(), lhs->has_var_symbol());
-        SymbolTable::mark_as_initialized(static_cast<const ExprWVarSymbol *>(lhs)->var_symbol);
+        AssignBuilder::Restricted::handle_variable_initialization(lhs, rhs);
         return handle_direct_assignment(lhs, rhs, result_loc);
     }
-
     return handle_table_item_assignment(lhs, rhs, result_loc);
 }
 
@@ -1134,7 +1144,8 @@ FunctionBuilder::Restricted::register_function_parameters()
                 VarSymbol::Type::FORMAL_ARGUMENT,
                 space,
                 parse_ctx_->space_handler.next_offset(),
-                p.loc
+                p.loc,
+                false
             );
 }
 

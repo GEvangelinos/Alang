@@ -29,7 +29,7 @@ private:
 
     explicit BlockManager(const SemanticSystemServices &ss_services);
 
-    DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN();
+    DISPATCH_DEFINE_HANDLER_BEGIN();
     DISPATCH_SLAVE_METHOD_CALL(enter_block);
     DISPATCH_SLAVE_METHOD_CALL(exit_block);
     DISPATCH_SLAVE_METHOD_CALL(make_block_location);

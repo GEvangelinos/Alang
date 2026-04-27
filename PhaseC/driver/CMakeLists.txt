@@ -21,7 +21,7 @@ add_library(alpha_driver_impl STATIC
 target_link_libraries(alpha_driver_impl PRIVATE
     alpha_core_api
     alpha_driver_api
-    alpha_ir_optimizer_api
+    alpha_ir_postprocess_api
     alpha_settings_api
     alpha_bytecode_api
     arguinator_api
@@ -44,7 +44,7 @@ target_link_libraries("${COMPILER_EXE_NAME}" PRIVATE
     alpha_parser_impl
     alpha_scanner_impl
     alpha_settings_impl
-    alpha_ir_optimizer_impl
+    alpha_ir_postprocess_impl
     alpha_bytecode_impl
 )
 

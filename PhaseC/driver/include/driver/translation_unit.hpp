@@ -17,6 +17,7 @@ typedef void* yyscan_t;
 
 namespace alpha
 {
+class IRValidator;
 class IROptimizer;
 class LocationTracker;
 class DiagnosticReporter;
@@ -29,6 +30,7 @@ public:
     CompilationPipeline(
         const settings::ExprOpts& expr_opts,
         const settings::IROpts& ir_opts,
+        const settings::ConfigFlags &config_flags,
         TranslationUnitBuffer& tu_buffer,
         LocationTracker& lt,
         DiagnosticEngine& diagnostic_engine,
@@ -53,6 +55,7 @@ private:
     LexerCtx lexer_ctx_;
     std::unique_ptr<ScannerAdapter> scanner_;
     SemanticSystem semantic_system_;
+    std::unique_ptr<IRValidator> ir_validator_;
     std::unique_ptr<IROptimizer> ir_optimizer_;
     std::vector<ir::Quad> ir_quads_;
     std::unique_ptr<vm::Program> program_;
@@ -68,8 +71,9 @@ public:
     TranslationUnit(
         const std::filesystem::path& source_path,
         std::size_t max_errors,
-        const alpha::settings::ExprOpts& expr_opts,
-        const alpha::settings::IROpts& ir_opts);
+        const settings::ExprOpts& expr_opts,
+        const settings::IROpts& ir_opts,
+        const settings::ConfigFlags & config_flags);
 
     ~TranslationUnit();
 

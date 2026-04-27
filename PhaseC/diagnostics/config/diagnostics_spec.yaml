@@ -61,10 +61,12 @@
 - Diagnostic: UNINITIALIZED_RVALUE
   Type: WARNING
   Primary:
-    - Message: "Use of uninitialized variable as rvalue"
-      Location: variable_loc
+    - Message: "Use of uninitialized variable `{0}` as rvalue{1}"
+      Args: [var_name, multiple_times_message]
+      Location: variable_usage_loc
   Notes:
-    - Message: "Variable first declared here"
+    - Message: "Variable `{0}` first declared here"
+      Args: [var_name]
       Location: variable_decl_loc
 
 

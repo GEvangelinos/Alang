@@ -105,9 +105,10 @@ SymbolTable::insert_variable(
     const VarSymbol::Type type,
     const VarSymbol::Space space,
     const u32 offset,
-    const SourceLocation location)
+    const SourceLocation location,
+    const bool is_temp)
 {
-    return insert_symbol<VarSymbol>(name, scope, type, space, offset, location);
+    return insert_symbol<VarSymbol>(name, scope, type, space, offset, location, is_temp);
 }
 
 const Symbol*

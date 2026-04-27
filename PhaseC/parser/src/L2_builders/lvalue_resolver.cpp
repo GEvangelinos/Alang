@@ -24,7 +24,8 @@ LvalueResolver::Restricted::resolve_id(const StringSpan id_name, const SourceLoc
             VarSymbol::scope_to_symbol_type(parse_ctx_->scope_handler.scope()),
             parse_ctx_->space_handler.space(),
             parse_ctx_->space_handler.next_offset(),
-            id_loc
+            id_loc,
+            false
         );
     }
     else if (!ensure_reachable_symbol(result, id_name, id_loc)) // Symbol found, is it reachable?
@@ -64,7 +65,8 @@ LvalueResolver::Restricted::resolve_local_id(
             : VarSymbol::Type::LOCAL_VARIABLE,
             parse_ctx_->space_handler.space(),
             parse_ctx_->space_handler.next_offset(),
-            lid_loc
+            lid_loc,
+            false
         );
         return expr_maker_->make_variable_expr(lid_loc, inserted);
     }

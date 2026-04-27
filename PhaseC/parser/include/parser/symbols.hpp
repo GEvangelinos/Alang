@@ -43,7 +43,7 @@ public:
     virtual ~Symbol() = default;
 
     [[nodiscard]] std::string_view type_to_string() const noexcept;
-    [[nodiscard]] bool is_temp_variable() const noexcept;
+    [[nodiscard]] bool has_tempvar_name() const noexcept;
     [[nodiscard]] bool is_variable() const noexcept { return !is_function(); }
     [[nodiscard]] bool is_function() const noexcept;
     [[nodiscard]] bool is_active() const noexcept { return is_active_; }
@@ -79,7 +79,8 @@ public:
         Type type,
         Space space,
         u32 offset,
-        SourceLocation loc) noexcept;
+        SourceLocation loc,
+        bool is_temp) noexcept;
     ~VarSymbol() override = default;
 
     [[nodiscard]] const ConstExpr* get_const_expr() const noexcept { return const_expr_; }
@@ -111,6 +112,9 @@ private:
     mutable const ConstExpr* const_expr_ = nullptr;
     mutable TempBinding temp_binding_;
     mutable OnceFlag is_initialized_;
+
+public:
+    const bool is_temp;
 };
 
 class LibFuncSymbol final : public Symbol
@@ -168,11 +172,11 @@ Symbol::type_to_string() const noexcept
 }
 
 inline bool
-Symbol::is_temp_variable() const noexcept
+Symbol::has_tempvar_name() const noexcept
 {
-    const bool is_temp = name.to_string_view().starts_with(TEMP_VARIABLE_PREFIX);
-    DMASSERT(!is_temp || is_variable());
-    return is_temp;
+    const bool has_temp_prefix = name.to_string_view().starts_with(TEMP_VARIABLE_PREFIX);
+    DMASSERT(!has_temp_prefix || is_variable());
+    return has_temp_prefix;
 }
 
 inline bool
@@ -188,10 +192,15 @@ VarSymbol::VarSymbol(
     const Type type,
     const Space space,
     const u32 offset,
-    const SourceLocation loc) noexcept
+    const SourceLocation loc,
+    const bool is_temp) noexcept
     : Symbol(name, scope, type, loc),
       space(space),
-      offset(offset) { DMASSERT(is_variable()); }
+      offset(offset),
+      is_temp(is_temp)
+{
+    DMASSERT(is_variable(), is_temp == has_tempvar_name());
+}
 
 inline Symbol::Type
 VarSymbol::scope_to_symbol_type(const u32 scope)

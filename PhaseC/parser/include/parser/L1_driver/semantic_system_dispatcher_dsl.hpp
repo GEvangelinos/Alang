@@ -35,9 +35,6 @@
  */
 
 #include <core/fixed_string.hpp>
-#include <diagnostics/diagnostic_reporter.gen.hpp>
-
-#include "core/ir/ir_expr.hpp"
 #include "support/dependent_false.hpp"
 
 #ifdef DISPATCHER_NOP
@@ -47,16 +44,8 @@
 #define CALL_STR call_string
 #define DISPATCH_TARGET restricted_
 
-#define DISPATCH_DEFINE_MASTER_HANDLER_BEGIN(...)        \
-    template<FixedString CALL_STR, typename... Args> \
-    auto call(Args... args)                          \
-    {                                                \
-        __VA_ARGS__                                    \
-        if constexpr (false)                         \
-        {                                            \
-            DISPATCHER_NOP // Absorbs trailing `;`.
 
-#define DISPATCH_DEFINE_SLAVE_HANDLER_BEGIN()        \
+#define DISPATCH_DEFINE_HANDLER_BEGIN()              \
     template<FixedString CALL_STR, typename... Args> \
     auto call(Args... args)                          \
     {                                                \
@@ -193,7 +182,7 @@ struct UnknownCallStr
 {
     // "\nUnknown call_str used in `call` dispatcher\n"
     // "(Look at the generated notes, to find the call_str that caused the error)"
-    static_assert(always_false_v<void>,
+    static_assert(always_false_v<decltype(unused_dummy)>,
                   R"(
 🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑
 🛑======== [ DISPATCH DSL FAILURE ] ========🛑

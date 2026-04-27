@@ -339,10 +339,10 @@ ParseCtx::new_temp()
     const TempHandleID temp_handle = temp_ctx_handler.acquire_temp_handle();
     const StringSpan temp_name = ParseCtx::generate_temp_name(temp_handle);
 
-    const Symbol* symbol = symbol_table_->lookup_local(temp_name, scope_handler.scope());
+    const Symbol* const symbol = symbol_table_->lookup_local(temp_name, scope_handler.scope());
     DMASSERT(
-        !symbol || symbol->is_variable(),
-        !symbol || symbol->is_temp_variable()
+        !symbol || (symbol->is_variable() && static_cast<const VarSymbol *>(symbol)->is_temp),
+        !symbol || symbol->has_tempvar_name()
     );
     const VarSymbol* var_symbol = static_cast<const VarSymbol*>(symbol);
 
@@ -360,7 +360,8 @@ ParseCtx::new_temp()
             var_type,
             space_handler.space(),
             space_handler.next_offset(),
-            SourceLocation::none()
+            SourceLocation::none(),
+            true
         );
     }
     symbol_table_->attach_temp_handle(var_symbol, temp_handle);
