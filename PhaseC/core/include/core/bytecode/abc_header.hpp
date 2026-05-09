@@ -55,28 +55,29 @@ namespace alpha::abc
  * ============================================================================
  */
 
+struct BufferSpan
+{
+    u32 offset; // Where the region starts inside the binary.
+    u32 size;
+
+    [[nodiscard]] auto begin() const noexcept { return offset; }      // Inclusive
+    [[nodiscard]] auto end() const noexcept { return offset + size; } // Exclusive
+};
+
 struct Header
 {
     struct Sections
     {
-        struct Span
-        {
-            u32 offset; // Where the region starts inside the binary.
-            u32 size;
-
-            [[nodiscard]] auto begin() const noexcept { return offset; }      // Inclusive
-            [[nodiscard]] auto end() const noexcept { return offset + size; } // Exclusive
-        };
 
         struct Catalog
         {
-            Span lut; // Points to the [Span0, Span1, Span2...] array
+            BufferSpan lut; // Points to the [Span0, Span1, Span2...] array
         };
 
-        Catalog strs;
+        Catalog strings;
         Catalog libfuncs;
         Catalog progfuncs;
-        Span instructions;
+        BufferSpan instructions;
     };
 
     abc::spec::MagicT magic;

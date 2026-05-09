@@ -38,6 +38,7 @@ int main(const int argc, char** argv)
         g_show_parser_trace = cli_parser[alpha::settings::Jobs::show_parser_trace].is_provided();
 
         driver = std::make_unique<alpha::Driver>(setting_manager);
+
         if (cli_parser[alpha::settings::Jobs::only_show_tokens].is_provided())
             driver->only_lex_tokens();
         else
@@ -98,9 +99,8 @@ void handle_exports(const arguinator::Parser& cli_parser, const alpha::Driver& d
         driver.export_diagnostics();
     if (cli_parser[ASJ::export_ir].is_provided())
         driver.export_ir();
-    #warning " UNCOMMENT "
-    // if (!cli_parser[ASJ::no_bin].is_provided())
-    //     driver.emit_abc();
+    if (!cli_parser[ASJ::no_bin].is_provided())
+        driver.emit_abc();
 }
 
 void handle_shows(const arguinator::Parser& cli_parser, const alpha::Driver& driver)

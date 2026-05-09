@@ -760,8 +760,7 @@ TranslationUnit::emit_abc() const
         const std::string outfile_name = source_path_.stem().string() + k_abc_binary_ext;
         std::ofstream outfile{outfile_name, std::ios::binary};
         if (!outfile)
-            throw std::runtime_error(
-                FMT::format("Failed opening file for emitting {}", outfile_name));
+            throw std::runtime_error("Failed opening file for writing: " + outfile_name);
         outfile.write(reinterpret_cast<const char*>(abc.data()), abc.size());
         outfile.close();
 
@@ -773,7 +772,7 @@ TranslationUnit::emit_abc() const
             DMASSERT(false);
         infile.read(reinterpret_cast<char*>(load_vector.data()), filesize);
 
-        // ABC_Loader::load(load_vector);
+        ABC_Loader::load(load_vector);
     };
 
     export_within_dir(k_abc_binaries_dirname, impl);

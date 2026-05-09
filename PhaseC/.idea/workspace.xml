@@ -58,30 +58,12 @@
       <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/tasks.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/src/ir/ir_expr.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/src/ir/ir_expr.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/diagnostics/config/diagnostics_spec.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/driver/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/alpha_driver.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/translation_unit.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/alpha_driver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ABC_BINARIES/testbed.abc" beforeDir="false" afterPath="$PROJECT_DIR$/ABC_BINARIES/testbed.abc" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bytecode/src/abc_loader.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/src/abc_loader.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bytecode/src/abc_serializer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/src/abc_serializer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/abc_header.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/abc_header.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/driver/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/main.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/driver/src/translation_unit.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir_optimizer/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/ir_postprocess/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir_optimizer/include/ir_optimizer/ir_optimizer.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/ir_postprocess/include/ir_postprocess/ir_optimizer.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ir_optimizer/src/ir_optimizer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/ir_postprocess/src/ir_optimizer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_dispatcher_dsl.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L1_driver/semantic_system_dispatcher_dsl.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/block_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/block_manager.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_manager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_manager.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/lvalue_resolver.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/lvalue_resolver.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/lvalue_resolver.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/parser_context.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/parser_context.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/parser/src/symbol_table.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/symbol_table.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/settings/include/settings/compiler_settings.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/settings/include/settings/compiler_settings.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -105,6 +87,14 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/control_flow_manager.hpp" root0="FORCE_HIGHLIGHTING" />
@@ -179,7 +169,7 @@
     </key>
   </component>
   <component name="RunManager" selected="CMake Application.alang">
-    <configuration name="alang" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--source  ./.tests/testbed.asc --show_ir_detailed --show_symbol_table --show_abc --no_bin" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang" CONFIG_NAME="Release" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang">
+    <configuration name="alang" type="CMakeRunConfiguration" factoryName="Application" PROGRAM_PARAMS="--source  ./.tests/testbed.asc --show_ir_detailed --show_symbol_table --show_abc " REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$PROJECT_DIR$" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Alpha" TARGET_NAME="alang" CONFIG_NAME="Release" RUN_TARGET_PROJECT_NAME="Alpha" RUN_TARGET_NAME="alang">
       <envs>
         <env name="ASAN_OPTIONS" value="halt_on_error=1:abort_on_error=1" />
       </envs>
@@ -442,7 +432,11 @@
       <workItem from="1777145021035" duration="30059000" />
       <workItem from="1777227453143" duration="6004000" />
       <workItem from="1777277123634" duration="9137000" />
-      <workItem from="1777296700026" duration="8056000" />
+      <workItem from="1777296700026" duration="8218000" />
+      <workItem from="1777374586849" duration="19208000" />
+      <workItem from="1777843723479" duration="1422000" />
+      <workItem from="1778014187699" duration="4365000" />
+      <workItem from="1778268666478" duration="10182000" />
     </task>
     <servers />
   </component>

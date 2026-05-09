@@ -10,7 +10,6 @@
 // (REQUIRED, ARITY, NAME, HELP_MSG)
 #define JOB_SETTINGS(X) \
     X(false, 0, only_show_tokens,    "Pretty-prints all tokens, while reporting lexical errors at end") \
-    X(false, 0, list_opts,           "List available optimizations for IR generation.") \
     X(false, 0, show_parser_trace,   "Pretty-prints a message for each matched grammar rule.") \
     X(false, 0, show_symbol_table,   "Pretty-prints the symbol table on console.") \
     X(false, 0, show_symbol_table_without_temps, "Pretty-prints the symbol table on console.") \

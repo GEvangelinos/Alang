@@ -1,65 +1,53 @@
-// #include "bytecode/abc_loader.hpp"
-//
-// #include <concepts>
-// #include <list>
-// #include <vector>
-// #include <span>
-//
-// #include "core/fixed_string.hpp"
-// #include "core/numeric_types.hpp"
-// #include "core/bytecode/abc_header.hpp"
-// #include "support/debug_tools.hpp"
-//
-// namespace
-// {
-// template <FixedString msg>
-// void require(const auto op, const auto a, const auto b)
-//     requires(std::predicate<decltype(op), decltype(a), decltype(b)>)
-// {
-//     if (!op(a, b)) [[unlikely]]
-//         throw std::runtime_error(FMT::format(msg.data, a, b));
-// }
-// } // namespace
-//
-// namespace alpha
-// {
-// [[nodiscard]] static abc::Header
-// load_header(const std::vector<u8>& buffer)
-// {
-//     constexpr auto GTE = std::greater_equal{};
-//     constexpr auto LT = std::less{};
-//     constexpr auto EQ = std::equal_to{};
-//
-//     abc::Header header;
-//     require<"[ABC]: buffer size (0x{:X}) is smaller than mandatory header size (0x{:X})">
-//         (GTE, buffer.size(), sizeof(header));
-//
-//     std::memcpy(&header, buffer.data(), sizeof(header));
-//
-//     require<"[ABC] magic mismatch (expected 0x{:X}, got 0x{:X})">
-//         (EQ, abc::spec::k_magic_value, header.magic);
-//     require<"[ABC] filesize mismatch (expected 0x{:X}, got 0x{:X})">
-//         (EQ, header.file_size, buffer.size());
-//     require<"[ABC] Strings OOB: 0x{:X} >= 0x{:X}">(LT, header.offsets.strings, buffer.size());
-//     require<"[ABC] Lib-funcs OOB: 0x{:X} >= 0x{:X}">(LT, header.offsets.libfuncs, buffer.size());
-//     require<"[ABC] User-funcs OOB: 0x{:X} >= 0x{:X}">(LT, header.offsets.progfuncs, buffer.size());
-//     require<"[ABC] Code OOB: 0x{:X} >= 0x{:X}">(LT, header.offsets.code, buffer.size());
-//
-//     return header;
-// }
-//
-// struct StringCache
-// {
-//     struct StringInfo
-//     {
-//         u32 buffer_idx;
-//         u32 size;
-//     };
-//
-//     std::vector<u8> str_buffer;
-//     std::vector<StringInfo> string_data;
-// };
-//
+#include "bytecode/abc_loader.hpp"
+
+#include <concepts>
+#include <list>
+#include <vector>
+#include <span>
+
+#include "core/fixed_string.hpp"
+#include "core/numeric_types.hpp"
+#include "core/bytecode/abc_header.hpp"
+#include "support/debug_tools.hpp"
+
+namespace
+{
+template <FixedString msg>
+void require(const auto op, const auto a, const auto b)
+    requires(std::predicate<decltype(op), decltype(a), decltype(b)>)
+{
+    if (!op(a, b)) [[unlikely]]
+        throw std::runtime_error("[ABC]: " + FMT::format(msg.data, a, b));
+}
+} // namespace
+
+namespace alpha
+{
+[[nodiscard]] static abc::Header
+load_header(const std::vector<u8>& buffer)
+{
+    abc::Header header;
+    require<"buffer size (0x{:X}) is smaller than mandatory header size (0x{:X})">
+        (std::greater_equal{}, buffer.size(), sizeof(header));
+
+    std::memcpy(&header, buffer.data(), sizeof(header));
+
+    require<"magic mismatch (expected 0x{:X}, got 0x{:X})">
+        (std::equal_to{}, abc::spec::k_magic_value, header.magic);
+    require<"filesize mismatch (expected 0x{:X}, got 0x{:X})">
+        (std::equal_to{}, header.file_size, buffer.size());
+    require<"strings expected: 0x{:X} < 0x{:X}">
+        (std::less{}, header.sections.strings.lut.offset, buffer.size());
+    require<"lib-funcs expected: 0x{:X} < 0x{:X}">
+        (std::less{}, header.sections.libfuncs.lut.offset, buffer.size());
+    require<"user-funcs expected: 0x{:X} < 0x{:X}">
+        (std::less{}, header.sections.progfuncs.lut.offset, buffer.size());
+    require<"instructions expected: 0x{:X} < 0x{:X}">
+        (std::less{}, header.sections.instructions.offset, buffer.size());
+
+    return header;
+}
+
 // [[nodiscard]] static StringCache
 // load_string_cache(const std::span<u8>& buffer)
 // {
@@ -91,13 +79,47 @@
 //     return str_cache;
 // }
 //
-// int
-// ABC_Loader::load(const std::vector<u8>& byte_buffer)
-// {
-//     const abc::Header header = load_header(byte_buffer);
-//
-//     const auto str_begin = header.offsets.strings
-//     const auto str_cache = load_string_cache(byte_buffer);
-//     std::cout << std::endl;
-// }
-// } // namespace alpha
+struct StringCache
+{
+    std::vector<u8> buffer;
+    std::vector<abc::BufferSpan> index_map;
+};
+
+int
+ABC_Loader::load(const std::vector<u8>& byte_buffer)
+{
+    const abc::Header header = load_header(byte_buffer);
+
+    const auto str_lut = header.sections.strings.lut;
+    constexpr auto k_span_size = sizeof(abc::BufferSpan);
+
+    // Calculate string_tape size:
+    if (str_lut.begin() == str_lut.end())
+        return 0;
+
+    DMASSERT(str_lut.begin() + k_span_size <= str_lut.end());
+    abc::BufferSpan first_lut_span;
+    abc::BufferSpan last_lut_span;
+    std::memcpy(&first_lut_span, byte_buffer.data() + str_lut.begin(), k_span_size);
+    std::memcpy(&last_lut_span, byte_buffer.data() + str_lut.end() - k_span_size, k_span_size);
+
+    StringCache string_cache;
+    DMASSERT(first_lut_span.begin() < last_lut_span.end());
+    string_cache.buffer.insert(
+        string_cache.buffer.end(),
+        byte_buffer.data() + first_lut_span.begin(),
+        byte_buffer.data() + last_lut_span.end()
+    );
+
+    string_cache.buffer.reserve(last_lut_span.end() - first_lut_span.begin() / k_span_size);
+    for (auto i = str_lut.begin(); i < str_lut.end(); i += k_span_size)
+    {
+        abc::BufferSpan str_span;
+        std::memcpy(&str_span, byte_buffer.data(), k_span_size);
+        string_cache.index_map.push_back(str_span);
+    }
+
+    // const auto str_begin = header.offsets.strings
+    // const auto str_cache = load_string_cache(byte_buffer);
+}
+} // namespace alpha
