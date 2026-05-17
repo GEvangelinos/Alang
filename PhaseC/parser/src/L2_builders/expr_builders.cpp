@@ -321,12 +321,12 @@ AssignBuilder::Restricted::handle_table_item_assignment(
 void
 AssignBuilder::Restricted::handle_variable_initialization(
     const Expr* const lhs,
-    const Expr* const  rhs)
+    const Expr* const rhs)
 {
-        DMASSERT(lhs->is_lvalue(), lhs->has_var_symbol());
-        const bool is_initialized_if_variable = !rhs->has_uninitialized_variable();
-        if (is_initialized_if_variable)
-            SymbolTable::mark_as_initialized(static_cast<const ExprWVarSymbol *>(lhs)->var_symbol);
+    DMASSERT(lhs->is_lvalue(), lhs->has_var_symbol());
+    const bool is_initialized_if_variable = !rhs->has_uninitialized_variable();
+    if (is_initialized_if_variable)
+        SymbolTable::mark_as_initialized(static_cast<const ExprWVarSymbol*>(lhs)->var_symbol);
 }
 
 
@@ -1213,6 +1213,9 @@ FunctionBuilder::Restricted::forward_program_function(
     return expr_maker_->make_prog_func_expr(result_loc, func_symbol);
 }
 
+LabelID
+FunctionBuilder::Restricted::next_function_address() { return quad_handler_->next_quad_label(); }
+
 /// Handles a function signature’s prefix + argument list.
 ///
 /// If a name conflict is detected, we still need to call
@@ -1232,7 +1235,7 @@ FunctionBuilder::Restricted::build_program_function_entry(const SourceLocation f
         func_symbol = symbol_table_->insert_program_function(
             function_draft_.id,
             parse_ctx_->scope_handler.scope(),
-            next_function_address_++,
+            next_function_address(),
             function_draft_.parameter_list,
             func_signature_loc
         );

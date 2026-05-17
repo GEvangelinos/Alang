@@ -71,13 +71,13 @@ Handle bad input:
 
 no-regular-file 
 Weird_binary_files,
-directories,
-permission issues,
-no-file at all
+directories,          DONE
+permission issues,    DONE
+no-file at all        DONE
 
 36) Assert GCC doesnt produces errors/warning (cause you mainly use clang)
 
-37) Assert your python scripts work with versions lowers 3.9 (currently you run only in thanatos)
+37 DONE) Assert your python scripts work with versions lowers 3.9 (currently you run only in thanatos)
 
 
 
@@ -86,11 +86,11 @@ no-file at all
  function must be declared in symbol table before you enter the function block, so recursion can happnen
 
 
-41 IGNORE) Check how many times its constructor is called. You should strive for minium calls.
+41 IGNORE) Check how many times each constructor is called. You should strive for minium calls.
 
-42) Keep a magic number for the binary in phase 4
+42 DONE) Keep a magic number for the binary in phase 4
 
-43) Ask Spiropoulos about cyclic reference on Phase 5
+43 DONE) Ask Spiropoulos about cyclic reference on Phase 5
 
 44) (FIREEE )
 
@@ -124,7 +124,7 @@ SelectUInt<40000000> c;   // resolves to uint32_t
 SelectUInt<1ULL << 40> d; // resolves to uint64_t
 
 
-45) Add [[nodiscard]] everywhere the return results must not be ignored (its a bug if ignored)
+45 DONE) Add [[nodiscard]] everywhere the return results must not be ignored (its a bug if ignored)
 
 
 46) Use arena allocator for heap object (where you use new and malloc())
@@ -149,7 +149,7 @@ public:
 48 DONE (routed through SemanticSystem/BUILDERS) TODOOO!!: COUPLE SYMBOL_TABLE to PARSE_CTX. (basically put st in parse_ctx. (NOT THE OTHER WAY AROUND!!))
 MODIFY CODE, so .y doesnt now about st only about ParseCtx
 
-49) Make all news std::make_unique<>()
+49) DISCARD Make all news std::make_unique<>()
 
 50 DONE (expression are polymorphic using enum tags , no virtualization) (so i didn't ignore it..  :D)
         IGNORE Polymorphic expression IDEA.. too much headache and little to gain..
@@ -185,7 +185,7 @@ MODIFY CODE, so .y doesnt now about st only about ParseCtx
     VERY IMPORTANT!! : IF you implement this.. REMEMBER TO put this into your report/ readme  or whatever you make
     else they will "cut your ass"...
 
-53) Cleanup cmake include_directories and target_link_libraries() find a way to make it minimal
+53) DONE Cleanup cmake include_directories and target_link_libraries() find a way to make it minimal
 
 55 DONE, I even break to long dignostics code boxes, so i dont litter diagnostic output
    If I say so my self, that specific part I do it smarter  than GCC.. As i dont print)

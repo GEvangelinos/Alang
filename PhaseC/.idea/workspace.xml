@@ -56,15 +56,24 @@
     <list default="true" id="edf15342-3473-4e6d-a0d3-965f02cb6349" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/settings.json" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/../PhaseB/.vscode/tasks.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.TODO.txt" beforeDir="false" afterPath="$PROJECT_DIR$/.TODO.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.tests/testbed.asc" beforeDir="false" afterPath="$PROJECT_DIR$/.tests/testbed.asc" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ABC_BINARIES/testbed.abc" beforeDir="false" afterPath="$PROJECT_DIR$/ABC_BINARIES/testbed.abc" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/bytecode/src/abc_loader.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/src/abc_loader.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/bytecode/src/abc_serializer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/bytecode/src/abc_serializer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/abc_header.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/abc_header.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/driver/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/main.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/vm_instruction.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/vm_instruction.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/core/include/core/bytecode/vm_program.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/core/include/core/bytecode/vm_program.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/include/driver/exception.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/include/driver/exception.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/exception.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/exception.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/driver/src/translation_unit.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/settings/include/settings/compiler_settings.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/settings/include/settings/compiler_settings.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/driver/src/translation_unit_buffer_loader.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/driver/src/translation_unit_buffer_loader.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_handler.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/core/quad_handler.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/L2_semantic_subsystems/expr_builders.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbol_table.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/include/parser/symbols.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/core/quad_yielder.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/core/quad_yielder.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/L2_builders/expr_builders.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/parser/src/symbol_table.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/parser/src/symbol_table.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -87,10 +96,6 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
   <component name="HighlightingSettingsPerFile">
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
-    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
     <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
@@ -437,6 +442,14 @@
       <workItem from="1777843723479" duration="1422000" />
       <workItem from="1778014187699" duration="4365000" />
       <workItem from="1778268666478" duration="10182000" />
+      <workItem from="1778357266298" duration="14707000" />
+      <workItem from="1778577755833" duration="3746000" />
+      <workItem from="1778589755857" duration="191000" />
+      <workItem from="1778593162174" duration="4061000" />
+      <workItem from="1778673432223" duration="831000" />
+      <workItem from="1778831938398" duration="993000" />
+      <workItem from="1778846444991" duration="4244000" />
+      <workItem from="1778923727613" duration="10820000" />
     </task>
     <servers />
   </component>

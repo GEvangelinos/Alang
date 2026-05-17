@@ -13,6 +13,7 @@
 #include <array>
 #include <memory>
 
+#include "core/label_id.hpp"
 #include "core/string_span.hpp"
 #include "parser/symbols.hpp"
 
@@ -49,7 +50,7 @@ public:
     const ProgFuncSymbol* insert_program_function(
         StringSpan name,
         u32 scope,
-        u32 address,
+        LabelID address,
         const std::vector<Parameter>& parameter_list,
         SourceLocation location);
 

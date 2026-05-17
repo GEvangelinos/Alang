@@ -47,6 +47,12 @@ class FileReadError final : public DriverError
 {
 public:
     explicit FileReadError(std::string_view filename);
+}
+;
+class FilePermissionError final : public DriverError
+{
+public:
+    explicit FilePermissionError(std::string_view filename);
 };
 
 class CLIOptionUnknownError final : public DriverError

@@ -111,9 +111,9 @@ struct RetvalArgument : public Argument
 
 struct ProgramFuncArgument : public Argument
 {
-    const u32 address;
+    const LabelID address;
 
-    explicit ProgramFuncArgument(const u32 func_address)
+    explicit ProgramFuncArgument(const LabelID func_address)
         : Argument{Type::PROGRAMFUNC}, address(func_address) {}
 };
 

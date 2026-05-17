@@ -43,6 +43,9 @@ FileTooLargeError::FileTooLargeError(
 FileReadError::FileReadError(const std::string_view filename)
     : DriverError(FMT::format("Failed reading file: `{}`", filename)) {}
 
+FilePermissionError::FilePermissionError(const std::string_view filename)
+    : DriverError(FMT::format("Permission denied: `{}`", filename)) {}
+
 CLIOptionUnknownError::CLIOptionUnknownError(const std::string_view cli_option)
     : DriverError(FMT::format("unknown command-line option: `{}`", cli_option)) {}
 

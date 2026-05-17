@@ -23,7 +23,7 @@ QuadYielder::release_temp_handle_if_active(const Expr *const expr)
     {
         const VarSymbol *const var_symbol = static_cast<const ExprWVarSymbol *>(expr)->var_symbol;
         parse_ctx_->temp_ctx_handler.release_temp_handle(var_symbol->temp_handle());
-        symbol_table_->detach_temp_handle(var_symbol);
+        (void)symbol_table_->detach_temp_handle(var_symbol);
     }
 }
 

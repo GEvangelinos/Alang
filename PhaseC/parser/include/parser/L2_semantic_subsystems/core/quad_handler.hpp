@@ -45,7 +45,9 @@ public:
     [[nodiscard]] std::vector<ir::Quad> extract_quads() noexcept;
 
 private:
+
     std::vector<ir::Quad> ir_quads_;
+
 };
 
 } // namespace alpha

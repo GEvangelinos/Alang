@@ -206,7 +206,7 @@ serialize_progfuncs(
         const auto serializer = [&abc_buffer, func]()
         {
             static_assert(sizeof(func) < 32, "If false capture by reference");
-            store_little_endian(abc_buffer, func.address);
+            store_little_endian(abc_buffer, func.address.value);
             store_little_endian(abc_buffer, func.local_size);
             serialize_string_content(abc_buffer, func.id);
         };
@@ -235,7 +235,7 @@ serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument& arg)
     CASE(CONST_INT, ConstIntArgument, value);
     CASE(CONST_FLOAT, ConstFloatArgument, value);
     CASE(CONST_STRING, ConstStringArgument, pool_index);
-    CASE(PROGRAMFUNC, ProgramFuncArgument, address);
+    CASE(PROGRAMFUNC, ProgramFuncArgument, address.value);
     CASE(LIBFUNC, LibFuncArgument, pool_index);
 
     // Semantic Flags: The type itself carries all necessary information.
@@ -282,7 +282,6 @@ ABC_Serializer::serialize(const vm::Program& program)
     std::vector<u8> abc_buffer(sizeof(abc::Header), 0);
 
     abc::Header::Sections data_sections;
-
 
     data_sections.strings = {.lut = reserve_lut_span(abc_buffer, program.str_literal_table)};
     serialize_table(abc_buffer, data_sections.strings, program.str_literal_table);

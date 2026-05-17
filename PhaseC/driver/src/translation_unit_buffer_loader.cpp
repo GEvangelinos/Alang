@@ -1,5 +1,7 @@
 #include "driver/translation_unit_buffer_loader.hpp"
 #include <fstream>
+#include <unistd.h>
+
 #include "core/konstants.hpp"
 #include "driver/exception.hpp"
 
@@ -10,6 +12,11 @@ TranslationUnitBufferLoader::load_tub(
     const std::filesystem::path& path,
     const std::size_t null_padding)
 {
+    if (access(path.c_str(), R_OK) != 0)
+        throw alpha::exception::FilePermissionError(path.string());
+
+
+
     std::ifstream ifs = open_source(path);
     const auto filesize = std::filesystem::file_size(path);
     const auto tub_size = TranslationUnitBuffer::compute_tub_size(filesize, null_padding);

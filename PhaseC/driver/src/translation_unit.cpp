@@ -192,7 +192,9 @@ std::string argument_printer(
     case vm::Argument::Type::LOCAL:
         return FMT::format("(local){}", static_cast<const vm::LocalVariableArgument*>(a)->offset);
     case vm::Argument::Type::PROGRAMFUNC:
-        return FMT::format("(userfunc){}", static_cast<const vm::ProgramFuncArgument*>(a)->address);
+        return FMT::format(
+            "(userfunc){}", static_cast<const vm::ProgramFuncArgument*>(a)->address.value
+        );
     case vm::Argument::Type::LIBFUNC:
         return FMT::format("(libfunc){}", static_cast<const vm::LibFuncArgument*>(a)->pool_index);
     case vm::Argument::Type::RETVAL:
@@ -318,7 +320,7 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
     for (const auto& userfunc : program.progfuncs)
         out << FMT::format(
             "{0} {1} {2}\n",
-            format_column<Colorize, 0, widths[0]>(FMT::to_string(userfunc.address)),
+            format_column<Colorize, 0, widths[0]>(FMT::to_string(userfunc.address.value)),
             format_column<Colorize, 1, widths[1]>(FMT::to_string(userfunc.local_size)),
             format_column<Colorize, 2, widths[2]>(userfunc.id.to_string_view())
         );
@@ -762,17 +764,17 @@ TranslationUnit::emit_abc() const
         if (!outfile)
             throw std::runtime_error("Failed opening file for writing: " + outfile_name);
         outfile.write(reinterpret_cast<const char*>(abc.data()), abc.size());
-        outfile.close();
 
-        const auto filesize = std::filesystem::file_size(outfile_name);
-        std::vector<u8> load_vector(filesize);
-
-        std::ifstream infile{outfile_name, std::ios::binary};
-        if (!infile)
-            DMASSERT(false);
-        infile.read(reinterpret_cast<char*>(load_vector.data()), filesize);
-
-        ABC_Loader::load(load_vector);
+        #warning "delete commented out code"
+        // outfile.close();
+        //
+        // const auto filesize = std::filesystem::file_size(outfile_name);
+        // std::vector<u8> load_vector(filesize);
+        //
+        // std::ifstream infile{outfile_name, std::ios::binary};
+        // if (!infile)
+        //     DMASSERT(false);
+        // infile.read(reinterpret_cast<char*>(load_vector.data()), filesize);
     };
 
     export_within_dir(k_abc_binaries_dirname, impl);
