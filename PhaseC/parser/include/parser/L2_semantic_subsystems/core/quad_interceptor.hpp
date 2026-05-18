@@ -28,7 +28,7 @@ public:
         const Expr *arg1,
         const Expr *arg2,
         SourceLocation loc,
-        LabelID label,
+        CodeAddress label,
         QuadInterceptor::EmitKey);
 
 private:

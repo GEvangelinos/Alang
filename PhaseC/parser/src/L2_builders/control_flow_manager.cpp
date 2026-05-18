@@ -35,7 +35,7 @@ ControlFlowManager::Restricted::manage_ifbranch_entry(
             FunctionCtxHandler::FlowLivenessTracker::FlowState::RUNTIME);
 
     // Offset = 2 the IF_EQ itself and the following unconditional jump which leads outside if block.
-    constexpr LabelID offset_to_if_branch = LabelID{2};
+    constexpr CodeAddress offset_to_if_branch = CodeAddress{2};
     quad_yielder_->yield_next(
         ir::Opcode::IF_EQ,
         nullptr,
@@ -54,7 +54,7 @@ void
 ControlFlowManager::Restricted::manage_ifbranch_exit()
 {
     DMASSERT(!build_ctx_.unpatched_if_bypass_jumps.empty());
-    const LabelID bypass_jump_quad_label = build_ctx_.unpatched_if_bypass_jumps.top();
+    const CodeAddress bypass_jump_quad_label = build_ctx_.unpatched_if_bypass_jumps.top();
     build_ctx_.unpatched_if_bypass_jumps.pop();
     quad_handler_->labelPatch_quad(bypass_jump_quad_label, quad_handler_->next_quad_label());
     parse_ctx_->func_ctx_handler.flow_liveness().pop_flow_state();
@@ -85,7 +85,7 @@ ControlFlowManager::Restricted::manage_elsebranch_exit()
     // We basically patch untaken if branches inside else branch.
     quad_handler_->labelPatch_quad(
         build_ctx_.unpatched_if_bypass_jumps.top(),
-        build_ctx_.unpatched_else_bypass_jumps.top() + LabelID{1}
+        build_ctx_.unpatched_else_bypass_jumps.top() + CodeAddress{1}
     );
     quad_handler_->labelPatch_quad(
         build_ctx_.unpatched_else_bypass_jumps.top(),
@@ -115,7 +115,7 @@ ControlFlowManager::Restricted::manage_whileloop_condition(
 {
     DMASSERT(!!conditional);
 
-    constexpr LabelID offset_to_while_block{2};
+    constexpr CodeAddress offset_to_while_block{2};
     conditional = expr_optimizer_->try_propagate_const(conditional);
     conditional = expr_normalizer_->materialize_if_table_item(conditional);
     expr_normalizer_->resolve_bool_short_circuit(conditional);
@@ -143,8 +143,8 @@ ControlFlowManager::Restricted::manage_whileloop_exit(const SourceLocation while
         auto &wlf_stack = build_ctx_.while_loop_patch_points;
         SMART_ASSERT(!wlf_stack.empty());
         SMART_ASSERT(
-            wlf_stack.top().before_condition != LabelID::none(),
-            wlf_stack.top().unpatched_bypass_jump != LabelID::none(),
+            wlf_stack.top().before_condition != CodeAddress::none(),
+            wlf_stack.top().unpatched_bypass_jump != CodeAddress::none(),
         );
     )
     auto& qe = quad_handler_;                                   // Short alias for readability.
@@ -261,7 +261,7 @@ ControlFlowManager::Restricted::manage_forloop_exit(const SourceLocation exit_lo
         mark_upcoming_forloop_sites();
         quad_yielder_->yield_labelless(ir::Opcode::JUMP, nullptr, nullptr, nullptr, exit_loc);
 
-        const LabelID after_loop_quad_label = qh->next_quad_label(); // First quad outside for-loop.
+        const CodeAddress after_loop_quad_label = qh->next_quad_label(); // First quad outside for-loop.
 
         qh->labelPatch_quad(flf.condition_true, flf.before_body); // Set IF_EQ true jump inside body
         qh->labelPatch_quad(flf.condition_false, after_loop_quad_label);
@@ -346,7 +346,7 @@ ControlFlowManager::Restricted::mark_upcoming_forloop_sites()
     auto& flf = build_ctx_.for_loop_patch_points.top(); // Short alias to improve readability.
 
     // clang-format off
-    switch (const LabelID next_jump_label = quad_handler_->next_quad_label(); flf.next_patch_point)
+    switch (const CodeAddress next_jump_label = quad_handler_->next_quad_label(); flf.next_patch_point)
     {
     case FLS::BEFORE_CONDITION:   flf.before_condition = next_jump_label;   break;
     case FLS::CONDITION_TRUE:     flf.condition_true = next_jump_label;     break;

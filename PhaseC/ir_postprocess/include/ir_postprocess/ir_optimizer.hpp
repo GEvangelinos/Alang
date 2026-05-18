@@ -12,13 +12,15 @@ class IROptimizer
 public:
     explicit IROptimizer(const settings::IROpts &ir_opts);
 
-    [[nodiscard]] std::vector<ir::Quad> run(std::vector<ir::Quad> quads) const;
+    [[nodiscard]] ir::QuadStream run(ir::QuadStream quads) const;
 
 private:
     const settings::IROpts ir_opts_;
 
-    static bool do_jump_threading(std::vector<ir::Quad> &quads);
-    static bool do_unused_temp_removal(std::vector<ir::Quad> &quads);
+    [[nodiscard]] static ir::QuadStream hoist_functions(const ir::QuadStream& unhoisted_stream);
+
+    static bool do_jump_threading(ir::QuadStream &quads);
+    static bool do_unused_temp_removal(ir::QuadStream &quads);
 };
 } // namespace alpha
 #endif // IR_OPTIMIZER_HPP

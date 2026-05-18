@@ -15,4 +15,5 @@ add_library(alpha_bytecode_impl STATIC
 )
 target_link_libraries(alpha_bytecode_impl PRIVATE
     alpha_bytecode_api
+    alpha_parser_api
 )

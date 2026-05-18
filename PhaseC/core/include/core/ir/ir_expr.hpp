@@ -9,7 +9,6 @@
 
 #include "core/konstants.hpp"
 #include "core/string_span.hpp"
-#include "parser/ir_opcode.gen.hpp"
 #include "support/misc_tools.hpp"
 #include "support/string_tools.hpp"
 
@@ -124,8 +123,8 @@ struct AssignExpr final : public ExprWVarSymbol
 
 struct BoolExpr final : public ExprWVarSymbol
 {
-    mutable std::vector<LabelID> true_list;
-    mutable std::vector<LabelID> false_list;
+    mutable std::vector<CodeAddress> true_list;
+    mutable std::vector<CodeAddress> false_list;
 
     // We mark as const, as we only change mutable fields.
     void invert() const { std::swap(true_list, false_list); }

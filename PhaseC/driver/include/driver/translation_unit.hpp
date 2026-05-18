@@ -41,7 +41,7 @@ public:
     void notify_hard_error();
 
     [[nodiscard]] bool is_poisoned() const; // Returns true if HARD or FATAL (Stop cascades)
-    [[nodiscard]] const std::vector<ir::Quad>& get_quads() const noexcept;
+    [[nodiscard]] const ir::QuadStream& get_quads() const noexcept;
     [[nodiscard]] const vm::Program& get_program() const noexcept;
 
 private:
@@ -57,7 +57,7 @@ private:
     SemanticSystem semantic_system_;
     std::unique_ptr<IRValidator> ir_validator_;
     std::unique_ptr<IROptimizer> ir_optimizer_;
-    std::vector<ir::Quad> ir_quads_;
+    ir::QuadStream ir_quads_;
     std::unique_ptr<vm::Program> program_;
 
     Once<int> parser_retval_;

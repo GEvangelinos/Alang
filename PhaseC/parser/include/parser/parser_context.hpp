@@ -98,7 +98,7 @@ public:
         const SourceLocation location;
         const u32 local_var_count;
         const ProgFuncSymbol *func_symbol;
-        const LabelID funcdef_skip_jump;
+        const CodeAddress funcdef_skip_jump;
     };
 
     class FlowLivenessTracker
@@ -131,7 +131,7 @@ public:
         StringSpan func_name,
         SourceLocation func_loc,
         const ProgFuncSymbol *func_symbol,
-        LabelID label_of_jump);
+        CodeAddress label_of_jump);
     [[nodiscard]] FunctionBackpatchInfo exit_function() noexcept;
     [[nodiscard]] u32 function_nesting_depth() const noexcept;
     [[nodiscard]] const std::string &current_function_name() const noexcept;
@@ -139,12 +139,12 @@ public:
     [[nodiscard]] SourceLocation current_function_location() const noexcept;
     [[nodiscard]] u32 loop_depth() const noexcept;
     [[nodiscard]] const std::vector<Parameter> &function_parameters() const noexcept;
-    [[nodiscard]] const std::vector<LabelID> &break_list();
-    void add_label_to_breaklist(LabelID jump_label); // Quad label of jump used to break.
-    void add_label_to_continuelist(LabelID jump_label);
-    void add_label_to_returnlist(LabelID jump_label);
-    [[nodiscard]] const std::vector<LabelID> &continue_list();
-    [[nodiscard]] const std::vector<LabelID> &return_list();
+    [[nodiscard]] const std::vector<CodeAddress> &break_list();
+    void add_label_to_breaklist(CodeAddress jump_label); // Quad label of jump used to break.
+    void add_label_to_continuelist(CodeAddress jump_label);
+    void add_label_to_returnlist(CodeAddress jump_label);
+    [[nodiscard]] const std::vector<CodeAddress> &continue_list();
+    [[nodiscard]] const std::vector<CodeAddress> &return_list();
     [[nodiscard]] const FlowLivenessTracker &flow_liveness() const;
     [[nodiscard]] FlowLivenessTracker &flow_liveness();
 
@@ -155,16 +155,16 @@ private:
         const u32 scope;
         const SourceLocation loc;
         const ProgFuncSymbol *func_symbol; // Valid function ONLY IF NOT nullptr;
-        const LabelID funcdef_skip_jump;   // used to go over function definition in runtime.
+        const CodeAddress funcdef_skip_jump;   // used to go over function definition in runtime.
         FlowLivenessTracker flow_liveness_tracker;
 
         u32 loop_nesting_count = 0;
         // This is labels of breaks per loop in function
-        std::stack<std::vector<LabelID>> function_breaklist_stack;
+        std::stack<std::vector<CodeAddress>> function_breaklist_stack;
         // This is labels of continue of loops per loop in function
-        std::stack<std::vector<LabelID>> function_continuelist_stack;
+        std::stack<std::vector<CodeAddress>> function_continuelist_stack;
         // This is labels returns per function (in this FunctionDataFrame).
-        std::vector<LabelID> function_returnlist;
+        std::vector<CodeAddress> function_returnlist;
         u32 local_variable_count = 0;
 
         FunctionDataFrame(
@@ -172,7 +172,7 @@ private:
             const u32 scope,
             const SourceLocation loc,
             const ProgFuncSymbol *const func_symbol,
-            const LabelID funcdef_skip_jump)
+            const CodeAddress funcdef_skip_jump)
             : name(name.to_string()),
               scope(scope),
               loc(loc),
@@ -441,7 +441,7 @@ FunctionCtxHandler::add_function_parameter(const StringSpan name, SourceLocation
 inline const std::vector<Parameter> &
 FunctionCtxHandler::function_parameters() const noexcept { return function_parameters_; }
 
-inline const std::vector<LabelID> &
+inline const std::vector<CodeAddress> &
 FunctionCtxHandler::break_list()
 {
     DMASSERT(!frame_stack_.empty());
@@ -451,7 +451,7 @@ FunctionCtxHandler::break_list()
     return frame_stack_.top().function_breaklist_stack.top();
 }
 
-inline const std::vector<LabelID> &
+inline const std::vector<CodeAddress> &
 FunctionCtxHandler::continue_list()
 {
     DMASSERT(!frame_stack_.empty());
@@ -462,7 +462,7 @@ FunctionCtxHandler::continue_list()
 }
 
 inline void
-FunctionCtxHandler::add_label_to_breaklist(const LabelID jump_label)
+FunctionCtxHandler::add_label_to_breaklist(const CodeAddress jump_label)
 // Quad label of jump used to break.
 {
     DMASSERT(!frame_stack_.empty());
@@ -474,7 +474,7 @@ FunctionCtxHandler::add_label_to_breaklist(const LabelID jump_label)
 }
 
 inline void
-FunctionCtxHandler::add_label_to_continuelist(const LabelID jump_label)
+FunctionCtxHandler::add_label_to_continuelist(const CodeAddress jump_label)
 // Quad label of jump used to break.
 {
     DMASSERT(!frame_stack_.empty());
@@ -486,7 +486,7 @@ FunctionCtxHandler::add_label_to_continuelist(const LabelID jump_label)
     frame_stack_.top().function_continuelist_stack.top().push_back(jump_label);
 }
 
-inline const std::vector<LabelID> &
+inline const std::vector<CodeAddress> &
 FunctionCtxHandler::return_list()
 {
     DMASSERT(!frame_stack_.empty());
@@ -508,7 +508,7 @@ FunctionCtxHandler::flow_liveness()
 }
 
 inline void
-FunctionCtxHandler::add_label_to_returnlist(const LabelID jump_label)
+FunctionCtxHandler::add_label_to_returnlist(const CodeAddress jump_label)
 {
     // We must be in function
     DMASSERT(frame_stack_.size() > 1);

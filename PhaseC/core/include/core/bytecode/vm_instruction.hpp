@@ -2,7 +2,7 @@
 #define VM_INSTRUCTION_HPP
 
 #include "vm_opcodes.hpp"
-#include "core/label_id.hpp"
+#include "core/code_address.hpp"
 #include "core/numeric_types.hpp"
 #include "core/source_location.hpp"
 #include "parser/internal_typedefs.hpp"
@@ -43,9 +43,9 @@ struct VariableArgument : public Argument
 
 struct LabelArgument : public Argument
 {
-    mutable LabelID value;
+    mutable CodeAddress value;
 
-    explicit LabelArgument(const LabelID value)
+    explicit LabelArgument(const CodeAddress value)
         : Argument{Type::LABEL}, value{value} {}
 };
 
@@ -111,9 +111,9 @@ struct RetvalArgument : public Argument
 
 struct ProgramFuncArgument : public Argument
 {
-    const LabelID address;
+    const CodeAddress address;
 
-    explicit ProgramFuncArgument(const LabelID func_address)
+    explicit ProgramFuncArgument(const CodeAddress func_address)
         : Argument{Type::PROGRAMFUNC}, address(func_address) {}
 };
 

@@ -91,7 +91,7 @@ const ProgFuncSymbol*
 SymbolTable::insert_program_function(
     const StringSpan name,
     const u32 scope,
-    const LabelID address,
+    const CodeAddress address,
     const std::vector<Parameter>& parameter_list,
     const SourceLocation location)
 {

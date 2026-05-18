@@ -29,9 +29,9 @@ private:
         {
             std::size_t list_index = 0; // Only used for ExprList. NOT DictList!
             const NewTableExpr* const host_expr;
-            const LabelID host_quad_label;
+            const CodeAddress host_quad_label;
 
-            TableLiteralInfo(const NewTableExpr* new_table_expr, LabelID host_quad_label);
+            TableLiteralInfo(const NewTableExpr* new_table_expr, CodeAddress host_quad_label);
         };
 
         struct
@@ -180,7 +180,7 @@ private:
         };
 
         const Options options_;
-        std::stack<LabelID> short_circuit_jump_stack_;
+        std::stack<CodeAddress> short_circuit_jump_stack_;
 
         Restricted(Options&& options, const SemanticSystemServices& ss_services);
         ~Restricted() override = default;
@@ -392,7 +392,7 @@ private:
         void register_function_parameters();
         [[nodiscard]] bool validate_funcdef_name(StringSpan func_name, SourceLocation funcname_loc);
         [[nodiscard]] bool validate_formal_param_name(const Parameter& param);
-        [[nodiscard]] LabelID next_function_address();
+        [[nodiscard]] CodeAddress next_function_address();
     };
 
     Restricted DISPATCH_TARGET;

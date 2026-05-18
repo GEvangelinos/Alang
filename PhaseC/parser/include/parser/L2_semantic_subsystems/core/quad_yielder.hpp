@@ -40,7 +40,7 @@ public:
         const Expr* arg1,
         const Expr* arg2,
         SourceLocation loc,
-        LabelID label);
+        CodeAddress label);
 
     /// @returns result
     const Expr* yield(
@@ -49,7 +49,7 @@ public:
         const Expr* arg1,
         const Expr* arg2,
         SourceLocation loc,
-        LabelID label);
+        CodeAddress label);
 
     template <ExprFactory PreEmitHook>
     const Expr* yield_returning_hook_result(
@@ -58,7 +58,7 @@ public:
         const Expr* arg1,
         const Expr* arg2,
         SourceLocation loc,
-        LabelID label,
+        CodeAddress label,
         PreEmitHook&& pre_emit_hook);
 
     /// @returns result_factory's return value
@@ -69,7 +69,7 @@ public:
         const Expr* arg1,
         const Expr* arg2,
         SourceLocation loc,
-        LabelID label_offset = LabelID{0}
+        CodeAddress label_offset = CodeAddress{0}
     );
 
     /// @returns param result
@@ -79,7 +79,7 @@ public:
         const Expr* arg1,
         const Expr* arg2,
         SourceLocation loc,
-        LabelID label_offset = LabelID{0}
+        CodeAddress label_offset = CodeAddress{0}
     );
 
     /// @returns result_factory's return value
@@ -114,7 +114,7 @@ QuadYielder::yield(
     const Expr* arg1,
     const Expr* arg2,
     const SourceLocation loc,
-    const LabelID label)
+    const CodeAddress label)
 {
     // Release temps before making result (which usually creates a new temp)
     // Order first arg2 then arg1 is mandatory, in release, as acquiring happens in reverse.
@@ -134,7 +134,7 @@ QuadYielder::yield_returning_hook_result(
     const Expr* const arg1,
     const Expr* const arg2,
     const SourceLocation loc,
-    const LabelID label,
+    const CodeAddress label,
     PreEmitHook&& pre_emit_hook)
 {
     // Release temps before making result (which usually creates a new temp)
@@ -155,7 +155,7 @@ QuadYielder::yield_next(
     const Expr* const arg1,
     const Expr* const arg2,
     const SourceLocation loc,
-    const LabelID label_offset)
+    const CodeAddress label_offset)
 {
     return yield(
         opc,
@@ -183,7 +183,7 @@ QuadYielder::yield_labelless(
         arg1,
         arg2,
         loc,
-        LabelID::none()
+        CodeAddress::none()
     );
 }
 } // namespace alpha

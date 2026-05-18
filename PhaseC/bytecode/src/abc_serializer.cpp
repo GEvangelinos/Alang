@@ -93,8 +93,6 @@ serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
     if (*str.begin() == '\"')
     {
         constexpr auto delimiting_quote_count = 2; // 1 left & 1 right
-        for (const char ch : str)
-            std::cout << "CH = " << ch << std::endl;
         DMASSERT(*(str.end() - 1) == '\"', serialized_len >= delimiting_quote_count && "Empty str");
         serialized_len -= delimiting_quote_count;
         ++start;

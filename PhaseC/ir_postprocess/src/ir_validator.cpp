@@ -12,7 +12,7 @@ IRValidator::IRValidator(const settings::ConfigFlags& config_flags, DiagnosticRe
       dr_(dr) {}
 
 void
-IRValidator::check_uninitialized_reads(const std::vector<ir::Quad>& quads)
+IRValidator::check_uninitialized_reads(const ir::QuadStream& quads)
 {
     struct UninitTrace
     {
@@ -54,7 +54,7 @@ IRValidator::check_uninitialized_reads(const std::vector<ir::Quad>& quads)
 }
 
 void
-IRValidator::run(const std::vector<ir::Quad>& quads)
+IRValidator::run(const ir::QuadStream& quads)
 {
     if (config_flags_.extra_warnings)
         check_uninitialized_reads(quads);

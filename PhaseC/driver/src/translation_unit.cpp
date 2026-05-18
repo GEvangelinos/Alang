@@ -25,7 +25,7 @@ inline constexpr auto k_reescaped_warning_banner =
     "Special characters are escaped; Ex.: \"\\n\" prints literally (not a newline) to keep the table aligned.\n"
     SGR_RESET;
 
-// Note: The following stirng contains Greek characters.
+// Note: The following string contains Greek characters.
 // I dont remember what's going on with unicode and C++
 // but in case it causes any problems just remove the Greek part
 // It is just a reference to a lecture.
@@ -48,7 +48,7 @@ inline constexpr auto k_cya_mode_off_warning_banner =
 
 namespace alpha
 {
-[[nodiscard]] std::string to_string(const LabelID label)
+[[nodiscard]] std::string to_string(const CodeAddress label)
 {
     return label.is_none() ? "NONE" : FMT::to_string(label.value);
 }
@@ -237,7 +237,7 @@ std::string format_column(T&& value)
 template <bool Colorize, typename Stream>
 void print_ir(
     Stream& out,
-    const std::vector<alpha::ir::Quad>& quads,
+    const alpha::ir::QuadStream& quads,
     const alpha::LocationTracker& lt,
     const bool print_detailed)
 {
@@ -471,6 +471,7 @@ CompilationPipeline::execute()
     running_phase_ = Phase::FRONTEND;
     run_frontend();
     ir_quads_ = semantic_system_.gateway->extract_quads();
+
     DMASSERT(!!diagnostic_engine_.reporter);
 
     ir_validator_->run(ir_quads_);
@@ -504,7 +505,7 @@ CompilationPipeline::run_frontend()
 bool
 CompilationPipeline::is_poisoned() const { return semantic_system_.good(); }
 
-const std::vector<ir::Quad>&
+const ir::QuadStream&
 CompilationPipeline::get_quads() const noexcept { return ir_quads_; }
 
 const vm::Program&

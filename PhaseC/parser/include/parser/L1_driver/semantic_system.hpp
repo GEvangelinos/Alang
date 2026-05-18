@@ -168,7 +168,7 @@ private:
 
     void notify_hard_error() noexcept;
 
-    [[nodiscard]] std::vector<ir::Quad> extract_quads();
+    [[nodiscard]] ir::QuadStream extract_quads();
 };
 } // namespace alpha
 #endif // SEMANTIC_SYSTEM_HPP

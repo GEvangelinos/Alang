@@ -48,14 +48,23 @@ target_link_libraries("${COMPILER_EXE_NAME}" PRIVATE
     alpha_bytecode_impl
 )
 
-# === Custom generation step (scanner + parser) ===
-add_custom_target(generate_parser_scanner ALL DEPENDS
+# === Custom generation step (scanner + parser + IR::Opcodes) ===
+add_custom_target(generate_all ALL DEPENDS
     generate_scanner
     generate_parser
+    generate_ir_opcodes
 )
-add_dependencies(${COMPILER_EXE_NAME}
-    generate_parser_scanner
-)
+add_dependencies(${COMPILER_EXE_NAME} generate_all)
+# Anchor generation to the core API targets so NO implementation can compile without them
+add_dependencies(alpha_core_api generate_all)
+add_dependencies(alpha_parser_api generate_all)
+add_dependencies(alpha_scanner_api generate_all)
+
+# Keep these as explicit sanity locks for the implementations
+add_dependencies(alpha_bytecode_impl generate_all)
+add_dependencies(alpha_parser_impl generate_all)
+add_dependencies(alpha_scanner_impl generate_all)
+add_dependencies(alpha_core_impl generate_all)
 
 target_compile_options(${COMPILER_EXE_NAME} PRIVATE -flto)
 target_link_options(${COMPILER_EXE_NAME} PRIVATE -flto)

@@ -15,27 +15,27 @@ namespace alpha
 class ABC_Generator
 {
 public:
-    [[nodiscard]] static vm::Program run(const std::vector<ir::Quad>& program_ir_quads)
+    [[nodiscard]] static vm::Program run(const ir::QuadStream& program_ir_quads)
     {
         return ABC_Generator{}.build_program(program_ir_quads);
     }
 
 private:
     vm::Program result_;
-    std::vector<LabelID> target_addresses_;
+    std::vector<CodeAddress> target_addresses_;
 
     ABC_Generator() = default;
 
-    [[nodiscard]] vm::Program build_program(const std::vector<ir::Quad>& program_ir_quads) &&;
+    [[nodiscard]] vm::Program build_program(const ir::QuadStream& program_ir_quads) &&;
 
     [[nodiscard]] const vm::Argument* make_argument(const Expr& expr);
     [[nodiscard]] vm::Program::StringID intern_string_literal(const ConstStringExpr& string_expr);
     [[nodiscard]] vm::Program::LibfuncID intern_libfunc_name(const LibFuncExpr& libfunc_expr);
 
-    [[nodiscard]] LabelID next_instruction_label() const noexcept
+    [[nodiscard]] CodeAddress next_instruction_label() const noexcept
     {
-        DMASSERT(result_.instructions.size() <= std::numeric_limits<LabelID::UnderlyingType>::max());
-        return LabelID{static_cast<LabelID::UnderlyingType>(result_.instructions.size())};
+        DMASSERT(result_.instructions.size() <= std::numeric_limits<CodeAddress::UnderlyingType>::max());
+        return CodeAddress{static_cast<CodeAddress::UnderlyingType>(result_.instructions.size())};
     }
 
     template <ir::Opcode ir_quad_opcode, ir::info_traits::Requirement (*trait_func)(ir::Opcode)>

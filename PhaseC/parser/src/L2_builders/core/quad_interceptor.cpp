@@ -18,7 +18,7 @@ QuadInterceptor::emit(
     const Expr *const arg1,
     const Expr *const arg2,
     const SourceLocation loc,
-    const LabelID label,
+    const CodeAddress label,
     QuadInterceptor::EmitKey)
 {
     const bool is_dead_quad = parse_ctx_->func_ctx_handler.flow_liveness().is_in_dead_flow();

@@ -77,4 +77,4 @@ target_link_libraries(alpha_scanner_impl PRIVATE
     alpha_diagnostics_api
 )
 
-add_dependencies(alpha_scanner_impl generate_parser_scanner)
+add_dependencies(alpha_scanner_impl generate_all)

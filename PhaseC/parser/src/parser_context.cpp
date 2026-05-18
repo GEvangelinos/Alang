@@ -143,7 +143,7 @@ FunctionCtxHandler::FunctionCtxHandler(ParseCtx* const host)
         k_global_scope,
         SourceLocation::none(),
         nullptr,
-        LabelID::none()
+        CodeAddress::none()
     );
 }
 
@@ -181,7 +181,7 @@ FunctionCtxHandler::enter_function(
     const StringSpan func_name,
     const SourceLocation func_loc,
     const ProgFuncSymbol* const func_symbol,
-    const LabelID label_of_jump)
+    const CodeAddress label_of_jump)
 {
     DMASSERT(frame_stack_.size() < k_max_function_nesting && "A safe small sanity limit");
     DEBUG(

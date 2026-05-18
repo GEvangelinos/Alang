@@ -64,7 +64,7 @@ ExprNormalizer::resolve_bool_short_circuit(const Expr* const expr)
     );
 
     // Offset to land after the false branch
-    constexpr LabelID past_false_branch_offset{2}; // Depends on how many emits occur after jump.
+    constexpr CodeAddress past_false_branch_offset{2}; // Depends on how many emits occur after jump.
     quad_interceptor_->emit(
         ir::Opcode::JUMP,
         nullptr,

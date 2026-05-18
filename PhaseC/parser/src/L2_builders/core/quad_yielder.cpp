@@ -34,7 +34,7 @@ QuadYielder::yield(
     const Expr *const arg1,
     const Expr *const arg2,
     const SourceLocation loc,
-    const LabelID label)
+    const CodeAddress label)
 {
     return yield(opc, [result]() { return result; }, arg1, arg2, loc, label);
 }
@@ -46,7 +46,7 @@ QuadYielder::yield_next(
     const Expr *const arg1,
     const Expr *const arg2,
     const SourceLocation loc,
-    const LabelID label_offset)
+    const CodeAddress label_offset)
 {
     return yield_next(opc, [result]() { return result; }, arg1, arg2, loc, label_offset);
 }

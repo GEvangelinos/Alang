@@ -48,26 +48,26 @@ private:
     private:
         struct // (singleton)
         {
-            using LabelStack = VectorStack<LabelID>;
+            using LabelStack = VectorStack<CodeAddress>;
             LabelStack unpatched_if_bypass_jumps;
             LabelStack unpatched_else_bypass_jumps;
 
             struct WhileLoopPatchPoints
             {
-                LabelID unpatched_bypass_jump = LabelID::none();
-                LabelID before_condition = LabelID::none();
+                CodeAddress unpatched_bypass_jump = CodeAddress::none();
+                CodeAddress before_condition = CodeAddress::none();
             };
 
             struct ForLoopPatchPoints
             {
                 ForLoopSite next_patch_point = ForLoopSite::BEFORE_CONDITION;
-                LabelID before_condition = LabelID::none();
-                LabelID condition_true = LabelID::none();
-                LabelID condition_false = LabelID::none();
-                LabelID before_update_list = LabelID::none();
-                LabelID after_update_list = LabelID::none();
-                LabelID before_body = LabelID::none();
-                LabelID after_body = LabelID::none();
+                CodeAddress before_condition = CodeAddress::none();
+                CodeAddress condition_true = CodeAddress::none();
+                CodeAddress condition_false = CodeAddress::none();
+                CodeAddress before_update_list = CodeAddress::none();
+                CodeAddress after_update_list = CodeAddress::none();
+                CodeAddress before_body = CodeAddress::none();
+                CodeAddress after_body = CodeAddress::none();
                 bool bad_clause;
             };
 

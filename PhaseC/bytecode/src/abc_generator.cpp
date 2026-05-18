@@ -171,7 +171,7 @@ ABC_Generator::generate_return(const ir::Quad& quad)
 }
 
 vm::Program
-ABC_Generator::build_program(const std::vector<ir::Quad>& program_ir_quads) &&
+ABC_Generator::build_program(const ir::QuadStream& program_ir_quads) &&
 {
     for (u64 i = 0; i < program_ir_quads.size(); ++i)
     {

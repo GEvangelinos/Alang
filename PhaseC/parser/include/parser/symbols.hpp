@@ -133,7 +133,7 @@ class ProgFuncSymbol final : public Symbol
     friend class SymbolTable;
 
 public:
-    const LabelID address;
+    const CodeAddress address;
     const std::vector<Parameter> parameter_list;
 
     // Declared mutable, as we backpatch it after the function’s complete definition.
@@ -143,7 +143,7 @@ public:
     ProgFuncSymbol(
         StringSpan name,
         u32 scope,
-        LabelID address,
+        CodeAddress address,
         const std::vector<Parameter>& parameter_list,
         SourceLocation location);
     ~ProgFuncSymbol() override = default;
@@ -244,7 +244,7 @@ inline
 ProgFuncSymbol::ProgFuncSymbol(
     const StringSpan name,
     const u32 scope,
-    const LabelID address,
+    const CodeAddress address,
     const std::vector<Parameter>& parameter_list,
     const SourceLocation location)
     : Symbol(name, scope, Symbol::Type::PROGRAM_FUNCTION, location),

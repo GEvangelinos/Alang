@@ -13,7 +13,7 @@ QuadHandler::emit(
     const Expr *const arg1,
     const Expr *const arg2,
     const SourceLocation loc,
-    const LabelID label,
+    const CodeAddress label,
     const bool is_dead,
     QuadHandler::EmitKey)
 {
@@ -57,33 +57,33 @@ QuadHandler::emit(
 }
 
 void
-QuadHandler::labelPatch_quad(const LabelID target_quad_label, const LabelID destination_label)
+QuadHandler::labelPatch_quad(const CodeAddress target_quad_label, const CodeAddress destination_label)
 {
     // First quad at index 0, has quad with label 1.
     const u32 idx = ir::Quad::label_to_index(target_quad_label);
     DMASSERT(
         idx < ir_quads_.size(),
-        ir_quads_[idx].label == LabelID::none(),
-        destination_label != LabelID::none()
+        ir_quads_[idx].label == CodeAddress::none(),
+        destination_label != CodeAddress::none()
     );
     ir_quads_[idx].label = destination_label;
 }
 
 void
 QuadHandler::labelPatch_list(
-    const std::vector<LabelID> &patch_list,
-    const LabelID destination_label)
+    const std::vector<CodeAddress> &patch_list,
+    const CodeAddress destination_label)
 {
-    DMASSERT(destination_label != LabelID::none());
-    for (const LabelID target_quad_label : patch_list)
+    DMASSERT(destination_label != CodeAddress::none());
+    for (const CodeAddress target_quad_label : patch_list)
         labelPatch_quad(target_quad_label, destination_label);
 }
 
 void
-QuadHandler::locPatch_tablecreate(const LabelID target_quad_label, const SourceLocation new_loc)
+QuadHandler::locPatch_tablecreate(const CodeAddress target_quad_label, const SourceLocation new_loc)
 {
     DMASSERT(
-        target_quad_label != LabelID::none() && "Can't loc-patch quad without valid LabelID",
+        target_quad_label != CodeAddress::none() && "Can't loc-patch quad without valid LabelID",
         new_loc != SourceLocation::none() && "Can't loc-patch quad without valid SourceLocation"
     );
 
@@ -100,7 +100,7 @@ QuadHandler::locPatch_tablecreate(const LabelID target_quad_label, const SourceL
     ir_quads_[idx].loc = new_loc;
 }
 
-std::vector<ir::Quad>
+ir::QuadStream
 QuadHandler::extract_quads() noexcept
 {
     const auto result = std::move(ir_quads_);

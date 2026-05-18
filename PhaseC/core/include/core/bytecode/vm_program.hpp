@@ -17,7 +17,7 @@ struct Program
     struct ProgFunc
     {
         StringSpan id;
-        LabelID address;
+        CodeAddress address;
         u32 local_size;
     };
 

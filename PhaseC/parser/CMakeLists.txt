@@ -169,7 +169,7 @@ target_link_libraries(alpha_parser_impl PRIVATE
     alpha_scanner_api
 )
 
-add_dependencies(alpha_parser_impl generate_parser_scanner)
+add_dependencies(alpha_parser_impl generate_all)
 add_dependencies(alpha_parser_impl generate_ir_opcodes)
 
 if (NOT HATE_PYTHON_MODE)
