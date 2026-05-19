@@ -193,7 +193,7 @@ std::string argument_printer(
         return FMT::format("(local){}", static_cast<const vm::LocalVariableArgument*>(a)->offset);
     case vm::Argument::Type::PROGRAMFUNC:
         return FMT::format(
-            "(userfunc){}", static_cast<const vm::ProgramFuncArgument*>(a)->address.value
+            "(progfunc){}", static_cast<const vm::ProgramFuncArgument*>(a)->address.value
         );
     case vm::Argument::Type::LIBFUNC:
         return FMT::format("(libfunc){}", static_cast<const vm::LibFuncArgument*>(a)->pool_index);

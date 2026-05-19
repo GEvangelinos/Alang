@@ -22,7 +22,7 @@ struct Quad // Physical layout (packed): 8B first, then 4B, then 1B
     const Expr* arg2;
     CodeAddress label = CodeAddress::none();
     const ir::Opcode opcode;
-    const bool is_dead;
+    bool is_dead;
 
     static std::size_t label_to_index(CodeAddress label);
     static CodeAddress index_to_label(std::size_t index);

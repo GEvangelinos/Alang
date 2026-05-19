@@ -21,6 +21,7 @@ private:
 
     static bool do_jump_threading(ir::QuadStream &quads);
     static bool do_unused_temp_removal(ir::QuadStream &quads);
+    static bool do_neighbor_jump_removal(ir::QuadStream &qstream);
 };
 } // namespace alpha
 #endif // IR_OPTIMIZER_HPP

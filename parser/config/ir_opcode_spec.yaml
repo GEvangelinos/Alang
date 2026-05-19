@@ -223,3 +223,8 @@ IROPCODE_LIST:
     arg1: REQUIRED
     arg2: NONE
     is_non_executable: true
+
+  NOOP:
+    result: NONE
+    arg1: NONE
+    arg2: NONE
