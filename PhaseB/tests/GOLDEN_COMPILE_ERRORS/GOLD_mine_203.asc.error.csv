@@ -1,4 +1,0 @@
-line,column,diagnostic_type,message
-6,4,error,variable `x` is not accessible in function `ff`
-4,12,note,function `ff` declared here
-2,2,note,variable `x` declared here

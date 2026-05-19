@@ -1,6 +1,0 @@
-line,column,diagnostic_type,message
-16,25,error,character ` is invalid
-17,17,error,`break` statement not in a loop statement
-25,2,error,unclosed string literal, expected terminating `"` character
-23,17,note,string literal starts here
-25,2,error,unexpected end of file

@@ -1,1 +1,10 @@
-*.pdf
+build/
+cmake-debug-build/
+debug-build/
+.idea/
+./tests/Tree.asc
+*.swap
+*.swp
+*.swo
+
+__pycache__/
