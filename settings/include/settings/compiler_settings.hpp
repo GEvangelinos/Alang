@@ -37,6 +37,7 @@
 X(false, 0, opt_jump_threading,        "Resolve and fast-forward chains of unconditional jumps (e.g. `goto A; A: goto B;` → `goto B;`) to shorten control-flow paths in the IR.") \
 X(false, 0, opt_neighbor_jumps,        "Eliminate redundant jumps and conditional branches that target their immediate execution neighbor, turning them into natural fall-throughs.") \
 X(false, 0, opt_dead_code_elimination, "Remove IR blocks and branches that are proven unreachable at compile time (e.g. eliminate `if (0)` branches).") \
+X(false, 0, opt_dead_func_elimination, "Removes functions that never used or referenced, at any point in source code") \
 X(false, 0, opt_func_hoisting,         "**EXPERIMENTAL** Extract and lift nested function definitions to the top of the IR stream, flattening control flow and eliminating inline wrapper jumps.")
 
 // (REQUIRED, ARITY, NAME, HELP_MSG)

@@ -18,10 +18,10 @@ private:
     const settings::IROpts ir_opts_;
 
     [[nodiscard]] static ir::QuadStream hoist_functions(const ir::QuadStream& unhoisted_stream);
-
-    static bool do_jump_threading(ir::QuadStream &quads);
-    static bool do_unused_temp_removal(ir::QuadStream &quads);
-    static bool do_neighbor_jump_removal(ir::QuadStream &qstream);
+    [[nodiscard]] static bool do_dead_func_elimination(ir::QuadStream &qstream);
+    [[nodiscard]] static bool do_dead_code_elimination(ir::QuadStream &qstream);
+    [[nodiscard]] static bool do_jump_threading(ir::QuadStream &quads);
+    [[nodiscard]] static bool do_neighbor_jump_removal(ir::QuadStream &qstream);
 };
 } // namespace alpha
 #endif // IR_OPTIMIZER_HPP

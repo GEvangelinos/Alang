@@ -8,10 +8,16 @@ namespace alpha
     class IREditor
     {
     public:
+
         explicit IREditor(ir::QuadStream& qstream);
 
-        [[nodiscard]] bool is_dead(u64 qidx) const noexcept;
-        void kill(u64 qidx) noexcept;
+        [[nodiscard]] bool is_dead(ir::QuadStream::size_type qidx) const noexcept;
+        void kill(ir::QuadStream::size_type qidx) noexcept;
+
+        /**
+         *
+         * @return returns `true` if it modified the given ir::QuadStream, `false` otherwise.
+         */
         [[nodiscard]] bool apply();
 
     private:
@@ -23,15 +29,8 @@ namespace alpha
         std::vector<u64> translation_map_;
     };
 
-inline bool
-IREditor::is_dead(const u64 qidx) const noexcept
-{
-    DMASSERT(qidx < qstream_.size());
-    return is_dead_[qidx];
-}
-
 inline void
-IREditor::kill(const u64 qidx) noexcept
+IREditor::kill(const ir::QuadStream::size_type qidx) noexcept
 {
     DMASSERT(qidx < qstream_.size(), kill_counter_ < qstream_.size());
     is_dead_[qidx].raise();

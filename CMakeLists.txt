@@ -184,6 +184,7 @@ if (OPTIMIZED_MODE)
     add_compile_options(
         -O3
         -march=native
+        -fno-rtti
     )
     add_compile_definitions(OPTIMIZED_MODE)
     log_info("CMAKE: Configuring with `" OPTIMIZED_MODE "` ON")

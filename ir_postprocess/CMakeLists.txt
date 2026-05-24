@@ -10,6 +10,7 @@ add_library(alpha_ir_postprocess_impl STATIC
     src/opts/opt_func_hoisting.cpp
     src/opts/opt_neighbor_jumps.cpp
     src/opts/opt_jump_threading.cpp
+    src/opts/opt_dead_function_elimination.cpp
 )
 target_link_libraries(alpha_ir_postprocess_impl PRIVATE
     alpha_ir_postprocess_api

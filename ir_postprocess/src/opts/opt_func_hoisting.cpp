@@ -1,7 +1,6 @@
+#include "core/ir/ir_expr.hpp"
 #include "ir_postprocess/ir_optimizer.hpp"
 
-namespace alpha
-{
 namespace
 {
 using namespace alpha;
@@ -24,7 +23,7 @@ private:
     VectorStack<SourcedQuadStream> open_qstreams;
     std::vector<SourcedQuadStream> closed_qstreams;
     std::vector<u64> translation_map_;
-    ir::QuadStream hoisted_stream;
+    ir::QuadStream hoisted_stream_;
 
     FunctionHoister();
 
@@ -84,7 +83,7 @@ FunctionHoister::unnest_functions(const ir::QuadStream& qstream)
 void
 FunctionHoister::linearize_to_single_qstream(const ir::QuadStream& qstream)
 {
-    hoisted_stream.reserve(qstream.size());
+    hoisted_stream_.reserve(qstream.size());
 
     // Initialize map with sentinel values to detect deleted/tombstone quads
     translation_map_.resize(qstream.size(), FunctionHoister::k_tombstone);
@@ -92,42 +91,67 @@ FunctionHoister::linearize_to_single_qstream(const ir::QuadStream& qstream)
     for (SourcedQuadStream& scope : closed_qstreams)
         for (SourcedQuad& sq : scope)
         {
-            const u64 new_index = hoisted_stream.size();
+            const u64 new_index = hoisted_stream_.size();
             translation_map_[sq.original_index] = new_index;
-            hoisted_stream.push_back(std::move(sq.quad));
+            if (sq.quad.opcode == ir::Opcode::FUNCSTART)
+                static_cast<const ProgFuncExpr*>(sq.quad.arg1)->progfunc_symbol->address =
+                    ir::Quad::index_to_label(new_index);
+            hoisted_stream_.push_back(std::move(sq.quad));
         }
 }
 
 void
 FunctionHoister::resolve_tombstones(const ir::QuadStream& qstream)
 {
-    // Resolve Tombstones by Chasing Jump Targets
+    // Resolve tombstones by tracking and chasing the downstream jump chain
     for (ir::QuadStream::size_type i = 0; i < qstream.size(); ++i)
     {
         if (translation_map_[i] != FunctionHoister::k_tombstone)
             continue;
+
         DMASSERT(qstream[i].opcode == ir::Opcode::JUMP);
 
-        // Chase the jump chain until we find a quad that survived hoisting
-        u64 curr = i;
-        while (translation_map_[curr] == FunctionHoister::k_tombstone)
-            curr = ir::Quad::label_to_index(qstream[curr].label);
-        translation_map_[i] = translation_map_[curr];
+        auto slow = i;
+        auto fast = i;
+        OnceFlag cycle_detected;
+
+        // Chase the jump chain until we land on a quad that survived hoisting
+        while (fast < translation_map_.size() && translation_map_[fast] == k_tombstone)
+        {
+            fast = ir::Quad::label_to_index(qstream[fast].label); // Advance fast pointer step 1
+            if (fast < translation_map_.size() && translation_map_[fast] == k_tombstone)
+                fast = ir::Quad::label_to_index(qstream[fast].label); // Advance fast pointer step 2
+
+            slow = ir::Quad::label_to_index(qstream[slow].label); // Advance slow pointer step 1
+
+            if (slow == fast)
+            {
+                cycle_detected.raise();
+                break;
+            }
+        }
+
+        // Handle bad states, out of bounds or cyclic jump deadlocks
+        if (cycle_detected || fast >= translation_map_.size())
+            translation_map_[i] = translation_map_.size();
+        else
+            translation_map_[i] = translation_map_[fast];
     }
 }
+
 
 void
 FunctionHoister::patch_labels(const ir::QuadStream& qstream)
 {
     // Fix jump labels instantly using O(1) array direct-mapping
-    for (ir::Quad& q : hoisted_stream)
+    for (ir::Quad& q : hoisted_stream_)
     {
         if (q.label.is_none())
             continue;
-
         const u64 old_target = ir::Quad::label_to_index(q.label);
+        if (old_target == translation_map_.size())
+            continue;
         DMASSERT(old_target < translation_map_.size());
-
         const u64 new_target = translation_map_[old_target];
         q.label = ir::Quad::index_to_label(new_target);
     }
@@ -144,14 +168,15 @@ FunctionHoister::hoist(const ir::QuadStream& unhoisted_stream)
     hoister.linearize_to_single_qstream(unhoisted_stream);
     hoister.resolve_tombstones(unhoisted_stream);
     hoister.patch_labels(unhoisted_stream);
-    return std::move(hoister.hoisted_stream);
+    return std::move(hoister.hoisted_stream_);
 }
 } // namespace
 
+namespace alpha
+{
 ir::QuadStream
 IROptimizer::hoist_functions(const ir::QuadStream& unhoisted_stream)
 {
     return FunctionHoister::hoist(unhoisted_stream);
 }
-
 } // namespace alpha

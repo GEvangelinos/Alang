@@ -133,7 +133,7 @@ class ProgFuncSymbol final : public Symbol
     friend class SymbolTable;
 
 public:
-    const CodeAddress address;
+    mutable CodeAddress address;
     const std::vector<Parameter> parameter_list;
 
     // Declared mutable, as we backpatch it after the function’s complete definition.
