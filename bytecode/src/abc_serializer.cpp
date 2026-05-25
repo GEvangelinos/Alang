@@ -54,7 +54,7 @@ serialize_header(
         .header_size = sizeof(abc::Header),
         .v_major = 1,
         .v_minor = 2,
-        .alignment_pad = 0x00000000,
+        .padding = {},
         .timestamp = get_usec_timestamp(),
         .file_size = abc_buffer.size(),
         .sections = sections,

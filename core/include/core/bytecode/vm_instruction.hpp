@@ -3,6 +3,7 @@
 
 #include "vm_opcodes.hpp"
 #include "core/code_address.hpp"
+#include "core/machine_types.hpp"
 #include "core/numeric_types.hpp"
 #include "core/source_location.hpp"
 #include "parser/internal_typedefs.hpp"

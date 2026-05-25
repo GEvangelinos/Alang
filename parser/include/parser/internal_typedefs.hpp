@@ -1,13 +1,10 @@
 #ifndef INTERNAL_TYPEDEFS_HPP
 #define INTERNAL_TYPEDEFS_HPP
+
 #include <vector>
-#include <core/numeric_types.hpp>
 
 namespace alpha
 {
-using AlphaInt = i64;
-using AlphaFloat = f64;
-
 struct Expr;
 
 using ExprList = std::vector<const Expr *>;

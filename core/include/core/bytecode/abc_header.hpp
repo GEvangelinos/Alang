@@ -85,7 +85,7 @@ struct Header
 
     u16 v_major;
     u16 v_minor;
-    u32 alignment_pad; /* Explicit padding for 64-bit alignment */
+    char padding[4];
 
     u64 timestamp;
     u64 file_size;

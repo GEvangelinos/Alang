@@ -55,7 +55,8 @@ option(USE_FLEX_SCANNER "USE_FLEX_SCANNER: Use Flex-generated scanner instead of
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
 set(COMPILER_NAME "alang" CACHE STRING "Name of the main compiler")
-set(COMPILER_EXE_NAME ${COMPILER_NAME} CACHE STRING "Name of the produced executable")
+set(COMPILER_EXE_NAME ${COMPILER_NAME} CACHE STRING "Name of the produced compiler executable")
+set(VM_EXE_NAME "avm" CACHE STRING "Name of the produced vm executable")
 
 set(AUTOGEN_DIRNAME "AUTOGEN" CACHE STRING "Name of the directory where auto-generated files are stored")
 
@@ -318,6 +319,7 @@ add_subdirectory(parser)
 add_subdirectory(ir_postprocess)
 add_subdirectory(scanner)
 add_subdirectory(driver)
+add_subdirectory(vm)
 add_subdirectory(settings)
 
 # === Utilities ===

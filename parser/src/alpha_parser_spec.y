@@ -18,6 +18,7 @@
     #include <core/source_location.hpp>
     #include "core/string_span.hpp"
     #include <parser/internal_typedefs.hpp>
+    #include "core/machine_types.hpp"
 
     typedef void* yyscan_t;
 
