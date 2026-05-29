@@ -35,6 +35,7 @@ enum class Opcode : u8
     #define AS_ENUM_MEMBER(vmopcode) vmopcode,
     ALPHA_VMOPCODES(AS_ENUM_MEMBER)
     #undef  AS_ENUM_MEMBER
+    __COUNT__
 };
 
 constexpr std::array all_vmopcodes_array{

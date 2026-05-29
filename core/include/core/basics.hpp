@@ -38,25 +38,30 @@ public:
 class ToggleSwitch
 {
 public:
-    ToggleSwitch() : state_(false) {}
-    explicit ToggleSwitch(const bool init_state): state_(init_state) {}
+    enum class State : unsigned char {OFF= 0, ON=1 };
+
+    ToggleSwitch() = default;
+    explicit ToggleSwitch(const State init_state): state_(init_state) {}
 
     constexpr void enable() noexcept
     {
-        DMASSERT(state_ == false);
-        state_ = true;
+        DMASSERT(state_ == State::OFF);
+        state_ = State::ON;
     }
 
     constexpr void disable() noexcept
     {
-        DMASSERT(state_ == true);
-        state_ = false;
+        DMASSERT(state_ == State::ON);
+        state_ = State::OFF;
     }
 
-    constexpr operator bool() const noexcept { return state_; }
+    constexpr operator bool() const noexcept
+    {
+        return static_cast<bool>(static_cast<std::underlying_type_t<State>>(state_));
+    }
 
 private:
-    bool state_ = false; // Initially the switch is off.
+    State state_ = State::OFF; // Initially the switch is off.
 };
 
 
