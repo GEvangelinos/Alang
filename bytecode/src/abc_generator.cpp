@@ -196,7 +196,7 @@ ABC_Generator::build_program(const ir::QuadStream& program_ir_quads) &&
         CASE_BASIC(TABLEGETELEM, TABLEGETELEM);
         CASE_BASIC(TABLESETELEM, TABLESETELEM);
         CASE_BASIC(PARAM, PUSHARG);
-        CASE_BASIC(CALL, CALLFUNC);
+        CASE_BASIC(CALL, CALL);
         case ir::Opcode::UMINUS: generate_uminus(quad);
             break;
         case ir::Opcode::GETRETVAL: generate_getretval(quad);

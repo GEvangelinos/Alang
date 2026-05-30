@@ -5,8 +5,6 @@
 #include <vector>
 #include "core/konstants.hpp"
 #include "core/numeric_types.hpp"
-#include "diagnostics/diagnostic_engine.hpp"
-#include "parser/konstants.hpp"
 #include "parser/symbol_table.hpp"
 #include "parser/_parser_common.hpp"
 #include "support/misc_tools.hpp"

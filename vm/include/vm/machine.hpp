@@ -1,11 +1,13 @@
 #ifndef MACHINE_HPP
 #define MACHINE_HPP
 
+#include <functional>
 #include <memory>
 
-#include "vm_memcell.hpp"
+#include "vm_memory.hpp"
 #include "core/numeric_types.hpp"
 #include "core/bytecode/vm_instruction.hpp"
+#include "core/bytecode/vm_program.hpp"
 
 namespace alpha::vm
 {
@@ -24,44 +26,80 @@ struct Bytes
 class Machine
 {
 public:
-    class Stack
-    {
-    public:
-        explicit Stack(u64 size);
-
-        [[nodiscard]] auto size() const noexcept { return size_; }
-
-    private:
-        std::unique_ptr<Memcell []> data_;
-        u64 size_ = 0;
-        u32 top_, topsp_;
-    };
-
     explicit Machine(Bytes stack_size);
 
-    [[nodiscard]] const Memcell* translate_operand(const vm::Argument* arg, Memcell* reg);
+    [[nodiscard]] Memcell* translate_operand(const vm::Argument* arg, Memcell* reg);
+    void display_warning(const std::string& message);
+    void error(const std::string& message);
 
-    void execute_assign(vm::Instruction& inst);
 
     void execute_cycle();
 
+    void execute_assign(vm::Instruction& inst);
+    void execute_call(vm::Instruction& inst);
+    void call_functor(vm::Table* table);
+    void execute_funcenter(vm::Instruction* inst);
+
+    // inst is unused, but we require for uniformity anyway.
+    void execute_funcexit([[maybe_unused]] vm::Instruction* unused);
+
+    void on_stack_overflow();
+
+    void call_libfunc(const char* id);
+
+    void impl_of_libfunc_print();
 
 private:
+    class Stack
+    {
+    public:
+        Stack(u64 size, std::function<void()> on_stack_overflow);
+
+        void set_out_stream(std::ostream &out) noexcept;
+
+        [[nodiscard]] auto size() const noexcept { return size_; }
+        void push_env_value(AlphaInt value);
+        void save_call_environment(AlphaInt pc, AlphaInt total_actuals);
+        void add_function_environment(const Program::ProgFunc& func_info);
+        [[nodiscard]] AlphaInt get_environment_value(u32 stack_idx) const noexcept;
+        [[nodiscard]] auto top() const noexcept { return top_; }
+
+        u32 restore_previous_environment() noexcept;
+        void clear_at(u32 idx);
+        [[nodiscard]] AlphaInt total_actuals() const noexcept;
+        [[nodiscard]] vm::Memcell & get_actual(u32 idx) const noexcept;
+
+    private:
+        std::function<void()> on_stack_overflow_;
+        std::unique_ptr<Memcell []> data_;
+        const u64 size_ = 0;
+        u32 top_ = 0, topsp_ = 0;
+        DEBUG(OnceFlag is_overflowed;)
+
+        void decrease_top();
+    };
+
+    static constexpr auto k_saved_topsp_offset = 1;
+    static constexpr auto k_saved_top_offset = 2;
+    static constexpr auto k_saved_pc_offset = 3;
+    static constexpr auto k_actual_count_offset = 4;
+    static constexpr auto k_stack_environment_size = 4;
+
     Stack stack_;
     Memcell reg_a_{}, reg_b_{}, reg_c_{}, retval_{};
-
-    ToggleSwitch execution_finished_{ToggleSwitch::State::OFF};
+    vm::Instruction* code_ = nullptr;
+    u32 total_actuals_ = 0;
     u32 pc_ = 0;
     u32 curr_line_ = 0;
     u32 code_size_ = 0;
-    vm::Instruction *code_ = nullptr;
+    OnceFlag execution_finished_;
+    std::ostream &out_stream_ = std::cout;
 
     [[nodiscard]] auto ending_pc() const noexcept { return code_size_; }
-    void assign();
+    void assign(Memcell& lv, const Memcell& rv);
 
-    using ExecuteFuncType = void (*)(vm::Instruction *);
+    using ExecuteFuncType = void (*)(vm::Instruction*);
     std::array<ExecuteFuncType, 20> execute_dispatch_table_;
 };
-
 } // namespace alpha::vm
 #endif //MACHINE_HPP

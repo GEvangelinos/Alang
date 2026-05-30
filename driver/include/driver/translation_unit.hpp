@@ -8,6 +8,7 @@
 #include "core/basics.hpp"
 #include "core/source_location_tracker.hpp"
 #include "core/bytecode/vm_program.hpp"
+#include "diagnostics/diagnostic_engine.hpp"
 #include "diagnostics/diagnostic_formatter.hpp"
 #include "L1_driver/semantic_system.hpp"
 #include "settings/compiler_settings.hpp"

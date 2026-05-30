@@ -20,7 +20,7 @@
     X(JLE)                 \
     X(JGT)                 \
     X(JGE)                 \
-    X(CALLFUNC)            \
+    X(CALL)            \
     X(PUSHARG)             \
     X(ENTERFUNC)           \
     X(EXITFUNC)            \
