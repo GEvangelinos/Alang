@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 
 #include "arguinator/arguinator.hpp"
@@ -21,6 +22,11 @@ int main(const int argc, char** argv)
             std::cout << "SOURCE is provided!" << std::endl;
 
 
+        const std::string infile_name = cli_parser["source"].get_input();
+        std::ifstream infile{infile, std::ios::binary};
+        if (!outfile)
+            throw std::runtime_error("Failed opening file for writing: " + outfile_name);
+        outfile.write(reinterpret_cast<const char*>(abc.data()), abc.size());
         #error " Load binary file in a buffer as std::vector<u8>"
         // DO NOT THING about direct memory load..
 

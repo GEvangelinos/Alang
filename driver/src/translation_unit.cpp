@@ -14,7 +14,6 @@
 #include "scanner/alpha_scanner.gen.hpp"
 #include "scanner/scanner_adapter.hpp"
 #include "bytecode/abc_generator.hpp"
-#include "bytecode/abc_loader.hpp"
 #include "ir_postprocess/ir_validator.hpp"
 
 #include "support/cli_color.h"
@@ -765,17 +764,6 @@ TranslationUnit::emit_abc() const
         if (!outfile)
             throw std::runtime_error("Failed opening file for writing: " + outfile_name);
         outfile.write(reinterpret_cast<const char*>(abc.data()), abc.size());
-
-        #warning "delete commented out code"
-        // outfile.close();
-        //
-        // const auto filesize = std::filesystem::file_size(outfile_name);
-        // std::vector<u8> load_vector(filesize);
-        //
-        // std::ifstream infile{outfile_name, std::ios::binary};
-        // if (!infile)
-        //     DMASSERT(false);
-        // infile.read(reinterpret_cast<char*>(load_vector.data()), filesize);
     };
 
     export_within_dir(k_abc_binaries_dirname, impl);
