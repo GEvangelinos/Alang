@@ -27,14 +27,14 @@ LvalueResolver::Restricted::resolve_id(const StringSpan id_name, const SourceLoc
             id_loc,
             false
         );
+        parse_ctx_->func_ctx_handler.increment_localvar_counter();
     }
     else if (!ensure_reachable_symbol(result, id_name, id_loc)) // Symbol found, is it reachable?
         return nullptr;
     if (result->is_variable())
         return expr_maker_->make_variable_expr(id_loc, static_cast<const VarSymbol*>(result));
     if (result->type == Symbol::Type::PROGRAM_FUNCTION)
-        return expr_maker_->
-            make_prog_func_expr(id_loc, static_cast<const ProgFuncSymbol*>(result));
+        return expr_maker_->make_prog_func_expr(id_loc, static_cast<const ProgFuncSymbol*>(result));
     if (result->type == Symbol::Type::LIBRARY_FUNCTION)
         return expr_maker_->make_lib_func_expr(id_loc, static_cast<const LibFuncSymbol*>(result));
     UNREACHABLE("Resolved symbol is neither a variable nor a function: unexpected symbol type");
@@ -68,6 +68,7 @@ LvalueResolver::Restricted::resolve_local_id(
             lid_loc,
             false
         );
+        parse_ctx_->func_ctx_handler.increment_localvar_counter();
         return expr_maker_->make_variable_expr(lid_loc, inserted);
     }
     if (result->is_variable())

@@ -8,7 +8,6 @@
 #include "semantic_subsystem.hpp"
 #include "L1_driver/semantic_system_support.hpp"
 #include "core/expr_maker.hpp"
-#include "core/expr_optimizer.hpp"
 #include "parser/semantic_utils.hpp"
 
 namespace alpha

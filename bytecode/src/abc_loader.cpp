@@ -89,35 +89,35 @@ int
 ABC_Loader::load(const std::vector<u8>& byte_buffer)
 {
     const abc::Header header = load_header(byte_buffer);
-
-    const auto str_lut = header.sections.strings.lut;
-    constexpr auto k_span_size = sizeof(abc::BufferSpan);
-
-    // Calculate string_tape size:
-    if (str_lut.begin() == str_lut.end())
-        return 0;
-
-    DMASSERT(str_lut.begin() + k_span_size <= str_lut.end());
-    abc::BufferSpan first_lut_span;
-    abc::BufferSpan last_lut_span;
-    std::memcpy(&first_lut_span, byte_buffer.data() + str_lut.begin(), k_span_size);
-    std::memcpy(&last_lut_span, byte_buffer.data() + str_lut.end() - k_span_size, k_span_size);
-
-    StringCache string_cache;
-    DMASSERT(first_lut_span.begin() < last_lut_span.end());
-    string_cache.buffer.insert(
-        string_cache.buffer.end(),
-        byte_buffer.data() + first_lut_span.begin(),
-        byte_buffer.data() + last_lut_span.end()
-    );
-
-    string_cache.buffer.reserve(last_lut_span.end() - first_lut_span.begin() / k_span_size);
-    for (auto i = str_lut.begin(); i < str_lut.end(); i += k_span_size)
-    {
-        abc::BufferSpan str_span;
-        std::memcpy(&str_span, byte_buffer.data(), k_span_size);
-        string_cache.index_map.push_back(str_span);
-    }
+    //
+    // const auto str_lut = header.sections.strings.lut;
+    // constexpr auto k_span_size = sizeof(abc::BufferSpan);
+    //
+    // // Calculate string_tape size:
+    // if (str_lut.begin() == str_lut.end())
+    //     return 0;
+    //
+    // DMASSERT(str_lut.begin() + k_span_size <= str_lut.end());
+    // abc::BufferSpan first_lut_span;
+    // abc::BufferSpan last_lut_span;
+    // std::memcpy(&first_lut_span, byte_buffer.data() + str_lut.begin(), k_span_size);
+    // std::memcpy(&last_lut_span, byte_buffer.data() + str_lut.end() - k_span_size, k_span_size);
+    //
+    // StringCache string_cache;
+    // DMASSERT(first_lut_span.begin() < last_lut_span.end());
+    // string_cache.buffer.insert(
+    //     string_cache.buffer.end(),
+    //     byte_buffer.data() + first_lut_span.begin(),
+    //     byte_buffer.data() + last_lut_span.end()
+    // );
+    //
+    // string_cache.buffer.reserve(last_lut_span.end() - first_lut_span.begin() / k_span_size);
+    // for (auto i = str_lut.begin(); i < str_lut.end(); i += k_span_size)
+    // {
+    //     abc::BufferSpan str_span;
+    //     std::memcpy(&str_span, byte_buffer.data(), k_span_size);
+    //     string_cache.index_map.push_back(str_span);
+    // }
 
     // const auto str_begin = header.offsets.strings
     // const auto str_cache = load_string_cache(byte_buffer);

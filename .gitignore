@@ -6,5 +6,7 @@ debug-build/
 *.swap
 *.swp
 *.swo
+ABC_BINARIES/
+
 
 __pycache__/

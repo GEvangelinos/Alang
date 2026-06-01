@@ -8,10 +8,6 @@
 #include "settings/compiler_settings.hpp"
 #include "support/cli_color.h"
 
-#if defined(OPTIMIZED_MODE) || defined(HATE_PYTHON_MODE)
-#include "support/cli_color.h"
-#endif
-
 bool g_show_parser_trace = false;
 
 static constexpr char compiler_description[] = "A Compiler for the Alpha language";
@@ -19,8 +15,8 @@ static constexpr char compiler_description[] = "A Compiler for the Alpha languag
 [[nodiscard]] static arguinator::Parser launch_cli_parser(
     int argc, const char* const * argv, const alpha::SettingManager& sm);
 
-void handle_exports(const arguinator::Parser& cli_parser, const alpha::Driver& driver);
-void handle_shows(const arguinator::Parser& cli_parser, const alpha::Driver& driver);
+static void handle_exports(const arguinator::Parser& cli_parser, const alpha::Driver& driver);
+static void handle_shows(const arguinator::Parser& cli_parser, const alpha::Driver& driver);
 [[nodiscard]] static const char* fatal_header();
 [[noreturn]] static void fatal_impl(std::string_view error_message);
 [[noreturn]] static void fatal(const alpha::exception::DriverError& e) { fatal_impl(e.what()); }
@@ -34,8 +30,6 @@ int main(const int argc, char** argv)
     {
         const arguinator::Parser cli_parser = launch_cli_parser(argc, argv, setting_manager);
         setting_manager.parse_settings(cli_parser);
-
-        g_show_parser_trace = cli_parser[alpha::settings::Jobs::show_parser_trace].is_provided();
 
         driver = std::make_unique<alpha::Driver>(setting_manager);
 
@@ -73,18 +67,17 @@ launch_cli_parser(const int argc, const char* const * const argv, const alpha::S
 
     parser.parse_flags();
 
-    // #if defined(OPTIMIZED_MODE) || defined(HATE_PYTHON_MODE)
-    // if (parser[alpha::flag_show_parser_trace].is_provided())
-    // {
-    //     std::cout << COLOR_ASCII_BOLD_YELLOW
-    //             << FMT::format(
-    //                 "Flag --{} is disabled, due to OPTIMIZED or HATE_PYTHON build parameters.\n"
-    //                 "Either disable OPTIMIZED_MODE and HATE_PYTHON_MODE or remove flag\n",
-    //                 alpha::flag_show_parser_trace)
-    //             << SGR_RESET << std::endl;
-    // }
-    // #endif
-    //
+#if defined(OPTIMIZED_MODE) || defined(HATE_PYTHON_MODE)
+    if (parser[alpha::settings::Jobs::show_parser_trace].is_provided())
+    {
+        std::cout << COLOR_FG_ASCII_BOLD_YELLOW
+            << FMT::format(
+                "Flag --{} is disabled, due to OPTIMIZED or HATE_PYTHON build parameters.\n"
+                "Either disable OPTIMIZED_MODE and HATE_PYTHON_MODE or remove flag\n",
+                alpha::settings::Jobs::show_parser_trace)
+            << SGR_RESET << std::endl;
+    }
+#endif
     return parser;
 }
 
@@ -123,8 +116,7 @@ void handle_shows(const arguinator::Parser& cli_parser, const alpha::Driver& dri
 const char*
 fatal_header() { return COMPILER_NAME ": " COLOR_FG_ASCII_BOLD_RED "fatal: " SGR_RESET; }
 
-void
-fatal_impl(const std::string_view error_message)
+void fatal_impl(const std::string_view error_message)
 {
     std::cerr << fatal_header() << error_message << std::endl;
     std::exit(EXIT_FAILURE);

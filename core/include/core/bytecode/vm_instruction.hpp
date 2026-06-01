@@ -6,7 +6,6 @@
 #include "core/machine_types.hpp"
 #include "core/numeric_types.hpp"
 #include "core/source_location.hpp"
-#include "parser/internal_typedefs.hpp"
 
 namespace alpha::vm
 {

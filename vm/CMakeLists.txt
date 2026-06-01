@@ -23,7 +23,14 @@ add_executable("${VM_EXE_NAME}"
 )
 target_link_libraries("${VM_EXE_NAME}" PRIVATE
     alpha_vm_impl
+    arguinator_api
+    support_api
 )
 
 target_compile_options(${VM_EXE_NAME} PRIVATE -flto)
 target_link_options(${VM_EXE_NAME} PRIVATE -flto)
+target_link_libraries(${VM_EXE_NAME} PRIVATE
+    arguinator_impl
+    arguinator_impl
+    support_impl
+)

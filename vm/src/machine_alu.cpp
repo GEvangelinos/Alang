@@ -192,7 +192,6 @@ Machine::decode_arithmetic_operands(const vm::Instruction* inst)
     if (!(rv1.is_arithmetic() && rv2.is_arithmetic())) [[unlikely]]
     {
         error("not a number in arithmetic Operation");
-        execution_finished_.raise();
         return std::nullopt;
     }
 
@@ -224,6 +223,9 @@ Machine::decode_arithmetic_operands(const vm::Instruction* inst)
     };
 }
 
+[[nodiscard]] bool
+validate_instruction(const vm::Instruction* const inst) {}
+
 void
 Machine::execute_arithmetic(const vm::Instruction* const inst)
 {
@@ -237,16 +239,13 @@ Machine::execute_arithmetic(const vm::Instruction* const inst)
     vm::Memcell& lv = *DEBUG_REQUIRE_PTR(translate_operand(inst->result, nullptr));
     lv.clear();
     try { handler(lv, operands->rv1, operands->rv2); }
-    catch (const ALU::Arithmetic::DivisionByZero&)
-    {
-        error("Division by 0");
-        execution_finished_.raise();
-    }
+    catch (const ALU::Arithmetic::DivisionByZero&) { error("Division by 0"); }
 }
 
 void
 Machine::execute_relational_branch(const vm::Instruction* const inst)
 {
+    DMASSERT(!!inst);
     const std::optional<DecodedOperands> operands =
         decode_arithmetic_operands<Opcode::JLT, Opcode::JGE>(inst);
     if (!operands)
@@ -257,10 +256,70 @@ Machine::execute_relational_branch(const vm::Instruction* const inst)
     const bool should_take_branch = handler(operands->rv1, operands->rv2);
     if (should_take_branch)
     {
+        DMASSERT(!!inst->result);
         DMASSERT(inst->result->type == Argument::Type::LABEL);
         const CodeAddress branch_target = static_cast<const LabelArgument*>(inst->result)->value;
         pc_ = branch_target.value;
     }
 }
-} // namespace alpha::vm
 
+void
+Machine::execute_equality_branch(const vm::Instruction& inst)
+{
+    DMASSERT(!!inst.result);
+
+    const vm::Memcell& rv1 = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1, &reg_a_));
+    const vm::Memcell& rv2 = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2, &reg_b_));
+
+    bool result = false;
+    if (rv1.type == Memcell::Type::UNDEF || rv2.type == Memcell::Type::UNDEF)
+    {
+        error("Undef involved in equality operator.");
+        return;
+    }
+    if (rv1.type == Memcell::Type::BOOL || rv2.type == Memcell::Type::BOOL)
+        result = rv1.to_bool() == rv2.to_bool();
+    else if (rv1.type == Memcell::Type::NIL || rv2.type == Memcell::Type::NIL)
+        result = rv1.type == Memcell::Type::NIL && rv2.type == Memcell::Type::NIL;
+    else if (rv1.type != rv2.type)
+    {
+        error(FMT::format("{} == {} is illegal", to_string(rv1.type), to_string(rv2.type)));
+        return;
+    }
+    else
+    {
+        DMASSERT(rv1.type == rv2.type);
+        switch (rv1.type)
+        {
+        case Memcell::Type::UNDEF:
+        case Memcell::Type::NIL:
+        case Memcell::Type::BOOL: DMASSERT(false && "Should be already caught above");
+        case Memcell::Type::INT:
+            result = rv1.data.int_value == rv2.data.int_value;
+            break;
+        case Memcell::Type::FLOAT:
+            result = rv1.data.float_value == rv2.data.float_value;
+            break;
+        case Memcell::Type::STRING:
+            result = std::strcmp(rv1.data.str_value, rv2.data.str_value) == 0;
+            break;
+        case Memcell::Type::TABLE:
+            result = rv1.data.table_value == rv2.data.table_value; // We compare ADDRESS SIZE
+            break;
+        case Memcell::Type::PROGFUNC:
+            result = rv1.data.progfunc_address == rv2.data.progfunc_address;
+            break;
+        case Memcell::Type::LIBFUNC:
+            result = std::strcmp(rv1.data.libfunc_name, rv2.data.libfunc_name) == 0;
+            break;
+        default: DMASSERT(false && "Uknown vm::Memcel::Type");
+        }
+        // DISPATCH here SAME TYPE equality check.
+    }
+
+
+    DMASSERT(inst.result->type == Argument::Type::LABEL);
+    if (result)
+        pc_ = static_cast<const LabelArgument*>(inst.result)->value.value;
+}
+} // namespace alpha::vm

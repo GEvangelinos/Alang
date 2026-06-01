@@ -29,6 +29,8 @@ class Machine
 public:
     explicit Machine(Bytes stack_size);
 
+    void run();
+
     [[nodiscard]] Memcell* translate_operand(const vm::Argument* arg, Memcell* reg);
     void display_warning(const std::string& message);
     void error(const std::string& message);
@@ -43,6 +45,9 @@ public:
     void call_functor(vm::Table* table);
     void execute_funcenter(vm::Instruction* inst);
     void execute_pusharg(vm::Instruction* inst);
+    void execute_newtable(const vm::Instruction& inst);
+    void execute_tablegetelem(const vm::Instruction&inst);
+    void execute_tablesetelem(const vm::Instruction& inst);
 
     struct DecodedOperands
     {
@@ -57,6 +62,7 @@ public:
     [[nodiscard]] std::optional<DecodedOperands> decode_arithmetic_operands(const vm::Instruction* inst);
     void execute_arithmetic(const vm::Instruction* inst);
     void execute_relational_branch(const vm::Instruction* inst);
+    void execute_equality_branch(const vm::Instruction& inst);
 
 
     // inst is unused, but we require for uniformity anyway.
@@ -67,6 +73,7 @@ public:
     void call_libfunc(const char* id);
 
     void impl_of_libfunc_print();
+    void impl_of_libfunc_typeof();
 
 private:
     class Stack

@@ -124,7 +124,7 @@ public:
     void exit_loop() noexcept;
     void add_function_parameter(StringSpan name, SourceLocation loc);
     void clear_function_parameters() noexcept;
-    void add_local() noexcept;
+    void increment_localvar_counter() noexcept;
     void enter_function(
         StringSpan func_name,
         SourceLocation func_loc,
@@ -517,7 +517,7 @@ inline void
 FunctionCtxHandler::clear_function_parameters() noexcept { function_parameters_.clear(); }
 
 inline void
-FunctionCtxHandler::add_local() noexcept
+FunctionCtxHandler::increment_localvar_counter() noexcept
 {
     DMASSERT(!frame_stack_.empty());
     ++frame_stack_.top().local_variable_count;

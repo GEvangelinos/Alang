@@ -14,17 +14,23 @@ struct Table;
 
 struct Memcell
 {
+    #define MEMCELL_TYPE(X)\
+        X(UNDEF) /* UNDEF SHOULD always be zero, (as we memset stack to 0, at initialization) */ \
+        X(INT)\
+        X(FLOAT)\
+        X(STRING)\
+        X(BOOL)\
+        X(TABLE)\
+        X(PROGFUNC)\
+        X(LIBFUNC)\
+        X(NIL)
+
+
     enum class Type : u8
     {
-        UNDEF = 0, // UNDEF SHOULD always be zero, (as we memset stack to 0, at initialization)
-        INT,
-        FLOAT,
-        STRING,
-        BOOL,
-        TABLE,
-        PROGFUNC,
-        LIBFUNC,
-        NIL,
+        #define MEMCELL_TYPE_TO_ENUM(TYPE) TYPE,
+        MEMCELL_TYPE(MEMCELL_TYPE_TO_ENUM)
+        #undef MEMCELL_TYPE_TO_ENUM
     };
 
     Type type;
@@ -52,6 +58,20 @@ struct Memcell
     [[nodiscard]] std::string to_string() const noexcept;
     [[nodiscard]] bool to_bool() const noexcept;
 };
+
+[[nodiscard]] inline const char *
+to_string(const vm::Memcell::Type memcell_type)
+{
+    switch (memcell_type)
+    {
+    #define MEMCELL_TYPE_TO_STRING(TYPE) case vm::Memcell::Type::TYPE: return #TYPE;
+    MEMCELL_TYPE(MEMCELL_TYPE_TO_STRING)
+    #undef MEMCELL_TYPE_TO_STRING
+    default: DMASSERT(false && "Unknown vm::Memcell::Type");
+    }
+    std::abort();
+}
+#undef  MEMCELL_TYPE
 
 struct HashTable
 {

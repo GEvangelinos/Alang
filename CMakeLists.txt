@@ -145,7 +145,7 @@ if (STD_FORMAT_SUPPORTED)
 endif ()
 
 if (DEBUG_MODE)
-    message(WARNING "CMAKE: Configuring with `" DEBUG_MODE "` ON")
+    message(WARNING "CMAKE: Configuring with `DEBUG_MODE` ON")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         message(WARNING "CMAKE: Enabling libstdc++ debug instrumentation for extended runtime checks.")
         add_compile_definitions(
@@ -188,7 +188,11 @@ if (OPTIMIZED_MODE)
         -fno-rtti
     )
     add_compile_definitions(OPTIMIZED_MODE)
-    log_info("CMAKE: Configuring with `" OPTIMIZED_MODE "` ON")
+    log_info("CMAKE: Configuring with `OPTIMIZED_MODE` ON")
+endif ()
+
+if (OPTIMIZED_MODE AND DEBUG_MODE)
+    message(FATAL_ERROR "OPTIMIZED_MODE and DEBUG_MODE are mutually exclusive. OPTIMIZED_MODE disables RTTI, which DEBUG_MODE requires.")
 endif ()
 
 if (ENABLE_IWYU)

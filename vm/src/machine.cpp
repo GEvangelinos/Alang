@@ -1,5 +1,7 @@
 #include "vm/machine.hpp"
 
+#include <alpha_parser.gen.hpp>
+
 #include "core/bytecode/vm_program.hpp"
 #include "L2_semantic_subsystems/core/expr_maker.hpp"
 #include "vm/vm_memory.hpp"
@@ -70,11 +72,7 @@ Machine::Stack::push_env_value(const AlphaInt value)
 Machine::Machine(const Bytes stack_size)
     : stack_(stack_size.count, [this]() { on_stack_overflow(); }) {}
 
-void Machine::on_stack_overflow()
-{
-    execution_finished_.raise();
-    error("StackOverflow");
-}
+void Machine::on_stack_overflow() { error("StackOverflow"); }
 
 
 Memcell*
@@ -122,9 +120,9 @@ Machine::translate_operand(const vm::Argument* const arg, Memcell* const reg)
     case Argument::Type::CONST_STRING:
         reg->type = Memcell::Type::STRING;
         #warning "Fetch string from the string map"
-        // reg->data.str_value = strdup(
-        //     static_cast<const ConstStringArgument*>(arg)->pool_index
-        // );
+    // reg->data.str_value = strdup(
+    //     static_cast<const ConstStringArgument*>(arg)->pool_index
+    // );
     case Argument::Type::LABEL:
         DMASSERT(false && "Label addresses aren't mapped to memcells. they are accessed in place.");
         std::abort();
@@ -136,7 +134,12 @@ void
 Machine::display_warning(const std::string& message) { *err_stream_ << message << std::endl; }
 
 void
-Machine::error(const std::string& message) { *err_stream_ << message << std::endl; }
+Machine::error(const std::string& message)
+{
+    DMASSERT(!execution_finished_ && "We should have stopped at first error");
+    *err_stream_ << message << std::endl;
+    execution_finished_.raise();
+}
 
 void
 Machine::execute_cycle()
@@ -161,6 +164,13 @@ Machine::execute_cycle()
     if (pc_ == old_pc)
         ++pc_;
 }
+
+void Machine::run()
+{
+    while (!execution_finished_)
+        execute_cycle();
+}
+
 
 void
 Machine::assign(Memcell& lv, const Memcell& rv)
@@ -253,7 +263,7 @@ Machine::execute_assign(vm::Instruction& inst)
     #warning "TODO The assertion from lecturen 15 , slide 18"
     assign(*lv, *rv);
 }
-
+//
 // void
 // Machine::call_functor(vm::Table* table)
 // {
@@ -360,6 +370,52 @@ Machine::execute_assign(vm::Instruction& inst)
 //         execute_funcexit(nullptr); // Return Sequence.
 // }
 //
+//
+// void
+// Machine::execute_newtable(const vm::Instruction & inst)
+// {
+//     vm::Memcell & lv = *DEBUG_REQUIRE_PTR(translate_operand(inst.result, nullptr));
+//     lv.clear();
+//     lv.type = Memcell::Type::TABLE;
+//     lv.data.table_value = ;
+//     lv.data.table_value->increase_ref();
+// }
+//
+// void Machine::execute_tablegetelem(const vm::Instruction& inst)
+// {
+//     vm::Memcell & lv = *DEBUG_REQUIRE_PTR(translate_operand(inst.result, nullptr));
+//     const vm::Memcell & t = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1, nullptr));
+//     const vm::Memcell & i = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2, &reg_a_));
+//     lv.clear();
+//     lv.type = Memcell::Type::NIL;
+//     if (t.type != Memcell::Type::TABLE)
+//     {
+//         error(FMT::format("Illegal use of type {} as table", to_string(t.type)));
+//         return;
+//     }
+//     // vm or stack must access this (it's the call avm_tablegetlem, in slide 34 )
+//     const vm::Memcell * const content = tablegetelem(t.data.table_value, i);
+//
+//     if (content)
+//         assign(lv, *content);
+//     else
+//         display_warning(FMT::format("{}[{}] not found!", t.to_string(), i.to_string()));
+//
+// }
+//
+// void Machine::execute_tablesetelem(const vm::Instruction& inst)
+// {
+//     vm::Memcell& t = *DEBUG_REQUIRE_PTR(translate_operand(inst.result, nullptr));
+//     vm::Memcell& i = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1, &reg_a_));
+//     vm::Memcell& content = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2, &reg_b_));
+//
+//     if (t.type != Memcell::Type::TABLE)
+//         error(FMT::format("Illegal use of type {} as table", to_string(t.type)));
+//     else
+//         tablesetelem(t.data.table_value, i, c);
+//
+// }
+
 void
 Machine::impl_of_libfunc_print()
 {
@@ -367,5 +423,19 @@ Machine::impl_of_libfunc_print()
     DMASSERT(n >=0 && "makes no sense");
     for (AlphaInt i = 0; i < n; ++i)
         *out_stream_ << stack_.get_actual(i).to_string();
+}
+
+void
+Machine::impl_of_libfunc_typeof()
+{
+    const auto actuals = stack_.total_actuals();
+    if (actuals != 1)
+    {
+        error(FMT::format("one argument (not {}) expected in `typeof` libfunc", actuals));
+        return;
+    }
+    retval_.clear();
+    retval_.type = Memcell::Type::STRING;
+    retval_.data.str_value = strdup(to_string(stack_.get_actual(0).type));
 }
 } // namespace alpha::vm

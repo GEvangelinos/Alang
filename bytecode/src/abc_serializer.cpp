@@ -238,9 +238,8 @@ serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument& arg)
 
     // Semantic Flags: The type itself carries all necessary information.
     case vm::Argument::Type::CONST_NIL:
-    case vm::Argument::Type::RETVAL:
-        break;
-        #undef CASE
+    case vm::Argument::Type::RETVAL: break;
+    #undef CASE
     }
 }
 
