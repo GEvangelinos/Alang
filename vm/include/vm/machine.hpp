@@ -3,6 +3,7 @@
 
 #include <functional>
 #include <memory>
+#include <optional>
 
 #include "vm_memory.hpp"
 #include "core/numeric_types.hpp"
@@ -32,6 +33,8 @@ public:
     void display_warning(const std::string& message);
     void error(const std::string& message);
 
+    void set_out_stream(std::ostream& out) noexcept;
+    void set_err_stream(std::ostream& err) noexcept;
 
     void execute_cycle();
 
@@ -39,6 +42,22 @@ public:
     void execute_call(vm::Instruction& inst);
     void call_functor(vm::Table* table);
     void execute_funcenter(vm::Instruction* inst);
+    void execute_pusharg(vm::Instruction* inst);
+
+    struct DecodedOperands
+    {
+        const Memcell& rv1;
+        const Memcell& rv2;
+        std::underlying_type_t<Memcell::Type> op_idx;
+        u8 t1_idx;
+        u8 t2_idx;
+    };
+
+    template <vm::Opcode first, vm::Opcode last>
+    [[nodiscard]] std::optional<DecodedOperands> decode_arithmetic_operands(const vm::Instruction* inst);
+    void execute_arithmetic(const vm::Instruction* inst);
+    void execute_relational_branch(const vm::Instruction* inst);
+
 
     // inst is unused, but we require for uniformity anyway.
     void execute_funcexit([[maybe_unused]] vm::Instruction* unused);
@@ -55,19 +74,23 @@ private:
     public:
         Stack(u64 size, std::function<void()> on_stack_overflow);
 
-        void set_out_stream(std::ostream &out) noexcept;
-
         [[nodiscard]] auto size() const noexcept { return size_; }
         void push_env_value(AlphaInt value);
         void save_call_environment(AlphaInt pc, AlphaInt total_actuals);
         void add_function_environment(const Program::ProgFunc& func_info);
         [[nodiscard]] AlphaInt get_environment_value(u32 stack_idx) const noexcept;
         [[nodiscard]] auto top() const noexcept { return top_; }
+        [[nodiscard]] auto topsp() const noexcept { return topsp_; }
+        [[nodiscard]] Memcell& top_element() noexcept { return data_[top_]; }
 
-        u32 restore_previous_environment() noexcept;
+        [[nodiscard]] u32 restore_previous_environment() noexcept;
         void clear_at(u32 idx);
         [[nodiscard]] AlphaInt total_actuals() const noexcept;
-        [[nodiscard]] vm::Memcell & get_actual(u32 idx) const noexcept;
+        [[nodiscard]] vm::Memcell& get_actual(u32 idx) const noexcept;
+        void decrease_top();
+
+        [[nodiscard]] const Memcell& operator[](u32 idx) const noexcept;
+        [[nodiscard]] Memcell& operator[](u32 idx) noexcept;
 
     private:
         std::function<void()> on_stack_overflow_;
@@ -75,9 +98,8 @@ private:
         const u64 size_ = 0;
         u32 top_ = 0, topsp_ = 0;
         DEBUG(OnceFlag is_overflowed;)
-
-        void decrease_top();
     };
+
 
     static constexpr auto k_saved_topsp_offset = 1;
     static constexpr auto k_saved_top_offset = 2;
@@ -93,7 +115,8 @@ private:
     u32 curr_line_ = 0;
     u32 code_size_ = 0;
     OnceFlag execution_finished_;
-    std::ostream &out_stream_ = std::cout;
+    std::ostream* out_stream_ = &std::cout;
+    std::ostream* err_stream_ = &std::cerr;
 
     [[nodiscard]] auto ending_pc() const noexcept { return code_size_; }
     void assign(Memcell& lv, const Memcell& rv);

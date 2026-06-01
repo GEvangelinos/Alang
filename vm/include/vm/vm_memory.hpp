@@ -6,6 +6,7 @@
 #include "core/machine_types.hpp"
 #include "core/numeric_types.hpp"
 #include "support/debug_tools.hpp"
+#include "support/misc_tools.hpp"
 
 namespace alpha::vm
 {
@@ -46,7 +47,10 @@ struct Memcell
     void clear_string();
     void clear_table();
 
+    [[nodiscard]] bool is_arithmetic() const noexcept;
+
     [[nodiscard]] std::string to_string() const noexcept;
+    [[nodiscard]] bool to_bool() const noexcept;
 };
 
 struct HashTable
@@ -88,9 +92,11 @@ Memcell::clear()
     case Type::STRING:
         clear_string();
         DMASSERT(false);
+        break;
     case Type::TABLE:
         clear_table();
         DMASSERT(false);
+        break;
     default: DMASSERT(false && "Unknown Memcell::Type");
     }
 }
@@ -111,7 +117,31 @@ Memcell::to_string() const noexcept
         break;
     case Type::LIBFUNC: return FMT::format("{}()", data.libfunc_name);
     case Type::NIL: return "nil";
+    default: DMASSERT(false);
     }
+    return "__INTERNAL_ERROR__: 2026.05.31.22:07";
 }
+
+inline bool
+Memcell::to_bool() const noexcept
+{
+    switch (type)
+    {
+    case Type::UNDEF:
+    case Type::NIL: return false;
+    case Type::INT: return data.int_value != 0;
+    case Type::FLOAT: return data.float_value != 0.0;
+    case Type::STRING: return DEBUG_REQUIRE_PTR(data.str_value)[0] != '\0';
+    case Type::BOOL: return data.bool_value;
+    case Type::TABLE:
+    case Type::PROGFUNC:
+    case Type::LIBFUNC: return true;
+    default: DMASSERT(false && "Unknown Memcell::Type");
+    }
+    std::abort();
+}
+
+inline bool
+Memcell::is_arithmetic() const noexcept { return type == Type::INT || type == Type::FLOAT; }
 } // namespace alpha::vm
 #endif //VM_MEMORY_HPP
