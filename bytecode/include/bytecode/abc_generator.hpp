@@ -9,6 +9,7 @@
 #include "core/bytecode/vm_program.hpp"
 #include "core/ir/ir_expr.hpp"
 #include "core/ir/ir_quad.hpp"
+#include "core/libfunc/mappings.hpp"
 
 namespace alpha
 {
@@ -30,7 +31,7 @@ private:
 
     [[nodiscard]] const vm::Argument* make_argument(const Expr& expr);
     [[nodiscard]] vm::Program::StringID intern_string_literal(const ConstStringExpr& string_expr);
-    [[nodiscard]] vm::Program::LibfuncID intern_libfunc_name(const LibFuncExpr& libfunc_expr);
+    [[nodiscard]] vm::LibFuncId intern_libfunc_name(const LibFuncExpr& libfunc_expr);
 
     [[nodiscard]] CodeAddress next_instruction_label() const noexcept
     {

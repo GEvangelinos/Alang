@@ -1,8 +1,11 @@
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 
 #include "arguinator/arguinator.hpp"
 #include "support/cli_color.h"
+#include "core/numeric_types.hpp"
+#include "bytecode/abc_loader.hpp"
 
 static constexpr char vm_description[] =
     "A Virtual Machine for running the Alpha language bytecode";
@@ -21,17 +24,22 @@ int main(const int argc, char** argv)
         if (cli_parser["source"].is_provided())
             std::cout << "SOURCE is provided!" << std::endl;
 
-
         const std::string infile_name = cli_parser["source"].get_input();
-        std::ifstream infile{infile, std::ios::binary};
-        if (!outfile)
-            throw std::runtime_error("Failed opening file for writing: " + outfile_name);
-        outfile.write(reinterpret_cast<const char*>(abc.data()), abc.size());
-        #error " Load binary file in a buffer as std::vector<u8>"
-        // DO NOT THING about direct memory load..
-
-        // We can do this later on.. currently we just need to run.. even with the not so fast way ...
+        std::ifstream infile{infile_name, std::ios::binary};
+        if (!infile)
+            throw std::runtime_error("Failed opening file for reading: " + infile_name);
+        const uintmax_t filesize = std::filesystem::file_size(cli_parser["source"].get_input());
+        std::vector<alpha::u8> abc_buffer(filesize);
+        infile.read(reinterpret_cast<char*>( abc_buffer.data()), filesize);
+        for (char c : abc_buffer)
+            std::cout << "C == " << int( c) <<  std::endl;
+        alpha::ABC_Loader::load(abc_buffer);
     }
+
+
+
+
+
     catch (arguinator::CLIHelp) { return 0; }
     catch (arguinator::CLIError& e) { fatal(e); }
 }

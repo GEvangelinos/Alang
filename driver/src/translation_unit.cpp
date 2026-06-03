@@ -195,7 +195,12 @@ std::string argument_printer(
             "(progfunc){}", static_cast<const vm::ProgramFuncArgument*>(a)->address.value
         );
     case vm::Argument::Type::LIBFUNC:
-        return FMT::format("(libfunc){}", static_cast<const vm::LibFuncArgument*>(a)->pool_index);
+        return FMT::format(
+            "(libfunc){}",
+            static_cast<std::underlying_type_t<vm::LibFuncId>>(
+                static_cast<const vm::LibFuncArgument*>(a)->libfunc_id
+            )
+        );
     case vm::Argument::Type::RETVAL:
         return "(retval)";
     default:
@@ -329,10 +334,13 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
     {
         using MapType = decltype(program.libfunc_name_table);
         using KeyType = MapType::key_type;
-        using ValueType = MapType::mapped_type;
-        std::vector<std::pair<KeyType, ValueType>> vec{
-            program.libfunc_name_table.begin(),
-            program.libfunc_name_table.end()
+        std::vector<std::pair<KeyType, alpha::vm::LibFuncId>> vec;
+        vec.reserve(program.libfunc_name_table.size());
+        for (const alpha::StringSpan libfunc_name : program.libfunc_name_table)
+        {
+            const auto libfunc_id = alpha::vm::get_libfunc_id(libfunc_name);
+            DMASSERT(libfunc_id.has_value());
+            vec.emplace_back(libfunc_name, *libfunc_id);
         };
         std::ranges::sort(vec, [](const auto& a, const auto& b)
         {
@@ -342,7 +350,10 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
     }();
 
     for (const auto [name, id] : sorted_funcs)
-        out << FMT::format("{:4}. {}\n", id, name.to_string_view());
+        out << FMT::format(
+            "{:4}. {}\n",
+            static_cast<std::underlying_type_t<alpha::vm::LibFuncId>>(id), name.to_string_view()
+        );
 
     out << "=============== STRING_POOL ===============\n";
     const auto sorted_strs = [&program]()

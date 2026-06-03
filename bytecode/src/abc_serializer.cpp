@@ -1,11 +1,11 @@
 #include "bytecode/abc_serializer.hpp"
 
 #include <assert.h>
-#include <concepts>
 #include <chrono>
 #include "core/escape_code_list.hpp"
 #include "core/bytecode/abc_spec.hpp"
 #include "core/bytecode/abc_header.hpp"
+#include "core/libfunc/mappings.hpp"
 
 namespace alpha
 {
@@ -86,7 +86,8 @@ serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
         "Strings without the delimiters are made due to object access syntax, which by definition"
         "can not be empty (a name but be there, obj.NAME, where NAME cant be just void, as its a  syntax error)"
     );
-    u32 serialized_len = str.size;
+
+    abc::spec::StrLenT serialized_len = str.size;
     auto start = str.begin(); // Inclusive
     auto end = str.end();     // Exclusive
 
@@ -129,10 +130,10 @@ serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
     }
 
     // Serializing string's length (Explicit Little Endian order, meaning a single read on decoding):
-    buffer[len_idx] = static_cast<u8>(serialized_len & 0xFF);
-    buffer[len_idx + 1] = static_cast<u8>(serialized_len >> 8 & 0xFF);
-    buffer[len_idx + 2] = static_cast<u8>(serialized_len >> 16 & 0xFF);
-    buffer[len_idx + 3] = static_cast<u8>(serialized_len >> 24 & 0xFF);
+    buffer[len_idx + 0] = static_cast<u8>((serialized_len >> (0 * 0)) & 0xFF);
+    buffer[len_idx + 1] = static_cast<u8>((serialized_len >> (1 * 8)) & 0xFF);
+    buffer[len_idx + 2] = static_cast<u8>((serialized_len >> (2 * 8)) & 0xFF);
+    buffer[len_idx + 3] = static_cast<u8>((serialized_len >> (3 * 8)) & 0xFF);
 }
 
 [[nodiscard]] static bool
@@ -156,20 +157,22 @@ static void
 serialize_catalog(
     std::vector<u8>& abc_buffer,
     const abc::Header::Sections::Catalog& catalog,
-    auto serializer)
+    auto serializer,
+    const std::size_t item_idx
+)
 {
-    auto* const target_span_addr = abc_buffer.data() + catalog.lut.begin();
+    const auto target_span_offset = catalog.lut.begin() + item_idx * sizeof(abc::BufferSpan);
 
     const auto buff_size_before = abc_buffer.size();
     serializer();
     const auto buff_size_after = abc_buffer.size();
-    const auto serialized_string_size = buff_size_before - buff_size_after;
+    const auto serialized_string_size = buff_size_after - buff_size_before; // [strlen][str]
 
     const abc::BufferSpan span{
         .offset = static_cast<decltype(abc::BufferSpan::offset)>(buff_size_before),
         .size = static_cast<decltype(abc::BufferSpan::size)>(serialized_string_size),
     };
-    std::memcpy(target_span_addr, &span, sizeof(span));
+    std::memcpy(abc_buffer.data() + target_span_offset, &span, sizeof(span));
 }
 
 static void
@@ -182,15 +185,35 @@ serialize_table(
     std::vector<StringSpan> str_literals{table.size()};
     for (const auto [str, idx] : table)
         str_literals[idx] = str;
-    for (const StringSpan literal : str_literals)
+    for (std::size_t i = 0; i < str_literals.size(); ++i)
     {
+        const StringSpan& literal = str_literals[i];
         const auto serializer = [&abc_buffer, literal]()
         {
             serialize_string_content(abc_buffer, literal);
         };
-        serialize_catalog(abc_buffer, catalog, serializer);
+        serialize_catalog(abc_buffer, catalog, serializer, i);
     }
 }
+
+
+// Translate libfunc names to internal IDs
+
+
+static void
+serialize_libfuncs(
+    std::vector<u8>& abc_buffer,
+    std::unordered_set<StringSpan> libfunc_set)
+{
+    for (const StringSpan libfunc_name : libfunc_set)
+    {
+        const std::optional<vm::LibFuncId> libfunc_id = vm::get_libfunc_id(libfunc_name);
+        DMASSERT(libfunc_id.has_value());
+        const auto libfunc_id_num = static_cast<std::underlying_type_t<vm::LibFuncId>>(*libfunc_id);
+        store_little_endian(abc_buffer, libfunc_id_num);
+    }
+}
+
 
 static void
 serialize_progfuncs(
@@ -199,8 +222,9 @@ serialize_progfuncs(
     const std::vector<vm::Program::ProgFunc>& progfuncs)
 {
     DMASSERT(is_zeroed_range(abc_buffer,component));
-    for (const vm::Program::ProgFunc& func : progfuncs)
+    for (std::size_t i = 0; i < progfuncs.size(); ++i)
     {
+        const vm::Program::ProgFunc& func = progfuncs[i];
         const auto serializer = [&abc_buffer, func]()
         {
             static_assert(sizeof(func) < 32, "If false capture by reference");
@@ -208,7 +232,7 @@ serialize_progfuncs(
             store_little_endian(abc_buffer, func.local_size);
             serialize_string_content(abc_buffer, func.id);
         };
-        serialize_catalog(abc_buffer, component, serializer);
+        serialize_catalog(abc_buffer, component, serializer, i);
     }
 }
 
@@ -234,7 +258,7 @@ serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument& arg)
     CASE(CONST_FLOAT, ConstFloatArgument, value);
     CASE(CONST_STRING, ConstStringArgument, pool_index);
     CASE(PROGRAMFUNC, ProgramFuncArgument, address.value);
-    CASE(LIBFUNC, LibFuncArgument, pool_index);
+    CASE(LIBFUNC, LibFuncArgument, libfunc_id);
 
     // Semantic Flags: The type itself carries all necessary information.
     case vm::Argument::Type::CONST_NIL:
@@ -263,14 +287,33 @@ reserve_lut_span(std::vector<u8>& abc_buffer, const ContainerType& container)
 {
     const auto number_of_items = std::ranges::size(container);
     const abc::BufferSpan lut_span{
-        .offset = static_cast<decltype(lut_span.offset)>(abc_buffer.size()),
-        .size = static_cast<decltype(lut_span.size)>(
-            number_of_items * sizeof(abc::BufferSpan)
-        ),
+        // Offset of first BufferSpan (not we add sizeof(lut_span) so we move past the buffer_span indexing lut_span)!!
+        .offset = static_cast<decltype(lut_span.offset)>(abc_buffer.size() + sizeof(lut_span)),
+        .size = static_cast<decltype(lut_span.size)>(number_of_items * sizeof(abc::BufferSpan)),
     };
+
+    // Serialize lut_span info
+    const auto original_size = abc_buffer.size();
+    abc_buffer.resize(original_size + sizeof(lut_span));
+    std::memcpy(abc_buffer.data() + original_size, &lut_span, sizeof(lut_span));
+
     // Reserve Space for Section's index region, with zero-initialized bytes.
     abc_buffer.insert(abc_buffer.end(), lut_span.size, 0);
     return lut_span;
+}
+
+void add_padding_and_debug_zone(std::vector<u8>& buffer, const u8 alignment = 16)
+{
+    const auto remainder = buffer.size() % alignment;
+    const auto padding = (alignment - remainder) % alignment;
+    buffer.insert(buffer.end(), padding, '\0');
+
+    DEBUG(
+        buffer.insert(
+            buffer.end(),
+            {'_', '_', '_', 'D', 'E', 'B', 'U', 'G', '_', 'Z', 'O', 'N', 'E', '_', (u8)padding, '_'}
+        );
+    )
 }
 
 std::vector<u8>
@@ -280,19 +323,19 @@ ABC_Serializer::serialize(const vm::Program& program)
 
     abc::Header::Sections data_sections;
 
+    add_padding_and_debug_zone(abc_buffer);
     data_sections.strings = {.lut = reserve_lut_span(abc_buffer, program.str_literal_table)};
     serialize_table(abc_buffer, data_sections.strings, program.str_literal_table);
 
-    data_sections.libfuncs = {.lut = reserve_lut_span(abc_buffer, program.libfunc_name_table)};
-    serialize_table(abc_buffer, data_sections.libfuncs, program.libfunc_name_table);
-
+    add_padding_and_debug_zone(abc_buffer);
     data_sections.progfuncs = {.lut = reserve_lut_span(abc_buffer, program.progfuncs)};
     serialize_progfuncs(abc_buffer, data_sections.progfuncs, program.progfuncs);
-
-    data_sections.instructions.offset = abc_buffer.size();
-    serialize_instructions(abc_buffer, program);
-    data_sections.instructions.size = abc_buffer.size() - data_sections.instructions.offset;
-
+    //
+    // add_padding_and_debug_zone(abc_buffer);
+    // data_sections.instructions.offset = abc_buffer.size();
+    // serialize_instructions(abc_buffer, program);
+    // data_sections.instructions.size = abc_buffer.size() - data_sections.instructions.offset;
+    //
     serialize_header(abc_buffer, program, data_sections);
     return abc_buffer;
 }

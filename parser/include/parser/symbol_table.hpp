@@ -22,21 +22,6 @@ namespace alpha
 // Classes defined here:
 class SymbolTable; // IWYU pragma: keep
 
-const std::array<StringSpan, 12> k_library_function_names = {
-    StringSpan::from_literal("print"),
-    StringSpan::from_literal("input"),
-    StringSpan::from_literal("objectmemberkeys"),
-    StringSpan::from_literal("objecttotalmembers"),
-    StringSpan::from_literal("objectcopy"),
-    StringSpan::from_literal("totalarguments"),
-    StringSpan::from_literal("argument"),
-    StringSpan::from_literal("typeof"),
-    StringSpan::from_literal("strtonum"),
-    StringSpan::from_literal("sqrt"),
-    StringSpan::from_literal("cos"),
-    StringSpan::from_literal("sin")
-};
-
 class SymbolTable : private Immobile
 {
 public:

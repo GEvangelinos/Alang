@@ -6,6 +6,7 @@
 #include "core/machine_types.hpp"
 #include "core/numeric_types.hpp"
 #include "core/source_location.hpp"
+#include "core/libfunc/id.hpp"
 
 namespace alpha::vm
 {
@@ -119,10 +120,10 @@ struct ProgramFuncArgument : public Argument
 
 struct LibFuncArgument : public Argument
 {
-    const u32 pool_index;
+    const LibFuncId libfunc_id;
 
-    explicit LibFuncArgument(const u32 pool_index)
-        : Argument{Type::LIBFUNC}, pool_index(pool_index) {}
+    explicit LibFuncArgument(const LibFuncId libfunc_id)
+        : Argument{Type::LIBFUNC}, libfunc_id(libfunc_id) {}
 };
 
 struct Instruction

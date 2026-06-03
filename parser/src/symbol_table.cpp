@@ -6,6 +6,7 @@
 #include <utility>                   // for move, pair, forward
 
 #include "core/string_span.hpp"
+#include "core/libfunc/mappings.hpp"
 #include "parser/semantic_utils.hpp"
 
 namespace alpha
@@ -77,10 +78,9 @@ SymbolTable::insert_symbol(const StringSpan name, u32 scope, Args&&... args)
 SymbolTable::SymbolTable()
 {
     // Load library functions
-    for (uf32 i = 0; i < k_library_function_names.size(); i++)
+    for (uf32 i = 0; i < vm::k_library_functions_names.size(); i++)
     {
-        const StringSpan name = k_library_function_names[i];
-
+        const StringSpan name = vm::k_library_functions_names[i];
         library_function_set_.insert(name);
         (void)insert_symbol<LibFuncSymbol>(name, k_libfunc_scope);
     }

@@ -16,7 +16,7 @@ namespace ParserConsts
 static constexpr auto default_case_sensitive = true;
 static constexpr char default_flag_prefix[] = "--";
 static constexpr char default_help_flag[] = "help";
-static constexpr char default_help_text[] = "Show this help message and exit";
+static constexpr char default_help_text[] = "Shows this very help text and exit";
 
 static constexpr auto default_flag_field_size = 20;
 } // namespace ParserConsts

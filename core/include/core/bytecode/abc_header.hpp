@@ -75,7 +75,6 @@ struct Header
         };
 
         Catalog strings;
-        Catalog libfuncs;
         Catalog progfuncs;
         BufferSpan instructions;
     };

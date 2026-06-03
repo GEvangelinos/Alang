@@ -2,12 +2,14 @@
 
 #include <concepts>
 #include <list>
+#include <memory>
 #include <vector>
 #include <span>
 
 #include "core/fixed_string.hpp"
 #include "core/numeric_types.hpp"
 #include "core/bytecode/abc_header.hpp"
+#include "core/bytecode/vm_program.hpp"
 #include "support/debug_tools.hpp"
 
 namespace
@@ -38,8 +40,6 @@ load_header(const std::vector<u8>& buffer)
         (std::equal_to{}, header.file_size, buffer.size());
     require<"strings expected: 0x{:X} < 0x{:X}">
         (std::less{}, header.sections.strings.lut.offset, buffer.size());
-    require<"lib-funcs expected: 0x{:X} < 0x{:X}">
-        (std::less{}, header.sections.libfuncs.lut.offset, buffer.size());
     require<"user-funcs expected: 0x{:X} < 0x{:X}">
         (std::less{}, header.sections.progfuncs.lut.offset, buffer.size());
     require<"instructions expected: 0x{:X} < 0x{:X}">
@@ -48,78 +48,94 @@ load_header(const std::vector<u8>& buffer)
     return header;
 }
 
-// [[nodiscard]] static StringCache
-// load_string_cache(const std::span<u8>& buffer)
-// {
-//     if (buffer.empty())
-//         return {};
-//     DMASSERT(buffer.begin() != buffer.end());
-//
-//     StringCache str_cache;
-//     constexpr auto strlen_field_size = sizeof(abc::spec::StrLenT);
-//     const auto* const begin = buffer.data();       // Inclusive
-//     const auto* const end = begin + buffer.size(); // Exclusive
-//
-//     const auto* ptr = begin;
-//     while (ptr < end)
-//     {
-//         // Get Strlen from buffer:
-//         abc::spec::StrLenT strlen = 0;
-//         std::memcpy(&strlen, ptr, strlen_field_size);
-//         ptr += strlen_field_size;
-//
-//         // Copy string into continuous buffer and advance:
-//         const auto str_buffer_idx = str_cache.str_buffer.size();
-//         str_cache.string_data.emplace_back(str_buffer_idx, strlen);
-//         const auto last = ptr + strlen;
-//         str_cache.str_buffer.insert(str_cache.str_buffer.end(), ptr, last);
-//         ptr = last;
-//     }
-//
-//     return str_cache;
-// }
-//
-struct StringCache
+class StringCache
 {
-    std::vector<u8> buffer;
-    std::vector<abc::BufferSpan> index_map;
+public:
+    std::vector<StringSpan> index_map;
+
+    StringCache(const char* const copy_buffer_from, const std::size_t buffer_size)
+        : buffer_(std::make_unique_for_overwrite<u8[]>(buffer_size))
+    {
+        std::memcpy(buffer_.get(), copy_buffer_from, buffer_size);
+    }
+
+    StringCache(StringCache&&) noexcept = default;
+    StringCache(const StringCache&) = delete;
+
+private:
+    std::unique_ptr<u8[]> buffer_;
 };
+
+[[nodiscard]] static StringCache
+load_string_cache(
+    const std::vector<u8>& buffer,
+    const abc::Header::Sections::Catalog& string_catalog)
+{
+    const auto NAME_ME = reinterpret_cast<const abc::BufferSpan*>(
+        buffer.data() +
+        string_catalog.lut.offset +
+        string_catalog.lut.size -
+        sizeof(abc::BufferSpan)
+    );
+
+    const auto strings_begin_at = string_catalog.lut.offset + string_catalog.lut.size; // Inclusive
+    const auto strings_end_at = NAME_ME->offset + NAME_ME->size;                       // Exlusive
+    DMASSERT(string_catalog.lut.size % sizeof(abc::BufferSpan) == 0);
+    const auto string_count = string_catalog.lut.size / sizeof(abc::BufferSpan);
+    const auto buffer_size = strings_end_at - strings_begin_at;
+
+    StringCache result{
+        reinterpret_cast<const char*>(buffer.data() + strings_begin_at), buffer_size
+    };
+    result.index_map.reserve(string_count);
+
+
+    for (std::size_t i = 0; i < string_catalog.lut.size; i += sizeof(abc::BufferSpan))
+    {
+        const auto current_buffer_span = *reinterpret_cast<const abc::BufferSpan*>(
+            buffer.data() + string_catalog.lut.offset + i);
+        result.index_map.emplace_back(
+            reinterpret_cast<const char*>(
+                buffer.data() + current_buffer_span.offset + sizeof(abc::spec::StrLenT)
+            ),
+            current_buffer_span.size - sizeof(abc::spec::StrLenT)
+        );
+    }
+
+    return std::move(result);
+}
+
+
+[[nodiscard]] static std::vector<vm::Program::ProgFunc>
+load_progfuncs(
+    const std::vector<u8>& buffer,
+    const abc::Header::Sections::Catalog& progfunc_catalog)
+{
+    const auto NAME_ME = reinterpret_cast<const abc::BufferSpan*>(
+        buffer.data() +
+        progfunc_catalog.lut.offset +
+        progfunc_catalog.lut.size -
+        sizeof(abc::BufferSpan)
+    );
+
+    const auto strings_begin_at = progfunc_catalog.lut.offset + progfunc_catalog.lut.size; // Inclusive
+    const auto strings_end_at = NAME_ME->offset + NAME_ME->size;                       // Exlusive
+    DMASSERT(progfunc_catalog.lut.size % sizeof(abc::BufferSpan) == 0);
+    const auto string_count = progfunc_catalog.lut.size / sizeof(abc::BufferSpan);
+    const auto buffer_size = strings_end_at - strings_begin_at;
+
+
+
+}
 
 int
 ABC_Loader::load(const std::vector<u8>& byte_buffer)
 {
     const abc::Header header = load_header(byte_buffer);
-    //
-    // const auto str_lut = header.sections.strings.lut;
-    // constexpr auto k_span_size = sizeof(abc::BufferSpan);
-    //
-    // // Calculate string_tape size:
-    // if (str_lut.begin() == str_lut.end())
-    //     return 0;
-    //
-    // DMASSERT(str_lut.begin() + k_span_size <= str_lut.end());
-    // abc::BufferSpan first_lut_span;
-    // abc::BufferSpan last_lut_span;
-    // std::memcpy(&first_lut_span, byte_buffer.data() + str_lut.begin(), k_span_size);
-    // std::memcpy(&last_lut_span, byte_buffer.data() + str_lut.end() - k_span_size, k_span_size);
-    //
-    // StringCache string_cache;
-    // DMASSERT(first_lut_span.begin() < last_lut_span.end());
-    // string_cache.buffer.insert(
-    //     string_cache.buffer.end(),
-    //     byte_buffer.data() + first_lut_span.begin(),
-    //     byte_buffer.data() + last_lut_span.end()
-    // );
-    //
-    // string_cache.buffer.reserve(last_lut_span.end() - first_lut_span.begin() / k_span_size);
-    // for (auto i = str_lut.begin(); i < str_lut.end(); i += k_span_size)
-    // {
-    //     abc::BufferSpan str_span;
-    //     std::memcpy(&str_span, byte_buffer.data(), k_span_size);
-    //     string_cache.index_map.push_back(str_span);
-    // }
 
-    // const auto str_begin = header.offsets.strings
-    // const auto str_cache = load_string_cache(byte_buffer);
+    StringCache string_cache = load_string_cache(byte_buffer, header.sections.strings);
+    const auto progfuncs = load_progfuncs(byte_buffer, header.sections.progfuncs);
+
+    return 0;
 }
 } // namespace alpha

@@ -4,6 +4,7 @@
 #include "parser/ir_opcode_info_traits.gen.hpp"
 #include "core/ir/ir_expr.hpp"
 #include "support/dependent_false.hpp"
+#include "core/libfunc/id.hpp"
 
 namespace alpha
 {
@@ -18,14 +19,14 @@ ABC_Generator::intern_string_literal(const ConstStringExpr& string_expr)
     return str_id;
 }
 
-vm::Program::LibfuncID
+vm::LibFuncId
 ABC_Generator::intern_libfunc_name(const LibFuncExpr& libfunc_expr)
 {
-    const auto it = result_.libfunc_name_table.try_emplace(
-        libfunc_expr.libfunc_symbol->name, result_.libfunc_name_table.size()
-    ).first;
-    const auto libname_id = it->second;
-    return libname_id;
+    const auto libfunc_name = libfunc_expr.libfunc_symbol->name;
+    result_.libfunc_name_table.emplace(libfunc_name);
+    const std::optional<vm::LibFuncId> libfunc_id = vm::get_libfunc_id(libfunc_name);
+    DMASSERT(libfunc_id.has_value());
+    return *libfunc_id;
 }
 
 
