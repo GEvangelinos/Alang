@@ -10,29 +10,6 @@
 namespace alpha
 {
 [[nodiscard]] static u64
-calculate_serialized_string_table_size(const vm::Program& program) noexcept
-{
-    const auto total_str_meta_size = sizeof(abc::spec::StrLenT) * program.str_literal_table.size();
-    return program.metadata.total_string_size + total_str_meta_size;
-}
-
-[[nodiscard]] static u32
-calculate_abc_filesize(const vm::Program& program) noexcept
-{
-    constexpr auto k_instruction_size = sizeof(std::decay_t<decltype(program.instructions
-    )>::value_type);
-
-    const auto total_str_meta_size = sizeof(abc::spec::StrLenT) * program.str_literal_table.size();
-    const auto total_instruction_size = k_instruction_size * program.instructions.size();
-
-    return sizeof(abc::Header)
-           + total_str_meta_size
-           + program.metadata.total_string_size
-           + total_instruction_size;
-}
-
-
-[[nodiscard]] static u64
 get_usec_timestamp() noexcept
 {
     const auto time_point = std::chrono::system_clock::now();
@@ -218,21 +195,14 @@ serialize_libfuncs(
 static void
 serialize_progfuncs(
     std::vector<u8>& abc_buffer,
-    const abc::Header::Sections::Catalog& component,
     const std::vector<vm::Program::ProgFunc>& progfuncs)
 {
-    DMASSERT(is_zeroed_range(abc_buffer,component));
-    for (std::size_t i = 0; i < progfuncs.size(); ++i)
+    for (const vm::Program::ProgFunc& func : progfuncs)
     {
-        const vm::Program::ProgFunc& func = progfuncs[i];
-        const auto serializer = [&abc_buffer, func]()
-        {
-            static_assert(sizeof(func) < 32, "If false capture by reference");
-            store_little_endian(abc_buffer, func.address.value);
-            store_little_endian(abc_buffer, func.local_size);
-            serialize_string_content(abc_buffer, func.id);
-        };
-        serialize_catalog(abc_buffer, component, serializer, i);
+        static_assert(sizeof(func) < 32, "If false capture by reference");
+        store_little_endian(abc_buffer, func.name_str_id);
+        store_little_endian(abc_buffer, func.address.value);
+        store_little_endian(abc_buffer, func.local_size);
     }
 }
 
@@ -322,20 +292,42 @@ ABC_Serializer::serialize(const vm::Program& program)
     std::vector<u8> abc_buffer(sizeof(abc::Header), 0);
 
     abc::Header::Sections data_sections;
-
     add_padding_and_debug_zone(abc_buffer);
-    data_sections.strings = {.lut = reserve_lut_span(abc_buffer, program.str_literal_table)};
-    serialize_table(abc_buffer, data_sections.strings, program.str_literal_table);
 
+    // Serialize String literals:
+    data_sections.strings = {
+        .lut = reserve_lut_span(abc_buffer, program.str_literal_registry.from_key_view())
+    };
+    serialize_table(
+        abc_buffer,
+        data_sections.strings,
+        program.str_literal_registry.from_key_view()
+    );
     add_padding_and_debug_zone(abc_buffer);
-    data_sections.progfuncs = {.lut = reserve_lut_span(abc_buffer, program.progfuncs)};
-    serialize_progfuncs(abc_buffer, data_sections.progfuncs, program.progfuncs);
-    //
-    // add_padding_and_debug_zone(abc_buffer);
-    // data_sections.instructions.offset = abc_buffer.size();
-    // serialize_instructions(abc_buffer, program);
-    // data_sections.instructions.size = abc_buffer.size() - data_sections.instructions.offset;
-    //
+
+    // Serialize progfunc names:
+    data_sections.progfunc_names = {
+        .lut = reserve_lut_span(abc_buffer, program.progfunc_name_registry.from_key_view())
+    };
+    serialize_table(
+        abc_buffer,
+        data_sections.progfunc_names,
+        program.progfunc_name_registry.from_key_view()
+    );
+    add_padding_and_debug_zone(abc_buffer);
+
+    // Serialize progfuncs:
+    data_sections.progfuncs.offset = abc_buffer.size();
+    serialize_progfuncs(abc_buffer, program.progfuncs);
+    data_sections.progfuncs.size = abc_buffer.size() - data_sections.progfuncs.offset;
+    add_padding_and_debug_zone(abc_buffer);
+
+    // Serialize Instructions:
+    data_sections.instructions.offset = abc_buffer.size();
+    serialize_instructions(abc_buffer, program);
+    data_sections.instructions.size = abc_buffer.size() - data_sections.instructions.offset;
+
+    // Backpatch header:
     serialize_header(abc_buffer, program, data_sections);
     return abc_buffer;
 }

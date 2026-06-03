@@ -1,12 +1,10 @@
 #ifndef SUPPORT_MISC_TOOLS_HPP
 #define SUPPORT_MISC_TOOLS_HPP
 
-#include <algorithm>
 #include <iostream>
 #include <source_location>
 #include <string>
 #include "support/format_adapter.hpp"
-#include "support/smart_assert.h"
 
 namespace alpha::support
 {
@@ -38,7 +36,7 @@ template <typename T>
 }
 
 #ifdef DEBUG_MODE
-#define DEBUG_REQUIRE_PTR(ptr) support::require_ptr(ptr)
+#define DEBUG_REQUIRE_PTR(ptr) alpha::support::require_ptr(ptr)
 #else
 #define DEBUG_REQUIRE_PTR(ptr) (ptr)
 #endif

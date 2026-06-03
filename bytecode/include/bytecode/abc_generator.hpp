@@ -31,6 +31,7 @@ private:
 
     [[nodiscard]] const vm::Argument* make_argument(const Expr& expr);
     [[nodiscard]] vm::Program::StringID intern_string_literal(const ConstStringExpr& string_expr);
+    [[nodiscard]] vm::Program::StringID intern_progfunc_name(const ProgFuncExpr& progfunc_expr);
     [[nodiscard]] vm::LibFuncId intern_libfunc_name(const LibFuncExpr& libfunc_expr);
 
     [[nodiscard]] CodeAddress next_instruction_label() const noexcept

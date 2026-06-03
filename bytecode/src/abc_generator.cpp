@@ -8,16 +8,19 @@
 
 namespace alpha
 {
+
 vm::Program::StringID
 ABC_Generator::intern_string_literal(const ConstStringExpr& string_expr)
 {
-    const auto it = result_.str_literal_table.try_emplace(
-        string_expr.value, result_.str_literal_table.size()
-    ).first;
-    result_.metadata.total_string_size += string_expr.value.size;
-    const auto str_id = it->second;
-    return str_id;
+    return result_.str_literal_registry.reg(string_expr.value);
 }
+
+vm::Program::ProgFuncID
+ABC_Generator::intern_progfunc_name(const ProgFuncExpr& progfunc_expr)
+{
+    return result_.progfunc_name_registry.reg(progfunc_expr.progfunc_symbol->name);
+}
+
 
 vm::LibFuncId
 ABC_Generator::intern_libfunc_name(const LibFuncExpr& libfunc_expr)
@@ -52,7 +55,7 @@ ABC_Generator::make_argument(const Expr& expr)
         return new vm::LibFuncArgument{intern_libfunc_name(static_cast<const LibFuncExpr&>(expr))};
     case ET::PROGRAM_FUNCTION:
         return new vm::ProgramFuncArgument{
-            static_cast<const ProgFuncExpr&>(expr).progfunc_symbol->address
+            DEBUG_REQUIRE_PTR(static_cast<const ProgFuncExpr&>(expr).progfunc_symbol)->address
         };
     case ET::ARITHMETIC:
     case ET::ASSIGN:
@@ -153,10 +156,14 @@ ABC_Generator::generate_funcstart(const ir::Quad& quad)
     namespace IIT = ir::info_traits;
     static_assert(IIT::arg1(ir::Opcode::FUNCSTART) == IIT::Requirement::REQUIRED);
 
-    const auto* const fn_expr = DEBUG_REQUIRE_PTR(static_cast<const ProgFuncExpr *>(quad.arg1));
-    const auto* const fn_sym = DEBUG_REQUIRE_PTR(fn_expr->progfunc_symbol);
-    DMASSERT(fn_sym->stackframe_slot_count.is_assigned());
-    result_.progfuncs.emplace_back(fn_sym->name, fn_sym->address, fn_sym->stackframe_slot_count);
+    const auto& fn_expr = *DEBUG_REQUIRE_PTR(static_cast<const ProgFuncExpr *>(quad.arg1));
+    const auto& fn_sym = *DEBUG_REQUIRE_PTR(fn_expr.progfunc_symbol);
+    DMASSERT(fn_sym.stackframe_slot_count.is_assigned());
+    result_.progfuncs.emplace_back(
+        intern_progfunc_name(fn_expr),
+        fn_sym.address,
+        fn_sym.stackframe_slot_count
+    );
     generate<ir::Opcode::FUNCSTART, vm::Opcode::ENTERFUNC>(quad);
 }
 

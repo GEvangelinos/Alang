@@ -114,7 +114,7 @@ struct ProgramFuncArgument : public Argument
 {
     const CodeAddress address;
 
-    explicit ProgramFuncArgument(const CodeAddress func_address)
+    explicit ProgramFuncArgument( const CodeAddress func_address)
         : Argument{Type::PROGRAMFUNC}, address(func_address) {}
 };
 

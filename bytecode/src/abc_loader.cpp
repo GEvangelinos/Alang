@@ -41,7 +41,7 @@ load_header(const std::vector<u8>& buffer)
     require<"strings expected: 0x{:X} < 0x{:X}">
         (std::less{}, header.sections.strings.lut.offset, buffer.size());
     require<"user-funcs expected: 0x{:X} < 0x{:X}">
-        (std::less{}, header.sections.progfuncs.lut.offset, buffer.size());
+        (std::less{}, header.sections.progfuncs.offset, buffer.size());
     require<"instructions expected: 0x{:X} < 0x{:X}">
         (std::less{}, header.sections.instructions.offset, buffer.size());
 
@@ -71,7 +71,7 @@ load_string_cache(
     const std::vector<u8>& buffer,
     const abc::Header::Sections::Catalog& string_catalog)
 {
-    const auto NAME_ME = reinterpret_cast<const abc::BufferSpan*>(
+    const auto last_span = reinterpret_cast<const abc::BufferSpan*>(
         buffer.data() +
         string_catalog.lut.offset +
         string_catalog.lut.size -
@@ -79,7 +79,7 @@ load_string_cache(
     );
 
     const auto strings_begin_at = string_catalog.lut.offset + string_catalog.lut.size; // Inclusive
-    const auto strings_end_at = NAME_ME->offset + NAME_ME->size;                       // Exlusive
+    const auto strings_end_at = last_span->offset + last_span->size;                   // Exclusive
     DMASSERT(string_catalog.lut.size % sizeof(abc::BufferSpan) == 0);
     const auto string_count = string_catalog.lut.size / sizeof(abc::BufferSpan);
     const auto buffer_size = strings_end_at - strings_begin_at;
@@ -109,23 +109,17 @@ load_string_cache(
 [[nodiscard]] static std::vector<vm::Program::ProgFunc>
 load_progfuncs(
     const std::vector<u8>& buffer,
-    const abc::Header::Sections::Catalog& progfunc_catalog)
+    const abc::BufferSpan& progfunc_span)
 {
-    const auto NAME_ME = reinterpret_cast<const abc::BufferSpan*>(
-        buffer.data() +
-        progfunc_catalog.lut.offset +
-        progfunc_catalog.lut.size -
-        sizeof(abc::BufferSpan)
-    );
-
-    const auto strings_begin_at = progfunc_catalog.lut.offset + progfunc_catalog.lut.size; // Inclusive
-    const auto strings_end_at = NAME_ME->offset + NAME_ME->size;                       // Exlusive
-    DMASSERT(progfunc_catalog.lut.size % sizeof(abc::BufferSpan) == 0);
-    const auto string_count = progfunc_catalog.lut.size / sizeof(abc::BufferSpan);
-    const auto buffer_size = strings_end_at - strings_begin_at;
-
-
-
+    std::vector<vm::Program::ProgFunc> result;
+    for (std::size_t i = 0; i < progfunc_span.size; i += sizeof(vm::Program::ProgFunc))
+    {
+        result.emplace_back();
+        vm::Program::ProgFunc progfunc;
+        const auto progfunc_index = progfunc_span.offset + i;
+        std::memcpy(&result.back(), buffer.data() + progfunc_index, sizeof(progfunc));
+    }
+    return result;
 }
 
 int
@@ -133,7 +127,8 @@ ABC_Loader::load(const std::vector<u8>& byte_buffer)
 {
     const abc::Header header = load_header(byte_buffer);
 
-    StringCache string_cache = load_string_cache(byte_buffer, header.sections.strings);
+    StringCache str_literal_cache = load_string_cache(byte_buffer, header.sections.strings);
+    StringCache progfunc_name_cache = load_string_cache(byte_buffer, header.sections.progfunc_names);
     const auto progfuncs = load_progfuncs(byte_buffer, header.sections.progfuncs);
 
     return 0;

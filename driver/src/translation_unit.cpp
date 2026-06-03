@@ -321,13 +321,18 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
         format_column<Colorize, 1, widths[1]>("size"),
         format_column<Colorize, 2, widths[2]>("id")
     );
+
     for (const auto& userfunc : program.progfuncs)
+    {
+        const alpha::StringSpan& userfunc_name =
+            *DEBUG_REQUIRE_PTR(program.progfunc_name_registry.get_by_id(userfunc.name_str_id));
         out << FMT::format(
             "{0} {1} {2}\n",
             format_column<Colorize, 0, widths[0]>(FMT::to_string(userfunc.address.value)),
             format_column<Colorize, 1, widths[1]>(FMT::to_string(userfunc.local_size)),
-            format_column<Colorize, 2, widths[2]>(userfunc.id.to_string_view())
+            format_column<Colorize, 2, widths[2]>( userfunc_name.to_string_view())
         );
+    }
 
     out << "=============== LIBFUNC_POOL ===============\n";
     const auto sorted_funcs = [&program]()
@@ -358,22 +363,19 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
     out << "=============== STRING_POOL ===============\n";
     const auto sorted_strs = [&program]()
     {
-        using MapType = decltype(program.str_literal_table);
-        using KeyType = MapType::key_type;
-        using ValueType = MapType::mapped_type;
-
-        std::vector<std::pair<KeyType, ValueType>> vec{
-            program.str_literal_table.begin(),
-            program.str_literal_table.end()
-        };
+        std::vector<alpha::StringSpan> vec = program.str_literal_registry.from_value_view();
         std::ranges::sort(vec, [](const auto& a, const auto& b)
         {
-            return a.first.to_string_view() < b.first.to_string_view();
+            return a.to_string_view() < b.to_string_view();
         });
         return vec;
     }();
-    for (const auto [str, id] : sorted_strs)
-        out << FMT::format("{:4}. {}\n", id, escape(str));
+    for (const alpha::StringSpan str : sorted_strs)
+    {
+        const std::optional<unsigned> str_id = program.str_literal_registry.get_id_of(str);
+        DMASSERT(str_id.has_value() && "String came from the registry itself, it must have value");
+        out << FMT::format("{:4}. {}\n", *str_id, escape(str));
+    }
 
     out << FMT::format( // Write export header.
         "=============== BYTECODE ===============\n"
