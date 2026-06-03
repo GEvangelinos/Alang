@@ -115,12 +115,73 @@ load_progfuncs(
     for (std::size_t i = 0; i < progfunc_span.size; i += sizeof(vm::Program::ProgFunc))
     {
         result.emplace_back();
-        vm::Program::ProgFunc progfunc;
         const auto progfunc_index = progfunc_span.offset + i;
-        std::memcpy(&result.back(), buffer.data() + progfunc_index, sizeof(progfunc));
+        std::memcpy(&result.back(), buffer.data() + progfunc_index, sizeof(vm::Program::ProgFunc));
     }
     return result;
 }
+
+[[nodiscard]] const vm::Argument *
+    load_argument(    const std::vector<u8>& buffer        , const u8 * addr)
+{
+    // Check presence 1-byte flag:
+    const bool is_present = *reinterpret_cast<const bool *>(addr++);
+    if (!is_present)
+        return nullptr;
+    // Check Argument::Type:
+    static_assert(sizeof(vm::Argument::Type) == 1);
+    const vm::Argument::Type arg_type= *reinterpret_cast<const vm::Argument::Type *>(addr);
+    switch (arg_type)
+    {
+    case vm::Argument::Type::LABEL:
+    case vm::Argument::Type::GLOBAL:
+    case vm::Argument::Type::FORMAL:
+    case vm::Argument::Type::LOCAL:
+    case vm::Argument::Type::CONST_BOOL:
+    case vm::Argument::Type::CONST_INT:
+    case vm::Argument::Type::CONST_FLOAT:
+    case vm::Argument::Type::CONST_STRING:
+    case vm::Argument::Type::CONST_NIL:
+    case vm::Argument::Type::PROGRAMFUNC:
+    case vm::Argument::Type::LIBFUNC:
+    case vm::Argument::Type::RETVAL:
+    }
+
+}
+
+[[nodiscard]] static std::vector<vm::Instruction>
+load_instructions(
+    const std::vector<u8>& buffer,
+    const abc::BufferSpan& instruction_span)
+{
+    const auto instructions_begin_at = instruction_span.offset;
+
+    const u8* addr = buffer.data() + instructions_begin_at;
+    for (std::size_t i = 0; i < instruction_span.size; ++i)
+    {
+
+        static_assert(sizeof(vm::Opcode) == 1);
+        // Find instruction type (Opcode):
+        const vm::Opcode opcode = *reinterpret_cast<const vm::Opcode*>(addr);
+        addr += sizeof(opcode);
+
+
+
+
+
+
+
+        // check argument `result`:
+
+        // check argument `arg1`:
+
+        // check argument `arg2`:
+
+    }
+
+
+}
+
 
 int
 ABC_Loader::load(const std::vector<u8>& byte_buffer)
@@ -130,6 +191,7 @@ ABC_Loader::load(const std::vector<u8>& byte_buffer)
     StringCache str_literal_cache = load_string_cache(byte_buffer, header.sections.strings);
     StringCache progfunc_name_cache = load_string_cache(byte_buffer, header.sections.progfunc_names);
     const auto progfuncs = load_progfuncs(byte_buffer, header.sections.progfuncs);
+    const auto instructions = load_instructions(byte_buffer, header.sections.instructions);
 
     return 0;
 }

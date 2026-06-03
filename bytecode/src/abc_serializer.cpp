@@ -240,14 +240,22 @@ serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument& arg)
 static void
 serialize_instructions(std::vector<u8>& abc_buffer, const vm::Program& program)
 {
+    const auto serialize_argument = [&abc_buffer](const vm::Argument *arg)
+    {
+        const bool is_present = !!arg;
+        store_little_endian(abc_buffer, is_present);
+        if (arg) serialize_vm_argument(abc_buffer, *arg);
+    };
+
     for (const vm::Instruction& inst : program.instructions)
     {
         using OpcodeUT = std::underlying_type_t<decltype(inst.opcode)>;
         static_assert(std::is_same_v<OpcodeUT, u8>, "Following push is wrong");
         abc_buffer.push_back(static_cast<OpcodeUT>(inst.opcode));
-        if (inst.result) serialize_vm_argument(abc_buffer, *inst.result);
-        if (inst.arg1) serialize_vm_argument(abc_buffer, *inst.arg1);
-        if (inst.arg2) serialize_vm_argument(abc_buffer, *inst.arg2);
+
+        serialize_argument(inst.result);
+        serialize_argument(inst.arg1);
+        serialize_argument(inst.arg2);
     }
 }
 
