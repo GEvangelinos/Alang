@@ -207,17 +207,22 @@ serialize_progfuncs(
 }
 
 static void
-serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument& arg)
+serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument* const arg)
 {
     // Storing Argument Type.
-    store_little_endian(buffer, arg.type);
+    if (arg == nullptr)
+    {
+        store_little_endian(buffer, vm::Argument::Type::NONE);
+        return;
+    }
+    store_little_endian(buffer, arg->type);
 
     // Storing Argument content.
-    switch (arg.type)
+    switch (arg->type)
     {
     #define CASE(ARG_TYPE, ARG_CLASS, ARG_ATTR)\
     case vm::Argument::Type::ARG_TYPE: \
-        store_little_endian(buffer, static_cast<const vm::ARG_CLASS&>(arg).ARG_ATTR); break
+        store_little_endian(buffer, static_cast<const vm::ARG_CLASS *>(arg)->ARG_ATTR); break
 
     CASE(LABEL, LabelArgument, value.value);
     CASE(GLOBAL, GlobalVariableArgument, offset);
@@ -240,22 +245,19 @@ serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument& arg)
 static void
 serialize_instructions(std::vector<u8>& abc_buffer, const vm::Program& program)
 {
-    const auto serialize_argument = [&abc_buffer](const vm::Argument *arg)
-    {
-        const bool is_present = !!arg;
-        store_little_endian(abc_buffer, is_present);
-        if (arg) serialize_vm_argument(abc_buffer, *arg);
-    };
-
     for (const vm::Instruction& inst : program.instructions)
     {
         using OpcodeUT = std::underlying_type_t<decltype(inst.opcode)>;
         static_assert(std::is_same_v<OpcodeUT, u8>, "Following push is wrong");
         abc_buffer.push_back(static_cast<OpcodeUT>(inst.opcode));
 
-        serialize_argument(inst.result);
-        serialize_argument(inst.arg1);
-        serialize_argument(inst.arg2);
+        // Serialize location.
+        store_little_endian(abc_buffer, inst.loc.begin.value);
+        store_little_endian(abc_buffer, inst.loc.end.value);
+
+        serialize_vm_argument(abc_buffer, inst.result);
+        serialize_vm_argument(abc_buffer, inst.arg1);
+        serialize_vm_argument(abc_buffer, inst.arg2);
     }
 }
 

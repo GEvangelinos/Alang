@@ -121,32 +121,80 @@ load_progfuncs(
     return result;
 }
 
-[[nodiscard]] const vm::Argument *
-    load_argument(    const std::vector<u8>& buffer        , const u8 * addr)
+[[nodiscard]] const vm::Argument*
+load_argument(const std::vector<u8>& buffer, const u8*& addr)
 {
-    // Check presence 1-byte flag:
-    const bool is_present = *reinterpret_cast<const bool *>(addr++);
-    if (!is_present)
-        return nullptr;
-    // Check Argument::Type:
     static_assert(sizeof(vm::Argument::Type) == 1);
-    const vm::Argument::Type arg_type= *reinterpret_cast<const vm::Argument::Type *>(addr);
+    const vm::Argument::Type arg_type = *reinterpret_cast<const vm::Argument::Type*>(addr++);
     switch (arg_type)
     {
+    case vm::Argument::Type::NONE: return nullptr;
     case vm::Argument::Type::LABEL:
+        {
+            const CodeAddress label{*reinterpret_cast<const CodeAddress::UnderlyingType*>(addr)};
+            addr += sizeof(label.value);
+            return new vm::LabelArgument{label};
+        }
     case vm::Argument::Type::GLOBAL:
-    case vm::Argument::Type::FORMAL:
-    case vm::Argument::Type::LOCAL:
-    case vm::Argument::Type::CONST_BOOL:
-    case vm::Argument::Type::CONST_INT:
-    case vm::Argument::Type::CONST_FLOAT:
-    case vm::Argument::Type::CONST_STRING:
-    case vm::Argument::Type::CONST_NIL:
-    case vm::Argument::Type::PROGRAMFUNC:
-    case vm::Argument::Type::LIBFUNC:
-    case vm::Argument::Type::RETVAL:
-    }
+        {
+            const auto offset = *reinterpret_cast<const u32*>(addr);
+            addr += sizeof(offset);
+            return new vm::GlobalVariableArgument{offset};
+        }
 
+    case vm::Argument::Type::FORMAL:
+        {
+            const auto offset = *reinterpret_cast<const u32*>(addr);
+            addr += sizeof(offset);
+            return new vm::FormalVariableArgument{offset};
+        }
+    case vm::Argument::Type::LOCAL:
+        {
+            const auto offset = *reinterpret_cast<const u32*>(addr);
+            addr += sizeof(offset);
+            return new vm::LocalVariableArgument{offset};
+        }
+    case vm::Argument::Type::CONST_BOOL:
+        {
+            const auto value = *reinterpret_cast<const bool*>(addr);
+            addr += sizeof(value);
+            return new vm::ConstBoolArgument{value};
+        }
+    case vm::Argument::Type::CONST_INT:
+        {
+            const auto value = *reinterpret_cast<const AlphaInt*>(addr);
+            addr += sizeof(value);
+            return new vm::ConstIntArgument{value};
+        }
+    case vm::Argument::Type::CONST_FLOAT:
+        {
+            const auto value = *reinterpret_cast<const AlphaFloat*>(addr);
+            addr += sizeof(value);
+            return new vm::ConstFloatArgument{value};
+        }
+    case vm::Argument::Type::CONST_STRING:
+        {
+            const auto index = *reinterpret_cast<const u32*>(addr);
+            addr += sizeof(index);
+            return new vm::ConstStringArgument{index};
+        }
+    case vm::Argument::Type::PROGRAMFUNC:
+        {
+            const CodeAddress address{*reinterpret_cast<const CodeAddress::UnderlyingType*>(addr)};
+            addr += sizeof(address.value);
+            return new vm::ProgramFuncArgument{address};
+        }
+    case vm::Argument::Type::LIBFUNC:
+        {
+            using LibFuncIdUT = std::underlying_type_t<vm::LibFuncId>;
+            const vm::LibFuncId lib_id{*reinterpret_cast<const LibFuncIdUT*>(addr)};
+            addr += sizeof(lib_id);
+            return new vm::LibFuncArgument{lib_id};
+        }
+
+    case vm::Argument::Type::RETVAL: return new vm::RetvalArgument{};
+    case vm::Argument::Type::CONST_NIL: return new vm::ConstNilArgument{};
+    }
 }
 
 [[nodiscard]] static std::vector<vm::Instruction>
@@ -154,32 +202,33 @@ load_instructions(
     const std::vector<u8>& buffer,
     const abc::BufferSpan& instruction_span)
 {
+    std::vector<vm::Instruction> loaded_instructions;
     const auto instructions_begin_at = instruction_span.offset;
 
     const u8* addr = buffer.data() + instructions_begin_at;
     for (std::size_t i = 0; i < instruction_span.size; ++i)
     {
-
         static_assert(sizeof(vm::Opcode) == 1);
         // Find instruction type (Opcode):
         const vm::Opcode opcode = *reinterpret_cast<const vm::Opcode*>(addr);
         addr += sizeof(opcode);
 
+        const u32 loc_begin = *reinterpret_cast<const u32*>(addr);
+        addr += sizeof(loc_begin);
+
+        const u32 loc_end = *reinterpret_cast<const u32*>(addr);
+        addr += sizeof(loc_end);
+
+        const SourceLocation loc{SrcBuffIdx{loc_begin}, SrcBuffIdx{loc_end}};
 
 
+        const auto result = load_argument(buffer, addr); // RESULT
+        const auto arg1 = load_argument(buffer, addr);   // ARG1
+        const auto arg2 = load_argument(buffer, addr);   // ARG2
 
-
-
-
-        // check argument `result`:
-
-        // check argument `arg1`:
-
-        // check argument `arg2`:
-
+        loaded_instructions.emplace_back(opcode, result, arg1, arg2, loc);
     }
-
-
+    loaded_instructions;
 }
 
 
@@ -189,7 +238,8 @@ ABC_Loader::load(const std::vector<u8>& byte_buffer)
     const abc::Header header = load_header(byte_buffer);
 
     StringCache str_literal_cache = load_string_cache(byte_buffer, header.sections.strings);
-    StringCache progfunc_name_cache = load_string_cache(byte_buffer, header.sections.progfunc_names);
+    StringCache progfunc_name_cache =
+        load_string_cache(byte_buffer, header.sections.progfunc_names);
     const auto progfuncs = load_progfuncs(byte_buffer, header.sections.progfuncs);
     const auto instructions = load_instructions(byte_buffer, header.sections.instructions);
 

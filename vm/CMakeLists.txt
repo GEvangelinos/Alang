@@ -36,5 +36,5 @@ target_link_libraries(${VM_EXE_NAME} PRIVATE
     arguinator_impl
     support_impl
     alpha_bytecode_impl
-
+    alpha_core_impl
 )

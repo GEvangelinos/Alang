@@ -14,6 +14,7 @@ struct Argument
 {
     enum class Type : u8
     {
+        NONE,
         LABEL,
         GLOBAL,
         FORMAL,
