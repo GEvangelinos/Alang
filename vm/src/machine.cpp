@@ -2,13 +2,12 @@
 
 #include <alpha_parser.gen.hpp>
 
-#include "../../bytecode/include/bytecode/executable.hpp"
+#include "bytecode/executable.hpp"
 #include "core/bytecode/vm_program.hpp"
 #include "L2_semantic_subsystems/core/expr_maker.hpp"
 #include "vm/vm_memory.hpp"
 #include "support/format_adapter.hpp"
 #include "support/debug_tools.hpp"
-#include "support/string_tools.hpp"
 
 namespace alpha::vm
 {
@@ -54,10 +53,10 @@ void
 Machine::Stack::decrease_top()
 {
     DMASSERT(!is_overflowed && "LogicError: Stack is overflowed yet we still call decrease_top()");
-    if (!top_)
-        on_stack_overflow_();
-    else
+    if (top_ > 0) [[likely]]
         --top_;
+    else
+        on_stack_overflow_();
 }
 
 void
@@ -69,11 +68,26 @@ Machine::Stack::push_env_value(const AlphaInt value)
     decrease_top();
 }
 
+void
+Machine::Stack::enter_frame()
+{
+    // Both native and libfuncs use this to establish the base of the new frame
+    topsp_ = top_;
+}
+
+void Machine::Stack::allocate_locals(const u32 count)
+{
+    // Only native functions call this to reserve space for their bytecode variables
+    // Libfuncs pass 0 implicitly by simply never calling this
+    top_ = count;
+}
+
 
 Machine::Machine(const Bytes stack_size, const vm::Executable& exe)
     : stack_(stack_size.count, [this]() { on_stack_overflow(); }),
       code_(exe.instructions.data()),
-      exe_(exe) {}
+      exe_(exe),
+      ending_pc_(exe.instructions.size()) {}
 
 void Machine::on_stack_overflow() { error("StackOverflow"); }
 
@@ -116,17 +130,23 @@ Machine::translate_operand(const vm::Argument* const arg, Memcell* const reg)
         return reg;
     case Argument::Type::PROGRAMFUNC:
         reg->type = Memcell::Type::PROGFUNC;
-        reg->data.progfunc_address = static_cast<const ProgramFuncArgument*>(arg)->address.value;
+        reg->data.progfunc_index = static_cast<const ProgramFuncArgument*>(arg)->func_idx;
         return reg;
     case Argument::Type::LIBFUNC:
         reg->type = Memcell::Type::LIBFUNC;
+        reg->data.int_value = static_cast<LibFuncIdUT>(
+            static_cast<const LibFuncArgument*>(arg)->libfunc_id
+        );
         return reg;
     case Argument::Type::CONST_STRING:
-        reg->type = Memcell::Type::STRING;
-        #warning "Fetch string from the string map"
-    // reg->data.str_value = strdup(
-    //     static_cast<const ConstStringArgument*>(arg)->pool_index
-    // );
+        {
+            reg->type = Memcell::Type::STRING;
+            const u32 str_idx = static_cast<const ConstStringArgument*>(arg)->pool_index;
+            DMASSERT(str_idx < exe_.str_literal_cache.index_map.size());
+            const StringSpan str = exe_.str_literal_cache.index_map[str_idx];
+            reg->data.str_value = duplicate_to_cstring(str);
+            return reg;
+        }
     case Argument::Type::LABEL:
         DMASSERT(false && "Label addresses aren't mapped to memcells. they are accessed in place.");
         std::abort();
@@ -211,10 +231,10 @@ void Machine::Stack::save_call_environment(const AlphaInt pc, const AlphaInt tot
 }
 
 void
-Machine::Stack::add_function_environment(const ProgFunc& func_info)
+Machine::Stack::add_function_environment(const ProgFuncMetadata& func_info)
 {
-    topsp_ = top_;
-    top_ -= func_info.local_size;
+    enter_frame();
+    allocate_locals(func_info.local_count);
 }
 
 void
@@ -244,8 +264,8 @@ u32
 Machine::Stack::restore_previous_environment() noexcept
 {
     top_ = get_environment_value(topsp_ + Machine::k_saved_top_offset);
-    topsp_ = get_environment_value(topsp_ + Machine::k_saved_topsp_offset);
     const auto restored_pc = top_ = get_environment_value(topsp_ + Machine::k_saved_pc_offset);
+    topsp_ = get_environment_value(topsp_ + Machine::k_saved_topsp_offset);
     return restored_pc;
 }
 
@@ -253,6 +273,7 @@ Machine::Stack::restore_previous_environment() noexcept
 AlphaInt
 Machine::Stack::get_environment_value(const u32 stack_idx) const noexcept
 {
+    DMASSERT(stack_idx < size());
     const Memcell env_cell = data_[stack_idx];
     DMASSERT(env_cell.type == Memcell::Type::INT);
     const AlphaInt env_value = env_cell.data.int_value;
@@ -293,91 +314,128 @@ Machine::execute_assign(const vm::Instruction& inst)
 // }
 //
 //
-// void
-// Machine::execute_call(vm::Instruction& inst)
-// {
-//     Memcell* func = DEBUG_REQUIRE_PTR(translate_operand(inst.arg1, &reg_a_));
-//     switch (func->type)
-//     {
-//     case Memcell::Type::PROGFUNC:
-//         save_call_environment();
-//         pc_ = func->data.progfunc_address;
-//         DMASSERT(pc_ < ending_pc(), code_[pc_].opcode == Opcode::ENTERFUNC);
-//         break;
-//     case Memcell::Type::STRING:
-//         call_libfunc(func->data.str_value);
-//         break;
-//     case Memcell::Type::LIBFUNC:
-//         call_libfunc(func->data.libfunc_name);
-//         break;
-//     case Memcell::Type::TABLE:
-//         call_functor(func->data.table_value);
-//         break;
-//
-//     default:
-//         error("can not bind to function");
-//         execution_finished_.raise();
-//     }
-// }
-//
-// void
-// Machine::execute_funcenter(vm::Instruction* inst)
-// {
-//     vm::Memcell* const func = DEBUG_REQUIRE_PTR(translate_operand(inst->result, &reg_a_));
-//     DMASSERT(pc_ == func->data.progfunc_address);
-//     total_actuals_ = 0;
-//     Program::ProgFunc func_info = get_func_info(pc_);
-// }
-//
-// void
-// Machine::execute_funcexit([[maybe_unused]] vm::Instruction* const unused)
-// {
-//     const auto old_top = stack_.top();
-//     pc_ = stack_.restore_previous_environment();
-//
-//     // Cleanup activation_record:
-//     auto idx = old_top;
-//     while (++idx <= stack_.top())
-//         stack_.clear_at(idx);
-// }
-//
-// void
-// Machine::execute_pusharg(vm::Instruction* inst)
-// {
-//     const vm::Memcell& arg = *DEBUG_REQUIRE_PTR(translate_operand(inst->arg1, &reg_a_));
-//     assign(stack_.top_element(), arg);
-//     ++total_actuals_;
-//     stack_.decrease_top();
-// }
-//
-// template <typename Op>
-//     requires std::is_invocable_v<Op, AlphaInt, AlphaInt>
-// AlphaInt make_int_op(AlphaInt lhs, AlphaInt rhs) { return Op{}(lhs, rhs); }
-//
-//
-// void
-// Machine::set_out_stream(std::ostream& out) noexcept { out_stream_ = &out; }
-//
-//
-// void
-// Machine::call_libfunc(const char* const id)
-// {
-//     const auto func = get_libfunc();
-//     if (!func)
-//     {
-//         error(FMT::format("Unsupported lib func {} called!", id));
-//         execution_finished_.raise();
-//         return;
-//     }
-//     stack_.save_call_environment(pc_, total_actuals_);
-//     topsp_ = top_;
-//     total_actuals_ = 0;
-//     (func)();                      // Call libfunc
-//     if (!execution_finished_)      // An error may occur naturally.
-//         execute_funcexit(nullptr); // Return Sequence.
-// }
-//
-//
+
+void
+Machine::execute_jump(const vm::Instruction& inst)
+{
+    DMASSERT(!!inst.result);
+    DMASSERT(inst.result->type == Argument::Type::LABEL);
+   const auto target_address = static_cast<const LabelArgument* > (inst.result.get())->value.value;
+    DMASSERT(target_address <= ending_pc_ && "Only jumps can be == ending_pc_ (1 past legal inst)");
+    pc_ = target_address;
+
+}
+
+void
+Machine::execute_call(const vm::Instruction& inst)
+{
+    const Memcell* func = DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
+    switch (func->type)
+    {
+    case Memcell::Type::PROGFUNC:
+        {
+            stack_.save_call_environment(pc_, total_actuals_);
+            DMASSERT(func->data.progfunc_index < exe_.progfuncs.size());
+            const vm::ProgFuncMetadata metadata = exe_.progfuncs[func->data.progfunc_index];
+            DMASSERT(metadata.address.value < exe_.instructions.size());
+            pc_ = metadata.address.value;
+            DMASSERT(pc_ < ending_pc_, code_[pc_].opcode == Opcode::ENTERFUNC);
+            break;
+        }
+    case Memcell::Type::STRING:
+        call_libfunc(func->data.str_value);
+        break;
+    case Memcell::Type::LIBFUNC:
+        call_libfunc(static_cast<LibFuncId>(func->data.int_value));
+        break;
+    case Memcell::Type::TABLE:
+        DMASSERT(false && "uncomment below");
+        // call_functor(func->data.table_value);
+        break;
+
+    default:
+        error("can not bind to function");
+        execution_finished_.raise();
+    }
+}
+
+void
+Machine::execute_enterfunc(const vm::Instruction& inst)
+{
+    const vm::Memcell& func = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
+    const vm::ProgFuncMetadata& progfunc_metadata = exe_.progfuncs[func.data.progfunc_index];
+    DMASSERT(pc_ == progfunc_metadata.address.value);
+    total_actuals_ = 0;
+    stack_.enter_frame();
+    stack_.allocate_locals(progfunc_metadata.local_count);
+}
+
+void
+Machine::execute_exitfunc(const vm::Instruction& unused) { execute_exitfunc(&unused); }
+
+void
+Machine::execute_exitfunc(const vm::Instruction* const unused)
+{
+    const auto old_top = stack_.top();
+    pc_ = stack_.restore_previous_environment();
+
+    // Cleanup activation_record:
+    auto idx = old_top;
+    while (++idx <= stack_.top())
+        stack_.clear_at(idx);
+}
+
+void
+Machine::execute_pusharg(const vm::Instruction& inst)
+{
+    const vm::Memcell& arg = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
+    assign(stack_.top_element(), arg);
+    ++total_actuals_;
+    stack_.decrease_top();
+}
+
+
+#warning "Remove if not USED"
+template <typename Op>
+    requires std::is_invocable_v<Op, AlphaInt, AlphaInt>
+AlphaInt make_int_op(AlphaInt lhs, AlphaInt rhs) { return Op{}(lhs, rhs); }
+
+void
+Machine::set_out_stream(std::ostream& out) noexcept { out_stream_ = &out; }
+
+void
+Machine::call_libfunc(const char* const libfunc_name)
+{
+    const std::optional<LibFuncId> libfunc_id =
+        get_libfunc_id(StringSpan::from_cstring(libfunc_name));
+    if (libfunc_id) [[unlikely]]
+        call_libfunc(*libfunc_id);
+    else
+        error(FMT::format("Unsupported lib func `{}` called", libfunc_name));
+}
+
+void
+Machine::call_libfunc(const LibFuncId libfunc_id)
+{
+    void (Machine::*func)() = libfunc_table_[static_cast<LibFuncIdUT>(libfunc_id)];
+    if (!func)
+    {
+        error(FMT::format(
+            "Internal error OR corruption. Unknown LibFuncID: `{}`",
+            static_cast<LibFuncIdUT>(libfunc_id)
+        ));
+        execution_finished_.raise();
+        return;
+    }
+    stack_.save_call_environment(pc_, total_actuals_);
+    stack_.enter_frame();
+    total_actuals_ = 0;
+    (this->*func)();               // Call libfunc
+    if (!execution_finished_)      // An error may occur naturally.
+        execute_exitfunc(nullptr); // Return Sequence.
+}
+
+
 // void
 // Machine::execute_newtable(const vm::Instruction & inst)
 // {
@@ -430,6 +488,8 @@ Machine::impl_of_libfunc_print()
     DMASSERT(n >=0 && "makes no sense");
     for (AlphaInt i = 0; i < n; ++i)
         *out_stream_ << stack_.get_actual(i).to_string();
+    retval_.type = Memcell::Type::INT;
+    retval_.data.int_value = 0;
 }
 
 void

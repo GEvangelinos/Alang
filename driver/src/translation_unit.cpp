@@ -194,7 +194,7 @@ std::string argument_formatter(
         return FMT::format("(local){}", static_cast<const vm::LocalVariableArgument*>(a)->offset);
     case vm::Argument::Type::PROGRAMFUNC:
         return FMT::format(
-            "(progfunc){}", static_cast<const vm::ProgramFuncArgument*>(a)->address.value
+            "(progfunc){}", static_cast<const vm::ProgramFuncArgument*>(a)->func_idx
         );
     case vm::Argument::Type::LIBFUNC:
         return FMT::format(
@@ -317,7 +317,7 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
     constexpr alpha::u32 widths[] = {10, 15, 20, 20, 20, 10, 10, 10};
 
     out << FMT::format(
-        "=============== USERFUNC_TABLE ===============\n"
+        "=============== PROGFUNC_TABLE ===============\n"
         "{0} {1} {2}\n",
         format_column<Colorize, 0, widths[0]>("address"),
         format_column<Colorize, 1, widths[1]>("size"),
@@ -327,40 +327,14 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
     for (const auto& userfunc : program.progfuncs)
     {
         const alpha::StringSpan& userfunc_name =
-            *DEBUG_REQUIRE_PTR(program.progfunc_name_registry.get_by_id(userfunc.name_str_id));
+            *DEBUG_REQUIRE_PTR(program.progfunc_name_registry.get_by_indexed_type(userfunc.name_str_id));
         out << FMT::format(
             "{0} {1} {2}\n",
             format_column<Colorize, 0, widths[0]>(FMT::to_string(userfunc.address.value)),
-            format_column<Colorize, 1, widths[1]>(FMT::to_string(userfunc.local_size)),
+            format_column<Colorize, 1, widths[1]>(FMT::to_string(userfunc.local_count)),
             format_column<Colorize, 2, widths[2]>( userfunc_name.to_string_view())
         );
     }
-
-    out << "=============== LIBFUNC_POOL ===============\n";
-    const auto sorted_funcs = [&program]()
-    {
-        using MapType = decltype(program.libfunc_name_table);
-        using KeyType = MapType::key_type;
-        std::vector<std::pair<KeyType, alpha::vm::LibFuncId>> vec;
-        vec.reserve(program.libfunc_name_table.size());
-        for (const alpha::StringSpan libfunc_name : program.libfunc_name_table)
-        {
-            const auto libfunc_id = alpha::vm::get_libfunc_id(libfunc_name);
-            DMASSERT(libfunc_id.has_value());
-            vec.emplace_back(libfunc_name, *libfunc_id);
-        };
-        std::ranges::sort(vec, [](const auto& a, const auto& b)
-        {
-            return a.first.to_string_view() < b.first.to_string_view();
-        });
-        return vec;
-    }();
-
-    for (const auto [name, id] : sorted_funcs)
-        out << FMT::format(
-            "{:4}. {}\n",
-            static_cast<std::underlying_type_t<alpha::vm::LibFuncId>>(id), name.to_string_view()
-        );
 
     out << "=============== STRING_POOL ===============\n";
     const auto sorted_strs = [&program]()
@@ -374,9 +348,9 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
     }();
     for (const alpha::StringSpan str : sorted_strs)
     {
-        const std::optional<unsigned> str_id = program.str_literal_registry.get_id_of(str);
+        const std::optional<unsigned> str_id = program.str_literal_registry.get_index_of(str);
         DMASSERT(str_id.has_value() && "String came from the registry itself, it must have value");
-        out << FMT::format("{:4}. {}\n", *str_id, escape(str));
+        out << FMT::format("{:>4}. {}\n", *str_id, escape(str));
     }
 
     out << FMT::format( // Write export header.

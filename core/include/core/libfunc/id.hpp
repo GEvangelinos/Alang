@@ -10,8 +10,10 @@ namespace alpha::vm
         #define X(id, name) id,
         #include "libfuncs.def"
         #undef  X
-        COUNT_,
+        __COUNT__,
     };
+
+    using LibFuncIdUT = std::underlying_type_t<LibFuncId>;
 
 } // namespace alpha::vm
 #endif // ID_HPP

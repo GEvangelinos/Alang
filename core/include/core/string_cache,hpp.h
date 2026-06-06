@@ -25,6 +25,8 @@ public:
     StringCache(StringCache&&) noexcept = default;
     StringCache(const StringCache&) = delete;
 
+
+
 private:
     std::unique_ptr<u8[]> buffer_;
 };

@@ -11,7 +11,7 @@ struct Executable
 {
     const StringCache str_literal_cache ;
     const StringCache progfunc_name_cache;
-    const std::vector<vm::ProgFunc> progfuncs ;
+    const std::vector<vm::ProgFuncMetadata> progfuncs ;
     const std::vector<vm::Instruction> instructions ;
 };
 

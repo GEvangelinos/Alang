@@ -10,6 +10,7 @@
 #include "core/numeric_types.hpp"
 #include "core/bytecode/vm_instruction.hpp"
 #include "core/bytecode/vm_program.hpp"
+#include "core/libfunc/mappings.hpp"
 
 namespace alpha::vm
 {
@@ -38,6 +39,7 @@ public:
     void display_warning(const std::string& message);
     void error(const std::string& message);
 
+
     void set_out_stream(std::ostream& out) noexcept;
     void set_err_stream(std::ostream& err) noexcept;
 
@@ -45,6 +47,7 @@ public:
 
     void execute_assign(const vm::Instruction& inst);
     void execute_call(const vm::Instruction& inst);
+    void execute_jump(const vm::Instruction& inst);
     void call_functor(vm::Table* table);
     void execute_enterfunc(const vm::Instruction& inst);
     void execute_pusharg(const vm::Instruction& inst);
@@ -70,11 +73,13 @@ public:
 
 
     // inst is unused, but we require for uniformity anyway.
-    void execute_exitfunc([[maybe_unused]] const vm::Instruction& unused);
+    void execute_exitfunc([[maybe_unused]] const vm::Instruction & unused);
+    void execute_exitfunc([[maybe_unused]] const vm::Instruction * unused);
 
     void on_stack_overflow();
 
-    void call_libfunc(const char* id);
+    void call_libfunc(LibFuncId libfunc_id);
+    void call_libfunc(const char* libfunc_name);
 
     void impl_of_libfunc_print();
     void impl_of_libfunc_typeof();
@@ -87,8 +92,10 @@ private:
 
         [[nodiscard]] auto size() const noexcept { return size_; }
         void push_env_value(AlphaInt value);
+        void enter_frame();
+        void allocate_locals(u32 count);
         void save_call_environment(AlphaInt pc, AlphaInt total_actuals);
-        void add_function_environment(const ProgFunc& func_info);
+        void add_function_environment(const ProgFuncMetadata& func_info);
         [[nodiscard]] AlphaInt get_environment_value(u32 stack_idx) const noexcept;
         [[nodiscard]] auto top() const noexcept { return top_; }
         [[nodiscard]] auto topsp() const noexcept { return topsp_; }
@@ -107,7 +114,7 @@ private:
         std::function<void()> on_stack_overflow_;
         std::unique_ptr<Memcell []> data_;
         const u64 size_ = 0;
-        u32 top_ = 0, topsp_ = 0;
+        u32 top_ = size_, topsp_ = size_;
         DEBUG(OnceFlag is_overflowed;)
     };
 
@@ -122,8 +129,9 @@ private:
     Memcell reg_a_{}, reg_b_{}, reg_c_{}, retval_{};
     const vm::Instruction* code_ = nullptr;
     const vm::Executable& exe_;
+    const u32 ending_pc_;
     u32 total_actuals_ = 0;
-    u32 pc_ = 0;
+    CodeAddress::UnderlyingType pc_ = 0;
     u32 curr_line_ = 0;
     OnceFlag execution_finished_;
     std::ostream* out_stream_ = &std::cout;
@@ -143,20 +151,38 @@ private:
             result[static_cast<OpcodeUT>(Opcode::MUL)] =
             result[static_cast<OpcodeUT>(Opcode::DIV)] =
             result[static_cast<OpcodeUT>(Opcode::MOD)] = &Machine::execute_arithmetic;
-        result[static_cast<OpcodeUT>(Opcode::JUMP)] = nullptr;
+        result[static_cast<OpcodeUT>(Opcode::JUMP)] = &Machine::execute_jump;
         result[static_cast<OpcodeUT>(Opcode::JEQ)] =
             result[static_cast<OpcodeUT>(Opcode::JNE)] = &Machine::execute_equality_branch;
         result[static_cast<OpcodeUT>(Opcode::JLT)] =
             result[static_cast<OpcodeUT>(Opcode::JLE)] =
             result[static_cast<OpcodeUT>(Opcode::JGT)] =
             result[static_cast<OpcodeUT>(Opcode::JGE)] = &Machine::execute_relational_branch;
-        // result[static_cast<OpcodeUT>(Opcode::CALL)] = &Machine::execute_call;
-        // result[static_cast<OpcodeUT>(Opcode::PUSHARG)] = &Machine::execute_pusharg;
-        // result[static_cast<OpcodeUT>(Opcode::ENTERFUNC)] = &Machine::execute_enterfunc;
-        // result[static_cast<OpcodeUT>(Opcode::EXITFUNC)] = &Machine::execute_exitfunc;
+        result[static_cast<OpcodeUT>(Opcode::CALL)] = &Machine::execute_call;
+        result[static_cast<OpcodeUT>(Opcode::PUSHARG)] = &Machine::execute_pusharg;
+        result[static_cast<OpcodeUT>(Opcode::ENTERFUNC)] = &Machine::execute_enterfunc;
+        result[static_cast<OpcodeUT>(Opcode::EXITFUNC)] = &Machine::execute_exitfunc;
         // result[static_cast<OpcodeUT>(Opcode::NEWTABLE)] = &Machine::execute_newtable;
         // result[static_cast<OpcodeUT>(Opcode::TABLEGETELEM)] = &Machine::execute_tablegetelem;
         // result[static_cast<OpcodeUT>(Opcode::TABLESETELEM)] = &Machine::execute_tablesetelem;
+        return result;
+    }();
+
+    using LibfuncImplFuncType = void (Machine::*)();
+    static constexpr std::array libfunc_table_ = []() consteval
+    {
+        constexpr auto lib_func_count = static_cast<LibFuncIdUT>(LibFuncId::__COUNT__);
+        std::array<LibfuncImplFuncType, lib_func_count> result{};
+
+        const auto NAME_ME = []<u64 size>(const char (&libfunc_name)[size])
+        {
+            return static_cast<LibFuncIdUT>(
+                get_libfunc_id(StringSpan::from_literal(libfunc_name)).value()
+            );
+        };
+
+        result[NAME_ME("print")] = &Machine::impl_of_libfunc_print;
+        result[NAME_ME("input")] = &Machine::impl_of_libfunc_print;
         return result;
     }();
 };

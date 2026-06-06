@@ -173,36 +173,17 @@ serialize_table(
     }
 }
 
-
-// Translate libfunc names to internal IDs
-
-
-static void
-serialize_libfuncs(
-    std::vector<u8>& abc_buffer,
-    std::unordered_set<StringSpan> libfunc_set)
-{
-    for (const StringSpan libfunc_name : libfunc_set)
-    {
-        const std::optional<vm::LibFuncId> libfunc_id = vm::get_libfunc_id(libfunc_name);
-        DMASSERT(libfunc_id.has_value());
-        const auto libfunc_id_num = static_cast<std::underlying_type_t<vm::LibFuncId>>(*libfunc_id);
-        store_little_endian(abc_buffer, libfunc_id_num);
-    }
-}
-
-
 static void
 serialize_progfuncs(
     std::vector<u8>& abc_buffer,
-    const std::vector<vm::ProgFunc>& progfuncs)
+    const std::vector<vm::ProgFuncMetadata>& progfuncs)
 {
-    for (const vm::ProgFunc& func : progfuncs)
+    for (const vm::ProgFuncMetadata& func : progfuncs)
     {
         static_assert(sizeof(func) < 32, "If false capture by reference");
         store_little_endian(abc_buffer, func.name_str_id);
         store_little_endian(abc_buffer, func.address.value);
-        store_little_endian(abc_buffer, func.local_size);
+        store_little_endian(abc_buffer, func.local_count);
     }
 }
 
@@ -232,7 +213,7 @@ serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument* const arg)
     CASE(CONST_INT, ConstIntArgument, value);
     CASE(CONST_FLOAT, ConstFloatArgument, value);
     CASE(CONST_STRING, ConstStringArgument, pool_index);
-    CASE(PROGRAMFUNC, ProgramFuncArgument, address.value);
+    CASE(PROGRAMFUNC, ProgramFuncArgument, func_idx);
     CASE(LIBFUNC, LibFuncArgument, libfunc_id);
 
     // Semantic Flags: The type itself carries all necessary information.

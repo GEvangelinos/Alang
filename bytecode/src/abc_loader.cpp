@@ -36,7 +36,7 @@ template <typename T>
 [[nodiscard]] T
 memread_and_advance(const alpha::u8*& src)
 {
-    T value;
+    std::remove_const_t<T> value;
     constexpr auto value_size = sizeof(value);
     std::memcpy(&value, src, value_size);
     src += value_size;
@@ -109,17 +109,17 @@ load_string_cache(
 }
 
 
-[[nodiscard]] static std::vector<vm::ProgFunc>
+[[nodiscard]] static std::vector<vm::ProgFuncMetadata>
 load_progfuncs(
     const std::vector<u8>& buffer,
     const abc::BufferSpan& progfunc_span)
 {
-    std::vector<vm::ProgFunc> result;
-    for (std::size_t i = 0; i < progfunc_span.size; i += sizeof(vm::ProgFunc))
+    std::vector<vm::ProgFuncMetadata> result;
+    for (std::size_t i = 0; i < progfunc_span.size; i += sizeof(vm::ProgFuncMetadata))
     {
         result.emplace_back();
         const auto progfunc_index = progfunc_span.offset + i;
-        std::memcpy(&result.back(), buffer.data() + progfunc_index, sizeof(vm::ProgFunc));
+        std::memcpy(&result.back(), buffer.data() + progfunc_index, sizeof(vm::ProgFuncMetadata));
     }
     return result;
 }
@@ -152,8 +152,9 @@ load_argument(const u8*& addr)
         return std::make_unique<vm::ConstStringArgument>(memread_and_advance<u32>(addr));
     case vm::Argument::Type::PROGRAMFUNC:
         {
-            const CodeAddress address{memread_and_advance<CodeAddress::UnderlyingType>(addr)};
-            return std::make_unique<vm::ProgramFuncArgument>(address);
+            const auto func_idx =
+                memread_and_advance<decltype(vm::ProgramFuncArgument::func_idx)>(addr);
+            return std::make_unique<vm::ProgramFuncArgument>(func_idx);
         }
     case vm::Argument::Type::LIBFUNC:
         {
@@ -237,7 +238,7 @@ std::string argument_formatter(
         return FMT::format("(local){}", static_cast<const vm::LocalVariableArgument*>(a)->offset);
     case vm::Argument::Type::PROGRAMFUNC:
         return FMT::format(
-            "(progfunc){}", static_cast<const vm::ProgramFuncArgument*>(a)->address.value
+            "(progfunc){}", static_cast<const vm::ProgramFuncArgument*>(a)->func_idx
         );
     case vm::Argument::Type::LIBFUNC:
         return FMT::format(
@@ -264,7 +265,7 @@ ABC_Loader::load(const std::vector<u8>& byte_buffer)
         byte_buffer, header.sections.strings);
     vm::StringCache progfunc_name_cache =
         load_string_cache(byte_buffer, header.sections.progfunc_names);
-    std::vector<vm::ProgFunc> progfuncs =
+    std::vector<vm::ProgFuncMetadata> progfuncs =
         load_progfuncs(byte_buffer, header.sections.progfuncs);
     std::vector<vm::Instruction> instructions =
         load_instructions(byte_buffer, header.sections.instructions);

@@ -10,6 +10,7 @@
 #ifndef STRING_SPAN_HPP
 #define STRING_SPAN_HPP
 
+#include <cstring>
 #include <type_traits>
 #include <string>
 #include "numeric_types.hpp"
@@ -27,7 +28,7 @@ struct StringSpan
     [[nodiscard]] std::string to_string() const { return {data, size}; }
     [[nodiscard]] std::string_view to_string_view() const noexcept { return {data, size}; }
 
-    [[nodiscard]] bool operator==(const StringSpan other) const noexcept
+    [[nodiscard]] constexpr bool operator==(const StringSpan other) const noexcept
     {
         return std::string_view{data, size} == std::string_view{other.data, other.size};
     }
@@ -49,7 +50,14 @@ struct StringSpan
     {
         return StringSpan{.data = str.data(), .size = str.size()};
     }
+
+    [[nodiscard]] static StringSpan from_cstring(const char* const str) noexcept
+    {
+        return StringSpan{.data = str, .size = std::strlen(str)};
+    }
 };
+
+[[nodiscard]] char* duplicate_to_cstring(StringSpan ss);
 
 static_assert(StringSpan::from_literal("").size == 0);
 static_assert(std::is_trivial_v<StringSpan>);

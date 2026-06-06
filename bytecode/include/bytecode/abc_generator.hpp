@@ -32,7 +32,7 @@ private:
     [[nodiscard]] std::unique_ptr<vm::Argument> make_argument(const Expr& expr);
     [[nodiscard]] vm::StringID intern_string_literal(const ConstStringExpr& string_expr);
     [[nodiscard]] vm::StringID intern_progfunc_name(const ProgFuncExpr& progfunc_expr);
-    [[nodiscard]] vm::LibFuncId intern_libfunc_name(const LibFuncExpr& libfunc_expr);
+    [[nodiscard]] vm::LibFuncId retrieve_libfunc_id(const LibFuncExpr& libfunc_expr);
 
     [[nodiscard]] CodeAddress next_instruction_label() const noexcept
     {

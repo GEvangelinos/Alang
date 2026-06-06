@@ -6,6 +6,7 @@ add_library(alpha_core_impl STATIC
     src/source_location.cpp
     src/source_location_tracker.cpp
     src/translation_unit_buffer.cpp
+    src/string_span.cpp
     src/ir/ir_expr.cpp
     src/bytecode/vm_opcodes.cpp
 )

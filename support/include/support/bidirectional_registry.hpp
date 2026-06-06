@@ -15,16 +15,16 @@ concept Hashable = requires(T a)
     { std::hash<T>{}(a) } -> std::convertible_to<std::size_t>;
 };
 
-template <Hashable KeyType, typename IdType>
-    requires std::is_integral_v<IdType> && std::is_unsigned_v<IdType>
+template <Hashable MappedType, typename IndexedType>
+    requires std::is_integral_v<IndexedType> && std::is_unsigned_v<IndexedType>
 class BidirectionalRegistry
 
 {
 public:
-    [[nodiscard]] IdType reg(const KeyType& content)
+    [[nodiscard]] IndexedType reg(const MappedType& content)
     {
         DMASSERT(id_map.size() == value_registry.size());
-        const IdType new_id = id_map.size();
+        const IndexedType new_id = id_map.size();
         const auto [it, inserted] = id_map.try_emplace(content, new_id);
         if (inserted)
         {
@@ -34,13 +34,13 @@ public:
         return it->second;
     }
 
-    [[nodiscard]] const KeyType* get_by_id(const IdType id) const
+    [[nodiscard]] const MappedType* get_by_indexed_type(const IndexedType id) const
     {
         const auto index = static_cast<std::size_t>(id);
         return index < value_registry.size() ? &value_registry[index] : nullptr;
     }
 
-    [[nodiscard]] std::optional<IdType> get_id_of(const KeyType& content) const
+    [[nodiscard]] std::optional<IndexedType> get_index_of(const MappedType& content) const
     {
         if (const auto it = id_map.find(content); it != id_map.end())
             return it->second;
@@ -53,8 +53,8 @@ public:
     [[nodiscard]] const auto& from_value_view() const noexcept { return value_registry; }
 
 private:
-    std::unordered_map<KeyType, IdType> id_map;
-    std::vector<KeyType> value_registry;
+    std::unordered_map<MappedType, IndexedType> id_map;
+    std::vector<MappedType> value_registry;
 };
 } // namespace alpha::support
 #endif //BIDIRECTIONAL_REGISTRY_HPP

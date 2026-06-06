@@ -115,10 +115,10 @@ struct RetvalArgument : public Argument
 
 struct ProgramFuncArgument : public Argument
 {
-    const CodeAddress address;
+    const u32 func_idx;
 
-    explicit ProgramFuncArgument(const CodeAddress func_address)
-        : Argument{Type::PROGRAMFUNC}, address(func_address) {}
+    explicit ProgramFuncArgument(const u32 func_idx)
+        : Argument{Type::PROGRAMFUNC}, func_idx(func_idx) {}
 };
 
 struct LibFuncArgument : public Argument

@@ -270,16 +270,16 @@ Machine::execute_equality_branch(const vm::Instruction& inst)
     const vm::Memcell& rv1 = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
     const vm::Memcell& rv2 = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2.get(), &reg_b_));
 
-    bool result = false;
+    bool condition = false;
     if (rv1.type == Memcell::Type::UNDEF || rv2.type == Memcell::Type::UNDEF)
     {
         error("Undef involved in equality operator.");
         return;
     }
     if (rv1.type == Memcell::Type::BOOL || rv2.type == Memcell::Type::BOOL)
-        result = rv1.to_bool() == rv2.to_bool();
+        condition = rv1.to_bool() == rv2.to_bool();
     else if (rv1.type == Memcell::Type::NIL || rv2.type == Memcell::Type::NIL)
-        result = rv1.type == Memcell::Type::NIL && rv2.type == Memcell::Type::NIL;
+        condition = rv1.type == Memcell::Type::NIL && rv2.type == Memcell::Type::NIL;
     else if (rv1.type != rv2.type)
     {
         error(FMT::format("{} == {} is illegal", to_string(rv1.type), to_string(rv2.type)));
@@ -294,22 +294,22 @@ Machine::execute_equality_branch(const vm::Instruction& inst)
         case Memcell::Type::NIL:
         case Memcell::Type::BOOL: DMASSERT(false && "Should be already caught above");
         case Memcell::Type::INT:
-            result = rv1.data.int_value == rv2.data.int_value;
+            condition = rv1.data.int_value == rv2.data.int_value;
             break;
         case Memcell::Type::FLOAT:
-            result = rv1.data.float_value == rv2.data.float_value;
+            condition = rv1.data.float_value == rv2.data.float_value;
             break;
         case Memcell::Type::STRING:
-            result = std::strcmp(rv1.data.str_value, rv2.data.str_value) == 0;
+            condition = std::strcmp(rv1.data.str_value, rv2.data.str_value) == 0;
             break;
         case Memcell::Type::TABLE:
-            result = rv1.data.table_value == rv2.data.table_value; // We compare ADDRESS SIZE
+            condition = rv1.data.table_value == rv2.data.table_value; // We compare ADDRESS SIZE
             break;
         case Memcell::Type::PROGFUNC:
-            result = rv1.data.progfunc_address == rv2.data.progfunc_address;
+            condition = rv1.data.progfunc_index == rv2.data.progfunc_index;
             break;
         case Memcell::Type::LIBFUNC:
-            result = std::strcmp(rv1.data.libfunc_name, rv2.data.libfunc_name) == 0;
+            condition = std::strcmp(rv1.data.libfunc_name, rv2.data.libfunc_name) == 0;
             break;
         default: DMASSERT(false && "Uknown vm::Memcel::Type");
         }
@@ -317,7 +317,7 @@ Machine::execute_equality_branch(const vm::Instruction& inst)
 
 
     DMASSERT(inst.result->type == Argument::Type::LABEL);
-    if (result)
+    if (condition)
         pc_ = static_cast<const LabelArgument*>(inst.result.get())->value.value;
 }
 } // namespace alpha::vm

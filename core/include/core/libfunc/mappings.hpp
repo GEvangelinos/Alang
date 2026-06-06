@@ -14,11 +14,10 @@ static constexpr std::array k_library_functions_names{
     #undef  X
 };
 
-[[nodiscard]] inline std::optional<LibFuncId>
+[[nodiscard]] constexpr std::optional<LibFuncId>
 get_libfunc_id(const StringSpan libfunc_name)
 {
-    for (decltype(k_library_functions_names)::size_type i = 0; i < k_library_functions_names.size();
-         ++i)
+    for (std::size_t i = 0; i < k_library_functions_names.size(); ++i)
     {
         const StringSpan ith_name = k_library_functions_names[i];
         if (libfunc_name == ith_name)
@@ -27,10 +26,10 @@ get_libfunc_id(const StringSpan libfunc_name)
     return std::nullopt;
 }
 
-[[nodiscard]] inline std::optional<StringSpan>
+[[nodiscard]] consteval std::optional<StringSpan>
 get_libfunc_name(LibFuncId libfunc_id)
 {
-    const auto libfunc_idx = static_cast<std::underlying_type_t<LibFuncId>>(libfunc_id);
+    const auto libfunc_idx = static_cast<LibFuncIdUT>(libfunc_id);
     if (libfunc_idx < k_library_functions_names.size())
         return k_library_functions_names[libfunc_idx];
     return std::nullopt;

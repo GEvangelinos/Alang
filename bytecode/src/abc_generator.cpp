@@ -8,7 +8,6 @@
 
 namespace alpha
 {
-
 vm::StringID
 ABC_Generator::intern_string_literal(const ConstStringExpr& string_expr)
 {
@@ -23,10 +22,9 @@ ABC_Generator::intern_progfunc_name(const ProgFuncExpr& progfunc_expr)
 
 
 vm::LibFuncId
-ABC_Generator::intern_libfunc_name(const LibFuncExpr& libfunc_expr)
+ABC_Generator::retrieve_libfunc_id(const LibFuncExpr& libfunc_expr)
 {
     const auto libfunc_name = libfunc_expr.libfunc_symbol->name;
-    result_.libfunc_name_table.emplace(libfunc_name);
     const std::optional<vm::LibFuncId> libfunc_id = vm::get_libfunc_id(libfunc_name);
     DMASSERT(libfunc_id.has_value());
     return *libfunc_id;
@@ -54,12 +52,18 @@ ABC_Generator::make_argument(const Expr& expr)
         return std::make_unique<ConstNilArgument>();
     case ET::LIBRARY_FUNCTION:
         return std::make_unique<LibFuncArgument>(
-            intern_libfunc_name(static_cast<const LibFuncExpr&>(expr))
-            );
-    case ET::PROGRAM_FUNCTION:
-        return std::make_unique<ProgramFuncArgument>(
-            DEBUG_REQUIRE_PTR(static_cast<const ProgFuncExpr&>(expr).progfunc_symbol)->address
+            retrieve_libfunc_id(static_cast<const LibFuncExpr&>(expr))
         );
+    case ET::PROGRAM_FUNCTION:
+        {
+            const auto address =
+                DEBUG_REQUIRE_PTR(static_cast<const ProgFuncExpr&>(expr).progfunc_symbol)->address;
+            const std::optional<unsigned> progfunc_idx =
+                result_.progfunc_registry.get_index_of(address.value);
+            DMASSERT(
+                !!progfunc_idx && "ProgramFunc must always exist by the time its requested here");
+            return std::make_unique<ProgramFuncArgument>(*progfunc_idx);
+        }
     case ET::ARITHMETIC:
     case ET::ASSIGN:
     case ET::BOOL:
@@ -166,6 +170,7 @@ ABC_Generator::generate_funcstart(const ir::Quad& quad)
     const auto& fn_expr = *DEBUG_REQUIRE_PTR(static_cast<const ProgFuncExpr *>(quad.arg1));
     const auto& fn_sym = *DEBUG_REQUIRE_PTR(fn_expr.progfunc_symbol);
     DMASSERT(fn_sym.stackframe_slot_count.is_assigned());
+    (void) result_.progfunc_registry.reg(fn_sym.address.value);
     result_.progfuncs.emplace_back(
         intern_progfunc_name(fn_expr),
         fn_sym.address,

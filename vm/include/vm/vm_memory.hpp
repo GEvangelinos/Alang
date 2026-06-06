@@ -42,7 +42,7 @@ struct Memcell
         const char* str_value;
         bool bool_value;
         Table* table_value;
-        CodeAddress::UnderlyingType progfunc_address;
+        u32 progfunc_index;
         const char* libfunc_name;
         // TODO "For libfuncs name to int index translation would be better, so we dont have to hash libfuncs every time..."
     } data;

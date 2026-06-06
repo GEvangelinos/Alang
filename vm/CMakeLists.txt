@@ -14,6 +14,7 @@ add_library(alpha_vm_impl STATIC
 )
 target_link_libraries(alpha_vm_impl PRIVATE
     alpha_vm_api
+    alpha_bytecode_api
     support_api
 )
 
