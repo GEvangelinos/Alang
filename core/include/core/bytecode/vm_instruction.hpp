@@ -1,6 +1,8 @@
 #ifndef VM_INSTRUCTION_HPP
 #define VM_INSTRUCTION_HPP
 
+#include <memory>
+
 #include "vm_opcodes.hpp"
 #include "core/code_address.hpp"
 #include "core/machine_types.hpp"
@@ -115,7 +117,7 @@ struct ProgramFuncArgument : public Argument
 {
     const CodeAddress address;
 
-    explicit ProgramFuncArgument( const CodeAddress func_address)
+    explicit ProgramFuncArgument(const CodeAddress func_address)
         : Argument{Type::PROGRAMFUNC}, address(func_address) {}
 };
 
@@ -130,9 +132,9 @@ struct LibFuncArgument : public Argument
 struct Instruction
 {
     const vm::Opcode opcode;
-    const vm::Argument* result;
-    const vm::Argument* arg1;
-    const vm::Argument* arg2;
+    std::unique_ptr<vm::Argument> result;
+    std::unique_ptr<vm::Argument> arg1;
+    std::unique_ptr<vm::Argument> arg2;
     const SourceLocation loc;
 };
 } // namespace alpha::vm

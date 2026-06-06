@@ -1279,7 +1279,8 @@ FunctionBuilder::Restricted::build_program_function_exit(
             nullptr,
             expr_maker_->make_prog_func_expr(block_loc.end_raw_loc, fbi.func_symbol),
             nullptr,
-            block_loc.end_raw_loc);
+            block_loc.end_raw_loc
+            );
     }
     quad_handler_->labelPatch_quad(fbi.funcdef_skip_jump, quad_handler_->next_quad_label());
     parse_ctx_->space_handler.exit_space();

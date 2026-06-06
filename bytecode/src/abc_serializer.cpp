@@ -195,9 +195,9 @@ serialize_libfuncs(
 static void
 serialize_progfuncs(
     std::vector<u8>& abc_buffer,
-    const std::vector<vm::Program::ProgFunc>& progfuncs)
+    const std::vector<vm::ProgFunc>& progfuncs)
 {
-    for (const vm::Program::ProgFunc& func : progfuncs)
+    for (const vm::ProgFunc& func : progfuncs)
     {
         static_assert(sizeof(func) < 32, "If false capture by reference");
         store_little_endian(abc_buffer, func.name_str_id);
@@ -243,6 +243,13 @@ serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument* const arg)
 }
 
 static void
+serialize_source_location(std::vector<u8>& abc_buffer, const SourceLocation loc)
+{
+    store_little_endian(abc_buffer, loc.begin.value);
+    store_little_endian(abc_buffer, loc.end.value);
+}
+
+static void
 serialize_instructions(std::vector<u8>& abc_buffer, const vm::Program& program)
 {
     for (const vm::Instruction& inst : program.instructions)
@@ -250,14 +257,10 @@ serialize_instructions(std::vector<u8>& abc_buffer, const vm::Program& program)
         using OpcodeUT = std::underlying_type_t<decltype(inst.opcode)>;
         static_assert(std::is_same_v<OpcodeUT, u8>, "Following push is wrong");
         abc_buffer.push_back(static_cast<OpcodeUT>(inst.opcode));
-
-        // Serialize location.
-        store_little_endian(abc_buffer, inst.loc.begin.value);
-        store_little_endian(abc_buffer, inst.loc.end.value);
-
-        serialize_vm_argument(abc_buffer, inst.result);
-        serialize_vm_argument(abc_buffer, inst.arg1);
-        serialize_vm_argument(abc_buffer, inst.arg2);
+        serialize_source_location(abc_buffer, inst.loc);
+        serialize_vm_argument(abc_buffer, inst.result.get());
+        serialize_vm_argument(abc_buffer, inst.arg1.get());
+        serialize_vm_argument(abc_buffer, inst.arg2.get());
     }
 }
 
@@ -337,6 +340,7 @@ ABC_Serializer::serialize(const vm::Program& program)
     serialize_instructions(abc_buffer, program);
     data_sections.instructions.size = abc_buffer.size() - data_sections.instructions.offset;
 
+    add_padding_and_debug_zone(abc_buffer);
     // Backpatch header:
     serialize_header(abc_buffer, program, data_sections);
     return abc_buffer;

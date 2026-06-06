@@ -165,7 +165,8 @@ Machine::execute_cycle()
         ++pc_;
 }
 
-void Machine::run()
+void
+Machine::run()
 {
     while (!execution_finished_)
         execute_cycle();
@@ -205,7 +206,7 @@ void Machine::Stack::save_call_environment(const AlphaInt pc, const AlphaInt tot
 }
 
 void
-Machine::Stack::add_function_environment(const Program::ProgFunc& func_info)
+Machine::Stack::add_function_environment(const ProgFunc& func_info)
 {
     topsp_ = top_;
     top_ -= func_info.local_size;
@@ -255,11 +256,11 @@ Machine::Stack::get_environment_value(const u32 stack_idx) const noexcept
 
 
 void
-Machine::execute_assign(vm::Instruction& inst)
+Machine::execute_assign(const vm::Instruction& inst)
 {
     DMASSERT(!inst.arg2);
-    Memcell* const lv = DEBUG_REQUIRE_PTR(translate_operand(inst.result, nullptr));
-    const Memcell* const rv = DEBUG_REQUIRE_PTR(translate_operand(inst.arg1, &reg_a_));
+    Memcell* const lv = DEBUG_REQUIRE_PTR(translate_operand(inst.result.get(), nullptr));
+    const Memcell* const rv = DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
     #warning "TODO The assertion from lecturen 15 , slide 18"
     assign(*lv, *rv);
 }

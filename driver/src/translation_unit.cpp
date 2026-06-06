@@ -60,8 +60,8 @@ void enter_export_directory(std::string_view dirname);
 void exit_export_directory(const std::filesystem::path& original_path);
 [[nodiscard]] std::string escape(alpha::StringSpan str);
 [[nodiscard]] std::string ensure_quote_wrapped(const std::string& str);
-[[nodiscard]] std::string expr_printer(const alpha::Expr* expr, const char* missing_marker = "");
-[[nodiscard]] std::string argument_printer(
+[[nodiscard]] std::string expr_formatter(const alpha::Expr* expr, const char* missing_marker = "");
+[[nodiscard]] std::string argument_formatter(
     const alpha::vm::Argument* a, const char* missing_marker = "");
 
 template <unsigned column, unsigned column_width, typename T>
@@ -121,7 +121,8 @@ std::string ensure_quote_wrapped(const std::string& str)
     return FMT::format("\"{}\"", str); // Add quotes around str.
 }
 
-std::string expr_printer(const alpha::Expr* expr, const char* const missing_marker)
+[[nodiscard]] std::string
+expr_formatter(const alpha::Expr* expr, const char* const missing_marker)
 {
     using namespace alpha;
     if (!expr) return missing_marker;
@@ -162,12 +163,13 @@ std::string expr_printer(const alpha::Expr* expr, const char* const missing_mark
     }
 }
 
-std::string argument_printer(
+std::string argument_formatter(
     const alpha::vm::Argument* const a,
     const char* const missing_marker)
 {
     using namespace alpha;
-    if (!a) return missing_marker;
+    if (!a)
+        return missing_marker;
     using AT = vm::Argument::Type;
 
     switch (a->type)
@@ -296,9 +298,9 @@ void print_ir(
             "{0} {1} {2} {3} {4} {5} {6} {7}\n",
             format_column<Colorize, 0, widths[0]>(i + 1), // +1 as, 0 is indicating no-address
             format_column<Colorize, 1, widths[1]>(to_string(q.opcode)),
-            format_column<Colorize, 2, widths[2]>(expr_printer(q.result)),
-            format_column<Colorize, 3, widths[3]>(expr_printer(q.arg1)),
-            format_column<Colorize, 4, widths[4]>(expr_printer(q.arg2)),
+            format_column<Colorize, 2, widths[2]>(expr_formatter(q.result)),
+            format_column<Colorize, 3, widths[3]>(expr_formatter(q.arg1)),
+            format_column<Colorize, 4, widths[4]>(expr_formatter(q.arg2)),
             format_column<Colorize, 5, widths[5]>(quad_label_str),
             format_column<Colorize, 6, widths[6]>(quad_line_str),
             format_column<Colorize, 7, widths[7]>(print_detailed && q.is_dead ? "DEAD" : "")
@@ -390,8 +392,8 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
 
     for (alpha::u32 i = 0; i < program.instructions.size(); ++i)
     {
-        const auto& c = program.instructions[i];
-        const auto [first_line, last_line] = lt.find_lines(c.loc);
+        const auto& inst = program.instructions[i];
+        const auto [first_line, last_line] = lt.find_lines(inst.loc);
         const std::string quad_line_str =
             first_line == last_line
             ? std::to_string(first_line.value)
@@ -399,10 +401,10 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
         out << FMT::format(
             "{0} {1} {2} {3} {4} {5}\n",
             format_column<Colorize, 0, widths[0]>(i + 1), // +1 as, 0 is indicating no-address
-            format_column<Colorize, 1, widths[1]>(to_string(c.opcode)),
-            format_column<Colorize, 2, widths[2]>(argument_printer(c.result)),
-            format_column<Colorize, 3, widths[3]>(argument_printer(c.arg1)),
-            format_column<Colorize, 4, widths[4]>(argument_printer(c.arg2)),
+            format_column<Colorize, 1, widths[1]>(to_string(inst.opcode)),
+            format_column<Colorize, 2, widths[2]>(argument_formatter(inst.result.get())),
+            format_column<Colorize, 3, widths[3]>(argument_formatter(inst.arg1.get())),
+            format_column<Colorize, 4, widths[4]>(argument_formatter(inst.arg2.get())),
             format_column<Colorize, 5, widths[5]>(quad_line_str)
         );
     }
@@ -748,9 +750,9 @@ TranslationUnit::export_ir() const
                 "{0},{1},{2},{3},{4},{5},{6},{7}\n",
                 quad_no,
                 to_string(q.opcode),
-                expr_printer(q.result, k_not_available_marker),
-                expr_printer(q.arg1, k_not_available_marker),
-                expr_printer(q.arg2, k_not_available_marker),
+                expr_formatter(q.result, k_not_available_marker),
+                expr_formatter(q.arg1, k_not_available_marker),
+                expr_formatter(q.arg2, k_not_available_marker),
                 quad_label_str,
                 first_line.value,
                 last_line.value

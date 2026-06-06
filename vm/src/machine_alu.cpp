@@ -180,14 +180,13 @@ namespace alpha::vm
 {
 template <Opcode first, Opcode last>
 std::optional<Machine::DecodedOperands>
-Machine::decode_arithmetic_operands(const vm::Instruction* inst)
+Machine::decode_arithmetic_operands(const vm::Instruction& inst)
 {
-    DMASSERT(!!inst);
-    const auto inst_opcode = inst->opcode;
+    const auto inst_opcode = inst.opcode;
     DMASSERT(inst_opcode >= first, inst_opcode <= last);
 
-    const vm::Memcell& rv1 = *DEBUG_REQUIRE_PTR(translate_operand(inst->arg1, &reg_a_));
-    const vm::Memcell& rv2 = *DEBUG_REQUIRE_PTR(translate_operand(inst->arg2, &reg_b_));
+    const vm::Memcell& rv1 = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
+    const vm::Memcell& rv2 = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2.get(), &reg_b_));
 
     if (!(rv1.is_arithmetic() && rv2.is_arithmetic())) [[unlikely]]
     {
@@ -227,7 +226,7 @@ Machine::decode_arithmetic_operands(const vm::Instruction* inst)
 validate_instruction(const vm::Instruction* const inst) {}
 
 void
-Machine::execute_arithmetic(const vm::Instruction* const inst)
+Machine::execute_arithmetic(const vm::Instruction& inst)
 {
     const std::optional<DecodedOperands> operands =
         decode_arithmetic_operands<Opcode::ADD, Opcode::MOD>(inst);
@@ -236,16 +235,15 @@ Machine::execute_arithmetic(const vm::Instruction* const inst)
     const auto handler =
         ALU::Arithmetic::arith_dispatch_table[operands->op_idx][operands->t1_idx][operands->t2_idx];
 
-    vm::Memcell& lv = *DEBUG_REQUIRE_PTR(translate_operand(inst->result, nullptr));
+    vm::Memcell& lv = *DEBUG_REQUIRE_PTR(translate_operand(inst.result.get(), nullptr));
     lv.clear();
     try { handler(lv, operands->rv1, operands->rv2); }
     catch (const ALU::Arithmetic::DivisionByZero&) { error("Division by 0"); }
 }
 
 void
-Machine::execute_relational_branch(const vm::Instruction* const inst)
+Machine::execute_relational_branch(const vm::Instruction& inst)
 {
-    DMASSERT(!!inst);
     const std::optional<DecodedOperands> operands =
         decode_arithmetic_operands<Opcode::JLT, Opcode::JGE>(inst);
     if (!operands)
@@ -256,9 +254,10 @@ Machine::execute_relational_branch(const vm::Instruction* const inst)
     const bool should_take_branch = handler(operands->rv1, operands->rv2);
     if (should_take_branch)
     {
-        DMASSERT(!!inst->result);
-        DMASSERT(inst->result->type == Argument::Type::LABEL);
-        const CodeAddress branch_target = static_cast<const LabelArgument*>(inst->result)->value;
+        DMASSERT(!!inst.result);
+        DMASSERT(inst.result->type == Argument::Type::LABEL);
+        const CodeAddress branch_target =
+            static_cast<const LabelArgument*>(inst.result.get())->value;
         pc_ = branch_target.value;
     }
 }
@@ -268,8 +267,8 @@ Machine::execute_equality_branch(const vm::Instruction& inst)
 {
     DMASSERT(!!inst.result);
 
-    const vm::Memcell& rv1 = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1, &reg_a_));
-    const vm::Memcell& rv2 = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2, &reg_b_));
+    const vm::Memcell& rv1 = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
+    const vm::Memcell& rv2 = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2.get(), &reg_b_));
 
     bool result = false;
     if (rv1.type == Memcell::Type::UNDEF || rv2.type == Memcell::Type::UNDEF)
@@ -314,12 +313,11 @@ Machine::execute_equality_branch(const vm::Instruction& inst)
             break;
         default: DMASSERT(false && "Uknown vm::Memcel::Type");
         }
-        // DISPATCH here SAME TYPE equality check.
     }
 
 
     DMASSERT(inst.result->type == Argument::Type::LABEL);
     if (result)
-        pc_ = static_cast<const LabelArgument*>(inst.result)->value.value;
+        pc_ = static_cast<const LabelArgument*>(inst.result.get())->value.value;
 }
 } // namespace alpha::vm

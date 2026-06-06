@@ -40,11 +40,11 @@ public:
 
     void execute_cycle();
 
-    void execute_assign(vm::Instruction& inst);
-    void execute_call(vm::Instruction& inst);
+    void execute_assign(const vm::Instruction& inst);
+    void execute_call(const vm::Instruction& inst);
     void call_functor(vm::Table* table);
-    void execute_funcenter(vm::Instruction* inst);
-    void execute_pusharg(vm::Instruction* inst);
+    void execute_funcenter(const vm::Instruction &inst);
+    void execute_pusharg(const vm::Instruction & inst);
     void execute_newtable(const vm::Instruction& inst);
     void execute_tablegetelem(const vm::Instruction&inst);
     void execute_tablesetelem(const vm::Instruction& inst);
@@ -59,14 +59,14 @@ public:
     };
 
     template <vm::Opcode first, vm::Opcode last>
-    [[nodiscard]] std::optional<DecodedOperands> decode_arithmetic_operands(const vm::Instruction* inst);
-    void execute_arithmetic(const vm::Instruction* inst);
-    void execute_relational_branch(const vm::Instruction* inst);
+    [[nodiscard]] std::optional<DecodedOperands> decode_arithmetic_operands(const vm::Instruction& inst);
+    void execute_arithmetic(const vm::Instruction& inst);
+    void execute_relational_branch(const vm::Instruction&  inst);
     void execute_equality_branch(const vm::Instruction& inst);
 
 
     // inst is unused, but we require for uniformity anyway.
-    void execute_funcexit([[maybe_unused]] vm::Instruction* unused);
+    void execute_funcexit([[maybe_unused]] const vm::Instruction& unused);
 
     void on_stack_overflow();
 
@@ -84,7 +84,7 @@ private:
         [[nodiscard]] auto size() const noexcept { return size_; }
         void push_env_value(AlphaInt value);
         void save_call_environment(AlphaInt pc, AlphaInt total_actuals);
-        void add_function_environment(const Program::ProgFunc& func_info);
+        void add_function_environment(const ProgFunc& func_info);
         [[nodiscard]] AlphaInt get_environment_value(u32 stack_idx) const noexcept;
         [[nodiscard]] auto top() const noexcept { return top_; }
         [[nodiscard]] auto topsp() const noexcept { return topsp_; }

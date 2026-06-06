@@ -1,15 +1,8 @@
 #ifndef SOURCE_LOCATION_HPP
 #define SOURCE_LOCATION_HPP
 
-#include <vector>               // for vector
-
-#include "source_location.hpp"
-#include "source_location.hpp"
-#include "source_location.hpp"
-#include "source_location.hpp"
 #include "source_location.hpp"
 #include "core/basics.hpp"
-#include "core/numeric_types.hpp" // for u32
 #include "core/source_location_types.hpp"
 
 namespace alpha
@@ -62,10 +55,7 @@ SourceLocation::SourceLocation(const SrcBuffIdx begin, const SrcBuffIdx end)
 
 constexpr
 SourceLocation::SourceLocation(const SourceLocationRaw raw_loc)
-    : begin(SrcBuffIdx{raw_loc.begin}), end(SrcBuffIdx{raw_loc.end})
-{
-    DMASSERT(is_valid());
-}
+    : begin(SrcBuffIdx{raw_loc.begin}), end(SrcBuffIdx{raw_loc.end}) { DMASSERT(is_valid()); }
 
 inline SourceLocationRaw
 SourceLocation::to_raw() { return {.begin = begin.value, .end = end.value}; }

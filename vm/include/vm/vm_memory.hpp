@@ -110,11 +110,11 @@ Memcell::clear()
         this->type = Type::UNDEF;
         return;
     case Type::STRING:
-        clear_string();
+        // clear_string();
         DMASSERT(false);
         break;
     case Type::TABLE:
-        clear_table();
+        // clear_table();
         DMASSERT(false);
         break;
     default: DMASSERT(false && "Unknown Memcell::Type");

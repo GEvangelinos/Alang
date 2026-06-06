@@ -2,6 +2,8 @@
 #define ABC_LOADER_HPP
 
 #include <vector>
+
+#include "executable.hpp"
 #include "core/numeric_types.hpp"
 
 namespace alpha
@@ -9,7 +11,7 @@ namespace alpha
 class ABC_Loader
 {
 public:
-    [[nodiscard]] static int load(const std::vector<u8> &byte_buffer);
+    [[nodiscard]] static vm::Executable load(const std::vector<u8> &byte_buffer);
 
 private:
     ABC_Loader() = default;

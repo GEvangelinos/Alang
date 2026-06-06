@@ -29,9 +29,9 @@ private:
 
     [[nodiscard]] vm::Program build_program(const ir::QuadStream& program_ir_quads) &&;
 
-    [[nodiscard]] const vm::Argument* make_argument(const Expr& expr);
-    [[nodiscard]] vm::Program::StringID intern_string_literal(const ConstStringExpr& string_expr);
-    [[nodiscard]] vm::Program::StringID intern_progfunc_name(const ProgFuncExpr& progfunc_expr);
+    [[nodiscard]] std::unique_ptr<vm::Argument> make_argument(const Expr& expr);
+    [[nodiscard]] vm::StringID intern_string_literal(const ConstStringExpr& string_expr);
+    [[nodiscard]] vm::StringID intern_progfunc_name(const ProgFuncExpr& progfunc_expr);
     [[nodiscard]] vm::LibFuncId intern_libfunc_name(const LibFuncExpr& libfunc_expr);
 
     [[nodiscard]] CodeAddress next_instruction_label() const noexcept
@@ -41,7 +41,7 @@ private:
     }
 
     template <ir::Opcode ir_quad_opcode, ir::info_traits::Requirement (*trait_func)(ir::Opcode)>
-    [[nodiscard]] const vm::Argument* extract_operant_by_requirement_trait(const Expr* e);
+    [[nodiscard]] std::unique_ptr<vm::Argument> extract_operant_by_requirement_trait(const Expr* e);
 
     template <ir::Opcode ir_opcode, vm::Opcode vm_opcode>
     void generate(const ir::Quad& q);

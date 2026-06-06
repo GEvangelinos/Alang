@@ -9,13 +9,13 @@
 namespace alpha
 {
 
-vm::Program::StringID
+vm::StringID
 ABC_Generator::intern_string_literal(const ConstStringExpr& string_expr)
 {
     return result_.str_literal_registry.reg(string_expr.value);
 }
 
-vm::Program::ProgFuncID
+vm::ProgFuncID
 ABC_Generator::intern_progfunc_name(const ProgFuncExpr& progfunc_expr)
 {
     return result_.progfunc_name_registry.reg(progfunc_expr.progfunc_symbol->name);
@@ -33,30 +33,33 @@ ABC_Generator::intern_libfunc_name(const LibFuncExpr& libfunc_expr)
 }
 
 
-const vm::Argument*
+std::unique_ptr<vm::Argument>
 ABC_Generator::make_argument(const Expr& expr)
 {
     using ET = Expr::Type;
+    using namespace alpha::vm;
     switch (expr.type)
     {
     case ET::CONST_BOOL:
-        return new vm::ConstBoolArgument{static_cast<const ConstBoolExpr&>(expr).value};
+        return std::make_unique<ConstBoolArgument>(static_cast<const ConstBoolExpr&>(expr).value);
     case ET::CONST_INT:
-        return new vm::ConstIntArgument{static_cast<const ConstIntExpr&>(expr).value};
+        return std::make_unique<ConstIntArgument>(static_cast<const ConstIntExpr&>(expr).value);
     case ET::CONST_FLOAT:
-        return new vm::ConstFloatArgument{static_cast<const ConstFloatExpr&>(expr).value};
+        return std::make_unique<ConstFloatArgument>(static_cast<const ConstFloatExpr&>(expr).value);
     case ET::CONST_STRING:
-        return new vm::ConstStringArgument{
+        return std::make_unique<ConstStringArgument>(
             intern_string_literal(static_cast<const ConstStringExpr&>(expr))
-        };
+        );
     case ET::CONST_NIL:
-        return new vm::ConstNilArgument{};
+        return std::make_unique<ConstNilArgument>();
     case ET::LIBRARY_FUNCTION:
-        return new vm::LibFuncArgument{intern_libfunc_name(static_cast<const LibFuncExpr&>(expr))};
+        return std::make_unique<LibFuncArgument>(
+            intern_libfunc_name(static_cast<const LibFuncExpr&>(expr))
+            );
     case ET::PROGRAM_FUNCTION:
-        return new vm::ProgramFuncArgument{
+        return std::make_unique<ProgramFuncArgument>(
             DEBUG_REQUIRE_PTR(static_cast<const ProgFuncExpr&>(expr).progfunc_symbol)->address
-        };
+        );
     case ET::ARITHMETIC:
     case ET::ASSIGN:
     case ET::BOOL:
@@ -66,9 +69,12 @@ ABC_Generator::make_argument(const Expr& expr)
         DMASSERT(expr.has_var_symbol());
         switch (const auto var = static_cast<const ExprWVarSymbol&>(expr).var_symbol; var->space)
         {
-        case VarSymbol::Space::PROGRAM_VAR: return new vm::GlobalVariableArgument{var->offset};
-        case VarSymbol::Space::FUNCTION_LOCAL: return new vm::LocalVariableArgument{var->offset};
-        case VarSymbol::Space::FORMAL_ARGUMENT: return new vm::FormalVariableArgument{var->offset};
+        case VarSymbol::Space::PROGRAM_VAR:
+            return std::make_unique<GlobalVariableArgument>(var->offset);
+        case VarSymbol::Space::FUNCTION_LOCAL:
+            return std::make_unique<LocalVariableArgument>(var->offset);
+        case VarSymbol::Space::FORMAL_ARGUMENT:
+            return std::make_unique<FormalVariableArgument>(var->offset);
         default: DEBUG_UNREACHABLE("Unknown VarSymbol::Space");
         }
     default:
@@ -77,15 +83,16 @@ ABC_Generator::make_argument(const Expr& expr)
 }
 
 template <ir::Opcode ir_quad_opcode, ir::info_traits::Requirement (*trait_func)(ir::Opcode)>
-const vm::Argument*
-ABC_Generator::extract_operant_by_requirement_trait(const Expr* const e)
+std::unique_ptr<vm::Argument>
+ABC_Generator::extract_operant_by_requirement_trait(
+    const Expr* const e)
 {
     namespace IIT = ir::info_traits;
     constexpr IIT::Requirement req = trait_func(ir_quad_opcode);
     if constexpr (req == IIT::Requirement::REQUIRED)
         return make_argument(*DEBUG_REQUIRE_PTR(e));
     else if constexpr (req == IIT::Requirement::NONE)
-        return nullptr;
+        return {};
     else if constexpr (req == IIT::Requirement::OPTIONAL)
         return e ? make_argument(*e) : nullptr;
     else static_assert(always_false_v<decltype(ir_quad_opcode)>, "Unknown Requirement value");
@@ -117,7 +124,7 @@ ABC_Generator::generate_relational(const ir::Quad& q)
     target_addresses_.push_back(next_instruction_label());
     result_.instructions.emplace_back(
         vm_opcode,
-        new vm::LabelArgument{q.label},
+        std::make_unique<vm::LabelArgument>(q.label),
         extract_operant_by_requirement_trait<ir_opcode, IIT::arg1>(q.arg1),
         extract_operant_by_requirement_trait<ir_opcode, IIT::arg2>(q.arg2),
         q.loc
@@ -145,7 +152,7 @@ ABC_Generator::generate_getretval(const ir::Quad& q)
     DMASSERT(q.opcode == ir::Opcode::GETRETVAL);
     generate<ir::Opcode::GETRETVAL, vm::Opcode::ASSIGN>(q);
     DMASSERT(!result_.instructions.empty() && !result_.instructions.back().arg1);
-    result_.instructions.back().arg1 = new vm::RetvalArgument{};
+    result_.instructions.back().arg1 = std::make_unique<vm::RetvalArgument>();
 }
 
 void
@@ -175,7 +182,7 @@ ABC_Generator::generate_return(const ir::Quad& quad)
     // We generate the 1st instruction `ASSIGN`:
     generate<ir::Opcode::RETURN, vm::Opcode::ASSIGN>(quad);
     DMASSERT(!result_.instructions.empty() && !result_.instructions.back().result);
-    result_.instructions.back().result = new vm::RetvalArgument{};
+    result_.instructions.back().result = std::make_unique<vm::RetvalArgument>();
 }
 
 vm::Program

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "../include/vm/machine.hpp"
 #include "arguinator/arguinator.hpp"
 #include "support/cli_color.h"
 #include "core/numeric_types.hpp"
@@ -31,9 +32,11 @@ int main(const int argc, char** argv)
         const uintmax_t filesize = std::filesystem::file_size(cli_parser["source"].get_input());
         std::vector<alpha::u8> abc_buffer(filesize);
         infile.read(reinterpret_cast<char*>( abc_buffer.data()), filesize);
-        for (char c : abc_buffer)
-            std::cout << "C == " << int( c) <<  std::endl;
-        alpha::ABC_Loader::load(abc_buffer);
+        const alpha::vm::Executable executable = alpha::ABC_Loader::load(abc_buffer);
+
+
+        alpha::vm::Machine machine{alpha::vm::Bytes::from_KB(128)};
+        machine.run();
     }
 
 
