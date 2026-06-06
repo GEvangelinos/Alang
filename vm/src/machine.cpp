@@ -2,6 +2,7 @@
 
 #include <alpha_parser.gen.hpp>
 
+#include "../../bytecode/include/bytecode/executable.hpp"
 #include "core/bytecode/vm_program.hpp"
 #include "L2_semantic_subsystems/core/expr_maker.hpp"
 #include "vm/vm_memory.hpp"
@@ -69,8 +70,10 @@ Machine::Stack::push_env_value(const AlphaInt value)
 }
 
 
-Machine::Machine(const Bytes stack_size)
-    : stack_(stack_size.count, [this]() { on_stack_overflow(); }) {}
+Machine::Machine(const Bytes stack_size, const vm::Executable& exe)
+    : stack_(stack_size.count, [this]() { on_stack_overflow(); }),
+      code_(exe.instructions.data()),
+      exe_(exe) {}
 
 void Machine::on_stack_overflow() { error("StackOverflow"); }
 
@@ -80,11 +83,12 @@ Machine::translate_operand(const vm::Argument* const arg, Memcell* const reg)
 {
     DMASSERT(!!arg);
 
-    DMASSERT((
-            arg->type != Argument::Type::GLOBAL &&
-            arg->type != Argument::Type::LOCAL &&
-            arg->type != Argument::Type::FORMAL &&
-            arg->type != Argument::Type::RETVAL) || reg
+    DMASSERT(
+        arg->type == Argument::Type::LOCAL ||
+        arg->type == Argument::Type::FORMAL ||
+        arg->type == Argument::Type::GLOBAL ||
+        arg->type == Argument::Type::RETVAL ||
+        reg
     );
     switch (arg->type)
     {
@@ -146,21 +150,22 @@ Machine::execute_cycle()
 {
     if (execution_finished_)
         return;
-    if (pc_ == ending_pc())
+    if (pc_ == exe_.instructions.size())
     {
         execution_finished_.raise();
         return;
     }
-    DMASSERT(pc_ < ending_pc());
-    vm::Instruction* const instr = code_ + pc_;
+    DMASSERT(pc_ < exe_.instructions.size());
+    const vm::Instruction& instr = exe_.instructions[pc_];
 
-    const auto instr_opcode_idx = static_cast<std::underlying_type_t<vm::Opcode>>(instr->opcode);
+    const auto instr_opcode_idx = static_cast<std::underlying_type_t<vm::Opcode>>(instr.opcode);
     DMASSERT(
         instr_opcode_idx >= 0,
-        instr_opcode_idx >= static_cast<std::underlying_type_t<vm::Opcode>>(vm::Opcode::__COUNT__)
+        instr_opcode_idx < static_cast<std::underlying_type_t<vm::Opcode>>(vm::Opcode::__COUNT__)
     );
     const u32 old_pc = pc_;
-    (*execute_dispatch_table_[instr_opcode_idx])(instr);
+    void (Machine::*handler)(const Instruction&) = execute_dispatch_table_[instr_opcode_idx];
+    (this->*handler)(instr);
     if (pc_ == old_pc)
         ++pc_;
 }
@@ -264,6 +269,7 @@ Machine::execute_assign(const vm::Instruction& inst)
     #warning "TODO The assertion from lecturen 15 , slide 18"
     assign(*lv, *rv);
 }
+
 //
 // void
 // Machine::call_functor(vm::Table* table)

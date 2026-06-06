@@ -35,7 +35,7 @@ int main(const int argc, char** argv)
         const alpha::vm::Executable executable = alpha::ABC_Loader::load(abc_buffer);
 
 
-        alpha::vm::Machine machine{alpha::vm::Bytes::from_KB(128)};
+        alpha::vm::Machine machine{alpha::vm::Bytes::from_KB(128), executable};
         machine.run();
     }
 

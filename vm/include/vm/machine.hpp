@@ -6,12 +6,15 @@
 #include <optional>
 
 #include "vm_memory.hpp"
+#include "../../../bytecode/include/bytecode/executable.hpp"
 #include "core/numeric_types.hpp"
 #include "core/bytecode/vm_instruction.hpp"
 #include "core/bytecode/vm_program.hpp"
 
 namespace alpha::vm
 {
+struct Executable;
+
 struct Bytes
 {
     u64 count;
@@ -27,7 +30,7 @@ struct Bytes
 class Machine
 {
 public:
-    explicit Machine(Bytes stack_size);
+    Machine(Bytes stack_size, const vm::Executable& exe);
 
     void run();
 
@@ -43,10 +46,10 @@ public:
     void execute_assign(const vm::Instruction& inst);
     void execute_call(const vm::Instruction& inst);
     void call_functor(vm::Table* table);
-    void execute_funcenter(const vm::Instruction &inst);
-    void execute_pusharg(const vm::Instruction & inst);
+    void execute_enterfunc(const vm::Instruction& inst);
+    void execute_pusharg(const vm::Instruction& inst);
     void execute_newtable(const vm::Instruction& inst);
-    void execute_tablegetelem(const vm::Instruction&inst);
+    void execute_tablegetelem(const vm::Instruction& inst);
     void execute_tablesetelem(const vm::Instruction& inst);
 
     struct DecodedOperands
@@ -59,14 +62,15 @@ public:
     };
 
     template <vm::Opcode first, vm::Opcode last>
-    [[nodiscard]] std::optional<DecodedOperands> decode_arithmetic_operands(const vm::Instruction& inst);
+    [[nodiscard]] std::optional<DecodedOperands> decode_arithmetic_operands(
+        const vm::Instruction& inst);
     void execute_arithmetic(const vm::Instruction& inst);
-    void execute_relational_branch(const vm::Instruction&  inst);
+    void execute_relational_branch(const vm::Instruction& inst);
     void execute_equality_branch(const vm::Instruction& inst);
 
 
     // inst is unused, but we require for uniformity anyway.
-    void execute_funcexit([[maybe_unused]] const vm::Instruction& unused);
+    void execute_exitfunc([[maybe_unused]] const vm::Instruction& unused);
 
     void on_stack_overflow();
 
@@ -116,20 +120,45 @@ private:
 
     Stack stack_;
     Memcell reg_a_{}, reg_b_{}, reg_c_{}, retval_{};
-    vm::Instruction* code_ = nullptr;
+    const vm::Instruction* code_ = nullptr;
+    const vm::Executable& exe_;
     u32 total_actuals_ = 0;
     u32 pc_ = 0;
     u32 curr_line_ = 0;
-    u32 code_size_ = 0;
     OnceFlag execution_finished_;
     std::ostream* out_stream_ = &std::cout;
     std::ostream* err_stream_ = &std::cerr;
 
-    [[nodiscard]] auto ending_pc() const noexcept { return code_size_; }
     void assign(Memcell& lv, const Memcell& rv);
 
-    using ExecuteFuncType = void (*)(vm::Instruction*);
-    std::array<ExecuteFuncType, 20> execute_dispatch_table_;
+    using ExecuteFuncType = void (Machine::*)(const vm::Instruction&);
+    static constexpr std::array execute_dispatch_table_ = []() consteval
+    {
+        constexpr auto opcode_count = static_cast<std::size_t>(vm::Opcode::__COUNT__);
+        std::array<ExecuteFuncType, opcode_count> result{};
+        using OpcodeUT = std::underlying_type_t<Opcode>;
+        result[static_cast<OpcodeUT>(Opcode::ASSIGN)] = &Machine::execute_assign;
+        result[static_cast<OpcodeUT>(Opcode::ADD)] =
+            result[static_cast<OpcodeUT>(Opcode::SUB)] =
+            result[static_cast<OpcodeUT>(Opcode::MUL)] =
+            result[static_cast<OpcodeUT>(Opcode::DIV)] =
+            result[static_cast<OpcodeUT>(Opcode::MOD)] = &Machine::execute_arithmetic;
+        result[static_cast<OpcodeUT>(Opcode::JUMP)] = nullptr;
+        result[static_cast<OpcodeUT>(Opcode::JEQ)] =
+            result[static_cast<OpcodeUT>(Opcode::JNE)] = &Machine::execute_equality_branch;
+        result[static_cast<OpcodeUT>(Opcode::JLT)] =
+            result[static_cast<OpcodeUT>(Opcode::JLE)] =
+            result[static_cast<OpcodeUT>(Opcode::JGT)] =
+            result[static_cast<OpcodeUT>(Opcode::JGE)] = &Machine::execute_relational_branch;
+        // result[static_cast<OpcodeUT>(Opcode::CALL)] = &Machine::execute_call;
+        // result[static_cast<OpcodeUT>(Opcode::PUSHARG)] = &Machine::execute_pusharg;
+        // result[static_cast<OpcodeUT>(Opcode::ENTERFUNC)] = &Machine::execute_enterfunc;
+        // result[static_cast<OpcodeUT>(Opcode::EXITFUNC)] = &Machine::execute_exitfunc;
+        // result[static_cast<OpcodeUT>(Opcode::NEWTABLE)] = &Machine::execute_newtable;
+        // result[static_cast<OpcodeUT>(Opcode::TABLEGETELEM)] = &Machine::execute_tablegetelem;
+        // result[static_cast<OpcodeUT>(Opcode::TABLESETELEM)] = &Machine::execute_tablesetelem;
+        return result;
+    }();
 };
 } // namespace alpha::vm
 #endif //MACHINE_HPP
