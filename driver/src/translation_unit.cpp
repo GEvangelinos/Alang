@@ -327,12 +327,13 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
     for (const auto& userfunc : program.progfuncs)
     {
         const alpha::StringSpan& userfunc_name =
-            *DEBUG_REQUIRE_PTR(program.progfunc_name_registry.get_by_indexed_type(userfunc.name_str_id));
+            *DEBUG_REQUIRE_PTR(
+                program.progfunc_name_registry.get_by_indexed_type(userfunc.name_str_id));
         out << FMT::format(
             "{0} {1} {2}\n",
             format_column<Colorize, 0, widths[0]>(FMT::to_string(userfunc.address.value)),
             format_column<Colorize, 1, widths[1]>(FMT::to_string(userfunc.local_count)),
-            format_column<Colorize, 2, widths[2]>( userfunc_name.to_string_view())
+            format_column<Colorize, 2, widths[2]>(userfunc_name.to_string_view())
         );
     }
 
@@ -401,15 +402,15 @@ CompilationPipeline::CompilationPipeline(
       parse_ctx_(support::require_ptr(symbol_table)),
       lexer_ctx_(),
       scanner_(std::make_unique<ScannerAdapter>(
-          lexer_ctx_, lt, *support::require_ptr(diagnostic_engine.reporter.get()), tu_buffer
-      )),
+          lexer_ctx_, lt, diagnostic_engine.reporter(), tu_buffer
+          )),
       semantic_system_(
           expr_opts,
           &parse_ctx_,
           support::require_ptr(symbol_table),
-          diagnostic_engine_.reporter.get()
+          diagnostic_engine_.reporter()
       ),
-      ir_validator_(std::make_unique<IRValidator>(config_flags, *diagnostic_engine.reporter)),
+      ir_validator_(std::make_unique<IRValidator>(config_flags, diagnostic_engine.reporter())),
       ir_optimizer_(std::make_unique<IROptimizer>(ir_opts)) { DMASSERT(!!ir_optimizer_); }
 
 void
@@ -435,7 +436,7 @@ CompilationPipeline::scan_tokens()
             &yyltype,
             lexer_ctx_,
             lt_,
-            *DEBUG_REQUIRE_PTR(diagnostic_engine_.reporter.get())
+            diagnostic_engine_.reporter()
         );
 
         if (token == TKN_YYEOF)
@@ -460,16 +461,19 @@ CompilationPipeline::execute()
     run_frontend();
     ir_quads_ = semantic_system_.gateway->extract_quads();
 
-    DMASSERT(!!diagnostic_engine_.reporter);
-
     ir_validator_->run(ir_quads_);
+
+    if (diagnostic_engine_.has_errors())
+        return;
 
     running_phase_ = Phase::IR_OPTIMIZATION;
     ir_quads_ = ir_optimizer_->run(std::move(ir_quads_));
 
     running_phase_ = Phase::ABC_GENERATION;
-    if (!diagnostic_engine_.has_errors())
-        program_ = std::make_unique<vm::Program>(ABC_Generator::run(ir_quads_));
+
+    program_ = std::make_unique<vm::Program>(ABC_Generator::run(
+        ABC_Generator::Config{ir_quads_, parse_ctx_.space_handler.global_var_count()}
+    ));
 }
 
 void
@@ -485,7 +489,7 @@ CompilationPipeline::run_frontend()
         lexer_ctx_,
         lt_,
         diagnostic_engine_,
-        *DEBUG_REQUIRE_PTR(diagnostic_engine_.reporter.get()),
+        diagnostic_engine_.reporter(),
         semantic_system_
     );
 }

@@ -35,14 +35,9 @@ int main(const int argc, char** argv)
         const alpha::vm::Executable executable = alpha::ABC_Loader::load(abc_buffer);
 
 
-        alpha::vm::Machine machine{alpha::vm::Bytes::from_KB(128), executable};
+        alpha::vm::Machine machine{alpha::vm::Bytes{.count = 256}, executable};
         machine.run();
     }
-
-
-
-
-
     catch (arguinator::CLIHelp) { return 0; }
     catch (arguinator::CLIError& e) { fatal(e); }
 }

@@ -22,7 +22,7 @@ public:
     static constexpr u32 k_initial_variable_offset = 0;
     static_assert(k_initial_variable_offset == 0, "Variable offset must start at 0");
 
-    explicit SpaceHandler(const ParseCtx *host);
+    explicit SpaceHandler(const ParseCtx* host);
     ~SpaceHandler();
 
     void enter_space();
@@ -32,17 +32,21 @@ public:
     [[nodiscard]] VarSymbol::Space space() const noexcept;
 
     [[nodiscard]] u32 next_offset() noexcept;
+    [[nodiscard]] u32 global_var_count() const noexcept { return global_var_count_; }
 
 private:
-    const ParseCtx *const host_;
+    const ParseCtx* const host_;
 
     std::stack<u32> variable_offset_stack_;
+    u32 global_var_count_ = 0;
+
+    [[nodiscard]] u32 current_frame_index() const noexcept;
 };
 
 class ScopeHandler : private Immobile
 {
 public:
-    explicit ScopeHandler(const ParseCtx *host);
+    explicit ScopeHandler(const ParseCtx* host);
     ~ScopeHandler();
 
     void skip_next_scope_increment() noexcept;
@@ -51,7 +55,7 @@ public:
     [[nodiscard]] u32 scope() const noexcept { return scope_; }
 
 private:
-    const ParseCtx *const host_;
+    const ParseCtx* const host_;
     ToggleSwitch skip_next_scope_increment_;
     u32 scope_ = k_global_scope;
 };
@@ -59,7 +63,7 @@ private:
 class CallCtxHandler : private Immobile
 {
 public:
-    explicit CallCtxHandler(ParseCtx *host);
+    explicit CallCtxHandler(ParseCtx* host);
     ~CallCtxHandler();
 
     void enter_call() noexcept;
@@ -67,14 +71,14 @@ public:
     [[nodiscard]] bool is_in_call() const noexcept { return call_nesting_depth_ > 0; }
 
 private:
-    ParseCtx *const host_;
+    ParseCtx* const host_;
     u32 call_nesting_depth_ = 0;
 };
 
 class TableCtxHandler : private Immobile
 {
 public:
-    explicit TableCtxHandler(ParseCtx *host);
+    explicit TableCtxHandler(ParseCtx* host);
     ~TableCtxHandler();
 
     void enter_dict_entry() noexcept;
@@ -82,7 +86,7 @@ public:
     [[nodiscard]] bool is_in_dict_entry() const noexcept { return dict_entry_nesting_depth_; }
 
 private:
-    ParseCtx *const host_;
+    ParseCtx* const host_;
     u32 dict_entry_nesting_depth_ = 0;
 };
 
@@ -95,7 +99,7 @@ public:
         const u32 scope;
         const SourceLocation location;
         const u32 local_var_count;
-        const ProgFuncSymbol *func_symbol;
+        const ProgFuncSymbol* func_symbol;
         const CodeAddress funcdef_skip_jump;
     };
 
@@ -116,7 +120,7 @@ public:
         std::vector<FlowState> flow_states_;
     };
 
-    explicit FunctionCtxHandler(ParseCtx *host);
+    explicit FunctionCtxHandler(ParseCtx* host);
 
     ~FunctionCtxHandler();
 
@@ -128,23 +132,23 @@ public:
     void enter_function(
         StringSpan func_name,
         SourceLocation func_loc,
-        const ProgFuncSymbol *func_symbol,
+        const ProgFuncSymbol* func_symbol,
         CodeAddress label_of_jump);
     [[nodiscard]] FunctionBackpatchInfo exit_function() noexcept;
     [[nodiscard]] u32 function_nesting_depth() const noexcept;
-    [[nodiscard]] const std::string &current_function_name() const noexcept;
+    [[nodiscard]] const std::string& current_function_name() const noexcept;
     [[nodiscard]] u32 current_function_scope() const noexcept;
     [[nodiscard]] SourceLocation current_function_location() const noexcept;
     [[nodiscard]] u32 loop_depth() const noexcept;
-    [[nodiscard]] const std::vector<Parameter> &function_parameters() const noexcept;
-    [[nodiscard]] const std::vector<CodeAddress> &break_list();
+    [[nodiscard]] const std::vector<Parameter>& function_parameters() const noexcept;
+    [[nodiscard]] const std::vector<CodeAddress>& break_list();
     void add_label_to_breaklist(CodeAddress jump_label); // Quad label of jump used to break.
     void add_label_to_continuelist(CodeAddress jump_label);
     void add_label_to_returnlist(CodeAddress jump_label);
-    [[nodiscard]] const std::vector<CodeAddress> &continue_list();
-    [[nodiscard]] const std::vector<CodeAddress> &return_list();
-    [[nodiscard]] const FlowLivenessTracker &flow_liveness() const;
-    [[nodiscard]] FlowLivenessTracker &flow_liveness();
+    [[nodiscard]] const std::vector<CodeAddress>& continue_list();
+    [[nodiscard]] const std::vector<CodeAddress>& return_list();
+    [[nodiscard]] const FlowLivenessTracker& flow_liveness() const;
+    [[nodiscard]] FlowLivenessTracker& flow_liveness();
 
 private:
     struct FunctionDataFrame
@@ -152,8 +156,8 @@ private:
         const std::string name;
         const u32 scope;
         const SourceLocation loc;
-        const ProgFuncSymbol *func_symbol; // Valid function ONLY IF NOT nullptr;
-        const CodeAddress funcdef_skip_jump;   // used to go over function definition in runtime.
+        const ProgFuncSymbol* func_symbol;   // Valid function ONLY IF NOT nullptr;
+        const CodeAddress funcdef_skip_jump; // used to go over function definition in runtime.
         FlowLivenessTracker flow_liveness_tracker;
 
         u32 loop_nesting_count = 0;
@@ -169,7 +173,7 @@ private:
             const StringSpan name,
             const u32 scope,
             const SourceLocation loc,
-            const ProgFuncSymbol *const func_symbol,
+            const ProgFuncSymbol* const func_symbol,
             const CodeAddress funcdef_skip_jump)
             : name(name.to_string()),
               scope(scope),
@@ -180,7 +184,7 @@ private:
 
     VectorStack<FunctionDataFrame> frame_stack_;
     std::vector<Parameter> function_parameters_;
-    ParseCtx *const host_;
+    ParseCtx* const host_;
 };
 
 class AnonymousGenerator : private Immobile
@@ -201,7 +205,7 @@ private:
 class TempCtxHandler
 {
 public:
-    explicit TempCtxHandler(const ParseCtx *host);
+    explicit TempCtxHandler(const ParseCtx* host);
     ~TempCtxHandler();
 
     void push_temp_ctx_frame();
@@ -222,7 +226,7 @@ private:
         std::vector<Handle> temp_handles_;
     };
 
-    const ParseCtx *const host_;
+    const ParseCtx* const host_;
     VectorStack<TempFrame> temp_frames;
 };
 
@@ -254,14 +258,14 @@ public:
     TempCtxHandler temp_ctx_handler;
     ElistCtxHandler elist_ctx_handler;
 
-    explicit ParseCtx(SymbolTable *symbol_table);
+    explicit ParseCtx(SymbolTable* symbol_table);
     ~ParseCtx() = default;
 
-    [[nodiscard]] const VarSymbol *new_temp();
+    [[nodiscard]] const VarSymbol* new_temp();
     [[nodiscard]] bool hard_error_occurred() const noexcept;
 
 private:
-    SymbolTable *const symbol_table_;
+    SymbolTable* const symbol_table_;
     OnceFlag hard_error_occurred_;
 
     std::deque<std::string> temp_name_cache;
@@ -290,10 +294,9 @@ inline VarSymbol::Space
 SpaceHandler::space() const noexcept
 {
     DMASSERT(!variable_offset_stack_.empty() && " A stack frame must always exist");
-    const auto frame_index = variable_offset_stack_.size() - 1; // -1 for size to index
-
+    const auto frame_index = current_frame_index();
     if (frame_index == k_initial_space)
-        return VarSymbol::Space::PROGRAM_VAR;
+        return VarSymbol::Space::GLOBAL_VAR;
     if (support::is_odd(frame_index))
         return VarSymbol::Space::FORMAL_ARGUMENT;
     return VarSymbol::Space::FUNCTION_LOCAL;
@@ -303,8 +306,13 @@ inline u32
 SpaceHandler::next_offset() noexcept
 {
     DMASSERT(!variable_offset_stack_.empty());
+    if (current_frame_index() == k_initial_space)
+        ++global_var_count_;
     return variable_offset_stack_.top()++;
 }
+
+inline u32
+SpaceHandler::current_frame_index() const noexcept { return variable_offset_stack_.size() - 1; }
 
 inline void
 ScopeHandler::skip_next_scope_increment() noexcept { skip_next_scope_increment_.enable(); }
@@ -378,7 +386,7 @@ FunctionCtxHandler::current_function_scope() const noexcept
     return frame_stack_.top().scope;
 }
 
-inline const std::string &
+inline const std::string&
 FunctionCtxHandler::current_function_name() const noexcept
 {
     DMASSERT(!frame_stack_.empty());
@@ -436,10 +444,10 @@ FunctionCtxHandler::add_function_parameter(const StringSpan name, SourceLocation
     function_parameters_.emplace_back(name, loc);
 }
 
-inline const std::vector<Parameter> &
+inline const std::vector<Parameter>&
 FunctionCtxHandler::function_parameters() const noexcept { return function_parameters_; }
 
-inline const std::vector<CodeAddress> &
+inline const std::vector<CodeAddress>&
 FunctionCtxHandler::break_list()
 {
     DMASSERT(!frame_stack_.empty());
@@ -449,7 +457,7 @@ FunctionCtxHandler::break_list()
     return frame_stack_.top().function_breaklist_stack.top();
 }
 
-inline const std::vector<CodeAddress> &
+inline const std::vector<CodeAddress>&
 FunctionCtxHandler::continue_list()
 {
     DMASSERT(!frame_stack_.empty());
@@ -484,21 +492,21 @@ FunctionCtxHandler::add_label_to_continuelist(const CodeAddress jump_label)
     frame_stack_.top().function_continuelist_stack.top().push_back(jump_label);
 }
 
-inline const std::vector<CodeAddress> &
+inline const std::vector<CodeAddress>&
 FunctionCtxHandler::return_list()
 {
     DMASSERT(!frame_stack_.empty());
     return frame_stack_.top().function_returnlist;
 }
 
-inline const FunctionCtxHandler::FlowLivenessTracker &
+inline const FunctionCtxHandler::FlowLivenessTracker&
 FunctionCtxHandler::flow_liveness() const
 {
     DMASSERT(!frame_stack_.empty());
     return frame_stack_.top().flow_liveness_tracker;
 }
 
-inline FunctionCtxHandler::FlowLivenessTracker &
+inline FunctionCtxHandler::FlowLivenessTracker&
 FunctionCtxHandler::flow_liveness()
 {
     DMASSERT(!frame_stack_.empty());

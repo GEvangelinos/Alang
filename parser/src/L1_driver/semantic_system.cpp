@@ -10,12 +10,12 @@ SemanticSystem::SemanticSystem(
     const settings::ExprOpts &expr_opts,
     ParseCtx *const parse_ctx,
     SymbolTable *const symbol_table,
-    DiagnosticReporter *const dr)
+    DiagnosticReporter & dr)
     :
     // External components, required to initialize class.
     parse_ctx_(support::require_ptr(parse_ctx)),
     symbol_table_(support::require_ptr(symbol_table)),
-    dr_(support::require_ptr(dr)),
+    dr_(&dr),
 
     // Private components, used by public submodules.
     expr_maker_(std::make_unique<ExprMaker>(parse_ctx_)),

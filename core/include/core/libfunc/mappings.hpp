@@ -4,6 +4,7 @@
 #include <array>
 #include <optional>
 #include "id.hpp"
+#include "core/string_span.hpp"
 
 namespace alpha::vm
 {
@@ -26,8 +27,7 @@ get_libfunc_id(const StringSpan libfunc_name)
     return std::nullopt;
 }
 
-[[nodiscard]] consteval std::optional<StringSpan>
-get_libfunc_name(LibFuncId libfunc_id)
+[[nodiscard]] constexpr std::optional<StringSpan>get_libfunc_name(LibFuncId libfunc_id)
 {
     const auto libfunc_idx = static_cast<LibFuncIdUT>(libfunc_id);
     if (libfunc_idx < k_library_functions_names.size())

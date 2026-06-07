@@ -65,7 +65,7 @@ class VarSymbol final : public Symbol
 public:
     enum class Space
     {
-        PROGRAM_VAR,
+        GLOBAL_VAR,
         FUNCTION_LOCAL,
         FORMAL_ARGUMENT,
     };

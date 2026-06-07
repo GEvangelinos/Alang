@@ -52,7 +52,7 @@ public: // More public stuff at the end (check it out)
         const settings::ExprOpts &expr_opts,
         ParseCtx *parse_ctx,
         SymbolTable *symbol_table,
-        DiagnosticReporter *dr);
+        DiagnosticReporter &dr);
 
     // TODO: make a function that user calls before destructor call that basically extracts all this
     // alpha drivers would want (like the generated quads).

@@ -5,11 +5,9 @@
 #include <list>                    // for list
 #include <memory>
 #include <optional>
-#include <string>                  // for string, basic_string
 #include <core/basics.hpp>
 
 #include "diagnostic_types.hpp"
-#include "core/source_location.hpp" // for SourceLocation, SourceLocationTracker
 
 namespace alpha
 {
@@ -32,21 +30,22 @@ public:
         ReportKey() = default;
     };
 
-    std::unique_ptr<DiagnosticReporter> reporter;
 
     explicit DiagnosticEngine(
-        Policy &&policy, std::optional<std::size_t> max_errors = std::nullopt);
+        Policy&& policy, std::optional<std::size_t> max_errors = std::nullopt);
+
+    [[nodiscard]] DiagnosticReporter& reporter() { return *reporter_; }
 
     void report(
         ReportKey,
         DiagnosticCode code,
-        Issue &&primary,
-        std::list<Note> &&note_list = std::list<Note>());
+        Issue&& primary,
+        std::list<Note>&& note_list = std::list<Note>());
 
-    void report_syntax_error(Issue primary, std::list<Note> &&note_list = std::list<Note>());
+    void report_syntax_error(Issue primary, std::list<Note>&& note_list = std::list<Note>());
 
     // TODO: add an export function for all diagnostics (export the diagnostics vector) // or DETATCH method
-    [[nodiscard]] const auto &get_diagnostics() const noexcept { return diagnostics_; }
+    [[nodiscard]] const auto& get_diagnostics() const noexcept { return diagnostics_; }
     [[nodiscard]] bool has_issues() const noexcept { return !diagnostics_.empty(); }
     [[nodiscard]] bool has_warnings() const noexcept { return !warnings_.empty(); }
     [[nodiscard]] bool has_soft_errors() const noexcept { return !softs_.empty(); }
@@ -67,12 +66,13 @@ private:
     const Policy policy_;
     const std::optional<std::size_t> max_errors;
     std::vector<std::unique_ptr<const Diagnostic>> diagnostics_;
-    std::vector<const Diagnostic *> warnings_;
-    std::vector<const Diagnostic *> softs_;
-    std::vector<const Diagnostic *> hards_;
-    std::vector<const Diagnostic *> fatals_;
+    std::vector<const Diagnostic*> warnings_;
+    std::vector<const Diagnostic*> softs_;
+    std::vector<const Diagnostic*> hards_;
+    std::vector<const Diagnostic*> fatals_;
+    std::unique_ptr<DiagnosticReporter> reporter_;
 
-    void emit(DiagnosticCode code, Issue &&primary, std::list<Note> &&note_list);
+    void emit(DiagnosticCode code, Issue&& primary, std::list<Note>&& note_list);
 };
 } // namespace alpha
 #endif // DIAGNOSTIC_ENGINE_HPP

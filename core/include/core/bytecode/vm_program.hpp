@@ -13,10 +13,13 @@ struct Program
 {
     std::vector<Instruction> instructions;
     std::vector<ProgFuncMetadata> progfuncs;
-
     support::BidirectionalRegistry<StringSpan, StringID> str_literal_registry;
     support::BidirectionalRegistry<StringSpan, ProgFuncID> progfunc_name_registry;
     support::BidirectionalRegistry<CodeAddress::UnderlyingType, u32> progfunc_registry;
+    u32 global_var_count = 0;
+
+    Program() = default;
+    Program(Program &&) = default;
 };
 } // namespace alpha::vm
 #endif //VM_PROGRAM_HPP

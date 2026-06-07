@@ -11,6 +11,7 @@
 #include "core/bytecode/vm_instruction.hpp"
 #include "core/bytecode/vm_program.hpp"
 #include "core/libfunc/mappings.hpp"
+#include "support/dependent_false.hpp"
 
 namespace alpha::vm
 {
@@ -27,6 +28,29 @@ struct Bytes
     static constexpr Bytes from_TB(const u64 terabytes) noexcept { return {(1ULL << 40) * terabytes}; }
     // clang-format on
 };
+template <auto T>
+struct AlwaysFalseInstantiation
+{
+    // "\nUnknown call_str used in `call` dispatcher\n"
+    // "(Look at the generated notes, to find the call_str that caused the error)"
+    static_assert(always_false_v<decltype(T)>,
+                  R"(
+🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑
+🛑======== [ DISPATCH DSL FAILURE ] ========🛑
+🛑   Unknown call_str used in dispatcher.   🛑
+🛑   Check for:                             🛑
+🛑       * Typos.                           🛑
+🛑       * Routing through correct module.  🛑
+🛑       * Selected module has specified    🛑
+🛑         method declared.                 🛑
+🛑   Take a look at the generated notes     🛑
+🛑   below by the compiler. Look for:       🛑
+🛑   UnknownCallStr<FixedString<>{"..."}>   🛑
+🛑   to find call_str causing the error     🛑
+🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑)"
+    );
+};
+
 
 class Machine
 {
@@ -73,8 +97,8 @@ public:
 
 
     // inst is unused, but we require for uniformity anyway.
-    void execute_exitfunc([[maybe_unused]] const vm::Instruction & unused);
-    void execute_exitfunc([[maybe_unused]] const vm::Instruction * unused);
+    void execute_exitfunc([[maybe_unused]] const vm::Instruction& unused);
+    void execute_exitfunc([[maybe_unused]] const vm::Instruction* unused);
 
     void on_stack_overflow();
 
@@ -88,7 +112,7 @@ private:
     class Stack
     {
     public:
-        Stack(u64 size, std::function<void()> on_stack_overflow);
+        Stack(u64 size, u32 global_var_count, std::function<void()> on_stack_overflow);
 
         [[nodiscard]] auto size() const noexcept { return size_; }
         void push_env_value(AlphaInt value);
@@ -114,7 +138,7 @@ private:
         std::function<void()> on_stack_overflow_;
         std::unique_ptr<Memcell []> data_;
         const u64 size_ = 0;
-        u32 top_ = size_, topsp_ = size_;
+        u32 top_, topsp_;
         DEBUG(OnceFlag is_overflowed;)
     };
 
@@ -162,9 +186,9 @@ private:
         result[static_cast<OpcodeUT>(Opcode::PUSHARG)] = &Machine::execute_pusharg;
         result[static_cast<OpcodeUT>(Opcode::ENTERFUNC)] = &Machine::execute_enterfunc;
         result[static_cast<OpcodeUT>(Opcode::EXITFUNC)] = &Machine::execute_exitfunc;
-        // result[static_cast<OpcodeUT>(Opcode::NEWTABLE)] = &Machine::execute_newtable;
-        // result[static_cast<OpcodeUT>(Opcode::TABLEGETELEM)] = &Machine::execute_tablegetelem;
-        // result[static_cast<OpcodeUT>(Opcode::TABLESETELEM)] = &Machine::execute_tablesetelem;
+        result[static_cast<OpcodeUT>(Opcode::NEWTABLE)] = &Machine::execute_newtable;
+        result[static_cast<OpcodeUT>(Opcode::TABLEGETELEM)] = &Machine::execute_tablegetelem;
+        result[static_cast<OpcodeUT>(Opcode::TABLESETELEM)] = &Machine::execute_tablesetelem;
         return result;
     }();
 
@@ -174,15 +198,15 @@ private:
         constexpr auto lib_func_count = static_cast<LibFuncIdUT>(LibFuncId::__COUNT__);
         std::array<LibfuncImplFuncType, lib_func_count> result{};
 
-        const auto NAME_ME = []<u64 size>(const char (&libfunc_name)[size])
+        const auto get_index_of = []<u64 size>(const char (&libfunc_name)[size])
         {
             return static_cast<LibFuncIdUT>(
                 get_libfunc_id(StringSpan::from_literal(libfunc_name)).value()
             );
         };
 
-        result[NAME_ME("print")] = &Machine::impl_of_libfunc_print;
-        result[NAME_ME("input")] = &Machine::impl_of_libfunc_print;
+        result[get_index_of("print")] = &Machine::impl_of_libfunc_print;
+        result[get_index_of("typeof")] = &Machine::impl_of_libfunc_typeof;
         return result;
     }();
 };

@@ -11,10 +11,16 @@
 
 namespace alpha::vm
 {
-Machine::Stack::Stack(const u64 size, const std::function<void()> on_stack_overflow)
+Machine::Stack::Stack(
+    const u64 size,
+    const u32 global_var_count,
+    const std::function<void()> on_stack_overflow)
     : on_stack_overflow_(on_stack_overflow),
       size_(size)
 {
+    const u32 base_offset = size - global_var_count - 1;
+    top_ = topsp_ = base_offset;
+
     if (size_ <= 0)
         throw std::logic_error(FMT::format("Invalid size `{}`, positive size required", size_));
     data_ = std::make_unique<Memcell []>(size_);
@@ -79,17 +85,24 @@ void Machine::Stack::allocate_locals(const u32 count)
 {
     // Only native functions call this to reserve space for their bytecode variables
     // Libfuncs pass 0 implicitly by simply never calling this
-    top_ = count;
+    if (count > top_) [[unlikely]]
+        on_stack_overflow_();
+    else
+        top_ -= count;
 }
 
 
 Machine::Machine(const Bytes stack_size, const vm::Executable& exe)
-    : stack_(stack_size.count, [this]() { on_stack_overflow(); }),
+    : stack_(stack_size.count, exe.global_var_count, [this]() { on_stack_overflow(); }),
       code_(exe.instructions.data()),
       exe_(exe),
       ending_pc_(exe.instructions.size()) {}
 
-void Machine::on_stack_overflow() { error("StackOverflow"); }
+void Machine::on_stack_overflow()
+{
+    error("StackOverflow");
+    throw std::runtime_error{"Stack Overflow occurred"};
+}
 
 
 Memcell*
@@ -125,6 +138,7 @@ Machine::translate_operand(const vm::Argument* const arg, Memcell* const reg)
     case Argument::Type::CONST_BOOL:
         reg->type = Memcell::Type::BOOL;
         reg->data.int_value = static_cast<const ConstBoolArgument*>(arg)->value;
+        return reg;
     case Argument::Type::CONST_NIL:
         reg->type = Memcell::Type::NIL;
         return reg;
@@ -175,7 +189,7 @@ Machine::execute_cycle()
         execution_finished_.raise();
         return;
     }
-    DMASSERT(pc_ < exe_.instructions.size());
+    DMASSERT(pc_ < exe_.instructions.size() && "Above,  we just just checked is not equal.");
     const vm::Instruction& instr = exe_.instructions[pc_];
 
     const auto instr_opcode_idx = static_cast<std::underlying_type_t<vm::Opcode>>(instr.opcode);
@@ -193,8 +207,12 @@ Machine::execute_cycle()
 void
 Machine::run()
 {
-    while (!execution_finished_)
-        execute_cycle();
+    try
+    {
+        while (!execution_finished_)
+            execute_cycle();
+    }
+    catch (const std::runtime_error& e) { std::cerr << e.what() << std::endl; }
 }
 
 
@@ -253,7 +271,7 @@ Machine::Stack::total_actuals() const noexcept
 
 
 vm::Memcell&
-Machine::Stack::get_actual(u32 idx) const noexcept
+Machine::Stack::get_actual(const u32 idx) const noexcept
 {
     DMASSERT(idx < total_actuals());
     return data_[topsp_ + Machine::k_stack_environment_size + 1 + idx];
@@ -264,7 +282,7 @@ u32
 Machine::Stack::restore_previous_environment() noexcept
 {
     top_ = get_environment_value(topsp_ + Machine::k_saved_top_offset);
-    const auto restored_pc = top_ = get_environment_value(topsp_ + Machine::k_saved_pc_offset);
+    const auto restored_pc = get_environment_value(topsp_ + Machine::k_saved_pc_offset);
     topsp_ = get_environment_value(topsp_ + Machine::k_saved_topsp_offset);
     return restored_pc;
 }
@@ -320,10 +338,10 @@ Machine::execute_jump(const vm::Instruction& inst)
 {
     DMASSERT(!!inst.result);
     DMASSERT(inst.result->type == Argument::Type::LABEL);
-   const auto target_address = static_cast<const LabelArgument* > (inst.result.get())->value.value;
-    DMASSERT(target_address <= ending_pc_ && "Only jumps can be == ending_pc_ (1 past legal inst)");
-    pc_ = target_address;
-
+    // @PC_TAG@ -1 is required, as addresses start from 1;
+    const auto jump_address = static_cast<const LabelArgument*>(inst.result.get())->value.value - 1;
+    DMASSERT(jump_address <= ending_pc_ && "Only jumps can be == ending_pc_ (1 past legal inst)");
+    pc_ = jump_address;
 }
 
 void
@@ -338,7 +356,7 @@ Machine::execute_call(const vm::Instruction& inst)
             DMASSERT(func->data.progfunc_index < exe_.progfuncs.size());
             const vm::ProgFuncMetadata metadata = exe_.progfuncs[func->data.progfunc_index];
             DMASSERT(metadata.address.value < exe_.instructions.size());
-            pc_ = metadata.address.value;
+            pc_ = metadata.address.value - 1; // @PC_TAG@ -1 is required, as addresses start from 1
             DMASSERT(pc_ < ending_pc_, code_[pc_].opcode == Opcode::ENTERFUNC);
             break;
         }
@@ -364,7 +382,7 @@ Machine::execute_enterfunc(const vm::Instruction& inst)
 {
     const vm::Memcell& func = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
     const vm::ProgFuncMetadata& progfunc_metadata = exe_.progfuncs[func.data.progfunc_index];
-    DMASSERT(pc_ == progfunc_metadata.address.value);
+    DMASSERT(pc_ == progfunc_metadata.address.value -1); // @PC_TAG@  (tag is for the - 1 )
     total_actuals_ = 0;
     stack_.enter_frame();
     stack_.allocate_locals(progfunc_metadata.local_count);
@@ -379,9 +397,9 @@ Machine::execute_exitfunc(const vm::Instruction* const unused)
     const auto old_top = stack_.top();
     pc_ = stack_.restore_previous_environment();
 
-    // Cleanup activation_record:
+    // Cleanup activation record:
     auto idx = old_top;
-    while (++idx <= stack_.top())
+    while (++idx <= stack_.top()) // Intentionally ignoring first
         stack_.clear_at(idx);
 }
 
@@ -436,50 +454,142 @@ Machine::call_libfunc(const LibFuncId libfunc_id)
 }
 
 
-// void
-// Machine::execute_newtable(const vm::Instruction & inst)
-// {
-//     vm::Memcell & lv = *DEBUG_REQUIRE_PTR(translate_operand(inst.result, nullptr));
-//     lv.clear();
-//     lv.type = Memcell::Type::TABLE;
-//     lv.data.table_value = ;
-//     lv.data.table_value->increase_ref();
-// }
-//
-// void Machine::execute_tablegetelem(const vm::Instruction& inst)
-// {
-//     vm::Memcell & lv = *DEBUG_REQUIRE_PTR(translate_operand(inst.result, nullptr));
-//     const vm::Memcell & t = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1, nullptr));
-//     const vm::Memcell & i = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2, &reg_a_));
-//     lv.clear();
-//     lv.type = Memcell::Type::NIL;
-//     if (t.type != Memcell::Type::TABLE)
-//     {
-//         error(FMT::format("Illegal use of type {} as table", to_string(t.type)));
-//         return;
-//     }
-//     // vm or stack must access this (it's the call avm_tablegetlem, in slide 34 )
-//     const vm::Memcell * const content = tablegetelem(t.data.table_value, i);
-//
-//     if (content)
-//         assign(lv, *content);
-//     else
-//         display_warning(FMT::format("{}[{}] not found!", t.to_string(), i.to_string()));
-//
-// }
-//
-// void Machine::execute_tablesetelem(const vm::Instruction& inst)
-// {
-//     vm::Memcell& t = *DEBUG_REQUIRE_PTR(translate_operand(inst.result, nullptr));
-//     vm::Memcell& i = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1, &reg_a_));
-//     vm::Memcell& content = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2, &reg_b_));
-//
-//     if (t.type != Memcell::Type::TABLE)
-//         error(FMT::format("Illegal use of type {} as table", to_string(t.type)));
-//     else
-//         tablesetelem(t.data.table_value, i, c);
-//
-// }
+void
+Machine::execute_newtable(const vm::Instruction& inst)
+{
+    vm::Memcell& lv = *DEBUG_REQUIRE_PTR(translate_operand(inst.result.get(), nullptr));
+    lv.clear();
+    lv.type = Memcell::Type::TABLE;
+    lv.data.table_value = new Table{};
+    lv.data.table_value->increase_ref();
+}
+
+[[nodiscard]] vm::Memcell*
+tablegetelem(Table& t, const Memcell& i)
+{
+    switch (i.type)
+    {
+    case Memcell::Type::UNDEF:
+    case Memcell::Type::NIL: break;
+    case Memcell::Type::INT:
+        {
+            const auto it = t.int_indexed.data.find(i.data.int_value);
+            if (it != t.int_indexed.data.end()) [[likely]] return &it->second;
+            break;
+        }
+    case Memcell::Type::FLOAT:
+        {
+            const auto it = t.float_indexed.data.find(i.data.float_value);
+            if (it != t.float_indexed.data.end()) [[likely]] return &it->second;
+            break;
+        }
+    case Memcell::Type::STRING:
+        {
+            const auto it = t.str_indexed.data.find(i.data.str_value);
+            if (it != t.str_indexed.data.end()) [[likely]] return &it->second;
+            break;
+        }
+    case Memcell::Type::BOOL:
+        {
+            const auto it = t.bool_indexed.data.find(i.data.bool_value);
+            if (it != t.bool_indexed.data.end()) [[likely]] return &it->second;
+            break;
+        }
+    case Memcell::Type::TABLE:
+        {
+            const auto it = t.table_indexed.data.find(i.data.table_value);
+            if (it != t.table_indexed.data.end()) [[likely]] return &it->second;
+            break;
+        }
+    case Memcell::Type::PROGFUNC:
+        {
+            const auto it = t.progfunc_indexed.data.find(i.data.progfunc_index);
+            if (it != t.progfunc_indexed.data.end()) [[likely]] return &it->second;
+            break;
+        }
+    case Memcell::Type::LIBFUNC:
+        {
+            const auto it = t.libfunc_indexed.data.find(i.data.libfunc_id);
+            if (it != t.libfunc_indexed.data.end()) [[likely]] return &it->second;
+            break;
+        }
+    default:
+        DMASSERT(false);
+        std::abort();
+    }
+    return nullptr;
+}
+
+void
+tablesetelem(Table& t, const Memcell& i, const Memcell& c)
+{
+    switch (i.type)
+    {
+        [[unlikely]] case Memcell::Type::UNDEF:
+        UNREACHABLE("VM does not yet support seeting an element with key being `UNDEF`");
+        break;
+        [[unlikely]] case Memcell::Type::NIL:
+        UNREACHABLE("VM does not yet support seeting an element with key being `nil`");
+        break;
+    case Memcell::Type::INT:
+        t.int_indexed.data[i.data.int_value] = c;
+        break;
+    case Memcell::Type::FLOAT:
+        t.float_indexed.data[i.data.float_value] = c;
+        break;
+    case Memcell::Type::STRING:
+        t.str_indexed.data[i.data.str_value] = c;
+        break;
+    case Memcell::Type::BOOL:
+        t.bool_indexed.data[i.data.bool_value] = c;
+        break;
+    case Memcell::Type::TABLE:
+        t.table_indexed.data[i.data.table_value] = c;
+        break;
+    case Memcell::Type::PROGFUNC:
+        t.progfunc_indexed.data[i.data.progfunc_index] = c;
+        break;
+    case Memcell::Type::LIBFUNC:
+        t.libfunc_indexed.data[i.data.libfunc_id] = c;
+        break;
+    }
+}
+
+void
+Machine::execute_tablegetelem(const vm::Instruction& inst)
+{
+    vm::Memcell& lv = *DEBUG_REQUIRE_PTR(translate_operand(inst.result.get(), nullptr));
+    const vm::Memcell& t = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), nullptr));
+    const vm::Memcell& i = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2.get(), &reg_a_));
+
+
+    lv.clear();
+    lv.type = Memcell::Type::NIL;
+    if (t.type != Memcell::Type::TABLE)
+    {
+        error(FMT::format("Illegal use of type {} as table", to_string(t.type)));
+        return;
+    }
+    // vm or stack must access this (it's the call avm_tablegetlem, in slide 34 )
+    const vm::Memcell* const content = tablegetelem(*DEBUG_REQUIRE_PTR(t.data.table_value), i);
+
+    if (content)
+        assign(lv, *content);
+    else
+        display_warning(FMT::format("{}[{}] not found!", t.to_string(), i.to_string()));
+}
+
+void Machine::execute_tablesetelem(const vm::Instruction& inst)
+{
+    const vm::Memcell& t = *DEBUG_REQUIRE_PTR(translate_operand(inst.result.get(), nullptr));
+    const vm::Memcell& i = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
+    const vm::Memcell& content = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2.get(), &reg_b_));
+
+    if (t.type != Memcell::Type::TABLE)
+        error(FMT::format("Illegal use of type {} as table", to_string(t.type)));
+    else
+        tablesetelem(*DEBUG_REQUIRE_PTR(t.data.table_value), i, content);
+}
 
 void
 Machine::impl_of_libfunc_print()
@@ -487,7 +597,11 @@ Machine::impl_of_libfunc_print()
     const AlphaInt n = stack_.total_actuals();
     DMASSERT(n >=0 && "makes no sense");
     for (AlphaInt i = 0; i < n; ++i)
-        *out_stream_ << stack_.get_actual(i).to_string();
+    {
+        const vm::Memcell& actual = stack_.get_actual(i);
+        *out_stream_ << actual.to_string();
+    }
+    *out_stream_ << std::endl;
     retval_.type = Memcell::Type::INT;
     retval_.data.int_value = 0;
 }

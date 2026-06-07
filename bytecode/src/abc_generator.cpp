@@ -73,7 +73,7 @@ ABC_Generator::make_argument(const Expr& expr)
         DMASSERT(expr.has_var_symbol());
         switch (const auto var = static_cast<const ExprWVarSymbol&>(expr).var_symbol; var->space)
         {
-        case VarSymbol::Space::PROGRAM_VAR:
+        case VarSymbol::Space::GLOBAL_VAR:
             return std::make_unique<GlobalVariableArgument>(var->offset);
         case VarSymbol::Space::FUNCTION_LOCAL:
             return std::make_unique<LocalVariableArgument>(var->offset);
@@ -170,7 +170,7 @@ ABC_Generator::generate_funcstart(const ir::Quad& quad)
     const auto& fn_expr = *DEBUG_REQUIRE_PTR(static_cast<const ProgFuncExpr *>(quad.arg1));
     const auto& fn_sym = *DEBUG_REQUIRE_PTR(fn_expr.progfunc_symbol);
     DMASSERT(fn_sym.stackframe_slot_count.is_assigned());
-    (void) result_.progfunc_registry.reg(fn_sym.address.value);
+    (void)result_.progfunc_registry.reg(fn_sym.address.value);
     result_.progfuncs.emplace_back(
         intern_progfunc_name(fn_expr),
         fn_sym.address,
@@ -190,14 +190,20 @@ ABC_Generator::generate_return(const ir::Quad& quad)
     result_.instructions.back().result = std::make_unique<vm::RetvalArgument>();
 }
 
+ABC_Generator::ABC_Generator(const Config& config)
+    : config_(config) {}
+
+
 vm::Program
-ABC_Generator::build_program(const ir::QuadStream& program_ir_quads) &&
+ABC_Generator::build_program() &&
 {
-    for (u64 i = 0; i < program_ir_quads.size(); ++i)
+    const auto& qstream = config_.qstream;
+
+    for (u64 i = 0; i < qstream.size(); ++i)
     {
         #define CASE_BASIC(ir_op, vm_op) case ir::Opcode::ir_op: generate<ir::Opcode::ir_op, vm::Opcode::vm_op>(quad); break
         #define CASE_RELATIONAL(ir_op, vm_op) case ir::Opcode::ir_op: generate_relational<ir::Opcode::ir_op, vm::Opcode::vm_op>(quad); break
-        switch (auto& quad = program_ir_quads[i]; quad.opcode)
+        switch (auto& quad = qstream[i]; quad.opcode)
         {
         CASE_BASIC(ASSIGN, ASSIGN);
         CASE_BASIC(ADD, ADD);
@@ -240,6 +246,9 @@ ABC_Generator::build_program(const ir::QuadStream& program_ir_quads) &&
             "unintended expansion (1:N) or omission (1:0)."
         );
     }
+
+    result_.global_var_count = config_.global_var_count;
+
     return std::move(result_);
 }
 } // namespace alpha

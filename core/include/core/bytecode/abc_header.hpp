@@ -85,7 +85,7 @@ struct Header
 
     u16 v_major;
     u16 v_minor;
-    char padding[4];
+    u32 global_var_count;
 
     u64 timestamp;
     u64 file_size;

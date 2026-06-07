@@ -16,18 +16,26 @@ namespace alpha
 class ABC_Generator
 {
 public:
-    [[nodiscard]] static vm::Program run(const ir::QuadStream& program_ir_quads)
+
+    struct Config
     {
-        return ABC_Generator{}.build_program(program_ir_quads);
+        const ir::QuadStream& qstream;
+        const u32 global_var_count;
+    };
+
+    [[nodiscard]] static vm::Program run(const ABC_Generator::Config &config)
+    {
+        return ABC_Generator{config}.build_program();
     }
 
 private:
+    const Config config_;
     vm::Program result_;
     std::vector<CodeAddress> target_addresses_;
 
-    ABC_Generator() = default;
+    explicit ABC_Generator(const Config &config) ;
 
-    [[nodiscard]] vm::Program build_program(const ir::QuadStream& program_ir_quads) &&;
+    [[nodiscard]] vm::Program build_program() &&;
 
     [[nodiscard]] std::unique_ptr<vm::Argument> make_argument(const Expr& expr);
     [[nodiscard]] vm::StringID intern_string_literal(const ConstStringExpr& string_expr);

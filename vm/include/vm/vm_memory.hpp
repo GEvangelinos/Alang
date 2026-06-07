@@ -5,6 +5,8 @@
 #include "core/code_address.hpp"
 #include "core/machine_types.hpp"
 #include "core/numeric_types.hpp"
+#include "core/libfunc/id.hpp"
+#include "core/libfunc/mappings.hpp"
 #include "support/debug_tools.hpp"
 #include "support/misc_tools.hpp"
 
@@ -43,7 +45,7 @@ struct Memcell
         bool bool_value;
         Table* table_value;
         u32 progfunc_index;
-        const char* libfunc_name;
+        vm::LibFuncId libfunc_id;
         // TODO "For libfuncs name to int index translation would be better, so we dont have to hash libfuncs every time..."
     } data;
 
@@ -59,7 +61,7 @@ struct Memcell
     [[nodiscard]] bool to_bool() const noexcept;
 };
 
-[[nodiscard]] inline const char *
+[[nodiscard]] inline const char*
 to_string(const vm::Memcell::Type memcell_type)
 {
     switch (memcell_type)
@@ -73,21 +75,24 @@ to_string(const vm::Memcell::Type memcell_type)
 }
 #undef  MEMCELL_TYPE
 
+template <typename KeyType>
 struct HashTable
 {
     // TODO: use a flat hashmap, currently there is a lot of pointer chasing.
-    // std::unordered_map<vm::Memcell, vm::Memcell> data;
+    std::unordered_map<KeyType, vm::Memcell> data;
 };
 
 struct Table
 {
-    HashTable str_indexed;
-    HashTable int_indexed;
-    HashTable float_indexed;
-    HashTable progfuncs;
-    HashTable libfuncs;
+    HashTable<const char*> str_indexed;
+    HashTable<AlphaInt> int_indexed;
+    HashTable<AlphaFloat> float_indexed;
+    HashTable<bool> bool_indexed;
+    HashTable<u32> progfunc_indexed;
+    HashTable<vm::LibFuncId> libfunc_indexed;
+    HashTable<const Table*> table_indexed;
 
-    u32 ref_counter;
+    u32 ref_counter = 0;
 
     void increase_ref() noexcept { ++ref_counter; }
     void decrease_ref() noexcept { --ref_counter; }
@@ -96,9 +101,9 @@ struct Table
 inline void
 Memcell::clear()
 {
-    if (this->type != Type::UNDEF)
+    if (type != Type::UNDEF)
         return;
-    switch (this->type)
+    switch (type)
     {
     case Type::BOOL:
     case Type::FLOAT:
@@ -107,15 +112,17 @@ Memcell::clear()
     case Type::NIL:
     case Type::PROGFUNC:
     case Type::LIBFUNC:
-        this->type = Type::UNDEF;
+        type = Type::UNDEF;
         return;
     case Type::STRING:
         // clear_string();
         DMASSERT(false);
+        type = Type::UNDEF;
         break;
     case Type::TABLE:
         // clear_table();
         DMASSERT(false);
+        type = Type::UNDEF;
         break;
     default: DMASSERT(false && "Unknown Memcell::Type");
     }
@@ -135,7 +142,12 @@ Memcell::to_string() const noexcept
         break;
     case Type::PROGFUNC: DMASSERT(false);
         break;
-    case Type::LIBFUNC: return FMT::format("{}()", data.libfunc_name);
+    case Type::LIBFUNC:
+        {
+            const std::optional<StringSpan> libname = get_libfunc_name(data.libfunc_id);
+            DMASSERT(libname.has_value() && "How did it become a type LIBFUNC then.. ?");
+            return FMT::format("{}()", libname->data);
+        }
     case Type::NIL: return "nil";
     default: DMASSERT(false);
     }

@@ -19,9 +19,9 @@ namespace alpha
 DiagnosticEngine::DiagnosticEngine(
     DiagnosticEngine::Policy &&policy,
     const std::optional<std::size_t> max_errors)
-    : reporter(std::make_unique<DiagnosticReporter>(this)),
-      policy_(std::move(policy)),
-      max_errors(max_errors) {}
+    : policy_(std::move(policy)),
+      max_errors(max_errors),
+      reporter_(std::make_unique<DiagnosticReporter>(this)) {}
 
 void
 DiagnosticEngine::report_syntax_error(Issue primary, std::list<Note> &&note_list)

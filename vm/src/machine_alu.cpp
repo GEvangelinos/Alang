@@ -258,7 +258,7 @@ Machine::execute_relational_branch(const vm::Instruction& inst)
         DMASSERT(inst.result->type == Argument::Type::LABEL);
         const CodeAddress branch_target =
             static_cast<const LabelArgument*>(inst.result.get())->value;
-        pc_ = branch_target.value;
+        pc_ = branch_target.value - 1; // @PC_TAG@ -1 is required, as addresses start from 1;
     }
 }
 
@@ -309,15 +309,16 @@ Machine::execute_equality_branch(const vm::Instruction& inst)
             condition = rv1.data.progfunc_index == rv2.data.progfunc_index;
             break;
         case Memcell::Type::LIBFUNC:
-            condition = std::strcmp(rv1.data.libfunc_name, rv2.data.libfunc_name) == 0;
+            condition = rv1.data.libfunc_id == rv2.data.libfunc_id;
             break;
-        default: DMASSERT(false && "Uknown vm::Memcel::Type");
+        default: DMASSERT(false && "Unknown vm::Memcell::Type");
         }
     }
 
 
     DMASSERT(inst.result->type == Argument::Type::LABEL);
     if (condition)
-        pc_ = static_cast<const LabelArgument*>(inst.result.get())->value.value;
+        pc_ = static_cast<const LabelArgument*>(inst.result.get())->value.value -1;
+     // @PC_TAG@ - 1 is required, as addresses start from 1
 }
 } // namespace alpha::vm
