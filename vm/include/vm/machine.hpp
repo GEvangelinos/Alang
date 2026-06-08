@@ -78,6 +78,7 @@ public:
     void execute_newtable(const vm::Instruction& inst);
     void execute_tablegetelem(const vm::Instruction& inst);
     void execute_tablesetelem(const vm::Instruction& inst);
+    void tablesetelem(Table& t, const Memcell& i, const Memcell& c);
 
     struct DecodedOperands
     {

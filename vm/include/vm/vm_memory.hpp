@@ -1,6 +1,7 @@
 #ifndef VM_MEMORY_HPP
 #define VM_MEMORY_HPP
 
+#include <ranges>
 #include <unordered_map>
 #include "core/code_address.hpp"
 #include "core/machine_types.hpp"
@@ -39,9 +40,10 @@ struct Memcell
 
     union
     {
+        // TODO: make a separate allocation and deallocation function that accepts both const char * and StringSpans (overloaded) that uses the new[] allocator (not std::malloc())
         AlphaInt int_value;
         AlphaFloat float_value;
-        const char* str_value;
+        const char* str_value; // Malloc'd (dont use new/ new[])
         bool bool_value;
         Table* table_value;
         u32 progfunc_index;
@@ -52,12 +54,10 @@ struct Memcell
     static_assert(sizeof(data) == 8);
 
     void clear();
-    void clear_string();
-    void clear_table();
 
     [[nodiscard]] bool is_arithmetic() const noexcept;
 
-    [[nodiscard]] std::string to_string() const noexcept;
+    [[nodiscard]] std::string to_string(bool include_str_quotes = false, u32 call_depth = 0) const;
     [[nodiscard]] bool to_bool() const noexcept;
 };
 
@@ -75,53 +75,75 @@ to_string(const vm::Memcell::Type memcell_type)
 }
 #undef  MEMCELL_TYPE
 
+// TODO: use a flat hashmap, currently there is a lot of pointer chasing.
 template <typename KeyType>
-struct HashTable
-{
-    // TODO: use a flat hashmap, currently there is a lot of pointer chasing.
-    std::unordered_map<KeyType, vm::Memcell> data;
-};
+using HashTable = std::unordered_map<KeyType, vm::Memcell>;
 
 struct Table
 {
-    HashTable<const char*> str_indexed;
+    HashTable<std::string> str_indexed;
     HashTable<AlphaInt> int_indexed;
     HashTable<AlphaFloat> float_indexed;
     HashTable<bool> bool_indexed;
     HashTable<u32> progfunc_indexed;
     HashTable<vm::LibFuncId> libfunc_indexed;
-    HashTable<const Table*> table_indexed;
+    HashTable<Table*> table_indexed;
 
     u32 ref_counter = 0;
 
     void increase_ref() noexcept { ++ref_counter; }
-    void decrease_ref() noexcept { --ref_counter; }
+    [[nodiscard]] std::string to_string(u32 call_depth = 0) const;
 };
+
+
+inline void
+decrease_ref(Table* t)
+{
+    const auto clear_values = [](const auto memcells)
+    {
+        for (Memcell& cell : memcells)
+            cell.clear();
+    };
+
+    DMASSERT(!!t);
+    DMASSERT(t->ref_counter > 0);
+    if (!--t->ref_counter)
+    {
+        clear_values(t->str_indexed | std::views::values);
+        clear_values(t->int_indexed | std::views::values);
+        clear_values(t->float_indexed | std::views::values);
+        clear_values(t->bool_indexed | std::views::values);
+        clear_values(t->progfunc_indexed | std::views::values);
+        clear_values(t->libfunc_indexed | std::views::values);
+        clear_values(t->table_indexed | std::views::values);
+
+        for (Table* key : t->table_indexed | std::views::keys)
+            decrease_ref(key);
+        delete t;
+    }
+}
 
 inline void
 Memcell::clear()
 {
-    if (type != Type::UNDEF)
-        return;
     switch (type)
     {
+    case Type::UNDEF:
+        return;
     case Type::BOOL:
     case Type::FLOAT:
     case Type::INT:
-    case Type::UNDEF:
     case Type::NIL:
     case Type::PROGFUNC:
     case Type::LIBFUNC:
         type = Type::UNDEF;
         return;
     case Type::STRING:
-        // clear_string();
-        DMASSERT(false);
         type = Type::UNDEF;
+        std::free(const_cast<char*>(data.str_value));
         break;
     case Type::TABLE:
-        // clear_table();
-        DMASSERT(false);
+        decrease_ref(data.table_value);
         type = Type::UNDEF;
         break;
     default: DMASSERT(false && "Unknown Memcell::Type");
@@ -129,19 +151,21 @@ Memcell::clear()
 }
 
 inline std::string
-Memcell::to_string() const noexcept
+Memcell::to_string(const bool include_str_quotes, const u32 call_depth) const
 {
     switch (type)
     {
     case Type::UNDEF: return "undefined";
     case Type::INT: return FMT::to_string(data.int_value);
     case Type::FLOAT: return FMT::to_string(data.float_value);
-    case Type::STRING: return std::string(data.str_value);
+    case Type::STRING:
+        {
+            const char* const delimeter = include_str_quotes ? "\"" : "";
+            return FMT::format("{}{}{}", delimeter, std::string(data.str_value), delimeter);
+        }
     case Type::BOOL: return std::string(data.bool_value ? "true" : "false");
-    case Type::TABLE: DMASSERT(false);
-        break;
-    case Type::PROGFUNC: DMASSERT(false);
-        break;
+    case Type::TABLE: return data.table_value->to_string(call_depth);
+    case Type::PROGFUNC: return FMT::format("(program_func: {})", data.progfunc_index);
     case Type::LIBFUNC:
         {
             const std::optional<StringSpan> libname = get_libfunc_name(data.libfunc_id);

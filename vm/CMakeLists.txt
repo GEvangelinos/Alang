@@ -11,6 +11,7 @@ target_link_libraries(alpha_vm_api INTERFACE
 add_library(alpha_vm_impl STATIC
     src/machine.cpp
     src/machine_alu.cpp
+    src/vm_memory.cpp
 )
 target_link_libraries(alpha_vm_impl PRIVATE
     alpha_vm_api

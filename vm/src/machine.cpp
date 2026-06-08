@@ -133,11 +133,11 @@ Machine::translate_operand(const vm::Argument* const arg, Memcell* const reg)
         return reg;
     case Argument::Type::CONST_FLOAT:
         reg->type = Memcell::Type::FLOAT;
-        reg->data.int_value = static_cast<const ConstFloatArgument*>(arg)->value;
+        reg->data.float_value = static_cast<const ConstFloatArgument*>(arg)->value;
         return reg;
     case Argument::Type::CONST_BOOL:
         reg->type = Memcell::Type::BOOL;
-        reg->data.int_value = static_cast<const ConstBoolArgument*>(arg)->value;
+        reg->data.bool_value = static_cast<const ConstBoolArgument*>(arg)->value;
         return reg;
     case Argument::Type::CONST_NIL:
         reg->type = Memcell::Type::NIL;
@@ -148,9 +148,7 @@ Machine::translate_operand(const vm::Argument* const arg, Memcell* const reg)
         return reg;
     case Argument::Type::LIBFUNC:
         reg->type = Memcell::Type::LIBFUNC;
-        reg->data.int_value = static_cast<LibFuncIdUT>(
-            static_cast<const LibFuncArgument*>(arg)->libfunc_id
-        );
+        reg->data.libfunc_id = static_cast<const LibFuncArgument*>(arg)->libfunc_id;
         return reg;
     case Argument::Type::CONST_STRING:
         {
@@ -215,7 +213,6 @@ Machine::run()
     catch (const std::runtime_error& e) { std::cerr << e.what() << std::endl; }
 }
 
-
 void
 Machine::assign(Memcell& lv, const Memcell& rv)
 {
@@ -230,7 +227,7 @@ Machine::assign(Memcell& lv, const Memcell& rv)
         display_warning("Assigning from `UNDEF` content");
 
     lv.clear();
-    std::memcpy(&lv, &rv, sizeof(Memcell));
+    lv = rv;
 
     if (lv.type == Memcell::Type::STRING)
         lv.data.str_value = strdup(rv.data.str_value);
@@ -309,30 +306,6 @@ Machine::execute_assign(const vm::Instruction& inst)
     assign(*lv, *rv);
 }
 
-//
-// void
-// Machine::call_functor(vm::Table* table)
-// {
-//     reg_c_.type = Memcell::Type::STRING;
-//     reg_c_.data.str_value = "()";
-//     Memcell* const functor = table_get_element(table, reg_c_);
-//     if (!functor)
-//         error("In calling table: no `()` element found!");
-//     else if (functor->type == Memcell::Type::TABLE)
-//         call_functor(functor->data.table_value);
-//     else if (functor->type == Memcell::Type::PROGFUNC)
-//     {
-//         push_table_arg(table);
-//         stack_.save_call_environment(pc_, total_actuals_);
-//         pc_ = functor->data.progfunc_address;
-//         DMASSERT(pc_ < ending_pc(), code_[pc_].opcode == Opcode::ENTERFUNC);
-//     }
-//     else
-//         error("In calling table: illegal `()` element value");
-// }
-//
-//
-
 void
 Machine::execute_jump(const vm::Instruction& inst)
 {
@@ -355,6 +328,7 @@ Machine::execute_call(const vm::Instruction& inst)
             stack_.save_call_environment(pc_, total_actuals_);
             DMASSERT(func->data.progfunc_index < exe_.progfuncs.size());
             const vm::ProgFuncMetadata metadata = exe_.progfuncs[func->data.progfunc_index];
+            static_assert(sizeof(decltype(metadata)) <= 32, "If false pass by value");
             DMASSERT(metadata.address.value < exe_.instructions.size());
             pc_ = metadata.address.value - 1; // @PC_TAG@ -1 is required, as addresses start from 1
             DMASSERT(pc_ < ending_pc_, code_[pc_].opcode == Opcode::ENTERFUNC);
@@ -367,8 +341,7 @@ Machine::execute_call(const vm::Instruction& inst)
         call_libfunc(static_cast<LibFuncId>(func->data.int_value));
         break;
     case Memcell::Type::TABLE:
-        DMASSERT(false && "uncomment below");
-        // call_functor(func->data.table_value);
+        call_functor(func->data.table_value);
         break;
 
     default:
@@ -381,7 +354,7 @@ void
 Machine::execute_enterfunc(const vm::Instruction& inst)
 {
     const vm::Memcell& func = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
-    const vm::ProgFuncMetadata& progfunc_metadata = exe_.progfuncs[func.data.progfunc_index];
+    const vm::ProgFuncMetadata progfunc_metadata = exe_.progfuncs[func.data.progfunc_index];
     DMASSERT(pc_ == progfunc_metadata.address.value -1); // @PC_TAG@  (tag is for the - 1 )
     total_actuals_ = 0;
     stack_.enter_frame();
@@ -406,8 +379,8 @@ Machine::execute_exitfunc(const vm::Instruction* const unused)
 void
 Machine::execute_pusharg(const vm::Instruction& inst)
 {
-    const vm::Memcell& arg = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
-    assign(stack_.top_element(), arg);
+    const vm::Memcell& actual = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
+    assign(stack_.top_element(), actual);
     ++total_actuals_;
     stack_.decrease_top();
 }
@@ -467,91 +440,124 @@ Machine::execute_newtable(const vm::Instruction& inst)
 [[nodiscard]] vm::Memcell*
 tablegetelem(Table& t, const Memcell& i)
 {
+    const auto get_element = []<typename KeyType>(HashTable<KeyType>& hash_table, KeyType key) -> vm::Memcell *
+    {
+        const auto it = hash_table.find(key);
+        if (it != hash_table.end()) [[likely]]
+            return &it->second;
+        return nullptr;
+    };
+
     switch (i.type)
     {
     case Memcell::Type::UNDEF:
-    case Memcell::Type::NIL: break;
-    case Memcell::Type::INT:
-        {
-            const auto it = t.int_indexed.data.find(i.data.int_value);
-            if (it != t.int_indexed.data.end()) [[likely]] return &it->second;
-            break;
-        }
-    case Memcell::Type::FLOAT:
-        {
-            const auto it = t.float_indexed.data.find(i.data.float_value);
-            if (it != t.float_indexed.data.end()) [[likely]] return &it->second;
-            break;
-        }
-    case Memcell::Type::STRING:
-        {
-            const auto it = t.str_indexed.data.find(i.data.str_value);
-            if (it != t.str_indexed.data.end()) [[likely]] return &it->second;
-            break;
-        }
-    case Memcell::Type::BOOL:
-        {
-            const auto it = t.bool_indexed.data.find(i.data.bool_value);
-            if (it != t.bool_indexed.data.end()) [[likely]] return &it->second;
-            break;
-        }
-    case Memcell::Type::TABLE:
-        {
-            const auto it = t.table_indexed.data.find(i.data.table_value);
-            if (it != t.table_indexed.data.end()) [[likely]] return &it->second;
-            break;
-        }
-    case Memcell::Type::PROGFUNC:
-        {
-            const auto it = t.progfunc_indexed.data.find(i.data.progfunc_index);
-            if (it != t.progfunc_indexed.data.end()) [[likely]] return &it->second;
-            break;
-        }
-    case Memcell::Type::LIBFUNC:
-        {
-            const auto it = t.libfunc_indexed.data.find(i.data.libfunc_id);
-            if (it != t.libfunc_indexed.data.end()) [[likely]] return &it->second;
-            break;
-        }
+    case Memcell::Type::NIL: return nullptr;
+    case Memcell::Type::INT: return get_element(t.int_indexed, i.data.int_value);
+    case Memcell::Type::FLOAT: return get_element(t.float_indexed, i.data.float_value);
+    case Memcell::Type::STRING: return get_element(t.str_indexed, FMT::to_string(i.data.str_value));
+    case Memcell::Type::BOOL: return get_element(t.bool_indexed, i.data.bool_value);
+    case Memcell::Type::TABLE: return get_element(t.table_indexed, i.data.table_value);
+    case Memcell::Type::PROGFUNC: return get_element(t.progfunc_indexed, i.data.progfunc_index);
+    case Memcell::Type::LIBFUNC: return get_element(t.libfunc_indexed, i.data.libfunc_id);
     default:
         DMASSERT(false);
         std::abort();
     }
-    return nullptr;
 }
 
 void
-tablesetelem(Table& t, const Memcell& i, const Memcell& c)
+Machine::call_functor(vm::Table* table)
 {
+    DMASSERT(!!table);
+
+    const auto push_table_arg = [this, table]()
+    {
+        Memcell& top_elem = stack_.top_element();
+        top_elem.type = Memcell::Type::TABLE;
+        top_elem.data.table_value = table;
+        ++total_actuals_;
+        stack_.decrease_top();
+    };
+
+
+    reg_c_.type = Memcell::Type::STRING;
+    reg_c_.data.str_value = "()";
+    const Memcell* const functor = tablegetelem(*table, reg_c_);
+    if (!functor)
+        error("In calling table: no `()` element found!");
+    else if (functor->type == Memcell::Type::TABLE)
+        call_functor(functor->data.table_value);
+    else if (functor->type == Memcell::Type::PROGFUNC)
+    {
+        push_table_arg();
+        stack_.save_call_environment(pc_, total_actuals_);
+        const vm::ProgFuncMetadata progfunc_metadata = exe_.progfuncs[functor->data.progfunc_index];
+        pc_ = progfunc_metadata.address.value;
+        DMASSERT(pc_ < ending_pc_, code_[pc_].opcode == Opcode::ENTERFUNC);
+    }
+    else
+        error("In calling table: illegal `()` element value");
+}
+
+void
+Machine::tablesetelem(Table& t, const Memcell& i, const Memcell& c)
+{
+    const auto handle_assignment = [this, &c] <typename KeyType>(
+        HashTable<KeyType>& hash_table,
+        KeyType index_key) -> void
+    {
+        if (c.type != Memcell::Type::NIL)
+        {
+            assign(hash_table[index_key], c);
+            return;
+        }
+        if (const auto it = hash_table.find(index_key); it != hash_table.end())
+        {
+            Memcell& value = it->second;
+            value.clear();
+            hash_table.erase(it);
+        }
+    };
+
     switch (i.type)
     {
         [[unlikely]] case Memcell::Type::UNDEF:
-        UNREACHABLE("VM does not yet support seeting an element with key being `UNDEF`");
-        break;
+        UNIMPLEMENTED("VM does not yet support UNDEF as key");
         [[unlikely]] case Memcell::Type::NIL:
-        UNREACHABLE("VM does not yet support seeting an element with key being `nil`");
-        break;
+        UNIMPLEMENTED("VM does not yet support NIL as key");
+        [[unlikely]] case Memcell::Type::TABLE:
+        UNIMPLEMENTED("VM does not yet support TABLE as key");
+    // assign(t.table_indexed[i.data.table_value], c); // TODO: We have trouble with reference counting.. for example inside a for loop x = [{[]:[]}]; we fail to handle liveness of the table as index...
     case Memcell::Type::INT:
-        t.int_indexed.data[i.data.int_value] = c;
+        handle_assignment.operator()(t.int_indexed, i.data.int_value);
         break;
     case Memcell::Type::FLOAT:
-        t.float_indexed.data[i.data.float_value] = c;
+        handle_assignment.operator()(t.float_indexed, i.data.float_value);
         break;
     case Memcell::Type::STRING:
-        t.str_indexed.data[i.data.str_value] = c;
+        if (c.type != Memcell::Type::NIL)
+        {
+            assign(t.str_indexed[i.data.str_value], c);
+            return;
+        }
+        if (const auto it = t.str_indexed.find(i.data.str_value); it != t.str_indexed.end())
+        {
+            Memcell& value = it->second;
+            value.clear();
+            t.str_indexed.erase(it);
+        }
         break;
     case Memcell::Type::BOOL:
-        t.bool_indexed.data[i.data.bool_value] = c;
-        break;
-    case Memcell::Type::TABLE:
-        t.table_indexed.data[i.data.table_value] = c;
+        handle_assignment.operator()(t.bool_indexed, i.data.bool_value);
         break;
     case Memcell::Type::PROGFUNC:
-        t.progfunc_indexed.data[i.data.progfunc_index] = c;
+        handle_assignment.operator()(t.progfunc_indexed, i.data.progfunc_index);
         break;
     case Memcell::Type::LIBFUNC:
-        t.libfunc_indexed.data[i.data.libfunc_id] = c;
+        handle_assignment.operator()(t.libfunc_indexed, i.data.libfunc_id);
         break;
+        [[unlikely]] default: DMASSERT(false);
+        std::abort();
     }
 }
 
@@ -561,7 +567,6 @@ Machine::execute_tablegetelem(const vm::Instruction& inst)
     vm::Memcell& lv = *DEBUG_REQUIRE_PTR(translate_operand(inst.result.get(), nullptr));
     const vm::Memcell& t = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), nullptr));
     const vm::Memcell& i = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2.get(), &reg_a_));
-
 
     lv.clear();
     lv.type = Memcell::Type::NIL;
@@ -576,7 +581,10 @@ Machine::execute_tablegetelem(const vm::Instruction& inst)
     if (content)
         assign(lv, *content);
     else
-        display_warning(FMT::format("{}[{}] not found!", t.to_string(), i.to_string()));
+    {
+        const bool include_string_quotes = i.type == Memcell::Type::STRING;
+        display_warning(FMT::format("table[{}] not found!", i.to_string(include_string_quotes)));
+    }
 }
 
 void Machine::execute_tablesetelem(const vm::Instruction& inst)
