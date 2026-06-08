@@ -22,9 +22,6 @@ int main(const int argc, char** argv)
     {
         const arguinator::Parser cli_parser = launch_cli_parser(argc, argv);
 
-        if (cli_parser["source"].is_provided())
-            std::cout << "SOURCE is provided!" << std::endl;
-
         const std::string infile_name = cli_parser["source"].get_input();
         std::ifstream infile{infile_name, std::ios::binary};
         if (!infile)
@@ -34,8 +31,11 @@ int main(const int argc, char** argv)
         infile.read(reinterpret_cast<char*>( abc_buffer.data()), filesize);
         const alpha::vm::Executable executable = alpha::ABC_Loader::load(abc_buffer);
 
+         alpha::u32 stack_size = 40;
+        if (cli_parser["stack_size"].is_provided())
+            stack_size = std::stoi(cli_parser["stack_size"].get_input());
 
-        alpha::vm::Machine machine{alpha::vm::Bytes{.count = 256}, executable};
+        alpha::vm::Machine machine{alpha::vm::Bytes{.count = stack_size}, executable};
         machine.run();
     }
     catch (arguinator::CLIHelp) { return 0; }
@@ -47,6 +47,7 @@ launch_cli_parser(const int argc, const char* const * const argv)
 {
     arguinator::Parser parser(argc, argv, vm_description);
     parser.set_flag("source").set_arity(1).set_help("NYI").set_required();
+    parser.set_flag("stack_size").set_arity(1).set_help("NYI");
 
     parser.parse_flags();
     return parser;

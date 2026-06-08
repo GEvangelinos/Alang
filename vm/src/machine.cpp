@@ -1,6 +1,7 @@
 #include "vm/machine.hpp"
 
 #include <alpha_parser.gen.hpp>
+#include <charconv>
 
 #include "bytecode/executable.hpp"
 #include "core/bytecode/vm_program.hpp"
@@ -440,7 +441,8 @@ Machine::execute_newtable(const vm::Instruction& inst)
 [[nodiscard]] vm::Memcell*
 tablegetelem(Table& t, const Memcell& i)
 {
-    const auto get_element = []<typename KeyType>(HashTable<KeyType>& hash_table, KeyType key) -> vm::Memcell *
+    const auto get_element = []<typename KeyType>(HashTable<KeyType>& hash_table,
+                                                  KeyType key) -> vm::Memcell*
     {
         const auto it = hash_table.find(key);
         if (it != hash_table.end()) [[likely]]
@@ -481,7 +483,7 @@ Machine::call_functor(vm::Table* table)
 
 
     reg_c_.type = Memcell::Type::STRING;
-    reg_c_.data.str_value = "()";
+    reg_c_.data.str_value = strdup("()");
     const Memcell* const functor = tablegetelem(*table, reg_c_);
     if (!functor)
         error("In calling table: no `()` element found!");
@@ -522,12 +524,15 @@ Machine::tablesetelem(Table& t, const Memcell& i, const Memcell& c)
     switch (i.type)
     {
         [[unlikely]] case Memcell::Type::UNDEF:
-        UNIMPLEMENTED("VM does not yet support UNDEF as key");
+        error("VM does not yet support UNDEF as key");
+        break;
         [[unlikely]] case Memcell::Type::NIL:
-        UNIMPLEMENTED("VM does not yet support NIL as key");
+        error("VM does not yet support NIL as key");
+        break;
         [[unlikely]] case Memcell::Type::TABLE:
-        UNIMPLEMENTED("VM does not yet support TABLE as key");
-    // assign(t.table_indexed[i.data.table_value], c); // TODO: We have trouble with reference counting.. for example inside a for loop x = [{[]:[]}]; we fail to handle liveness of the table as index...
+        // assign(t.table_indexed[i.data.table_value], c); // TODO: We have trouble with reference counting.. for example inside a for loop x = [{[]:[]}]; we fail to handle liveness of the table as index...
+        error("VM does not yet support TABLE as key");
+        break;
     case Memcell::Type::INT:
         handle_assignment.operator()(t.int_indexed, i.data.int_value);
         break;
@@ -609,7 +614,6 @@ Machine::impl_of_libfunc_print()
         const vm::Memcell& actual = stack_.get_actual(i);
         *out_stream_ << actual.to_string();
     }
-    *out_stream_ << std::endl;
     retval_.type = Memcell::Type::INT;
     retval_.data.int_value = 0;
 }
@@ -617,14 +621,204 @@ Machine::impl_of_libfunc_print()
 void
 Machine::impl_of_libfunc_typeof()
 {
+    retval_.clear();
+
     const auto actuals = stack_.total_actuals();
     if (actuals != 1)
     {
         error(FMT::format("one argument (not {}) expected in `typeof` libfunc", actuals));
         return;
     }
-    retval_.clear();
+
     retval_.type = Memcell::Type::STRING;
     retval_.data.str_value = strdup(to_string(stack_.get_actual(0).type));
+}
+
+void
+Machine::impl_of_libfunc_input()
+{
+    retval_.clear();
+
+    const auto actuals = stack_.total_actuals();
+    if (actuals == 1)
+    {
+        const vm::Memcell& prompt = stack_.get_actual(0);
+        if (prompt.type == Memcell::Type::STRING)
+            *out_stream_ << prompt.to_string();
+        else
+            display_warning("Argument given to libfunc `input` was not string (invalid prompt)");
+    }
+    if (actuals > 1)
+        display_warning(FMT::format(
+            "Libfunc `input` takes 0 or 1 arguments (1 str for prompting user)", actuals));
+
+    std::string input;
+
+    if (!std::getline(std::cin, input))
+        return;
+
+    AlphaInt int_val;
+    std::from_chars_result result =
+        std::from_chars(input.data(), input.data() + input.size(), int_val);
+    if (result.ec == std::errc{} && result.ptr == input.data() + input.size())
+    {
+        retval_.type = Memcell::Type::INT;
+        retval_.data.int_value = int_val;
+        return;
+    }
+
+    AlphaFloat float_val;
+    result = std::from_chars(input.data(), input.data() + input.size(), float_val);
+    if (result.ec == std::errc{} && result.ptr == input.data() + input.size())
+    {
+        retval_.type = Memcell::Type::FLOAT;
+        retval_.data.float_value = float_val;
+        return;
+    }
+
+    if (input == "true")
+    {
+        retval_.type = Memcell::Type::BOOL;
+        retval_.data.bool_value = true;
+    }
+    else if (input == "false")
+    {
+        retval_.type = Memcell::Type::BOOL;
+        retval_.data.bool_value = false;
+    }
+    else if (input == "nil")
+        retval_.type = Memcell::Type::NIL;
+    else
+    {
+        retval_.type = Memcell::Type::STRING;
+        retval_.data.str_value = strdup(input.c_str());
+    }
+}
+
+void
+Machine::impl_of_libfunc_objecttotalmembers()
+{
+    retval_.clear();
+    const auto actuals = stack_.total_actuals();
+    if (actuals != 1)
+    {
+        error(FMT::format("one argument (not {}) expected in `objecttotalmembers` libfunc", actuals));
+        return;
+    }
+
+    const vm::Memcell& actual = stack_.get_actual(0);
+    if (actual.type != Memcell::Type::TABLE)
+    {
+        error("Argument given to libfunc `objecttotalmembers` was not `TABLE`");
+        return;
+    }
+
+    const Table& table = *DEBUG_REQUIRE_PTR(actual.data.table_value);
+
+    retval_.type = Memcell::Type::INT;
+    retval_.data.int_value =
+        table.bool_indexed.size() +
+        table.int_indexed.size() +
+        table.float_indexed.size() +
+        table.str_indexed.size() +
+        table.progfunc_indexed.size() +
+        table.libfunc_indexed.size() +
+        table.table_indexed.size();
+}
+
+void
+Machine::impl_of_libfunc_objectmemberkeys()
+{
+
+    retval_.clear();
+    const auto actuals = stack_.total_actuals();
+    if (actuals != 1)
+    {
+        error(FMT::format("one argument (not {}) expected in `objectmemberkeys` libfunc", actuals));
+        return;
+    }
+
+    const vm::Memcell& actual = stack_.get_actual(0);
+    if (actual.type != Memcell::Type::TABLE)
+    {
+        error("Argument given to libfunc `objecttotalmembers` was not `TABLE`");
+        return;
+    }
+
+    retval_.type = Memcell::Type::TABLE;
+    retval_.data.table_value = new Table{};
+    retval_.data.table_value->increase_ref();
+
+    Table& tabl_arg = *DEBUG_REQUIRE_PTR(actual.data.table_value);
+
+    std::size_t index = 0;
+    for (const auto& key : tabl_arg.bool_indexed | std::views::keys)
+    {
+        vm::Memcell *memcell = new vm::Memcell;
+        memcell->type = Memcell::Type::BOOL;
+        memcell->data.bool_value = key;
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+    }
+    for (const AlphaInt& key : tabl_arg.int_indexed | std::views::keys)
+    {
+        vm::Memcell *memcell = new vm::Memcell;
+        memcell->type = Memcell::Type::INT;
+        memcell->data.int_value = key;
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+    }
+
+    for (const AlphaFloat& key : tabl_arg.float_indexed | std::views::keys)
+    {
+        vm::Memcell *memcell = new vm::Memcell;
+        memcell->type = Memcell::Type::FLOAT;
+        memcell->data.float_value = key;
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+    }
+
+    for (const std::string& key : tabl_arg.str_indexed | std::views::keys)
+    {
+        vm::Memcell *memcell = new vm::Memcell;
+        memcell->type = Memcell::Type::STRING;
+        memcell->data.str_value = strdup(key.c_str());
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+    }
+
+    for (const unsigned& key : tabl_arg.progfunc_indexed | std::views::keys)
+    {
+        vm::Memcell *memcell = new vm::Memcell;
+        memcell->type = Memcell::Type::PROGFUNC;
+        memcell->data.progfunc_index = key;
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+    }
+
+    for (const LibFuncId& key : tabl_arg.libfunc_indexed | std::views::keys)
+    {
+        vm::Memcell *memcell = new vm::Memcell;
+        memcell->type = Memcell::Type::LIBFUNC;
+        memcell->data.libfunc_id = key;
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+    }
+}
+
+void
+Machine::impl_of_libfunc_totalarguments()
+{
+    retval_.clear();
+    const auto actuals = stack_.total_actuals();
+    if (actuals > 0)
+        display_warning(FMT::format("Libfunc `totalarguments` takes 0 argument (got {})", actuals));
+
+
+    const u32 p_topsp = stack_.get_environment_value(stack_.topsp() + Machine::k_saved_topsp_offset);
+    if (!p_topsp)
+    {
+        error("`totalarguments` called outsider a function!");
+        retval_.type = Memcell::Type::NIL;
+    }
+    else
+    {
+        retval_.type = Memcell::Type::INT;
+        retval_.data.int_value = stack_.get_environment_value(p_topsp + Machine::k_actual_count_offset);
+    }
 }
 } // namespace alpha::vm

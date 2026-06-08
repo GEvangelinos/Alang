@@ -202,60 +202,6 @@ load_instructions(
     return loaded_instructions;
 }
 
-[[nodiscard]] std::string to_string(const CodeAddress label)
-{
-    return label.is_none() ? "NONE" : FMT::to_string(label.value);
-}
-
-std::string argument_formatter(
-    const alpha::vm::Argument* const a,
-    const char* const missing_marker)
-{
-    using namespace alpha;
-    if (!a)
-        return missing_marker;
-    using AT = vm::Argument::Type;
-
-    switch (a->type)
-    {
-    case AT::CONST_BOOL:
-        return static_cast<const vm::ConstBoolArgument*>(a)->value ? "true" : "false";
-    case AT::CONST_INT:
-        return FMT::format("(int){}", static_cast<const vm::ConstIntArgument*>(a)->value);
-    case AT::CONST_FLOAT:
-        return FMT::format("(float){}", static_cast<const vm::ConstFloatArgument*>(a)->value);
-    case AT::CONST_STRING:
-        return FMT::format("(str){}", static_cast<const vm::ConstStringArgument*>(a)->pool_index);
-    case AT::CONST_NIL:
-        return "nil";
-    case vm::Argument::Type::LABEL:
-        return to_string(static_cast<const vm::LabelArgument*>(a)->value);
-    case vm::Argument::Type::GLOBAL:
-        return FMT::format("(global){}", static_cast<const vm::GlobalVariableArgument*>(a)->offset);
-    case vm::Argument::Type::FORMAL:
-        return FMT::format("(formal){}", static_cast<const vm::FormalVariableArgument*>(a)->offset);
-    case vm::Argument::Type::LOCAL:
-        return FMT::format("(local){}", static_cast<const vm::LocalVariableArgument*>(a)->offset);
-    case vm::Argument::Type::PROGRAMFUNC:
-        return FMT::format(
-            "(progfunc){}", static_cast<const vm::ProgramFuncArgument*>(a)->func_idx
-        );
-    case vm::Argument::Type::LIBFUNC:
-        return FMT::format(
-            "(libfunc){}",
-            static_cast<std::underlying_type_t<vm::LibFuncId>>(
-                static_cast<const vm::LibFuncArgument*>(a)->libfunc_id
-            )
-        );
-    case vm::Argument::Type::RETVAL:
-        return "(retval)";
-    default:
-        UNREACHABLE(FMT::format("Unhandled vm::Argument::Type: int({}) = {}",
-            TO_STRING(expr->type), static_cast<int>(a->type)
-        ));
-    }
-}
-
 vm::Executable
 ABC_Loader::load(const std::vector<u8>& byte_buffer)
 {
@@ -269,63 +215,6 @@ ABC_Loader::load(const std::vector<u8>& byte_buffer)
         load_progfuncs(byte_buffer, header.sections.progfuncs);
     std::vector<vm::Instruction> instructions =
         load_instructions(byte_buffer, header.sections.instructions);
-
-    for (const auto& inst : instructions)
-    {
-        std::cout << argument_formatter(inst.result.get(), "-");
-        std::cout << "\t";
-        std::cout << argument_formatter(inst.arg1.get(), "-");
-        std::cout << "\t";
-        std::cout << argument_formatter(inst.arg2.get(), "-");
-        std::cout << std::endl;
-    }
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << "ABC loading completed" << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
-    std::cout << std::endl;
 
     return vm::Executable{
         .str_literal_cache = std::move(str_literal_cache),

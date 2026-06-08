@@ -150,34 +150,6 @@ Memcell::clear()
     }
 }
 
-inline std::string
-Memcell::to_string(const bool include_str_quotes, const u32 call_depth) const
-{
-    switch (type)
-    {
-    case Type::UNDEF: return "undefined";
-    case Type::INT: return FMT::to_string(data.int_value);
-    case Type::FLOAT: return FMT::to_string(data.float_value);
-    case Type::STRING:
-        {
-            const char* const delimeter = include_str_quotes ? "\"" : "";
-            return FMT::format("{}{}{}", delimeter, std::string(data.str_value), delimeter);
-        }
-    case Type::BOOL: return std::string(data.bool_value ? "true" : "false");
-    case Type::TABLE: return data.table_value->to_string(call_depth);
-    case Type::PROGFUNC: return FMT::format("(program_func: {})", data.progfunc_index);
-    case Type::LIBFUNC:
-        {
-            const std::optional<StringSpan> libname = get_libfunc_name(data.libfunc_id);
-            DMASSERT(libname.has_value() && "How did it become a type LIBFUNC then.. ?");
-            return FMT::format("{}()", libname->data);
-        }
-    case Type::NIL: return "nil";
-    default: DMASSERT(false);
-    }
-    return "__INTERNAL_ERROR__: 2026.05.31.22:07";
-}
-
 inline bool
 Memcell::to_bool() const noexcept
 {

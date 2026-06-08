@@ -28,29 +28,6 @@ struct Bytes
     static constexpr Bytes from_TB(const u64 terabytes) noexcept { return {(1ULL << 40) * terabytes}; }
     // clang-format on
 };
-template <auto T>
-struct AlwaysFalseInstantiation
-{
-    // "\nUnknown call_str used in `call` dispatcher\n"
-    // "(Look at the generated notes, to find the call_str that caused the error)"
-    static_assert(always_false_v<decltype(T)>,
-                  R"(
-🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑
-🛑======== [ DISPATCH DSL FAILURE ] ========🛑
-🛑   Unknown call_str used in dispatcher.   🛑
-🛑   Check for:                             🛑
-🛑       * Typos.                           🛑
-🛑       * Routing through correct module.  🛑
-🛑       * Selected module has specified    🛑
-🛑         method declared.                 🛑
-🛑   Take a look at the generated notes     🛑
-🛑   below by the compiler. Look for:       🛑
-🛑   UnknownCallStr<FixedString<>{"..."}>   🛑
-🛑   to find call_str causing the error     🛑
-🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑🛑)"
-    );
-};
-
 
 class Machine
 {
@@ -108,6 +85,10 @@ public:
 
     void impl_of_libfunc_print();
     void impl_of_libfunc_typeof();
+    void impl_of_libfunc_input();
+    void impl_of_libfunc_objecttotalmembers();
+    void impl_of_libfunc_objectmemberkeys();
+    void impl_of_libfunc_totalarguments();
 
 private:
     class Stack
@@ -206,8 +187,14 @@ private:
             );
         };
 
-        result[get_index_of("print")] = &Machine::impl_of_libfunc_print;
-        result[get_index_of("typeof")] = &Machine::impl_of_libfunc_typeof;
+        #define REGISTER_LIBFUNC(libfunc_name) result[get_index_of(#libfunc_name)] = &Machine::impl_of_libfunc_##libfunc_name
+        REGISTER_LIBFUNC(print);
+        REGISTER_LIBFUNC(input);
+        REGISTER_LIBFUNC(typeof);
+        REGISTER_LIBFUNC(objectmemberkeys);
+        REGISTER_LIBFUNC(objecttotalmembers);
+        REGISTER_LIBFUNC(totalarguments);
+        #undef REGISTER_LIBFUNC
         return result;
     }();
 };
