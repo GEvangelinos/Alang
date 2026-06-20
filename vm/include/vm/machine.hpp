@@ -6,12 +6,11 @@
 #include <optional>
 
 #include "vm_memory.hpp"
-#include "../../../bytecode/include/bytecode/executable.hpp"
+#include "bytecode/executable.hpp"
 #include "core/numeric_types.hpp"
 #include "core/bytecode/vm_instruction.hpp"
 #include "core/bytecode/vm_program.hpp"
 #include "core/libfunc/mappings.hpp"
-#include "support/dependent_false.hpp"
 
 namespace alpha::vm
 {
@@ -97,6 +96,9 @@ private:
         Stack(u64 size, u32 global_var_count, std::function<void()> on_stack_overflow);
 
         [[nodiscard]] auto size() const noexcept { return size_; }
+        [[nodiscard]] Memcell* get_global_argument(u32 global_offset) noexcept;
+        [[nodiscard]] Memcell* get_formal_argument(u32 formal_offset) noexcept;
+        [[nodiscard]] Memcell* get_local_argument(u32 local_offset) noexcept;
         void push_env_value(AlphaInt value);
         void enter_frame();
         void allocate_locals(u32 count);
@@ -108,6 +110,7 @@ private:
         [[nodiscard]] Memcell& top_element() noexcept { return data_[top_]; }
 
         [[nodiscard]] u32 restore_previous_environment() noexcept;
+        void display_stack() const noexcept;
         void clear_at(u32 idx);
         [[nodiscard]] AlphaInt total_actuals() const noexcept;
         [[nodiscard]] vm::Memcell& get_actual(u32 idx) const noexcept;
@@ -117,9 +120,10 @@ private:
         [[nodiscard]] Memcell& operator[](u32 idx) noexcept;
 
     private:
+        const u64 size_ = 0;
+        const u32 global_var_count_;
         std::function<void()> on_stack_overflow_;
         std::unique_ptr<Memcell []> data_;
-        const u64 size_ = 0;
         u32 top_, topsp_;
         DEBUG(OnceFlag is_overflowed;)
     };

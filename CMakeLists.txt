@@ -332,3 +332,35 @@ add_subdirectory(support)
 
 # === External Dependencies ===
 add_subdirectory(third_party)
+
+# ============================================== #
+function(add_compiler_test TEST_NAME)
+    set(SOURCE_FILE "${TEST_NAME}.asc")
+    set(ABC_FILE "${CMAKE_BINARY_DIR}/ABC_BINARIES/${TEST_NAME}.abc")
+    set(ABS_SOURCE "${CMAKE_SOURCE_DIR}/.tests/${SOURCE_FILE}")
+
+    add_custom_command(
+        OUTPUT "${ABC_FILE}"
+        COMMAND ${CMAKE_COMMAND} -E echo "${SGR_BOLD}${SGR_FG_YELLOW}${COMPILER_EXE_NAME} output:${SGR_RESET}"
+        COMMAND ${COMPILER_EXE_NAME} --source "${ABS_SOURCE}" --show_abc
+        DEPENDS "${ABS_SOURCE}" ${COMPILER_EXE_NAME}
+        COMMENT "Compiling ${SOURCE_FILE} to ${ABC_FILE}"
+        VERBATIM
+    )
+
+    message(${ABC_FILE})
+
+    add_custom_target("runtest_${TEST_NAME}"
+        COMMAND ${CMAKE_COMMAND} -E echo "\n"
+        COMMAND ${CMAKE_COMMAND} -E echo "${SGR_BOLD}${SGR_FG_YELLOW}${VM_EXE_NAME} output:${SGR_RESET}"
+        COMMAND ${VM_EXE_NAME} --source "${ABC_FILE}"
+        DEPENDS "${ABC_FILE}" ${VM_EXE_NAME}
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+        USES_TERMINAL
+    )
+
+    add_dependencies("runtest_${TEST_NAME}" "${COMPILER_EXE_NAME}" "${VM_EXE_NAME}")
+endfunction()
+
+
+add_compiler_test(testbed)

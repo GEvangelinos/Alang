@@ -43,7 +43,7 @@ X(false, 0, opt_func_hoisting,         "**EXPERIMENTAL** Extract and lift nested
 // (REQUIRED, ARITY, NAME, HELP_MSG)
 #define CONFIG_FLAG_SETTINGS(X) \
     X(false, 0, expect_errors,  "If enable, when errors occur driver still returns EXIT_SUCCESS (used for regression testing error-files).") \
-    X(false, 0, extra_warnings, "Enablesexra safety checks, that result in warnings")
+    X(false, 0, extra_warnings, "Enables extra safety checks, that result in warnings")
 
 // (REQUIRED, ARITY, NAME, VALUE_TYPE, HELP_MSG)
 #define CONFIG_DATA_SETTINGS(X) \

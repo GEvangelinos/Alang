@@ -1555,3 +1555,38 @@ function g(){
     return;
     A+B;
 }
+
+250)
+
+============== BYTECODE ===============
+instr#     opcode          result               arg1                 arg2                 line
+1          jump            6                                                              1
+2          enterfunc                            (progfunc)0                               1
+3          assign          (retval)             (int)2                                    1
+4          jump            5                                                              1
+5          exitfunc                             (progfunc)0                               1
+6          jump            11                                                             2
+7          enterfunc                            (progfunc)1                               2
+8          assign          (retval)             (int)3                                    2
+9          jump            10                                                             2
+10         exitfunc                             (progfunc)1                               2
+11         jump            16                                                             3
+12         enterfunc                            (progfunc)2                               3
+13         assign          (retval)             (int)4                                    3
+14         jump            15                                                             3
+15         exitfunc                             (progfunc)2                               3
+16         jump            27                                                             5
+17         enterfunc                            (progfunc)3                               5
+18         call                                 (progfunc)0                               6
+19         assign          (local)0             (retval)                                  6
+20         call                                 (progfunc)2                               6
+21         assign          (local)1             (retval)                                  6
+// We should push arg local 1  NOR assign to local 1. we could just push retval.. as we load in reverse.
+// of course this requires static analysis.. and we can only optimize to that.. after we check there is immediate pusharg and call..
+22         pusharg                              (local)1                                  6
+23         pusharg                              (local)0                                  6
+24         call                                 (libfunc)0                                6
+25         assign          (local)0             (retval)                                  6
+26         exitfunc                             (progfunc)3                               7
+27         call                                 (progfunc)3                               9
+28         assign          (global)0            (retval)                                  9

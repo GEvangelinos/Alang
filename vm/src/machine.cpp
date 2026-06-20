@@ -16,8 +16,9 @@ Machine::Stack::Stack(
     const u64 size,
     const u32 global_var_count,
     const std::function<void()> on_stack_overflow)
-    : on_stack_overflow_(on_stack_overflow),
-      size_(size)
+    : size_(size),
+      global_var_count_(global_var_count),
+      on_stack_overflow_(on_stack_overflow)
 {
     const u32 base_offset = size - global_var_count - 1;
     top_ = topsp_ = base_offset;
@@ -45,16 +46,15 @@ Machine::Stack::Stack(
 }
 
 
-Memcell& Machine::Stack::operator[](const u32 idx) noexcept
+Memcell&
+Machine::Stack::operator[](const u32 idx) noexcept
 {
     DMASSERT(idx < size_);
     return data_[idx];
 }
 
-const Memcell& Machine::Stack::operator[](const u32 idx) const noexcept
-{
-    return const_cast<Stack&>(*this)[idx];
-}
+const Memcell&
+Machine::Stack::operator[](const u32 idx) const noexcept { return const_cast<Stack&>(*this)[idx]; }
 
 void
 Machine::Stack::decrease_top()
@@ -75,6 +75,31 @@ Machine::Stack::push_env_value(const AlphaInt value)
     decrease_top();
 }
 
+Memcell*
+Machine::Stack::get_global_argument(const u32 global_offset) noexcept
+{
+    DMASSERT(global_offset < global_var_count_);
+    const u64 index = size() - 1 - global_offset;
+    DMASSERT(index < size());
+    return &data_[index];
+}
+
+Memcell*
+Machine::Stack::get_formal_argument(const u32 formal_offset) noexcept
+{
+    const u64 index = topsp() + Machine::k_stack_environment_size + 1 + formal_offset;
+    DMASSERT(index < size());
+    return &data_[index];
+}
+
+Memcell*
+Machine::Stack::get_local_argument(const u32 local_offset) noexcept
+{
+    const u64 index = topsp() - local_offset;
+    DMASSERT(index < size());
+    return &data_[index];
+}
+
 void
 Machine::Stack::enter_frame()
 {
@@ -82,7 +107,8 @@ Machine::Stack::enter_frame()
     topsp_ = top_;
 }
 
-void Machine::Stack::allocate_locals(const u32 count)
+void
+Machine::Stack::allocate_locals(const u32 count)
 {
     // Only native functions call this to reserve space for their bytecode variables
     // Libfuncs pass 0 implicitly by simply never calling this
@@ -99,7 +125,8 @@ Machine::Machine(const Bytes stack_size, const vm::Executable& exe)
       exe_(exe),
       ending_pc_(exe.instructions.size()) {}
 
-void Machine::on_stack_overflow()
+void
+Machine::on_stack_overflow()
 {
     error("StackOverflow");
     throw std::runtime_error{"Stack Overflow occurred"};
@@ -121,12 +148,11 @@ Machine::translate_operand(const vm::Argument* const arg, Memcell* const reg)
     switch (arg->type)
     {
     case Argument::Type::GLOBAL:
-        return &stack_[stack_.size() - 1 - static_cast<const GlobalVariableArgument*>(arg)->offset];
+        return stack_.get_global_argument(static_cast<const GlobalVariableArgument*>(arg)->offset);
     case Argument::Type::LOCAL:
-        return &stack_[stack_.topsp() - static_cast<const LocalVariableArgument*>(arg)->offset];
+        return stack_.get_local_argument(static_cast<const LocalVariableArgument*>(arg)->offset);
     case Argument::Type::FORMAL:
-        return &stack_[stack_.topsp() + Machine::k_stack_environment_size + 1 + static_cast<const
-                           FormalVariableArgument*>(arg)->offset];
+        return stack_.get_formal_argument(static_cast<const FormalVariableArgument*>(arg)->offset);
     case Argument::Type::RETVAL: return &retval_;
     case Argument::Type::CONST_INT:
         reg->type = Memcell::Type::INT;
@@ -188,7 +214,7 @@ Machine::execute_cycle()
         execution_finished_.raise();
         return;
     }
-    DMASSERT(pc_ < exe_.instructions.size() && "Above,  we just just checked is not equal.");
+    DMASSERT(pc_ < exe_.instructions.size() && "Above, we just just checked is not equal.");
     const vm::Instruction& instr = exe_.instructions[pc_];
 
     const auto instr_opcode_idx = static_cast<std::underlying_type_t<vm::Opcode>>(instr.opcode);
@@ -236,7 +262,8 @@ Machine::assign(Memcell& lv, const Memcell& rv)
         lv.data.table_value->increase_ref();
 }
 
-void Machine::Stack::save_call_environment(const AlphaInt pc, const AlphaInt total_actuals)
+void
+Machine::Stack::save_call_environment(const AlphaInt pc, const AlphaInt total_actuals)
 {
     push_env_value(total_actuals);
     #warning "TODO unbcomment, pass coda as argument to make the check with [[maybe_unused]] "
@@ -260,6 +287,12 @@ Machine::Stack::clear_at(const u32 idx)
     data_[idx].clear();
 }
 
+void
+Machine::Stack::display_stack() const noexcept
+{
+    for (std::size_t i = 0; i < size_; ++i)
+        std::cout << data_[i].to_string() << std::endl;
+}
 
 AlphaInt
 Machine::Stack::total_actuals() const noexcept
@@ -267,14 +300,12 @@ Machine::Stack::total_actuals() const noexcept
     return get_environment_value(topsp_ + Machine::k_actual_count_offset);
 }
 
-
 vm::Memcell&
 Machine::Stack::get_actual(const u32 idx) const noexcept
 {
     DMASSERT(idx < total_actuals());
     return data_[topsp_ + Machine::k_stack_environment_size + 1 + idx];
 }
-
 
 u32
 Machine::Stack::restore_previous_environment() noexcept
@@ -285,7 +316,6 @@ Machine::Stack::restore_previous_environment() noexcept
     return restored_pc;
 }
 
-
 AlphaInt
 Machine::Stack::get_environment_value(const u32 stack_idx) const noexcept
 {
@@ -295,7 +325,6 @@ Machine::Stack::get_environment_value(const u32 stack_idx) const noexcept
     const AlphaInt env_value = env_cell.data.int_value;
     return env_value;
 }
-
 
 void
 Machine::execute_assign(const vm::Instruction& inst)
@@ -702,7 +731,8 @@ Machine::impl_of_libfunc_objecttotalmembers()
     const auto actuals = stack_.total_actuals();
     if (actuals != 1)
     {
-        error(FMT::format("one argument (not {}) expected in `objecttotalmembers` libfunc", actuals));
+        error(FMT::format("one argument (not {}) expected in `objecttotalmembers` libfunc",
+                          actuals));
         return;
     }
 
@@ -729,7 +759,6 @@ Machine::impl_of_libfunc_objecttotalmembers()
 void
 Machine::impl_of_libfunc_objectmemberkeys()
 {
-
     retval_.clear();
     const auto actuals = stack_.total_actuals();
     if (actuals != 1)
@@ -754,49 +783,55 @@ Machine::impl_of_libfunc_objectmemberkeys()
     std::size_t index = 0;
     for (const auto& key : tabl_arg.bool_indexed | std::views::keys)
     {
-        vm::Memcell *memcell = new vm::Memcell;
+        vm::Memcell* memcell = new vm::Memcell;
         memcell->type = Memcell::Type::BOOL;
         memcell->data.bool_value = key;
-        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell);
+        // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
     }
     for (const AlphaInt& key : tabl_arg.int_indexed | std::views::keys)
     {
-        vm::Memcell *memcell = new vm::Memcell;
+        vm::Memcell* memcell = new vm::Memcell;
         memcell->type = Memcell::Type::INT;
         memcell->data.int_value = key;
-        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell);
+        // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
     }
 
     for (const AlphaFloat& key : tabl_arg.float_indexed | std::views::keys)
     {
-        vm::Memcell *memcell = new vm::Memcell;
+        vm::Memcell* memcell = new vm::Memcell;
         memcell->type = Memcell::Type::FLOAT;
         memcell->data.float_value = key;
-        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell);
+        // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
     }
 
     for (const std::string& key : tabl_arg.str_indexed | std::views::keys)
     {
-        vm::Memcell *memcell = new vm::Memcell;
+        vm::Memcell* memcell = new vm::Memcell;
         memcell->type = Memcell::Type::STRING;
         memcell->data.str_value = strdup(key.c_str());
-        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell);
+        // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
     }
 
     for (const unsigned& key : tabl_arg.progfunc_indexed | std::views::keys)
     {
-        vm::Memcell *memcell = new vm::Memcell;
+        vm::Memcell* memcell = new vm::Memcell;
         memcell->type = Memcell::Type::PROGFUNC;
         memcell->data.progfunc_index = key;
-        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell);
+        // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
     }
 
     for (const LibFuncId& key : tabl_arg.libfunc_indexed | std::views::keys)
     {
-        vm::Memcell *memcell = new vm::Memcell;
+        vm::Memcell* memcell = new vm::Memcell;
         memcell->type = Memcell::Type::LIBFUNC;
         memcell->data.libfunc_id = key;
-        retval_.data.table_value->int_indexed.emplace(index++, *memcell); // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
+        retval_.data.table_value->int_indexed.emplace(index++, *memcell);
+        // TODO: O ORISMOS TOU MEMORY LEAK! FIXME
     }
 }
 
@@ -809,7 +844,8 @@ Machine::impl_of_libfunc_totalarguments()
         display_warning(FMT::format("Libfunc `totalarguments` takes 0 argument (got {})", actuals));
 
 
-    const u32 p_topsp = stack_.get_environment_value(stack_.topsp() + Machine::k_saved_topsp_offset);
+    const u32 p_topsp = stack_.
+        get_environment_value(stack_.topsp() + Machine::k_saved_topsp_offset);
     if (!p_topsp)
     {
         error("`totalarguments` called outsider a function!");
@@ -818,7 +854,8 @@ Machine::impl_of_libfunc_totalarguments()
     else
     {
         retval_.type = Memcell::Type::INT;
-        retval_.data.int_value = stack_.get_environment_value(p_topsp + Machine::k_actual_count_offset);
+        retval_.data.int_value = stack_.get_environment_value(
+            p_topsp + Machine::k_actual_count_offset);
     }
 }
 } // namespace alpha::vm
