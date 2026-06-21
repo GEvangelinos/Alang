@@ -175,9 +175,9 @@ if (DEBUG_MODE)
         #        -Wmissing-declarations
     )
 
-#    add_link_options(
-#                ${SANITIZERS}
-#    )
+    #    add_link_options(
+    #                ${SANITIZERS}
+    #    )
     add_compile_definitions(DEBUG_MODE)
 endif ()
 
@@ -274,7 +274,8 @@ endfunction()
 
 function(add_regression_test target_name do_memcheck)
     set(regression_args
-        "--driver-path" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${COMPILER_EXE_NAME}"
+        "--cmp-path" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${COMPILER_EXE_NAME}"
+        "--vm-path" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${VM_EXE_NAME}"
         "--gospel-dir" "${GOSPEL_DIR}"
         "--work-dir" "${WORK_DIR_PATH}"
     )
@@ -293,7 +294,10 @@ function(add_regression_test target_name do_memcheck)
         ${regression_args}
     )
 
-    add_dependencies(${target_name} ${COMPILER_EXE_NAME})
+    add_dependencies(${target_name}
+        ${COMPILER_EXE_NAME}
+        ${VM_EXE_NAME}
+    )
 endfunction()
 
 if (NOT HATE_PYTHON_MODE)
@@ -342,7 +346,7 @@ function(add_compiler_test TEST_NAME)
     add_custom_command(
         OUTPUT "${ABC_FILE}"
         COMMAND ${CMAKE_COMMAND} -E echo "${SGR_BOLD}${SGR_FG_YELLOW}${COMPILER_EXE_NAME} output:${SGR_RESET}"
-        COMMAND ${COMPILER_EXE_NAME} --source "${ABS_SOURCE}" --show_abc
+        COMMAND ${COMPILER_EXE_NAME} --source "${ABS_SOURCE}" --show_abc --show_ir
         DEPENDS "${ABS_SOURCE}" ${COMPILER_EXE_NAME}
         COMMENT "Compiling ${SOURCE_FILE} to ${ABC_FILE}"
         VERBATIM

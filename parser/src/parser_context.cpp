@@ -349,10 +349,11 @@ ParseCtx::new_temp()
     // We register new temp, only if current scope doesn't have that temp.
     if (!var_symbol)
     {
+        const bool is_global = scope_handler.scope() == k_global_scope;
         const VarSymbol::Type var_type =
-            scope_handler.scope() == k_global_scope
-            ? VarSymbol::Type::GLOBAL_VARIABLE
-            : VarSymbol::Type::LOCAL_VARIABLE;
+            is_global ? Symbol::Type::GLOBAL_VARIABLE : Symbol::Type::LOCAL_VARIABLE;
+        if (!is_global)
+            func_ctx_handler.increment_localvar_counter();
 
         var_symbol = symbol_table_->insert_variable(
             temp_name,

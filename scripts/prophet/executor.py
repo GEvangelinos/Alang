@@ -10,6 +10,8 @@ from _colours import *
 _SYMTABLE_CSV_EXT = ".st.csv"
 _IR_CSV_EXT = ".ir.csv"
 _DIAGNOSTICS_CSV_EXT = ".diag.csv"
+_VM_OUT_EXT = ".vmout.txt"
+_VM_ERR_EXT = ".vmerr.txt"
 _GOLD_PREFIX = "GOLD_"
 
 _EXIT_SUCCESS_RETURNCODE = 0
@@ -24,22 +26,40 @@ class TestfileExecutor:
     def __init__(self, testfile: Testfile):
         self.testfile: Testfile = testfile
         self.test_dirpath = Path(TestfileExecutor.workdir_path) / Path(testfile.name).stem
+
         self.gold_symbol_table_filename = _GOLD_PREFIX + testfile.name + _SYMTABLE_CSV_EXT
         self.gold_ir_filename = _GOLD_PREFIX + testfile.name + _IR_CSV_EXT
         self.gold_diagnostics_filename = _GOLD_PREFIX + testfile.name + _DIAGNOSTICS_CSV_EXT
+
+        self.gold_vm_out_filename = _GOLD_PREFIX + testfile.name + _VM_OUT_EXT
+        self.gold_vm_err_filename = _GOLD_PREFIX + testfile.name + _VM_ERR_EXT
+
         self.out_symbol_table_filename = testfile.name + _SYMTABLE_CSV_EXT
         self.out_ir_filename = testfile.name + _IR_CSV_EXT
         self.out_diagnostics_filename = testfile.name + _DIAGNOSTICS_CSV_EXT
+
         self._status_line: list[str] = []
 
     def run(self):
+
         self.prepare_test_dir()
         os.chdir(self.test_dirpath)
         self.prepare_test_samples()
-        self.testfile.substitute_self_placeholder(self.test_dirpath / self.testfile.name)
-        if self.execute_run_line() == _EXIT_SUCCESS_RETURNCODE:
+        self.testfile.compiler_run_line = self.testfile.substitute_self_placeholder(self.testfile.compiler_run_line, self.test_dirpath / self.testfile.name)
+
+        self.testfile.vm_run_line = self.testfile.substitute_self_abc_placeholder(self.testfile.vm_run_line, self.test_dirpath / self.testfile.name)
+        self.testfile.vm_run_line += f" --out-file {self.testfile.name}.vmout.txt "
+        self.testfile.vm_run_line += f" --err-file {self.testfile.name}.vmerr.txt "
+
+        print(self.testfile.vm_run_line)
+
+        if self.execute_compiler_run_line() == _EXIT_SUCCESS_RETURNCODE:
             self.flatten_exports()
             self.validate_testfile()
+
+        if self.execute_vm_run_line() == _EXIT_SUCCESS_RETURNCODE:
+            pass
+
         os.chdir(Path(TestfileExecutor.workdir_path))
 
     @property
@@ -54,6 +74,7 @@ class TestfileExecutor:
         os.makedirs(self.test_dirpath, exist_ok=True)
 
     def prepare_test_samples(self):
+        # Compiler:
         with open(self.testfile.name, 'w') as fout:
             fout.write("\n".join(self.testfile.source_section))
         with open(self.gold_diagnostics_filename, 'w') as fout:
@@ -67,9 +88,16 @@ class TestfileExecutor:
         with open(self.gold_symbol_table_filename, 'w') as fout:
             fout.write("\n".join(self.testfile.gold_symbol_table_section))
 
-    def execute_run_line(self) -> int:
+        # VirtualMachine:
+        with open(self.gold_vm_out_filename, 'w') as fout:
+            fout.write("\n".join(self.testfile.gold_vm_out_section))
+        with open(self.gold_vm_err_filename, 'w') as fout:
+            fout.write("\n".join(self.testfile.gold_vm_err_section))
+
+
+    def execute_compiler_run_line(self) -> int:
         completed_subprocess = subprocess.run(
-            shlex.split(self.testfile.run_line),
+            shlex.split(self.testfile.compiler_run_line),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,       # capture stderr
             text=True                     # decode bytes -> str automatically
@@ -82,9 +110,20 @@ class TestfileExecutor:
                 self._status_line.append("\n\n--- STDERR-BEGIN ---\n")
                 self._status_line.append(completed_subprocess.stderr)
                 self._status_line.append("\n--- STDERR-END   ---\n\n")
+        return completed_subprocess.returncode
 
-
-
+    def execute_vm_run_line(self) -> int:
+        completed_subprocess = subprocess.run(
+            shlex.split(self.testfile.vm_run_line),
+            text=True                     # decode bytes -> str automatically
+        )
+        # if completed_subprocess.returncode != _EXIT_SUCCESS_RETURNCODE:
+        #     self._status_line.append(
+        #         f"{COLOR_RED}Failure, test produced errors.{SGR_RESET}")
+        #     if completed_subprocess.stderr:
+        #         self._status_line.append("\n\n--- STDERR-BEGIN ---\n")
+        #         self._status_line.append(completed_subprocess.stderr)
+        #         self._status_line.append("\n--- STDERR-END   ---\n\n")
         return completed_subprocess.returncode
 
     def flatten_exports(self):
@@ -158,9 +197,9 @@ class TestfileExecutor:
     @staticmethod
     def pretty_status(message: str, return_code: int) -> str:
         if return_code == 0:
-            return f"{message}{COLOR_GREEN}{"PASS":<6}{SGR_RESET} "
+            return f"{message}{COLOR_GREEN}{"PASS" : <5}{SGR_RESET}"
         elif return_code == 1:
-            return f"{message}{COLOR_RED}{"FAIL":<6}{SGR_RESET} "
+            return f"{message}{COLOR_RED}{"FAIL" : <5}{SGR_RESET}"
         else:
             return f"{COLOR_RED}{message}{SGR_RESET}"
 
@@ -177,6 +216,8 @@ class TestfileExecutor:
 
         td = self.test_dirpath
 
+        self._status_line.append("CT[ ")
+
         if not self.testfile.error_mode:
             ret, msg = TestfileExecutor.cmp_csv(
                 td / self.gold_ir_filename, td / self.out_ir_filename)
@@ -186,8 +227,8 @@ class TestfileExecutor:
                 td / self.gold_symbol_table_filename, td / self.out_symbol_table_filename)
             self._status_line.append(TestfileExecutor.pretty_status(f"Symtable:" + msg, ret))
         else:
-            # extra 28 spaces to align "Diagnostics:"  field with working tests
-            self._status_line.append(' ' * 26)
+            # extra 22 spaces to align "Diagnostics:"  field with working tests
+            self._status_line.append(' ' * 22)
 
         ret, msg = TestfileExecutor.cmp_csv(
             td / self.gold_diagnostics_filename, td / self.out_diagnostics_filename)
@@ -196,6 +237,8 @@ class TestfileExecutor:
         if TestfileExecutor.run_valgrind:
             ret = self.run_valgrind_tests()
             self._status_line.append(TestfileExecutor.pretty_status(f"Memcheck:", ret))
+
+        self._status_line.append("] RT[ ]")
 
     def run_valgrind_tests(self) -> int:
         valgrind_args = [
@@ -207,7 +250,7 @@ class TestfileExecutor:
             f"--error-exitcode={TestfileExecutor._valgrind_error_exitcode}",
             "--quiet",
         ]
-        ac_args = shlex.split(self.testfile.run_line)
+        ac_args = shlex.split(self.testfile.compiler_run_line)
 
         completed_process = subprocess.run(
             valgrind_args + ac_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL

@@ -387,8 +387,7 @@ Machine::execute_enterfunc(const vm::Instruction& inst)
     const vm::ProgFuncMetadata progfunc_metadata = exe_.progfuncs[func.data.progfunc_index];
     DMASSERT(pc_ == progfunc_metadata.address.value -1); // @PC_TAG@  (tag is for the - 1 )
     total_actuals_ = 0;
-    stack_.enter_frame();
-    stack_.allocate_locals(progfunc_metadata.local_count);
+    stack_.add_function_environment(progfunc_metadata);
 }
 
 void
@@ -423,6 +422,9 @@ AlphaInt make_int_op(AlphaInt lhs, AlphaInt rhs) { return Op{}(lhs, rhs); }
 
 void
 Machine::set_out_stream(std::ostream& out) noexcept { out_stream_ = &out; }
+
+void
+Machine::set_err_stream(std::ostream& err) noexcept { err_stream_ = &err; }
 
 void
 Machine::call_libfunc(const char* const libfunc_name)

@@ -319,9 +319,9 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
     out << FMT::format(
         "=============== PROGFUNC_TABLE ===============\n"
         "{0} {1} {2}\n",
+        format_column<Colorize, 2, widths[2]>("id"),
         format_column<Colorize, 0, widths[0]>("address"),
-        format_column<Colorize, 1, widths[1]>("size"),
-        format_column<Colorize, 2, widths[2]>("id")
+        format_column<Colorize, 1, widths[1]>("locals")
     );
 
     for (const auto& userfunc : program.progfuncs)
@@ -331,9 +331,9 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
                 program.progfunc_name_registry.get_by_indexed_type(userfunc.name_str_id));
         out << FMT::format(
             "{0} {1} {2}\n",
+            format_column<Colorize, 2, widths[2]>(userfunc_name.to_string_view()),
             format_column<Colorize, 0, widths[0]>(FMT::to_string(userfunc.address.value)),
-            format_column<Colorize, 1, widths[1]>(FMT::to_string(userfunc.local_count)),
-            format_column<Colorize, 2, widths[2]>(userfunc_name.to_string_view())
+            format_column<Colorize, 1, widths[1]>(FMT::to_string(userfunc.local_count))
         );
     }
 

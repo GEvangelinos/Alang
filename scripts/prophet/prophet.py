@@ -57,15 +57,21 @@ def parser_startup_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--driver-path",
+        "--cmp-path",
         required=True,
         help="Path to Alpha compiler driver."
     )
 
     parser.add_argument(
+        "--vm-path",
+        required=True,
+        help="Path to Alpha VM driver."
+    )
+
+    parser.add_argument(
         "--gospel-dir",
         required=True,
-        help="Path to Alpha compiler driver."
+        help="Path to directory the prophet is going to search for regression tests."
     )
 
     parser.add_argument(
@@ -83,11 +89,17 @@ def parser_startup_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def ensure_driver_executable(alpha_compiler_path: Path) -> None:
+def ensure_compiler_executable(alpha_compiler_path: Path) -> None:
     if not os.path.isfile(alpha_compiler_path):
         raise ValueError("Compiler executable file not found.")
     if not os.access(alpha_compiler_path, os.X_OK):
-        raise ValueError("Compiler file is not executable.")
+        raise ValueError("Compiler binary file is not executable.")
+
+def ensure_vm_executable(alpha_vm_path: Path) -> None:
+    if not os.path.isfile(alpha_vm_path):
+        raise ValueError("VM executable file not found.")
+    if not os.access(alpha_vm_path, os.X_OK):
+        raise ValueError("VM binary file is not executable.")
 
 
 def print_simple_progress_bar(completed: int, total: int, move_cursor_up: bool):
@@ -147,12 +159,12 @@ def gather_test_filepaths(dirname: str) -> list[Path]:
     return asc_files
 
 
-def run_testfiles(driver_path: Path, test_filepaths: list[Path]):
+def run_testfiles(cmp_driver_path: Path, vm_driver_path: Path, test_filepaths: list[Path]):
     test_filepaths.sort()
     print_simple_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
     for test_filepath in test_filepaths:
         try:
-            run_testfile(driver_path, test_filepath)
+            run_testfile(cmp_driver_path, vm_driver_path, test_filepath)
         except Exception as e:
             print(f"{COLOR_RED}Testfile {test_filepath}: Error:{SGR_RESET} {e}")
 
@@ -165,10 +177,10 @@ def clean_work_dir():
     shutil.rmtree(_workdir_path)
 
 
-def run_testfile(driver_path: Path, testfile_path: Path) -> str:
+def run_testfile(cmp_driver_path: Path, vm_driver_path:Path, testfile_path: Path) -> str:
     global _completed_tests
     try:
-        parser = TestfileParser(driver_path.resolve(), testfile_path.resolve())
+        parser = TestfileParser(cmp_driver_path.resolve(), vm_driver_path.resolve(), testfile_path.resolve())
         testfile = parser.assemble_testfile()
         executor = TestfileExecutor(testfile)
         executor.run()
@@ -193,10 +205,11 @@ def main():
         _workdir_path = Path(args.work_dir).resolve()
         TestfileExecutor.run_valgrind = args.valgrind
         TestfileExecutor.workdir_path = Path(args.work_dir).resolve()
-        ensure_driver_executable(args.driver_path)
+        ensure_compiler_executable(args.cmp_path)
+        ensure_vm_executable(args.vm_path)
         test_filepaths = gather_test_filepaths(args.gospel_dir)
         _total_tests = len(test_filepaths)
-        run_testfiles(Path(args.driver_path), test_filepaths)
+        run_testfiles(Path(args.cmp_path), Path(args.vm_path), test_filepaths)
     except Exception as e:
         print(f"{COLOR_RED}Prophet: Error:{SGR_RESET} {e}")
 

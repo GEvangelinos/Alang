@@ -36,10 +36,29 @@ int main(const int argc, char** argv)
 
         const alpha::vm::Executable executable = alpha::ABC_Loader::load(abc_buffer);
         alpha::vm::Machine machine{alpha::vm::Bytes{.count = stack_size}, executable};
+
+        std::ofstream out_file;
+        std::ofstream err_file;
+        if (cli_parser["out-file"].is_provided())
+        {
+            out_file = std::ofstream{cli_parser["out-file"].get_input()};
+            if (!out_file)
+                throw std::runtime_error{"Failed opening VM's out-file"};
+            machine.set_out_stream(out_file);
+        }
+        if (cli_parser["err-file"].is_provided())
+        {
+            err_file = std::ofstream{cli_parser["err-file"].get_input()};
+            if (!err_file)
+                throw std::runtime_error{"Failed opening VM's err-file"};
+            machine.set_err_stream(err_file);
+        }
+
         machine.run();
     }
     catch (arguinator::CLIHelp) { return 0; }
     catch (arguinator::CLIError& e) { fatal(e); }
+    return 0;
 }
 
 arguinator::Parser
@@ -49,6 +68,8 @@ launch_cli_parser(const int argc, const char* const * const argv)
     parser.set_flag("source").set_arity(1).set_help("NYI").set_required();
     parser.set_flag("stack_size").set_arity(1).set_help("NYI");
     parser.set_flag("show_warnings").set_arity(0).set_help("NYI");
+    parser.set_flag("out-file").set_arity(1).set_help("NYI");
+    parser.set_flag("err-file").set_arity(1).set_help("NYI");
 
     parser.parse_flags();
     return parser;
@@ -63,6 +84,3 @@ fatal_impl(const std::string_view error_message)
     std::cerr << fatal_header() << error_message << std::endl;
     std::exit(EXIT_FAILURE);
 }
-
-
-

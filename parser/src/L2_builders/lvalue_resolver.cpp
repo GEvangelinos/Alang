@@ -82,7 +82,8 @@ LvalueResolver::Restricted::resolve_local_id(
     UNREACHABLE("Unexpected symbol type");
 }
 
-const Expr* LvalueResolver::Restricted::resolve_global_id(
+const Expr*
+    LvalueResolver::Restricted::resolve_global_id(
     const StringSpan gid_name,
     const SourceLocation gid_loc)
 {

@@ -306,7 +306,7 @@ inline u32
 SpaceHandler::next_offset() noexcept
 {
     DMASSERT(!variable_offset_stack_.empty());
-    if (current_frame_index() == k_initial_space)
+    if (space() == VarSymbol::Space::GLOBAL_VAR)
         ++global_var_count_;
     return variable_offset_stack_.top()++;
 }
