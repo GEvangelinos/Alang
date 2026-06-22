@@ -21,7 +21,7 @@ class Testfile:
 
     def __init__(self, filename: str):
         self.name: str = filename
-        self.error_mode = False
+        self.cmp_error_mode = False
         self.compiler_run_line: str = ""
         self.vm_run_line: str = ""
         self.source_section: list[str] = []
@@ -30,6 +30,7 @@ class Testfile:
         self.gold_vm_out_section: list[str] = []
         self.gold_vm_err_section: list[str] = []
         self.gold_diagnostic_section: list[str] = []
+        self.missing_vm_runline = False
 
     def set_compiler_run_line(self, run_line: str, driver_path: Path):
         if self.compiler_run_line:
@@ -89,7 +90,7 @@ class Testfile:
     def substitute_expect_errors_placeholder(self, run_line:str) -> str:
         # Optional placeholder
         if Placeholder.ERROR_MODE.value  in run_line:
-            self.error_mode = True
+            self.cmp_error_mode = True
             return self._substitute_placeholder(run_line, Placeholder.ERROR_MODE, Testfile.error_mode_flags)
         return run_line
 

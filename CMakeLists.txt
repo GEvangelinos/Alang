@@ -55,8 +55,9 @@ option(USE_FLEX_SCANNER "USE_FLEX_SCANNER: Use Flex-generated scanner instead of
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
 set(COMPILER_NAME "alang" CACHE STRING "Name of the main compiler")
+set(VM_NAME "avm" CACHE STRING "Name of the main compiler")
 set(COMPILER_EXE_NAME ${COMPILER_NAME} CACHE STRING "Name of the produced compiler executable")
-set(VM_EXE_NAME "avm" CACHE STRING "Name of the produced vm executable")
+set(VM_EXE_NAME ${VM_NAME} CACHE STRING "Name of the produced vm executable")
 
 set(AUTOGEN_DIRNAME "AUTOGEN" CACHE STRING "Name of the directory where auto-generated files are stored")
 
@@ -118,6 +119,7 @@ add_compile_options(
 )
 
 add_compile_definitions(COMPILER_NAME="${COMPILER_NAME}")
+add_compile_definitions(VM_NAME="${VM_NAME}")
 
 # Errors applied to all builds
 if (CMAKE_CXX_COMPILER STREQUAL CMAKE_CXX_COMPILER_CLANG)

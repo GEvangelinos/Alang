@@ -76,7 +76,7 @@ launch_cli_parser(const int argc, const char* const * const argv)
 }
 
 const char*
-fatal_header() { return COMPILER_NAME ": " COLOR_FG_ASCII_BOLD_RED "fatal: " SGR_RESET; }
+fatal_header() { return VM_NAME ": " COLOR_FG_ASCII_BOLD_RED "fatal: " SGR_RESET; }
 
 void
 fatal_impl(const std::string_view error_message)

@@ -48,21 +48,32 @@ class TestfileParser:
     def assemble_testfile(self) -> Testfile:
         testfile = Testfile(self.testfile_path.name)
         testfile.set_compiler_run_line(self.find_run_line(TestfileParser.COMPILER_RUN_REGEX, "cmp"), self.cmp_driver_path)
-        testfile.set_vm_run_line(self.find_run_line(TestfileParser.VM_RUN_REGEX, "vm"), self.vm_driver_path)
+
+        vm_runline = self.find_run_line(TestfileParser.VM_RUN_REGEX, "vm", True)
+        if not vm_runline:
+            testfile.missing_vm_runline = True
+        else:
+            testfile.set_vm_run_line(vm_runline, self.vm_driver_path)
+
         testfile.set_source_code_section(self.find_source_section())
-        if not testfile.error_mode:
+        if not testfile.cmp_error_mode:
             testfile.set_gold_ir_section(self.find_gold_ir_section())
             testfile.set_gold_symbol_table_section(self.find_gold_symbol_table_section())
+            if not testfile.missing_vm_runline:
+                testfile.set_gold_vm_out_section(self.find_gold_vm_out_section())
+                testfile.set_gold_vm_err_section(self.find_gold_vm_err_section())
         testfile.set_gold_diagnostic_section(self.find_gold_diagnostic_section())
 
 
         return testfile
 
-    def find_run_line(self, runline_regex, str_ctx_desc) -> str:
+    def find_run_line(self, runline_regex, str_ctx_desc, is_optional = False) -> str:
         for line in self.testfile_lines:
             run_match = runline_regex.fullmatch(line)
             if run_match:
                 return run_match.group(1).strip()
+        if is_optional:
+            return ""
         raise StageError(f"Failed finding {str_ctx_desc} runline for {self.testfile_path}")
 
     def find_source_section(self) -> list[str]:
@@ -99,7 +110,7 @@ class TestfileParser:
         )
         return self._uncomment_section(golden_diagnostic_section, section_name)
 
-    def find_gold_vm_stdout_section(self) -> list[str]:
+    def find_gold_vm_out_section(self) -> list[str]:
         section_name = "golden vm-out"
         golden_vm_out_section = self._find_section(
             TestfileParser.BEGIN_VM_OUT_RE,
@@ -108,18 +119,16 @@ class TestfileParser:
         )
         return self._uncomment_section(golden_vm_out_section, section_name)
 
-    def find_gold_vm_stdout_section(self) -> list[str]:
+    def find_gold_vm_err_section(self) -> list[str]:
         section_name = "golden vm-err"
-        golden_vm_stderr_section = self._find_section(
+        golden_vm_err_section = self._find_section(
             TestfileParser.BEGIN_VM_ERR_RE,
             TestfileParser.END_VM_ERR_RE,
             section_name
         )
         return self._uncomment_section(golden_vm_err_section, section_name)
 
-    def _find_section(
-            self, begin_re: re.Pattern[str], end_re: re.Pattern[str], section_name: str) \
-            -> list[str]:
+    def _find_section(self, begin_re: re.Pattern[str], end_re: re.Pattern[str], section_name: str) -> list[str]:
         section_lines: list[str] = []
         inside_section = False
 

@@ -37,28 +37,29 @@ class TestfileExecutor:
         self.out_symbol_table_filename = testfile.name + _SYMTABLE_CSV_EXT
         self.out_ir_filename = testfile.name + _IR_CSV_EXT
         self.out_diagnostics_filename = testfile.name + _DIAGNOSTICS_CSV_EXT
+        self.out_vmout_filename = testfile.name + _VM_OUT_EXT
+        self.out_vmerr_filename = testfile.name + _VM_ERR_EXT
 
         self._status_line: list[str] = []
 
     def run(self):
-
         self.prepare_test_dir()
         os.chdir(self.test_dirpath)
         self.prepare_test_samples()
         self.testfile.compiler_run_line = self.testfile.substitute_self_placeholder(self.testfile.compiler_run_line, self.test_dirpath / self.testfile.name)
 
+        if self.execute_compiler_run_line() == _EXIT_SUCCESS_RETURNCODE:
+            self.flatten_exports()
+            self.validate_compile_side_testfile()
+
+        if self.testfile.missing_vm_runline:
+            self._status_line.append(f"{COLOR_YELLOW}(Missing VM run-command){SGR_RESET}")
+            return
         self.testfile.vm_run_line = self.testfile.substitute_self_abc_placeholder(self.testfile.vm_run_line, self.test_dirpath / self.testfile.name)
         self.testfile.vm_run_line += f" --out-file {self.testfile.name}.vmout.txt "
         self.testfile.vm_run_line += f" --err-file {self.testfile.name}.vmerr.txt "
-
-        print(self.testfile.vm_run_line)
-
-        if self.execute_compiler_run_line() == _EXIT_SUCCESS_RETURNCODE:
-            self.flatten_exports()
-            self.validate_testfile()
-
         if self.execute_vm_run_line() == _EXIT_SUCCESS_RETURNCODE:
-            pass
+            self.validate_vm_side_testfile()
 
         os.chdir(Path(TestfileExecutor.workdir_path))
 
@@ -80,7 +81,7 @@ class TestfileExecutor:
         with open(self.gold_diagnostics_filename, 'w') as fout:
             fout.write("\n".join(self.testfile.gold_diagnostic_section))
 
-        if self.testfile.error_mode:
+        if self.testfile.cmp_error_mode:
             return
 
         with open(self.gold_ir_filename, 'w') as fout:
@@ -164,7 +165,7 @@ class TestfileExecutor:
             return rows
 
     @staticmethod
-    def cmp_csv(golden: Path, out: Path) -> tuple[int, str]:
+    def cmp_file_lines(golden: Path, out: Path) -> tuple[int, str]:
         """
         Compare two CSVs.
         Returns (return_code, extra_msg).
@@ -203,12 +204,29 @@ class TestfileExecutor:
         else:
             return f"{COLOR_RED}{message}{SGR_RESET}"
 
-    def validate_testfile(self):
+    def validate_vm_side_testfile(self):
+        # VirtualMachine:
+        self._status_line.append("VM: [ ")
+
+        td = self.test_dirpath
+        ret, msg = TestfileExecutor.cmp_file_lines(td / self.gold_vm_out_filename, td / self.out_vmout_filename)
+        self._status_line.append(TestfileExecutor.pretty_status(f"Out:" + msg, ret))
+
+        ret, msg = TestfileExecutor.cmp_file_lines(td / self.gold_vm_err_filename, td / self.out_vmerr_filename)
+        self._status_line.append(TestfileExecutor.pretty_status(f"Err:" + msg, ret))
+
+        if TestfileExecutor.run_valgrind:
+            ret = self.run_valgrind_tests(self.testfile.vm_run_line)
+            self._status_line.append(TestfileExecutor.pretty_status(f"Memcheck:", ret))
+
+        self._status_line.append("] ")
+
+    def validate_compile_side_testfile(self):
         os.chdir(self.test_dirpath)
 
         assert os.path.exists(self.gold_diagnostics_filename)
         assert os.path.exists(self.out_diagnostics_filename)
-        if not self.testfile.error_mode:
+        if not self.testfile.cmp_error_mode:
             assert os.path.exists(self.gold_ir_filename)
             assert os.path.exists(self.gold_symbol_table_filename)
             assert os.path.exists(self.out_ir_filename)
@@ -216,31 +234,29 @@ class TestfileExecutor:
 
         td = self.test_dirpath
 
-        self._status_line.append("CT[ ")
+        # Compiler:
+        self._status_line.append("CMP: [ ")
 
-        if not self.testfile.error_mode:
-            ret, msg = TestfileExecutor.cmp_csv(
-                td / self.gold_ir_filename, td / self.out_ir_filename)
+        if not self.testfile.cmp_error_mode:
+            ret, msg = TestfileExecutor.cmp_file_lines(td / self.gold_ir_filename, td / self.out_ir_filename)
             self._status_line.append(TestfileExecutor.pretty_status(f"Ir:" + msg, ret))
 
-            ret, msg = TestfileExecutor.cmp_csv(
-                td / self.gold_symbol_table_filename, td / self.out_symbol_table_filename)
+            ret, msg = TestfileExecutor.cmp_file_lines(td / self.gold_symbol_table_filename, td / self.out_symbol_table_filename)
             self._status_line.append(TestfileExecutor.pretty_status(f"Symtable:" + msg, ret))
         else:
             # extra 22 spaces to align "Diagnostics:"  field with working tests
             self._status_line.append(' ' * 22)
 
-        ret, msg = TestfileExecutor.cmp_csv(
-            td / self.gold_diagnostics_filename, td / self.out_diagnostics_filename)
+        ret, msg = TestfileExecutor.cmp_file_lines(td / self.gold_diagnostics_filename, td / self.out_diagnostics_filename)
         self._status_line.append(TestfileExecutor.pretty_status(f"Diagnostics:" + msg, ret))
 
         if TestfileExecutor.run_valgrind:
-            ret = self.run_valgrind_tests()
+            ret = self.run_valgrind_tests(self.testfile.compiler_run_line)
             self._status_line.append(TestfileExecutor.pretty_status(f"Memcheck:", ret))
 
-        self._status_line.append("] RT[ ]")
+        self._status_line.append("] ")
 
-    def run_valgrind_tests(self) -> int:
+    def run_valgrind_tests(self, run_line) -> int:
         valgrind_args = [
             "valgrind",
             "--leak-check=full",
@@ -250,10 +266,10 @@ class TestfileExecutor:
             f"--error-exitcode={TestfileExecutor._valgrind_error_exitcode}",
             "--quiet",
         ]
-        ac_args = shlex.split(self.testfile.compiler_run_line)
+        exe_args = shlex.split(run_line)
 
         completed_process = subprocess.run(
-            valgrind_args + ac_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            valgrind_args + exe_args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
         )
 
         return completed_process.returncode
