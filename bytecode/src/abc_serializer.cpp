@@ -61,7 +61,7 @@ serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
     DMASSERT(
         !str.empty() && "Even if content is empty there are the delimiters."
         "Strings without the delimiters are made due to object access syntax, which by definition"
-        "can not be empty (a name but be there, obj.NAME, where NAME cant be just void, as its a  syntax error)"
+        "can not be empty (a name but be there, obj.NAME, where NAME cant be just void, as its a syntax error)"
     );
 
     abc::spec::StrLenT serialized_len = str.size;
@@ -238,7 +238,8 @@ serialize_instructions(std::vector<u8>& abc_buffer, const vm::Program& program)
         using OpcodeUT = std::underlying_type_t<decltype(inst.opcode)>;
         static_assert(std::is_same_v<OpcodeUT, u8>, "Following push is wrong");
         abc_buffer.push_back(static_cast<OpcodeUT>(inst.opcode));
-        serialize_source_location(abc_buffer, inst.loc);
+        store_little_endian(abc_buffer, inst.line.value);
+        store_little_endian(abc_buffer, inst.col.value);
         serialize_vm_argument(abc_buffer, inst.result.get());
         serialize_vm_argument(abc_buffer, inst.arg1.get());
         serialize_vm_argument(abc_buffer, inst.arg2.get());

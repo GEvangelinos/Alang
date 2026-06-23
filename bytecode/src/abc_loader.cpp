@@ -187,16 +187,18 @@ load_instructions(
     {
         // Find instruction type (Opcode):
         const vm::Opcode opcode = memread_and_advance<vm::Opcode>(addr);
-        const SourceLocation loc = load_source_location(addr);
+        const SrcLineIdx line {memread_and_advance<SrcLineIdx::UnderlyingType>(addr)};
+        const SrcColumnIdx col {memread_and_advance<SrcColumnIdx::UnderlyingType>(addr)};
         auto result = load_argument(addr); // RESULT
         auto arg1 = load_argument(addr);   // ARG1
         auto arg2 = load_argument(addr);   // ARG2
         loaded_instructions.emplace_back(
             opcode,
+            line,
+            col,
             std::move(result),
             std::move(arg1),
-            std::move(arg2),
-            loc
+            std::move(arg2)
         );
     }
     return loaded_instructions;

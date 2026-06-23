@@ -1,5 +1,6 @@
 #include "driver/exception.hpp"
 #include <iostream>
+#include <unistd.h>
 
 #include "support/debug_tools.hpp"
 #include "support/format_adapter.hpp"
@@ -43,8 +44,26 @@ FileTooLargeError::FileTooLargeError(
 FileReadError::FileReadError(const std::string_view filename)
     : DriverError(FMT::format("Failed reading file: `{}`", filename)) {}
 
-FilePermissionError::FilePermissionError(const std::string_view filename)
-    : DriverError(FMT::format("Permission denied: `{}`", filename)) {}
+FilePermissionError::FilePermissionError(const std::string_view filename, const int perm_flag)
+    : DriverError(
+        [&]()
+        {
+            switch (perm_flag)
+            {
+            case F_OK:
+                return FMT::format("Not found: `{}`", filename);
+            case R_OK:
+                return FMT::format("Read permission denied: `{}`", filename);
+            case W_OK:
+                return FMT::format("Write permission denied: `{}`", filename);
+            case X_OK:
+                return FMT::format("Execute permission denied: `{}`", filename);
+            default:
+                DMASSERT(false && "Unknown permission type");
+                return FMT::format("permission denied: `{}`", filename);
+            }
+        }()
+    ) {}
 
 CLIOptionUnknownError::CLIOptionUnknownError(const std::string_view cli_option)
     : DriverError(FMT::format("unknown command-line option: `{}`", cli_option)) {}

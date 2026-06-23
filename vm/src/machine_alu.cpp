@@ -190,7 +190,9 @@ Machine::decode_arithmetic_operands(const vm::Instruction& inst)
 
     if (!(rv1.is_arithmetic() && rv2.is_arithmetic())) [[unlikely]]
     {
-        error("not a number in arithmetic Operation");
+        error(FMT::format(
+            "[{}:{}] Non number in arithmetic operation", inst.line.value, inst.col.value
+        ));
         return std::nullopt;
     }
 
@@ -317,8 +319,9 @@ Machine::execute_equality_branch(const vm::Instruction& inst)
 
 
     DMASSERT(inst.result->type == Argument::Type::LABEL);
+    condition ^= inst.opcode == Opcode::JNE;
     if (condition)
-        pc_ = static_cast<const LabelArgument*>(inst.result.get())->value.value -1;
-     // @PC_TAG@ - 1 is required, as addresses start from 1
+        pc_ = static_cast<const LabelArgument*>(inst.result.get())->value.value - 1;
+    // @PC_TAG@ - 1 is required, as addresses start from 1
 }
 } // namespace alpha::vm

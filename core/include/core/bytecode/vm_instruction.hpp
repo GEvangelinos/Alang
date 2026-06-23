@@ -132,10 +132,11 @@ struct LibFuncArgument : public Argument
 struct Instruction
 {
     const vm::Opcode opcode;
+    const SrcLineIdx line;
+    const SrcColumnIdx col;
     std::unique_ptr<vm::Argument> result;
     std::unique_ptr<vm::Argument> arg1;
     std::unique_ptr<vm::Argument> arg2;
-    const SourceLocation loc;
 };
 } // namespace alpha::vm
 

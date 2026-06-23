@@ -78,16 +78,18 @@ class TestfileExecutor:
         # Compiler:
         with open(self.testfile.name, 'w') as fout:
             fout.write("\n".join(self.testfile.source_section))
-        with open(self.gold_diagnostics_filename, 'w') as fout:
-            fout.write("\n".join(self.testfile.gold_diagnostic_section))
 
-        if self.testfile.cmp_error_mode:
-            return
+        if not self.testfile.skip_cmp_testing:
+            with open(self.gold_diagnostics_filename, 'w') as fout:
+                fout.write("\n".join(self.testfile.gold_diagnostic_section))
 
-        with open(self.gold_ir_filename, 'w') as fout:
-            fout.write("\n".join(self.testfile.gold_ir_section))
-        with open(self.gold_symbol_table_filename, 'w') as fout:
-            fout.write("\n".join(self.testfile.gold_symbol_table_section))
+            if self.testfile.cmp_error_mode:
+                return
+
+            with open(self.gold_ir_filename, 'w') as fout:
+                fout.write("\n".join(self.testfile.gold_ir_section))
+            with open(self.gold_symbol_table_filename, 'w') as fout:
+                fout.write("\n".join(self.testfile.gold_symbol_table_section))
 
         # VirtualMachine:
         with open(self.gold_vm_out_filename, 'w') as fout:
@@ -223,6 +225,11 @@ class TestfileExecutor:
 
     def validate_compile_side_testfile(self):
         os.chdir(self.test_dirpath)
+
+        if self.testfile.skip_cmp_testing:
+            self._status_line.append(f"{COLOR_CYAN}(Compiler testing skipped){SGR_RESET}")
+            self._status_line.append(' ' * 22)
+            return
 
         assert os.path.exists(self.gold_diagnostics_filename)
         assert os.path.exists(self.out_diagnostics_filename)

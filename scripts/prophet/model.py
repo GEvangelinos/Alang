@@ -4,6 +4,7 @@ from pathlib import Path
 
 class Placeholder(Enum):
     DRIVER = "%DRIVER"
+    SKIP = "%SKIP"
     SELF = "%SELF"
     ERROR_MODE = "%ERROR_MODE"  # Optional placeholder
 
@@ -31,6 +32,7 @@ class Testfile:
         self.gold_vm_err_section: list[str] = []
         self.gold_diagnostic_section: list[str] = []
         self.missing_vm_runline = False
+        self.skip_cmp_testing = False
 
     def set_compiler_run_line(self, run_line: str, driver_path: Path):
         if self.compiler_run_line:
@@ -38,6 +40,7 @@ class Testfile:
         self.compiler_run_line = run_line
         self.compiler_run_line = self.substitute_driver_placeholder(self.compiler_run_line, driver_path)
         self.compiler_run_line = self.substitute_expect_errors_placeholder(self.compiler_run_line)
+        self.compiler_run_line = self.handle_cmp_skip_flag(self.compiler_run_line)
 
     def set_vm_run_line(self, run_line: str, driver_path: Path):
         if self.vm_run_line:
@@ -78,6 +81,12 @@ class Testfile:
 
     def substitute_driver_placeholder(self, run_line:str, driver_path: Path) -> str:
         return self._substitute_placeholder(run_line, Placeholder.DRIVER, str(driver_path))
+    
+    def handle_cmp_skip_flag(self, run_line: str) -> str:
+        if Placeholder.SKIP.value in run_line:
+            self.skip_cmp_testing = True
+            return self._substitute_placeholder(run_line, Placeholder.SKIP, " ")
+        return run_line
 
     def substitute_self_placeholder(self, run_line:str, self_path: Path) -> str:
         self_path = Path(str(self_path).replace(' ', '\\ '))

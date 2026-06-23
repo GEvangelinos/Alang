@@ -16,14 +16,14 @@ namespace alpha
 class ABC_Generator
 {
 public:
-
     struct Config
     {
+        const LocationTracker& lt;
         const ir::QuadStream& qstream;
         const u32 global_var_count;
     };
 
-    [[nodiscard]] static vm::Program run(const ABC_Generator::Config &config)
+    [[nodiscard]] static vm::Program run(const ABC_Generator::Config& config)
     {
         return ABC_Generator{config}.build_program();
     }
@@ -33,7 +33,7 @@ private:
     vm::Program result_;
     std::vector<CodeAddress> target_addresses_;
 
-    explicit ABC_Generator(const Config &config) ;
+    explicit ABC_Generator(const Config& config);
 
     [[nodiscard]] vm::Program build_program() &&;
 
@@ -44,7 +44,8 @@ private:
 
     [[nodiscard]] CodeAddress next_instruction_label() const noexcept
     {
-        DMASSERT(result_.instructions.size() <= std::numeric_limits<CodeAddress::UnderlyingType>::max());
+        DMASSERT(
+            result_.instructions.size() <= std::numeric_limits<CodeAddress::UnderlyingType>::max());
         return CodeAddress{static_cast<CodeAddress::UnderlyingType>(result_.instructions.size())};
     }
 

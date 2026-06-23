@@ -52,7 +52,7 @@ public:
 class FilePermissionError final : public DriverError
 {
 public:
-    explicit FilePermissionError(std::string_view filename);
+    FilePermissionError(std::string_view filename, int perm_flag);
 };
 
 class CLIOptionUnknownError final : public DriverError

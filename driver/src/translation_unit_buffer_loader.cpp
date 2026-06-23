@@ -12,11 +12,6 @@ TranslationUnitBufferLoader::load_tub(
     const std::filesystem::path& path,
     const std::size_t null_padding)
 {
-    if (access(path.c_str(), R_OK) != 0)
-        throw alpha::exception::FilePermissionError(path.string());
-
-
-
     std::ifstream ifs = open_source(path);
     const auto filesize = std::filesystem::file_size(path);
     const auto tub_size = TranslationUnitBuffer::compute_tub_size(filesize, null_padding);
@@ -38,6 +33,8 @@ TranslationUnitBufferLoader::open_source(const std::filesystem::path& path)
     using FOMode = alpha::exception::FileOpenError::Mode;
     if (!std::filesystem::exists(path))
         throw alpha::exception::FileNotFoundError(path.string());
+    if (access(path.c_str(), R_OK) != 0)
+        throw alpha::exception::FilePermissionError(path.string(), R_OK);
     if (std::filesystem::is_directory(path))
         throw alpha::exception::FileIsADirectoryError(path.string());
     if (!std::filesystem::is_regular_file(path))

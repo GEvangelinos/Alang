@@ -1,6 +1,7 @@
 #include "bytecode/abc_generator.hpp"
 #include <assert.h>
 
+#include "core/source_location_tracker.hpp"
 #include "parser/ir_opcode_info_traits.gen.hpp"
 #include "core/ir/ir_expr.hpp"
 #include "support/dependent_false.hpp"
@@ -111,11 +112,12 @@ ABC_Generator::generate(const ir::Quad& q)
     target_addresses_.push_back(next_instruction_label());
     result_.instructions.emplace_back(
         vm_opcode,
+        config_.lt.find_first_line(q.loc),
+        config_.lt.find_first_column(q.loc),
         extract_operant_by_requirement_trait<ir_opcode, IIT::result>(q.result),
         extract_operant_by_requirement_trait<ir_opcode, IIT::arg1>(q.arg1),
         extract_operant_by_requirement_trait<ir_opcode, IIT::arg2>(
-            ir_opcode == ir::Opcode::UMINUS ? &k_static_int_neg1_expr : q.arg2),
-        q.loc
+            ir_opcode == ir::Opcode::UMINUS ? &k_static_int_neg1_expr : q.arg2)
     );
 }
 
@@ -128,10 +130,11 @@ ABC_Generator::generate_relational(const ir::Quad& q)
     target_addresses_.push_back(next_instruction_label());
     result_.instructions.emplace_back(
         vm_opcode,
+        config_.lt.find_first_line(q.loc),
+        config_.lt.find_first_column(q.loc),
         std::make_unique<vm::LabelArgument>(q.label),
         extract_operant_by_requirement_trait<ir_opcode, IIT::arg1>(q.arg1),
-        extract_operant_by_requirement_trait<ir_opcode, IIT::arg2>(q.arg2),
-        q.loc
+        extract_operant_by_requirement_trait<ir_opcode, IIT::arg2>(q.arg2)
     );
 }
 
@@ -143,10 +146,11 @@ ABC_Generator::generate_uminus(const ir::Quad& q)
     target_addresses_.push_back(next_instruction_label());
     result_.instructions.emplace_back(
         vm::Opcode::MUL,
+        config_.lt.find_first_line(q.loc),
+        config_.lt.find_first_column(q.loc),
         extract_operant_by_requirement_trait<ir::Opcode::MUL, IIT::result>(q.result),
         extract_operant_by_requirement_trait<ir::Opcode::MUL, IIT::arg1>(q.arg1),
-        extract_operant_by_requirement_trait<ir::Opcode::MUL, IIT::arg2>(&k_static_int_neg1_expr),
-        q.loc
+        extract_operant_by_requirement_trait<ir::Opcode::MUL, IIT::arg2>(&k_static_int_neg1_expr)
     );
 }
 

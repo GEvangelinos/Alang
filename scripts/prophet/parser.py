@@ -56,14 +56,16 @@ class TestfileParser:
             testfile.set_vm_run_line(vm_runline, self.vm_driver_path)
 
         testfile.set_source_code_section(self.find_source_section())
-        if not testfile.cmp_error_mode:
+
+
+        if not testfile.cmp_error_mode and not testfile.skip_cmp_testing:
             testfile.set_gold_ir_section(self.find_gold_ir_section())
             testfile.set_gold_symbol_table_section(self.find_gold_symbol_table_section())
-            if not testfile.missing_vm_runline:
-                testfile.set_gold_vm_out_section(self.find_gold_vm_out_section())
-                testfile.set_gold_vm_err_section(self.find_gold_vm_err_section())
-        testfile.set_gold_diagnostic_section(self.find_gold_diagnostic_section())
-
+        if not testfile.cmp_error_mode and not testfile.missing_vm_runline:
+            testfile.set_gold_vm_out_section(self.find_gold_vm_out_section())
+            testfile.set_gold_vm_err_section(self.find_gold_vm_err_section())
+        if not testfile.skip_cmp_testing:
+            testfile.set_gold_diagnostic_section(self.find_gold_diagnostic_section())
 
         return testfile
 

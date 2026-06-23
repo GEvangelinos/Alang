@@ -362,17 +362,17 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
         format_column<Colorize, 2, widths[2]>("result"),
         format_column<Colorize, 3, widths[3]>("arg1"),
         format_column<Colorize, 4, widths[4]>("arg2"),
-        format_column<Colorize, 5, widths[5]>("line")
+        format_column<Colorize, 5, widths[5]>("first-line")
     );
 
     for (alpha::u32 i = 0; i < program.instructions.size(); ++i)
     {
         const auto& inst = program.instructions[i];
-        const auto [first_line, last_line] = lt.find_lines(inst.loc);
-        const std::string quad_line_str =
-            first_line == last_line
-            ? std::to_string(first_line.value)
-            : FMT::format("{}-{}", first_line.value, last_line.value);
+        // const auto [first_line, last_line] = lt.find_lines(inst.loc);
+        // const std::string quad_line_str =
+        //     first_line == last_line
+        //     ? std::to_string(first_line.value)
+        //     : FMT::format("{}-{}", first_line.value, last_line.value);
         out << FMT::format(
             "{0} {1} {2} {3} {4} {5}\n",
             format_column<Colorize, 0, widths[0]>(i + 1), // +1 as, 0 is indicating no-address
@@ -380,7 +380,7 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
             format_column<Colorize, 2, widths[2]>(argument_formatter(inst.result.get())),
             format_column<Colorize, 3, widths[3]>(argument_formatter(inst.arg1.get())),
             format_column<Colorize, 4, widths[4]>(argument_formatter(inst.arg2.get())),
-            format_column<Colorize, 5, widths[5]>(quad_line_str)
+            format_column<Colorize, 5, widths[5]>(inst.line.value)
         );
     }
 }
@@ -472,7 +472,7 @@ CompilationPipeline::execute()
     running_phase_ = Phase::ABC_GENERATION;
 
     program_ = std::make_unique<vm::Program>(ABC_Generator::run(
-        ABC_Generator::Config{ir_quads_, parse_ctx_.space_handler.global_var_count()}
+        ABC_Generator::Config{lt_, ir_quads_, parse_ctx_.space_handler.global_var_count()}
     ));
 }
 
