@@ -24,6 +24,7 @@ PROPHET_BANNER = r"""
 ASC_EXT = ".asc"
 
 _total_tests = 0
+_failed_tests = 0
 _completed_tests = 0
 _workdir_path = (Path(os.getcwd()) / Path("__WORK_DIR__")).resolve()
 
@@ -167,7 +168,6 @@ def run_testfiles(cmp_driver_path: Path, vm_driver_path: Path, test_filepaths: l
             run_testfile(cmp_driver_path, vm_driver_path, test_filepath)
         except Exception as e:
             print(f"{COLOR_RED}Testfile {test_filepath}: Error:{SGR_RESET} {e}")
-
         os.chdir(_workdir_path)
     print(end="\n" * 2)  # Required to move cursor past script's output and progress bar
 
@@ -177,8 +177,9 @@ def clean_work_dir():
     shutil.rmtree(_workdir_path)
 
 
-def run_testfile(cmp_driver_path: Path, vm_driver_path:Path, testfile_path: Path) -> str:
+def run_testfile(cmp_driver_path: Path, vm_driver_path:Path, testfile_path: Path) -> bool:
     global _completed_tests
+    global _failed_tests
     try:
         parser = TestfileParser(cmp_driver_path.resolve(), vm_driver_path.resolve(), testfile_path.resolve())
         testfile = parser.assemble_testfile()
@@ -189,6 +190,8 @@ def run_testfile(cmp_driver_path: Path, vm_driver_path:Path, testfile_path: Path
         status_line = status_line + " " * (terminal_columns - visible_len(status_line))
         print(status_line)
         _completed_tests += 1
+        if testfile.failed:
+            _failed_tests += 1
         print_simple_progress_bar(_completed_tests, _total_tests, move_cursor_up=True)
     except StageError as e:
         print(f"{COLOR_RED}Prophet: Testfile-error:{SGR_RESET} {e}")
@@ -196,11 +199,10 @@ def run_testfile(cmp_driver_path: Path, vm_driver_path:Path, testfile_path: Path
 
 def main():
     print(PROPHET_BANNER)
-    # TODO: enable before committing :D
-    time.sleep(1) # Just to scary the reader :D
     try:
         global _total_tests
         global _workdir_path
+        global _failed_tests
         args = parser_startup_arguments()
         _workdir_path = Path(args.work_dir).resolve()
         TestfileExecutor.run_valgrind = args.valgrind
@@ -210,6 +212,8 @@ def main():
         test_filepaths = gather_test_filepaths(args.gospel_dir)
         _total_tests = len(test_filepaths)
         run_testfiles(Path(args.cmp_path), Path(args.vm_path), test_filepaths)
+        if (_failed_tests > 0):
+            print(f"{COLOR_RED}Tests failed: {_failed_tests}{SGR_RESET}")
     except Exception as e:
         print(f"{COLOR_RED}Prophet: Error:{SGR_RESET} {e}")
 

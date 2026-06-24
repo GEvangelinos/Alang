@@ -51,6 +51,9 @@ class TestfileExecutor:
         if self.execute_compiler_run_line() == _EXIT_SUCCESS_RETURNCODE:
             self.flatten_exports()
             self.validate_compile_side_testfile()
+        else:
+            self.testfile.failed = True
+            return
 
         if self.testfile.missing_vm_runline:
             self._status_line.append(f"{COLOR_YELLOW}(Missing VM run-command){SGR_RESET}")
@@ -105,7 +108,7 @@ class TestfileExecutor:
             stderr=subprocess.PIPE,       # capture stderr
             text=True                     # decode bytes -> str automatically
         )
-        self._status_line.append(f"--Testing: {self.testfile.name:<60} ")
+        self._status_line.append(f"--Testing: {self.testfile.name:<65} ")
         if completed_subprocess.returncode != _EXIT_SUCCESS_RETURNCODE:
             self._status_line.append(
                 f"{COLOR_RED}Failure, test produced errors.{SGR_RESET}")
@@ -213,13 +216,16 @@ class TestfileExecutor:
         td = self.test_dirpath
         ret, msg = TestfileExecutor.cmp_file_lines(td / self.gold_vm_out_filename, td / self.out_vmout_filename)
         self._status_line.append(TestfileExecutor.pretty_status(f"Out:" + msg, ret))
+        self.testfile.failed = self.testfile.failed or ret != 0
 
         ret, msg = TestfileExecutor.cmp_file_lines(td / self.gold_vm_err_filename, td / self.out_vmerr_filename)
         self._status_line.append(TestfileExecutor.pretty_status(f"Err:" + msg, ret))
+        self.testfile.failed = self.testfile.failed or ret != 0
 
         if TestfileExecutor.run_valgrind:
             ret = self.run_valgrind_tests(self.testfile.vm_run_line)
             self._status_line.append(TestfileExecutor.pretty_status(f"Memcheck:", ret))
+        self.testfile.failed = self.testfile.failed or ret != 0
 
         self._status_line.append("] ")
 
@@ -247,19 +253,24 @@ class TestfileExecutor:
         if not self.testfile.cmp_error_mode:
             ret, msg = TestfileExecutor.cmp_file_lines(td / self.gold_ir_filename, td / self.out_ir_filename)
             self._status_line.append(TestfileExecutor.pretty_status(f"Ir:" + msg, ret))
+            self.testfile.failed = self.testfile.failed or ret != 0
+
 
             ret, msg = TestfileExecutor.cmp_file_lines(td / self.gold_symbol_table_filename, td / self.out_symbol_table_filename)
             self._status_line.append(TestfileExecutor.pretty_status(f"Symtable:" + msg, ret))
+            self.testfile.failed = self.testfile.failed or ret != 0
         else:
             # extra 22 spaces to align "Diagnostics:"  field with working tests
             self._status_line.append(' ' * 22)
 
         ret, msg = TestfileExecutor.cmp_file_lines(td / self.gold_diagnostics_filename, td / self.out_diagnostics_filename)
         self._status_line.append(TestfileExecutor.pretty_status(f"Diagnostics:" + msg, ret))
+        self.testfile.failed = self.testfile.failed or ret != 0
 
         if TestfileExecutor.run_valgrind:
             ret = self.run_valgrind_tests(self.testfile.compiler_run_line)
             self._status_line.append(TestfileExecutor.pretty_status(f"Memcheck:", ret))
+        self.testfile.failed = self.testfile.failed or ret != 0
 
         self._status_line.append("] ")
 

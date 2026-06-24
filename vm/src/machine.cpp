@@ -472,8 +472,8 @@ Machine::execute_newtable(const vm::Instruction& inst)
 [[nodiscard]] vm::Memcell*
 tablegetelem(Table& t, const Memcell& i)
 {
-    const auto get_element = []<typename KeyType>(HashTable<KeyType>& hash_table,
-                                                  KeyType key) -> vm::Memcell*
+    const auto get_element =
+        []<typename KeyType>(HashTable<KeyType>& hash_table, KeyType key) -> vm::Memcell*
     {
         const auto it = hash_table.find(key);
         if (it != hash_table.end()) [[likely]]
@@ -604,8 +604,6 @@ Machine::execute_tablegetelem(const vm::Instruction& inst)
     const vm::Memcell& t = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), nullptr));
     const vm::Memcell& i = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg2.get(), &reg_a_));
 
-    lv.clear();
-    lv.type = Memcell::Type::NIL;
     if (t.type != Memcell::Type::TABLE)
     {
         error(FMT::format("Illegal use of type {} as table", to_string(t.type)));
@@ -614,12 +612,17 @@ Machine::execute_tablegetelem(const vm::Instruction& inst)
     // vm or stack must access this (it's the call avm_tablegetlem, in slide 34 )
     const vm::Memcell* const content = tablegetelem(*DEBUG_REQUIRE_PTR(t.data.table_value), i);
 
+    #error "Listen: in phase5 (new) v009 basic (tables test). the error is that after you assign nil  to the table... you also do the getelem the compiler produced... .. you assign NIL... but you also produce this warning...
+    #error "so its not wrong.. but maybe you should produce warning.."
+    #error " OR keep the warning... but find a wait to remove (at compile time when know) the getelelem.. or ignore it in runtime.. in this specific case..
     if (content)
         assign(lv, *content);
     else
     {
         const bool include_string_quotes = i.type == Memcell::Type::STRING;
         display_warning(FMT::format("table[{}] not found!", i.to_string(include_string_quotes)));
+        lv.clear();
+        lv.type = Memcell::Type::NIL;
     }
 }
 

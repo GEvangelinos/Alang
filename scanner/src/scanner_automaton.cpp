@@ -498,6 +498,11 @@ ScannerAutomaton::handle_float_number() noexcept
         else if (support::is_digit(next_ch))
             consume_scientific_digits.operator()<2>();
     }
+
+    // Handle optional float suffix.
+    if ((curr_ch == 'f' || curr_ch == 'F') && support::is_space(get_next_char()))
+        advance_cursor(); // Don't consume SPACE as you don't want to include it in token's text.
+
     DMASSERT(!support::is_digit(get_curr_char()));
     return TKN_FLOAT;
 }

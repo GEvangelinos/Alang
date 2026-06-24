@@ -3,15 +3,18 @@
 
 namespace alpha::vm
 {
-
- std::string
+std::string
 Memcell::to_string(const bool include_str_quotes, const u32 call_depth) const
 {
     switch (type)
     {
     case Type::UNDEF: return "undefined";
     case Type::INT: return FMT::to_string(data.int_value);
-    case Type::FLOAT: return FMT::to_string(data.float_value);
+    case Type::FLOAT:
+        return data.float_value == static_cast<AlphaInt>(data.float_value)
+               ? FMT::to_string(data.float_value) + ".0"
+               : FMT::to_string(data.float_value);
+
     case Type::STRING:
         {
             const char* const delimeter = include_str_quotes ? "\"" : "";

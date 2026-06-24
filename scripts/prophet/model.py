@@ -33,6 +33,7 @@ class Testfile:
         self.gold_diagnostic_section: list[str] = []
         self.missing_vm_runline = False
         self.skip_cmp_testing = False
+        self.failed = False
 
     def set_compiler_run_line(self, run_line: str, driver_path: Path):
         if self.compiler_run_line:

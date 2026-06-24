@@ -35,7 +35,7 @@
 /* FLex regex definitions */
 id              [a-zA-Z][a-zA-Z_0-9]*
 int             (0[xX][0-9a-fA-F]+)|([0-9]+)
-float           ([0-9]*\.[0-9]+([eE][\+-]?[0-9]+)?)
+float           ([0-9]*\.[0-9]+([eE][\+-]?[0-9]+)?)[fF]?
 line_comment     "//".*
 newline         "\n"
 space           [ \r\t\v]
