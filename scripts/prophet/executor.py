@@ -178,16 +178,16 @@ class TestfileExecutor:
         """
         try:
             with open(golden, 'r') as f1, open(out, 'r') as f2:
-                golden_lines = [line.rstrip() for line in f1]
-                export_lines = [line.rstrip() for line in f2]
+                golden_lines = [line.strip() for line in f1]
+                export_lines = [line.strip() for line in f2]
 
             if golden_lines == export_lines:
                 return 0, ""
             # Optional: Find the first line that differs for the extra_msg
             for i, (l1, l2) in enumerate(zip(golden_lines, export_lines)):
                 if l1 != l2:
-                    return 1, f"Mismatch at line {i+1}: '{l1.strip()}' vs '{l2.strip()}'"
-            return 1, "Files have different line counts"
+                    return 1, f"Mismatch at line {i+1}: '{l1}' vs '{l2}'"
+            return 1, f"Files have different line counts. Expected: {len(golden_lines)} Got: {len(export_lines)}"
 
             ###  DEPRECATED WAY OF DOING THE COMPARISON (CSV Readers ignore quotes)  ###
             # golden_rows = TestfileExecutor.load_csv(golden)

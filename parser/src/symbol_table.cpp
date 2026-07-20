@@ -11,8 +11,6 @@
 
 namespace alpha
 {
-inline constexpr std::vector<Parameter> k_empty_parameter_list;
-
 namespace // (Anonymous)
 {
     template <typename Key, typename Value>
