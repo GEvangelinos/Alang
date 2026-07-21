@@ -30,6 +30,7 @@ class Testfile:
         self.gold_symbol_table_section: list[str] = []
         self.gold_vm_out_section: list[str] = []
         self.gold_vm_err_section: list[str] = []
+        self.gold_vm_in_section: list[str] = []
         self.gold_diagnostic_section: list[str] = []
         self.missing_vm_runline = False
         self.skip_cmp_testing = False
@@ -79,6 +80,11 @@ class Testfile:
         if self.gold_vm_err_section:
             raise StageError("gold_vm_err_lines have been already filled")
         self.gold_vm_err_section = gold_vm_err_lines
+
+    def set_gold_vm_in_section(self, gold_vm_in_lines: list[str]):
+        if self.gold_vm_in_section:
+            raise StageError("gold_vm_in_lines have been already filled")
+        self.gold_vm_in_section = gold_vm_in_lines
 
     def substitute_driver_placeholder(self, run_line:str, driver_path: Path) -> str:
         return self._substitute_placeholder(run_line, Placeholder.DRIVER, str(driver_path))

@@ -9,14 +9,14 @@
 #include "bytecode/abc_loader.hpp"
 
 static constexpr char vm_description[] =
-    "A Virtual Machine for running the Alpha language bytecode";
-[[nodiscard]] static arguinator::Parser launch_cli_parser(int argc, const char* const * argv);
+        "A Virtual Machine for running the Alpha language bytecode";
+[[nodiscard]] static arguinator::Parser launch_cli_parser(int argc, const char *const *argv);
 
-[[nodiscard]] static const char* fatal_header();
+[[nodiscard]] static const char *fatal_header();
 [[noreturn]] static void fatal_impl(std::string_view error_message);
-[[noreturn]] static void fatal(const arguinator::CLIError& e) { fatal_impl(e.what()); }
+[[noreturn]] static void fatal(const arguinator::CLIError &e) { fatal_impl(e.what()); }
 
-int main(const int argc, char** argv)
+int main(const int argc, char **argv)
 {
     try
     {
@@ -28,7 +28,7 @@ int main(const int argc, char** argv)
             throw std::runtime_error("Failed opening file for reading: " + infile_name);
         const uintmax_t filesize = std::filesystem::file_size(cli_parser["source"].get_input());
         std::vector<alpha::u8> abc_buffer(filesize);
-        infile.read(reinterpret_cast<char*>(abc_buffer.data()), filesize);
+        infile.read(reinterpret_cast<char *>(abc_buffer.data()), filesize);
 
         alpha::u32 stack_size = 4096;
         if (cli_parser["stack_size"].is_provided())
@@ -37,45 +37,53 @@ int main(const int argc, char** argv)
         const alpha::vm::Executable executable = alpha::ABC_Loader::load(abc_buffer);
         alpha::vm::Machine machine{alpha::vm::Bytes{.count = stack_size}, executable};
 
-        std::ofstream out_file;
-        std::ofstream err_file;
-        if (cli_parser["out-file"].is_provided())
+        std::ofstream out;
+        std::ofstream err;
+        std::ifstream in;
+
+        if (cli_parser["stdout"].is_provided())
         {
-            out_file = std::ofstream{cli_parser["out-file"].get_input()};
-            if (!out_file)
-                throw std::runtime_error{"Failed opening VM's out-file"};
-            machine.set_out_stream(out_file);
+            out = std::ofstream{cli_parser["stdout"].get_input()};
+            if (!out)
+                throw std::runtime_error{"Failed opening VM's stdout-file"};
+            machine.set_out_stream(out);
         }
-        if (cli_parser["err-file"].is_provided())
+        if (cli_parser["stderr"].is_provided())
         {
-            err_file = std::ofstream{cli_parser["err-file"].get_input()};
-            if (!err_file)
-                throw std::runtime_error{"Failed opening VM's err-file"};
-            machine.set_err_stream(err_file);
+            err = std::ofstream{cli_parser["stderr"].get_input()};
+            if (!err)
+                throw std::runtime_error{"Failed opening VM's stderr-file"};
+            machine.set_err_stream(err);
+        }
+        if (cli_parser["stdin"].is_provided())
+        {
+            in = std::ifstream{cli_parser["stdin"].get_input()};
+            if (!in)
+                throw std::runtime_error{"Failed opening VM's stdin-file"};
+            machine.set_in_stream(in);
         }
 
         machine.run();
-    }
-    catch (arguinator::CLIHelp) { return 0; }
-    catch (arguinator::CLIError& e) { fatal(e); }
+    } catch (arguinator::CLIHelp) { return 0; } catch (arguinator::CLIError &e) { fatal(e); }
     return 0;
 }
 
 arguinator::Parser
-launch_cli_parser(const int argc, const char* const * const argv)
+launch_cli_parser(const int argc, const char *const *const argv)
 {
     arguinator::Parser parser(argc, argv, vm_description);
     parser.set_flag("source").set_arity(1).set_help("NYI").set_required();
     parser.set_flag("stack_size").set_arity(1).set_help("NYI");
     parser.set_flag("show_warnings").set_arity(0).set_help("NYI");
-    parser.set_flag("out-file").set_arity(1).set_help("NYI");
-    parser.set_flag("err-file").set_arity(1).set_help("NYI");
+    parser.set_flag("stdout").set_arity(1).set_help("NYI");
+    parser.set_flag("stderr").set_arity(1).set_help("NYI");
+    parser.set_flag("stdin").set_arity(1).set_help("NYI");
 
     parser.parse_flags();
     return parser;
 }
 
-const char*
+const char *
 fatal_header() { return VM_NAME ": " COLOR_FG_ASCII_BOLD_RED "fatal: " SGR_RESET; }
 
 void

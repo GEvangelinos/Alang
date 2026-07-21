@@ -42,6 +42,7 @@ public:
 
     void set_out_stream(std::ostream& out) noexcept;
     void set_err_stream(std::ostream& err) noexcept;
+    void set_in_stream(std::istream& in) noexcept;
 
     void execute_cycle();
 
@@ -146,6 +147,7 @@ private:
     OnceFlag execution_finished_;
     std::ostream* out_stream_ = &std::cout;
     std::ostream* err_stream_ = &std::cerr;
+    std::istream* in_stream_ = &std::cin;
 
     void assign(Memcell& lv, const Memcell& rv);
 

@@ -59,8 +59,8 @@ class TestfileExecutor:
             self._status_line.append(f"{COLOR_YELLOW}(Missing VM run-command){SGR_RESET}")
             return
         self.testfile.vm_run_line = self.testfile.substitute_self_abc_placeholder(self.testfile.vm_run_line, self.test_dirpath / self.testfile.name)
-        self.testfile.vm_run_line += f" --out-file {self.testfile.name}.vmout.txt "
-        self.testfile.vm_run_line += f" --err-file {self.testfile.name}.vmerr.txt "
+        self.testfile.vm_run_line += f" --stdout {self.testfile.name}.vmout.txt "
+        self.testfile.vm_run_line += f" --stderr {self.testfile.name}.vmerr.txt "
         if self.execute_vm_run_line() == _EXIT_SUCCESS_RETURNCODE:
             self.validate_vm_side_testfile()
 
@@ -110,8 +110,7 @@ class TestfileExecutor:
         )
         self._status_line.append(f"--Testing: {self.testfile.name:<65} ")
         if completed_subprocess.returncode != _EXIT_SUCCESS_RETURNCODE:
-            self._status_line.append(
-                f"{COLOR_RED}Failure, test produced errors.{SGR_RESET}")
+            self._status_line.append(f"{COLOR_RED}Failure, test produced errors.{SGR_RESET}")
             if completed_subprocess.stderr:
                 self._status_line.append("\n\n--- STDERR-BEGIN ---\n")
                 self._status_line.append(completed_subprocess.stderr)

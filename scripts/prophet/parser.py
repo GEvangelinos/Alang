@@ -21,6 +21,8 @@ class TestfileParser:
     END_VM_OUT_MARKER = "__END_VM_OUT__"
     BEGIN_VM_ERR_MARKER = "__BEGIN_VM_ERR__"
     END_VM_ERR_MARKER = "__END_VM_ERR__"
+    BEGIN_VM_IN_MARKER = "__BEGIN_VM_IN__"
+    END_VM_IN_MARKER = "__END_VM_IN__"
 
     SPACES = r"[ \t]*"
 
@@ -38,6 +40,8 @@ class TestfileParser:
     END_VM_OUT_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{END_VM_OUT_MARKER}{SPACES}")
     BEGIN_VM_ERR_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{BEGIN_VM_ERR_MARKER}{SPACES}")
     END_VM_ERR_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{END_VM_ERR_MARKER}{SPACES}")
+    BEGIN_VM_IN_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{BEGIN_VM_IN_MARKER}{SPACES}")
+    END_VM_IN_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{END_VM_IN_MARKER}{SPACES}")
 
     def __init__(self, cmp_driver_path: Path, vm_driver_path: Path, testfile_path: Path):
         self.testfile_path = testfile_path
@@ -64,6 +68,7 @@ class TestfileParser:
         if not testfile.cmp_error_mode and not testfile.missing_vm_runline:
             testfile.set_gold_vm_out_section(self.find_gold_vm_out_section())
             testfile.set_gold_vm_err_section(self.find_gold_vm_err_section())
+            testfile.set_gold_vm_in_section(self.find_gold_vm_in_section())
         if not testfile.skip_cmp_testing:
             testfile.set_gold_diagnostic_section(self.find_gold_diagnostic_section())
 
@@ -129,6 +134,19 @@ class TestfileParser:
             section_name
         )
         return self._uncomment_section(golden_vm_err_section, section_name)
+
+    def find_gold_vm_in_section(self) -> list[str]:
+        section_name = "golden vm-err"
+        try:
+            golden_vm_in_section = self._find_section(
+                TestfileParser.BEGIN_VM_IN_RE,
+                TestfileParser.END_VM_IN_RE,
+                section_name
+            )
+            return self._uncomment_section(golden_vm_in_section, section_name)
+        except StageError as e:
+            pass # VM_IN marker is optional
+            return []
 
     def _find_section(self, begin_re: re.Pattern[str], end_re: re.Pattern[str], section_name: str) -> list[str]:
         section_lines: list[str] = []

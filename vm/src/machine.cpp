@@ -427,6 +427,9 @@ void
 Machine::set_err_stream(std::ostream& err) noexcept { err_stream_ = &err; }
 
 void
+Machine::set_in_stream(std::istream& in) noexcept { in_stream_ = &in; }
+
+void
 Machine::call_libfunc(const char* const libfunc_name)
 {
     const std::optional<LibFuncId> libfunc_id =
@@ -674,6 +677,7 @@ Machine::impl_of_libfunc_input()
     retval_.clear();
 
     const auto actuals = stack_.total_actuals();
+
     if (actuals == 1)
     {
         const vm::Memcell& prompt = stack_.get_actual(0);
@@ -688,7 +692,7 @@ Machine::impl_of_libfunc_input()
 
     std::string input;
 
-    if (!std::getline(std::cin, input))
+    if (!std::getline(*in_stream_, input))
         return;
 
     AlphaInt int_val;
