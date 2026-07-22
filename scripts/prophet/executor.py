@@ -12,6 +12,7 @@ _IR_CSV_EXT = ".ir.csv"
 _DIAGNOSTICS_CSV_EXT = ".diag.csv"
 _VM_OUT_EXT = ".vmout.txt"
 _VM_ERR_EXT = ".vmerr.txt"
+_VM_IN_EXT = ".vmin.txt"
 _GOLD_PREFIX = "GOLD_"
 
 _EXIT_SUCCESS_RETURNCODE = 0
@@ -33,12 +34,14 @@ class TestfileExecutor:
 
         self.gold_vm_out_filename = _GOLD_PREFIX + testfile.name + _VM_OUT_EXT
         self.gold_vm_err_filename = _GOLD_PREFIX + testfile.name + _VM_ERR_EXT
+        self.gold_vm_in_filename = _GOLD_PREFIX + testfile.name + _VM_IN_EXT
 
         self.out_symbol_table_filename = testfile.name + _SYMTABLE_CSV_EXT
         self.out_ir_filename = testfile.name + _IR_CSV_EXT
         self.out_diagnostics_filename = testfile.name + _DIAGNOSTICS_CSV_EXT
         self.out_vmout_filename = testfile.name + _VM_OUT_EXT
         self.out_vmerr_filename = testfile.name + _VM_ERR_EXT
+        self.out_vmin_filename = testfile.name + _VM_IN_EXT
 
         self._status_line: list[str] = []
 
@@ -59,8 +62,10 @@ class TestfileExecutor:
             self._status_line.append(f"{COLOR_YELLOW}(Missing VM run-command){SGR_RESET}")
             return
         self.testfile.vm_run_line = self.testfile.substitute_self_abc_placeholder(self.testfile.vm_run_line, self.test_dirpath / self.testfile.name)
-        self.testfile.vm_run_line += f" --stdout {self.testfile.name}.vmout.txt "
-        self.testfile.vm_run_line += f" --stderr {self.testfile.name}.vmerr.txt "
+        self.testfile.vm_run_line += f" --stdout {self.testfile.name}{_VM_OUT_EXT} "
+        self.testfile.vm_run_line += f" --stderr {self.testfile.name}{_VM_ERR_EXT} "
+        if self.testfile.gold_vm_in_section:
+            self.testfile.vm_run_line += f" --stdin {_GOLD_PREFIX}{self.testfile.name}{_VM_IN_EXT} "
         if self.execute_vm_run_line() == _EXIT_SUCCESS_RETURNCODE:
             self.validate_vm_side_testfile()
 
@@ -99,6 +104,9 @@ class TestfileExecutor:
             fout.write("\n".join(self.testfile.gold_vm_out_section))
         with open(self.gold_vm_err_filename, 'w') as fout:
             fout.write("\n".join(self.testfile.gold_vm_err_section))
+
+        with open(self.gold_vm_in_filename, 'w') as fout:
+            fout.write("\n".join(self.testfile.gold_vm_in_section))
 
 
     def execute_compiler_run_line(self) -> int:
