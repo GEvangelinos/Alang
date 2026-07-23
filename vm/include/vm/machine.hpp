@@ -89,6 +89,12 @@ public:
     void impl_of_libfunc_objecttotalmembers();
     void impl_of_libfunc_objectmemberkeys();
     void impl_of_libfunc_totalarguments();
+    void impl_of_libfunc_objectcopy();
+    void impl_of_libfunc_strtonum();
+    void impl_of_libfunc_argument();
+    void impl_of_libfunc_sin();
+    void impl_of_libfunc_cos();
+    void impl_of_libfunc_sqrt();
 
 private:
     class Stack
@@ -196,10 +202,16 @@ private:
         #define REGISTER_LIBFUNC(libfunc_name) result[get_index_of(#libfunc_name)] = &Machine::impl_of_libfunc_##libfunc_name
         REGISTER_LIBFUNC(print);
         REGISTER_LIBFUNC(input);
-        REGISTER_LIBFUNC(typeof);
         REGISTER_LIBFUNC(objectmemberkeys);
         REGISTER_LIBFUNC(objecttotalmembers);
+        REGISTER_LIBFUNC(objectcopy);
         REGISTER_LIBFUNC(totalarguments);
+        REGISTER_LIBFUNC(argument);
+        REGISTER_LIBFUNC(typeof);
+        REGISTER_LIBFUNC(strtonum);
+        REGISTER_LIBFUNC(sqrt);
+        REGISTER_LIBFUNC(sin);
+        REGISTER_LIBFUNC(cos);
         #undef REGISTER_LIBFUNC
         return result;
     }();
