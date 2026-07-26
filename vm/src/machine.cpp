@@ -550,6 +550,8 @@ Machine::tablesetelem(Table &t, const Memcell &i, const Memcell &c)
         }
         if (const auto it = hash_table.find(index_key); it != hash_table.end())
         {
+            #error "Just cleared.. but after set we follow with a tablegetelem. So we should either accept nill for unknown values or filter it hear using a marker flag for the table, for 1 cycle. maybe keeep e registry with all the dirty tables.. caise 1 cycle is needed atmost tbale can be a just avar with which table is dirty."
+            #error "Or just return nil for invalid keys but also optimized unused tablegetelemns"
             Memcell &value = it->second;
             value.clear();
             hash_table.erase(it);

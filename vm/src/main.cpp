@@ -30,7 +30,7 @@ int main(const int argc, char **argv)
         std::vector<alpha::u8> abc_buffer(filesize);
         infile.read(reinterpret_cast<char *>(abc_buffer.data()), filesize);
 
-        alpha::u32 stack_size = 4096;
+        alpha::u32 stack_size = 50;
         if (cli_parser["stack_size"].is_provided())
             stack_size = std::stoll(cli_parser["stack_size"].get_input());
 
