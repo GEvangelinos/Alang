@@ -1,7 +1,7 @@
 #ifndef FORMAT_ADAPTER_HPP
 #define FORMAT_ADAPTER_HPP
 
-#ifndef STD_FORMAT_SUPPORTED
+#ifdef STD_FORMAT_SUPPORTED
 #include <format>
 namespace FMT = std;
 #else
