@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <alpha_parser.gen.hpp>
 #include <fstream>
 #include <driver/translation_unit.hpp>

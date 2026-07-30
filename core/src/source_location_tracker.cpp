@@ -2,7 +2,6 @@
 
 namespace alpha
 {
-
 LocationTracker::LocationTracker(const SrcBuffIdx max_valid_index)
     : max_valid_index_(max_valid_index)
 {
@@ -57,7 +56,7 @@ LocationTracker::find_index_of_line(const SrcLineIdx line) const
     if (line == SrcLineIdx::none())
         throw std::logic_error(ATTACH_CONTEXT(FMT::format(
             "BUG: LocationTracker was asked to find index of k_no_line = `{}`)",
-            SrcLineIdx::none
+            SrcLineIdx::none().value
         )));
     DMASSERT(line.value <= linestart_buffer_indices_.size());
     return linestart_buffer_indices_[line.value - 1]; // -1 as line starts at pos 0.

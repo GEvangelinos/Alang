@@ -491,7 +491,7 @@ tablegetelem(Table &t, const Memcell &i)
     case Memcell::Type::NIL: return nullptr;
     case Memcell::Type::INT: return get_element(t.int_indexed, i.data.int_value);
     case Memcell::Type::FLOAT: return get_element(t.float_indexed, i.data.float_value);
-    case Memcell::Type::STRING: return get_element(t.str_indexed, FMT::to_string(i.data.str_value));
+    case Memcell::Type::STRING: return get_element(t.str_indexed, std::string(i.data.str_value));
     case Memcell::Type::BOOL: return get_element(t.bool_indexed, i.data.bool_value);
     case Memcell::Type::TABLE: return get_element(t.table_indexed, i.data.table_value);
     case Memcell::Type::PROGFUNC: return get_element(t.progfunc_indexed, i.data.progfunc_index);
@@ -539,9 +539,8 @@ Machine::call_functor(vm::Table *table)
 void
 Machine::tablesetelem(Table &t, const Memcell &i, const Memcell &c)
 {
-    const auto handle_assignment = [this, &c] <typename KeyType>(
-        HashTable<KeyType> &hash_table,
-        KeyType index_key) -> void
+    const auto handle_assignment =
+            [this, &c] <typename KeyType>(HashTable<KeyType> &hash_table, KeyType index_key) -> void
     {
         if (c.type != Memcell::Type::NIL)
         {
@@ -884,7 +883,8 @@ void Machine::impl_of_libfunc_argument()
     const vm::Memcell &arg = stack_.get_actual(0);
     if (arg.type != Memcell::Type::INT)
     {
-        error(FMT::format("Libfunc `argument` expected an INTEGER argument (got {})", to_string(arg.type)));
+        error(FMT::format("Libfunc `argument` expected an INTEGER argument (got {})",
+                          to_string(arg.type)));
         return;
     }
     retval_.clear();
