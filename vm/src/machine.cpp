@@ -233,10 +233,11 @@ Machine::execute_cycle()
 void
 Machine::run()
 {
+    while (!execution_finished_)
+        execute_cycle();
+    #warning "Put inside"
     try
     {
-        while (!execution_finished_)
-            execute_cycle();
     } catch (const std::runtime_error &e) { std::cerr << e.what() << std::endl; }
 }
 
@@ -311,6 +312,7 @@ Machine::Stack::get_actual(const u32 idx) const noexcept
 u32
 Machine::Stack::restore_previous_environment() noexcept
 {
+    static int num = 0;
     top_ = get_environment_value(topsp_ + Machine::k_saved_top_offset);
     const auto restored_pc = get_environment_value(topsp_ + Machine::k_saved_pc_offset);
     topsp_ = get_environment_value(topsp_ + Machine::k_saved_topsp_offset);

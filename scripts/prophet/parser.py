@@ -3,7 +3,10 @@ import re
 
 from model import StageError, Testfile
 
-COMMENT_TOKEN = "//"
+LINE_COMMENT_TOKEN = "//"
+BLOCK_COMMENT_TOKEN_BEGIN = "/*"
+BLOCK_COMMENT_TOKEN_END = "*/"
+
 
 
 class TestfileParser:
@@ -26,22 +29,22 @@ class TestfileParser:
 
     SPACES = r"[ \t]*"
 
-    COMPILER_RUN_REGEX = re.compile(rf"{COMMENT_TOKEN}{SPACES}{COMPILER_RUN_MARKER}{SPACES}:(.*)")
-    VM_RUN_REGEX = re.compile(rf"{COMMENT_TOKEN}{SPACES}{VM_RUN_MARKER}{SPACES}:(.*)")
-    BEGIN_SOURCE_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{BEGIN_SOURCE_MARKER}{SPACES}")
-    END_SOURCE_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{END_SOURCE_MARKER}{SPACES}")
-    BEGIN_IR_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{BEGIN_IR_MARKER}{SPACES}")
-    END_IR_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{END_IR_MARKER}{SPACES}")
-    BEGIN_SYMBOL_TABLE_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{BEGIN_SYMBOL_TABLE_MARKER}{SPACES}")
-    END_SYMBOL_TABLE_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{END_SYMBOL_TABLE_MARKER}{SPACES}")
-    BEGIN_DIAGNOSTICS_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{BEGIN_DIAGNOSTICS_MARKER}{SPACES}")
-    END_DIAGNOSTICS_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{END_DIAGNOSTICS_MARKER}{SPACES}")
-    BEGIN_VM_OUT_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{BEGIN_VM_OUT_MARKER}{SPACES}")
-    END_VM_OUT_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{END_VM_OUT_MARKER}{SPACES}")
-    BEGIN_VM_ERR_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{BEGIN_VM_ERR_MARKER}{SPACES}")
-    END_VM_ERR_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{END_VM_ERR_MARKER}{SPACES}")
-    BEGIN_VM_IN_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{BEGIN_VM_IN_MARKER}{SPACES}")
-    END_VM_IN_RE = re.compile(rf"{COMMENT_TOKEN}{SPACES}{END_VM_IN_MARKER}{SPACES}")
+    COMPILER_RUN_REGEX = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{COMPILER_RUN_MARKER}{SPACES}:(.*)")
+    VM_RUN_REGEX = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{VM_RUN_MARKER}{SPACES}:(.*)")
+    BEGIN_SOURCE_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{BEGIN_SOURCE_MARKER}{SPACES}")
+    END_SOURCE_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{END_SOURCE_MARKER}{SPACES}")
+    BEGIN_IR_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{BEGIN_IR_MARKER}{SPACES}")
+    END_IR_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{END_IR_MARKER}{SPACES}")
+    BEGIN_SYMBOL_TABLE_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{BEGIN_SYMBOL_TABLE_MARKER}{SPACES}")
+    END_SYMBOL_TABLE_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{END_SYMBOL_TABLE_MARKER}{SPACES}")
+    BEGIN_DIAGNOSTICS_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{BEGIN_DIAGNOSTICS_MARKER}{SPACES}")
+    END_DIAGNOSTICS_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{END_DIAGNOSTICS_MARKER}{SPACES}")
+    BEGIN_VM_OUT_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{BEGIN_VM_OUT_MARKER}{SPACES}")
+    END_VM_OUT_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{END_VM_OUT_MARKER}{SPACES}")
+    BEGIN_VM_ERR_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{BEGIN_VM_ERR_MARKER}{SPACES}")
+    END_VM_ERR_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{END_VM_ERR_MARKER}{SPACES}")
+    BEGIN_VM_IN_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{BEGIN_VM_IN_MARKER}{SPACES}")
+    END_VM_IN_RE = re.compile(rf"{LINE_COMMENT_TOKEN}{SPACES}{END_VM_IN_MARKER}{SPACES}")
 
     def __init__(self, cmp_driver_path: Path, vm_driver_path: Path, testfile_path: Path):
         self.testfile_path = testfile_path
@@ -165,14 +168,28 @@ class TestfileParser:
 
     def _uncomment_section(self, section: list[str], section_name: str) -> list[str]:
         cleaned_section: list[str] = []
+
+        inside_comment_block = False
         for line in section:
+            if line.startswith(BLOCK_COMMENT_TOKEN_BEGIN) and not inside_comment_block:
+                inside_comment_block = True
+                continue # We completely ingore block comment marker line
+            if line.startswith(BLOCK_COMMENT_TOKEN_END) and inside_comment_block:
+                inside_comment_block = False
+                continue # We completely ingore block comment marker line
+            if inside_comment_block:
+                cleaned_section.append(line)
+                continue
+
             cleaned = line.lstrip()
-            if not cleaned.startswith(COMMENT_TOKEN):
-                raise StageError(
-                    f"{section_name} line does not start with comment token `{COMMENT_TOKEN}`: <<{line}>>"
-                    f"\n\tfor {self.testfile_path}"
-                )
-            cleaned = cleaned.removeprefix(COMMENT_TOKEN)
-            cleaned = cleaned.lstrip()
-            cleaned_section.append(cleaned)
+            if cleaned.startswith(LINE_COMMENT_TOKEN):
+                cleaned = cleaned.removeprefix(LINE_COMMENT_TOKEN)
+                cleaned = cleaned.lstrip()
+                cleaned_section.append(cleaned)
+                continue
+
+            raise StageError(
+                f"{section_name} line is neither in block comment (verbatim) nor starts with comment token `{LINE_COMMENT_TOKEN}`: <<{line}>>"
+                f"\n\tfor {self.testfile_path}"
+            )
         return cleaned_section
