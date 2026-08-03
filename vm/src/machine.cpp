@@ -10,6 +10,7 @@
 #include "vm/vm_memory.hpp"
 #include "support/format_adapter.hpp"
 #include "support/debug_tools.hpp"
+#include "support/math_tools.hpp"
 
 namespace alpha::vm
 {
@@ -915,10 +916,10 @@ Machine::impl_of_libfunc_cos()
     switch (arg.type)
     {
     case Memcell::Type::INT:
-        retval_.data.float_value = std::cos(arg.data.int_value);
+        retval_.data.float_value = std::cos(support::deg_to_rad(arg.data.int_value));
         break;
     case Memcell::Type::FLOAT:
-        retval_.data.float_value = std::cos(arg.data.float_value);
+        retval_.data.float_value = std::cos(support::deg_to_rad(arg.data.float_value));
         break;
     default:
         retval_.type = Memcell::Type::NIL;
@@ -943,10 +944,10 @@ Machine::impl_of_libfunc_sin()
     switch (arg.type)
     {
     case Memcell::Type::INT:
-        retval_.data.float_value = std::sin(arg.data.int_value);
+        retval_.data.float_value = std::sin(support::deg_to_rad(arg.data.int_value));
         break;
     case Memcell::Type::FLOAT:
-        retval_.data.float_value = std::sin(arg.data.float_value);
+        retval_.data.float_value = std::sin(support::deg_to_rad(arg.data.float_value));
         break;
     default:
         retval_.type = Memcell::Type::NIL;

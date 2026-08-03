@@ -1,4 +1,5 @@
-add_library(support_api INTERFACE)
+add_library(support_api INTERFACE
+    include/support/math_tools.hpp)
 target_include_directories(support_api INTERFACE include)
 target_link_libraries(support_api INTERFACE fmt_api)
 
