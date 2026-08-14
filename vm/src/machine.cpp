@@ -237,9 +237,7 @@ Machine::run()
     while (!execution_finished_)
         execute_cycle();
     #warning "Put inside"
-    try
-    {
-    } catch (const std::runtime_error &e) { std::cerr << e.what() << std::endl; }
+    try {} catch (const std::runtime_error &e) { std::cerr << e.what() << std::endl; }
 }
 
 void
@@ -346,10 +344,9 @@ Machine::execute_jump(const vm::Instruction &inst)
     DMASSERT(!!inst.result);
     DMASSERT(inst.result->type == Argument::Type::LABEL);
     // @PC_TAG@ -1 is required, as addresses start from 1;
-    const auto jump_address = static_cast<const LabelArgument *>(inst.result.get())->value.value -
-                              1;
-    DMASSERT(jump_address <= ending_pc_ && "Only jumps can be == ending_pc_ (1 past legal inst)");
-    pc_ = jump_address;
+    const auto jump_addr = static_cast<const LabelArgument *>(inst.result.get())->value.value - 1;
+    DMASSERT(jump_addr <= ending_pc_ && "Only jumps can be == ending_pc_ (1 past legal inst)");
+    pc_ = jump_addr;
 }
 
 void
@@ -532,7 +529,10 @@ Machine::call_functor(vm::Table *table)
         push_table_arg();
         stack_.save_call_environment(pc_, total_actuals_);
         const vm::ProgFuncMetadata progfunc_metadata = exe_.progfuncs[functor->data.progfunc_index];
-        pc_ = progfunc_metadata.address.value;
+        pc_ = progfunc_metadata.address.value - 1; // @PC_TAG@ -1 is required, as addresses start from 1
+        if (code_[pc_].opcode != Opcode::ENTERFUNC)
+            std::cerr << "pc_ = " << pc_ << " && opcode_= " << static_cast<int>(code_[pc_].opcode)
+                    << std::endl;
         DMASSERT(pc_ < ending_pc_, code_[pc_].opcode == Opcode::ENTERFUNC);
     }
     else
