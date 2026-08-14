@@ -4,7 +4,7 @@
 namespace alpha::vm
 {
 std::string
-Memcell::to_string(const bool include_str_quotes, const u32 call_depth) const
+Memcell::to_string(const bool include_str_quotes) const
 {
     switch (type)
     {
@@ -16,36 +16,51 @@ Memcell::to_string(const bool include_str_quotes, const u32 call_depth) const
                : FMT::to_string(data.float_value);
 
     case Type::STRING:
-        {
-            const char* const delimeter = include_str_quotes ? "\"" : "";
-            return FMT::format("{}{}{}", delimeter, std::string(data.str_value), delimeter);
-        }
+    {
+        const char *const delimeter = include_str_quotes ? "\"" : "";
+        return FMT::format("{}{}{}", delimeter, std::string(data.str_value), delimeter);
+    }
     case Type::BOOL: return std::string(data.bool_value ? "true" : "false");
-    case Type::TABLE: return data.table_value->to_string(call_depth);
+    case Type::TABLE: return data.table_value->to_string();
     case Type::PROGFUNC: return FMT::format("(program_func: {})", data.progfunc_index);
     case Type::LIBFUNC:
-        {
-            const std::optional<StringSpan> libname = get_libfunc_name(data.libfunc_id);
-            DMASSERT(libname.has_value() && "How did it become a type LIBFUNC then.. ?");
-            return FMT::format("{}()", libname->data);
-        }
+    {
+        const std::optional<StringSpan> libname = get_libfunc_name(data.libfunc_id);
+        DMASSERT(libname.has_value() && "How did it become a type LIBFUNC then.. ?");
+        return FMT::format("{}()", libname->data);
+    }
     case Type::NIL: return "nil";
     default: DMASSERT(false);
     }
     return "__INTERNAL_ERROR__: 2026.05.31.22:07";
 }
 
+std::string Table::to_string() const
+{
+    std::string result;
+
+    const auto format_hash_table =
+            []<typename KeyType>(const HashTable<KeyType> &hash_table)-> std::string
+    {
+        constexpr const char *key_delimiter = std::is_same_v<KeyType, std::string> ? "\"" : "";
+
+    };
+
+
+    return result;
+}
+
 std::string
-Table::to_string(const u32 call_depth) const
+Table::inspect(const u32 call_depth) const
 {
     std::string result;
 
     const auto format_hash_table = [call_depth]<typename KeyType>(
-        const HashTable<KeyType>& hash_table) -> std::string
+        const HashTable<KeyType> &hash_table) -> std::string
     {
-        constexpr const char* key_delimiter = std::is_same_v<KeyType, std::string> ? "\"" : "";
+        constexpr const char *key_delimiter = std::is_same_v<KeyType, std::string> ? "\"" : "";
 
-        const char* const nl = hash_table.size() > 1 ? "\n" : "";
+        const char *const nl = hash_table.size() > 1 ? "\n" : "";
 
         std::string result = "[";
         result += nl;
@@ -59,7 +74,7 @@ Table::to_string(const u32 call_depth) const
                 formatted_key = FMT::format("{}()", libname->data);
             }
             else if constexpr (std::is_pointer_v<KeyType>)
-                formatted_key = FMT::format("{}", static_cast<const void*>(it->first));
+                formatted_key = FMT::format("{}", static_cast<const void *>(it->first));
             else
                 formatted_key = FMT::format("{}", it->first);
 

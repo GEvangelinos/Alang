@@ -57,7 +57,7 @@ struct Memcell
 
     [[nodiscard]] bool is_arithmetic() const noexcept;
 
-    [[nodiscard]] std::string to_string(bool include_str_quotes = false, u32 call_depth = 0) const;
+    [[nodiscard]] std::string to_string(bool include_str_quotes = false) const;
     [[nodiscard]] bool to_bool() const noexcept;
 };
 
@@ -92,7 +92,20 @@ struct Table
     u32 ref_counter = 0;
 
     void increase_ref() noexcept { ++ref_counter; }
-    [[nodiscard]] std::string to_string(u32 call_depth = 0) const;
+    [[nodiscard]] std::string to_string() const;
+    [[nodiscard]] std::string inspect(u32 call_depth = 0) const;
+
+    [[nodiscard]] auto size() const noexcept
+    {
+        return str_indexed.size()+
+            int_indexed.size()+
+                float_indexed.size()+
+                    bool_indexed.size()+
+                        progfunc_indexed.size()+
+                            libfunc_indexed.size()+
+                                table_indexed.size()+
+    }
+
 };
 
 
