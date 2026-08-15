@@ -7,7 +7,7 @@
 #include "core/numeric_types.hpp"
 
 #define ALPHA_VMOPCODES(X) \
-    X(__TRAP)            \
+    X(__TRAP)              \
     X(ASSIGN)              \
     X(ADD)                 \
     X(SUB)                 \
@@ -21,7 +21,7 @@
     X(JLE)                 \
     X(JGT)                 \
     X(JGE)                 \
-    X(CALL)            \
+    X(CALL)                \
     X(PUSHARG)             \
     X(ENTERFUNC)           \
     X(EXITFUNC)            \

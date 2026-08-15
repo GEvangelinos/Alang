@@ -1,6 +1,7 @@
 #include "vm/vm_memory.hpp"
 #include "support/format_adapter.hpp"
 
+
 namespace alpha::vm
 {
 std::string
@@ -42,13 +43,24 @@ Table::to_string() const
 
     const auto format_hash_table = [&result]<typename KeyType>(const HashTable<KeyType> &hash_table)
     {
-
-        for (const auto& [key, value] : hash_table)
-            result += FMT::format("{{{} : {}}},", key, value.to_string());
+        constexpr auto str_delimiter = std::is_same_v<KeyType, std::string> ? "\"" : "";
+        for (const auto &[key,val]: hash_table)
+            result += FMT::format("{{{0}{1}{0} : {2}}}, ", str_delimiter, key, val.to_string());
     };
 
-    format_hash_table(bool_indexed);
+    format_hash_table(int_indexed);
+    format_hash_table(float_indexed);
     format_hash_table(str_indexed);
+    format_hash_table(bool_indexed);
+    format_hash_table(progfunc_indexed);
+    format_hash_table(libfunc_indexed);
+
+    if (result.size() > 2)
+    {
+        constexpr std::string_view suffix{", "};
+        DMASSERT(result.ends_with(suffix));
+        result.resize(result.size() - suffix.size());
+    }
 
 
     result += "]";

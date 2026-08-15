@@ -374,7 +374,6 @@ Machine::Stack::get_actual(const u32 idx) const noexcept
 u32
 Machine::Stack::restore_previous_environment() noexcept
 {
-    static int num = 0;
     top_ = get_environment_value(topsp_ + Machine::k_saved_top_offset);
     const auto restored_pc = get_environment_value(topsp_ + Machine::k_saved_pc_offset);
     topsp_ = get_environment_value(topsp_ + Machine::k_saved_topsp_offset);

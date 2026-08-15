@@ -376,7 +376,7 @@ void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::Loca
         //     : FMT::format("{}-{}", first_line.value, last_line.value);
         out << FMT::format(
             "{0} {1} {2} {3} {4} {5}\n",
-            format_column<Colorize, 0, widths[0]>(i + 1), // +1 as, 0 is indicating no-address
+            format_column<Colorize, 0, widths[0]>(i),
             format_column<Colorize, 1, widths[1]>(to_string(inst.opcode)),
             format_column<Colorize, 2, widths[2]>(argument_formatter(inst.result.get())),
             format_column<Colorize, 3, widths[3]>(argument_formatter(inst.arg1.get())),
