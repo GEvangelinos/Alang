@@ -260,7 +260,7 @@ Machine::execute_relational_branch(const vm::Instruction& inst)
         DMASSERT(inst.result->type == Argument::Type::LABEL);
         const CodeAddress branch_target =
             static_cast<const LabelArgument*>(inst.result.get())->value;
-        pc_ = branch_target.value - 1; // @PC_TAG@ -1 is required, as addresses start from 1;
+        pc_ = branch_target.value;
     }
 }
 
@@ -321,7 +321,6 @@ Machine::execute_equality_branch(const vm::Instruction& inst)
     DMASSERT(inst.result->type == Argument::Type::LABEL);
     condition ^= inst.opcode == Opcode::JNE;
     if (condition)
-        pc_ = static_cast<const LabelArgument*>(inst.result.get())->value.value - 1;
-    // @PC_TAG@ - 1 is required, as addresses start from 1
+        pc_ = static_cast<const LabelArgument*>(inst.result.get())->value.value;
 }
 } // namespace alpha::vm

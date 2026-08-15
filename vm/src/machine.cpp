@@ -120,6 +120,73 @@ Machine::Stack::allocate_locals(const u32 count)
         top_ -= count;
 }
 
+constinit std::array<Machine::ExecuteFuncType, 256>
+Machine::execute_dispatch_table_ = []() consteval
+{
+    static_assert(sizeof(vm::Opcode) == sizeof(u8), "Disp table too big, fucks cache locality");
+
+    constexpr u64 table_size = 1 << 8;
+    std::array<ExecuteFuncType, table_size> result{};
+
+    result.fill(&Machine::execute_trap);
+
+
+    #include <concepts>
+
+    const auto map = [&result]
+    (const ExecuteFuncType handler,
+     const std::same_as<vm::Opcode> auto... opcodes) consteval
+    {
+        using OpcodeUT = std::underlying_type_t<Opcode>;
+        ((result[static_cast<OpcodeUT>(opcodes)] = handler), ...);
+    };
+
+    using enum Opcode;
+    map(&Machine::execute_assign, ASSIGN);
+    map(&Machine::execute_arithmetic, ADD, SUB, MUL, DIV, MOD);
+    map(&Machine::execute_jump, JUMP);
+    map(&Machine::execute_equality_branch, JEQ, JNE);
+    map(&Machine::execute_relational_branch, JLT, JLE, JGT, JGE);
+    map(&Machine::execute_call, CALL);
+    map(&Machine::execute_pusharg, PUSHARG);
+    map(&Machine::execute_enterfunc, ENTERFUNC);
+    map(&Machine::execute_exitfunc, EXITFUNC);
+    map(&Machine::execute_newtable, NEWTABLE);
+    map(&Machine::execute_tablegetelem, TABLEGETELEM);
+    map(&Machine::execute_tablesetelem, TABLESETELEM);
+
+    return result;
+}();
+
+constinit std::array<Machine::LibfuncImplFuncType, 12>
+Machine::libfunc_table_ = []() consteval
+{
+    constexpr auto lib_func_count = static_cast<LibFuncIdUT>(LibFuncId::__COUNT__);
+    std::array<LibfuncImplFuncType, lib_func_count> result{};
+
+    const auto get_index_of = []<u64 size>(const char (&libfunc_name)[size])
+    {
+        return static_cast<LibFuncIdUT>(
+            get_libfunc_id(StringSpan::from_literal(libfunc_name)).value()
+        );
+    };
+
+    #define REGISTER_LIBFUNC(libfunc_name) result[get_index_of(#libfunc_name)] = &Machine::impl_of_libfunc_##libfunc_name
+    REGISTER_LIBFUNC(print);
+    REGISTER_LIBFUNC(input);
+    REGISTER_LIBFUNC(objectmemberkeys);
+    REGISTER_LIBFUNC(objecttotalmembers);
+    REGISTER_LIBFUNC(objectcopy);
+    REGISTER_LIBFUNC(totalarguments);
+    REGISTER_LIBFUNC(argument);
+    REGISTER_LIBFUNC(typeof);
+    REGISTER_LIBFUNC(strtonum);
+    REGISTER_LIBFUNC(sqrt);
+    REGISTER_LIBFUNC(sin);
+    REGISTER_LIBFUNC(cos);
+    #undef REGISTER_LIBFUNC
+    return result;
+}();
 
 Machine::Machine(const Bytes stack_size, const vm::Executable &exe)
     : stack_(stack_size.count, exe.global_var_count, [this]() { on_stack_overflow(); }),
@@ -220,10 +287,6 @@ Machine::execute_cycle()
     const vm::Instruction &instr = exe_.instructions[pc_];
 
     const auto instr_opcode_idx = static_cast<std::underlying_type_t<vm::Opcode>>(instr.opcode);
-    DMASSERT(
-        instr_opcode_idx >= 0,
-        instr_opcode_idx < static_cast<std::underlying_type_t<vm::Opcode>>(vm::Opcode::__COUNT__)
-    );
     const u32 old_pc = pc_;
     void (Machine::*handler)(const Instruction &) = execute_dispatch_table_[instr_opcode_idx];
     (this->*handler)(instr);
@@ -329,6 +392,14 @@ Machine::Stack::get_environment_value(const u32 stack_idx) const noexcept
 }
 
 void
+Machine::execute_trap(const vm::Instruction &inst)
+{
+    std::cerr << "TRAP" << std::endl;
+    std::abort();
+    #warning "Current logic of trap function is very fucking primitive.. implement an actual behavior.."
+}
+
+void
 Machine::execute_assign(const vm::Instruction &inst)
 {
     DMASSERT(!inst.arg2);
@@ -343,8 +414,7 @@ Machine::execute_jump(const vm::Instruction &inst)
 {
     DMASSERT(!!inst.result);
     DMASSERT(inst.result->type == Argument::Type::LABEL);
-    // @PC_TAG@ -1 is required, as addresses start from 1;
-    const auto jump_addr = static_cast<const LabelArgument *>(inst.result.get())->value.value - 1;
+    const auto jump_addr = static_cast<const LabelArgument *>(inst.result.get())->value.value;
     DMASSERT(jump_addr <= ending_pc_ && "Only jumps can be == ending_pc_ (1 past legal inst)");
     pc_ = jump_addr;
 }
@@ -362,7 +432,7 @@ Machine::execute_call(const vm::Instruction &inst)
         const vm::ProgFuncMetadata metadata = exe_.progfuncs[func->data.progfunc_index];
         static_assert(sizeof(decltype(metadata)) <= 32, "If false pass by value");
         DMASSERT(metadata.address.value < exe_.instructions.size());
-        pc_ = metadata.address.value - 1; // @PC_TAG@ -1 is required, as addresses start from 1
+        pc_ = metadata.address.value;
         DMASSERT(pc_ < ending_pc_, code_[pc_].opcode == Opcode::ENTERFUNC);
         break;
     }
@@ -387,7 +457,7 @@ Machine::execute_enterfunc(const vm::Instruction &inst)
 {
     const vm::Memcell &func = *DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
     const vm::ProgFuncMetadata progfunc_metadata = exe_.progfuncs[func.data.progfunc_index];
-    DMASSERT(pc_ == progfunc_metadata.address.value -1); // @PC_TAG@  (tag is for the - 1 )
+    DMASSERT(pc_ == progfunc_metadata.address.value);
     total_actuals_ = 0;
     stack_.add_function_environment(progfunc_metadata);
 }
@@ -529,7 +599,7 @@ Machine::call_functor(vm::Table *table)
         push_table_arg();
         stack_.save_call_environment(pc_, total_actuals_);
         const vm::ProgFuncMetadata progfunc_metadata = exe_.progfuncs[functor->data.progfunc_index];
-        pc_ = progfunc_metadata.address.value - 1; // @PC_TAG@ -1 is required, as addresses start from 1
+        pc_ = progfunc_metadata.address.value;
         if (code_[pc_].opcode != Opcode::ENTERFUNC)
             std::cerr << "pc_ = " << pc_ << " && opcode_= " << static_cast<int>(code_[pc_].opcode)
                     << std::endl;

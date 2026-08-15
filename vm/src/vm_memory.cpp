@@ -35,18 +35,23 @@ Memcell::to_string(const bool include_str_quotes) const
     return "__INTERNAL_ERROR__: 2026.05.31.22:07";
 }
 
-std::string Table::to_string() const
+std::string
+Table::to_string() const
 {
-    std::string result;
+    std::string result = "[";
 
-    const auto format_hash_table =
-            []<typename KeyType>(const HashTable<KeyType> &hash_table)-> std::string
+    const auto format_hash_table = [&result]<typename KeyType>(const HashTable<KeyType> &hash_table)
     {
-        constexpr const char *key_delimiter = std::is_same_v<KeyType, std::string> ? "\"" : "";
 
+        for (const auto& [key, value] : hash_table)
+            result += FMT::format("{{{} : {}}},", key, value.to_string());
     };
 
+    format_hash_table(bool_indexed);
+    format_hash_table(str_indexed);
 
+
+    result += "]";
     return result;
 }
 

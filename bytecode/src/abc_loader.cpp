@@ -8,7 +8,7 @@
 
 #include "core/fixed_string.hpp"
 #include "core/numeric_types.hpp"
-#include "core/string_cache,hpp.h"
+#include "core/string_cache.hpp"
 #include "core/bytecode/abc_header.hpp"
 #include "core/bytecode/vm_program.hpp"
 #include "support/debug_tools.hpp"

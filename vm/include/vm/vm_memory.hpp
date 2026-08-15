@@ -43,9 +43,9 @@ struct Memcell
         // TODO: make a separate allocation and deallocation function that accepts both const char * and StringSpans (overloaded) that uses the new[] allocator (not std::malloc())
         AlphaInt int_value;
         AlphaFloat float_value;
-        const char* str_value; // Malloc'd (dont use new/ new[])
+        const char *str_value; // Malloc'd (dont use new/ new[])
         bool bool_value;
-        Table* table_value;
+        Table *table_value;
         u32 progfunc_index;
         vm::LibFuncId libfunc_id;
         // TODO "For libfuncs name to int index translation would be better, so we dont have to hash libfuncs every time..."
@@ -61,14 +61,14 @@ struct Memcell
     [[nodiscard]] bool to_bool() const noexcept;
 };
 
-[[nodiscard]] inline const char*
+[[nodiscard]] inline const char *
 to_string(const vm::Memcell::Type memcell_type)
 {
     switch (memcell_type)
     {
-    #define MEMCELL_TYPE_TO_STRING(TYPE) case vm::Memcell::Type::TYPE: return #TYPE;
+        #define MEMCELL_TYPE_TO_STRING(TYPE) case vm::Memcell::Type::TYPE: return #TYPE;
     MEMCELL_TYPE(MEMCELL_TYPE_TO_STRING)
-    #undef MEMCELL_TYPE_TO_STRING
+        #undef MEMCELL_TYPE_TO_STRING
     default: DMASSERT(false && "Unknown vm::Memcell::Type");
     }
     std::abort();
@@ -76,7 +76,7 @@ to_string(const vm::Memcell::Type memcell_type)
 #undef  MEMCELL_TYPE
 
 // TODO: use a flat hashmap, currently there is a lot of pointer chasing.
-template <typename KeyType>
+template<typename KeyType>
 using HashTable = std::unordered_map<KeyType, vm::Memcell>;
 
 struct Table
@@ -87,7 +87,7 @@ struct Table
     HashTable<bool> bool_indexed;
     HashTable<u32> progfunc_indexed;
     HashTable<vm::LibFuncId> libfunc_indexed;
-    HashTable<Table*> table_indexed;
+    HashTable<Table *> table_indexed;
 
     u32 ref_counter = 0;
 
@@ -95,28 +95,30 @@ struct Table
     [[nodiscard]] std::string to_string() const;
     [[nodiscard]] std::string inspect(u32 call_depth = 0) const;
 
-    [[nodiscard]] auto size() const noexcept
-    {
-        return str_indexed.size()+
-            int_indexed.size()+
-                float_indexed.size()+
-                    bool_indexed.size()+
-                        progfunc_indexed.size()+
-                            libfunc_indexed.size()+
-                                table_indexed.size()+
-    }
-
+    [[nodiscard]] u64 size() const noexcept;
 };
 
+inline u64
+Table::size() const noexcept
+{
+    return str_indexed.size() +
+           int_indexed.size() +
+           float_indexed.size() +
+           bool_indexed.size() +
+           progfunc_indexed.size() +
+           libfunc_indexed.size() +
+           table_indexed.size();
+}
 
 inline void
-decrease_ref(Table* t)
+decrease_ref(Table *t)
 {
-    std::cerr << __func__ << "() called for table: " <<  (void*)t  << t->to_string() << std::endl;
+    #warning "REMOVE"
+    // std::cerr << __func__ << "() called for table: " << (void *) t <<" STRING: " << t->to_string() << std::endl;
 
     const auto clear_values = [](const auto memcells)
     {
-        for (Memcell& cell : memcells)
+        for (Memcell &cell: memcells)
             cell.clear();
     };
 
@@ -132,7 +134,7 @@ decrease_ref(Table* t)
         clear_values(t->libfunc_indexed | std::views::values);
         clear_values(t->table_indexed | std::views::values);
 
-        for (Table* key : t->table_indexed | std::views::keys)
+        for (Table *key: t->table_indexed | std::views::keys)
             decrease_ref(key);
         delete t;
     }
@@ -155,7 +157,7 @@ Memcell::clear()
         return;
     case Type::STRING:
         type = Type::UNDEF;
-        std::free(const_cast<char*>(data.str_value));
+        std::free(const_cast<char *>(data.str_value));
         break;
     case Type::TABLE:
         decrease_ref(data.table_value);

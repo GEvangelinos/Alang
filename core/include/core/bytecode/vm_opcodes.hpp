@@ -7,6 +7,7 @@
 #include "core/numeric_types.hpp"
 
 #define ALPHA_VMOPCODES(X) \
+    X(__TRAP)            \
     X(ASSIGN)              \
     X(ADD)                 \
     X(SUB)                 \
@@ -43,6 +44,7 @@ constexpr std::array all_vmopcodes_array{
     ALPHA_VMOPCODES(AS_ARRAY_MEMBER)
     #undef  AS_ARRAY_MEMBER
 };
+
 [[nodiscard]] std::string to_string(vm::Opcode opc) noexcept;
 } // namespace alpha::vm
 #endif // VM_OPCODES_HPP

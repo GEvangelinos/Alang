@@ -2,7 +2,7 @@
 #define EXECUTABLE_HPP
 
 #include "core/executable_types.h"
-#include "core/string_cache,hpp.h"
+#include "core/string_cache.hpp"
 #include "core/bytecode/vm_instruction.hpp"
 
 namespace alpha::vm
