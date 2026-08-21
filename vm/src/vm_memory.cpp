@@ -1,4 +1,7 @@
 #include "vm/vm_memory.hpp"
+
+#include <vector>
+
 #include "support/format_adapter.hpp"
 
 
@@ -44,8 +47,28 @@ Table::to_string() const
     const auto format_hash_table = [&result]<typename KeyType>(const HashTable<KeyType> &hash_table)
     {
         constexpr auto str_delimiter = std::is_same_v<KeyType, std::string> ? "\"" : "";
-        for (const auto &[key,val]: hash_table)
-            result += FMT::format("{{{0}{1}{0} : {2}}}, ", str_delimiter, key, val.to_string());
+
+        using PairType = typename HashTable<KeyType>::value_type;
+
+        std::vector<const PairType *> ordered;
+        ordered.reserve(hash_table.size());
+        for (const auto &elem: hash_table)
+            ordered.push_back(&elem);
+
+        std::sort(
+            ordered.begin(), ordered.end(),
+            [](const PairType *const a, const PairType *const b) { return a->first < b->first; }
+        );
+
+        for (const PairType *const pair: ordered)
+        {
+            const auto &[key,val] = *pair;
+            FMT::format_to(
+                std::back_inserter(result),
+                "{{{0}{1}{0} : {2}}}, ",
+                str_delimiter, key, val.to_string()
+            );
+        }
     };
 
     format_hash_table(int_indexed);
@@ -55,13 +78,9 @@ Table::to_string() const
     format_hash_table(progfunc_indexed);
     format_hash_table(libfunc_indexed);
 
-    if (result.size() > 2)
-    {
-        constexpr std::string_view suffix{", "};
-        DMASSERT(result.ends_with(suffix));
+    constexpr std::string_view suffix{", "};
+    if (result.ends_with(suffix))
         result.resize(result.size() - suffix.size());
-    }
-
 
     result += "]";
     return result;
