@@ -81,6 +81,19 @@ using HashTable = std::unordered_map<KeyType, vm::Memcell>;
 
 struct Table
 {
+    #ifdef DEBUG_MODE
+
+private:
+    static i64 serial_number_counter;
+
+public:
+    const i64 serial_number = -1;
+
+    Table() : serial_number(serial_number_counter++) {}
+
+
+    #endif // DEBUG_MODE
+
     HashTable<std::string> str_indexed;
     HashTable<AlphaInt> int_indexed;
     HashTable<AlphaFloat> float_indexed;
@@ -92,6 +105,7 @@ struct Table
     u32 ref_counter = 0;
 
     void increase_ref() noexcept { ++ref_counter; }
+
     [[nodiscard]] std::string to_string() const;
     [[nodiscard]] std::string inspect(u32 call_depth = 0) const;
 

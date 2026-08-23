@@ -192,7 +192,10 @@ Machine::Machine(const Bytes stack_size, const vm::Executable &exe)
     : stack_(stack_size.count, exe.global_var_count, [this]() { on_stack_overflow(); }),
       code_(exe.instructions.data()),
       exe_(exe),
-      ending_pc_(exe.instructions.size()) {}
+      ending_pc_(exe.instructions.size())
+{
+    DMASSERT(exe_.instructions.front().opcode == vm::Opcode::__TRAP);
+}
 
 void
 Machine::on_stack_overflow()
@@ -286,6 +289,7 @@ Machine::execute_cycle()
     DMASSERT(pc_ < exe_.instructions.size() && "Above, we just just checked is not equal.");
     const vm::Instruction &instr = exe_.instructions[pc_];
 
+    const auto opcode = instr.opcode;
     const auto instr_opcode_idx = static_cast<std::underlying_type_t<vm::Opcode>>(instr.opcode);
     const u32 old_pc = pc_;
     void (Machine::*handler)(const Instruction &) = execute_dispatch_table_[instr_opcode_idx];
@@ -581,11 +585,13 @@ Machine::call_functor(vm::Table *table)
         Memcell &top_elem = stack_.top_element();
         top_elem.type = Memcell::Type::TABLE;
         top_elem.data.table_value = table;
+        table->increase_ref();
         ++total_actuals_;
         stack_.decrease_top();
     };
 
 
+    #warning "We shouldnt create the () memcell is reg_c. Instead this can be a static as its always a '()' string "
     reg_c_.type = Memcell::Type::STRING;
     reg_c_.data.str_value = strdup("()");
     const Memcell *const functor = tablegetelem(*table, reg_c_);
@@ -601,11 +607,13 @@ Machine::call_functor(vm::Table *table)
         pc_ = progfunc_metadata.address.value;
         if (code_[pc_].opcode != Opcode::ENTERFUNC)
             std::cerr << "pc_ = " << pc_ << " && opcode_= " << static_cast<int>(code_[pc_].opcode)
-                    << std::endl;
+                    << std::endl; // TODO REMOVE
         DMASSERT(pc_ < ending_pc_, code_[pc_].opcode == Opcode::ENTERFUNC);
     }
     else
         error("In calling table: illegal `()` element value");
+
+    #warning "How about libfuncs? "
 }
 
 void

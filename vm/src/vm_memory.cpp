@@ -39,6 +39,10 @@ Memcell::to_string(const bool include_str_quotes) const
     return "__INTERNAL_ERROR__: 2026.05.31.22:07";
 }
 
+#ifdef DEBUG_MODE
+i64 Table::serial_number_counter = 0;
+#endif // DEBUG_MODE
+
 std::string
 Table::to_string() const
 {
