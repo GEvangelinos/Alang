@@ -5,6 +5,8 @@
 #include <concepts>
 #include <limits>
 
+
+// TODO: Make StrongType Skill based (example in your local ~/Playground folder) as currently some StrongType needs some ops and some dont...
 namespace alpha
 {
 template
@@ -15,33 +17,34 @@ template
 >
 struct StrongType
 {
-    // We add the using, so we cant export the UnderlyingType
+    // We add the using, so we can export the UnderlyingType
     using UnderlyingType = UnderlyingType_;
+
     UnderlyingType value;
 
-    [[nodiscard]] static constexpr DerivedType none() { return {}; }
+    [[nodiscard]] static constexpr DerivedType none() { return DerivedType{none_value}; }
 
     constexpr StrongType() : value(none_value) {}
 
     explicit constexpr StrongType(const UnderlyingType value) noexcept : value(value) {}
 
-    constexpr StrongType(const StrongType&) noexcept = default;
-    constexpr StrongType& operator=(const StrongType&) noexcept = default;
-    [[nodiscard]] constexpr auto operator<=>(const StrongType& rhs) const noexcept = default;
+    constexpr StrongType(const StrongType &) noexcept = default;
+    constexpr StrongType &operator=(const StrongType &) noexcept = default;
+    [[nodiscard]] constexpr auto operator<=>(const StrongType &rhs) const noexcept = default;
 
     // Logic helper for better ergonomics!
     [[nodiscard]] constexpr bool is_none() const noexcept { return value == none_value; }
 
-    constexpr DerivedType& operator+=(const DerivedType rhs) noexcept
+    constexpr DerivedType &operator+=(const DerivedType rhs) noexcept
     {
         value += rhs.value;
-        return static_cast<DerivedType&>(*this);
+        return static_cast<DerivedType &>(*this);
     }
 
-    constexpr DerivedType& operator-=(const DerivedType rhs) noexcept
+    constexpr DerivedType &operator-=(const DerivedType rhs) noexcept
     {
         value -= rhs.value;
-        return static_cast<DerivedType&>(*this);
+        return static_cast<DerivedType &>(*this);
     }
 
     [[nodiscard]] constexpr DerivedType operator+(const DerivedType rhs) const noexcept
@@ -49,34 +52,44 @@ struct StrongType
         return DerivedType{value + rhs.value};
     }
 
+    [[nodiscard]] friend constexpr DerivedType operator+(const DerivedType lhs, const UnderlyingType rhs) noexcept
+    {
+        return DerivedType{lhs.value + rhs};
+    }
+
+    [[nodiscard]] friend constexpr DerivedType operator+(const UnderlyingType lhs, const DerivedType rhs) noexcept
+    {
+        return DerivedType{lhs + rhs.value};
+    }
+
     [[nodiscard]] constexpr DerivedType operator-(const DerivedType rhs) const noexcept
     {
         return DerivedType{value - rhs.value};
     }
 
-    constexpr DerivedType& operator++() noexcept
+    constexpr DerivedType &operator++() noexcept
     {
         ++value;
-        return static_cast<DerivedType&>(*this);
+        return static_cast<DerivedType &>(*this);
     }
 
     constexpr DerivedType operator++(int) noexcept
     {
-        auto tmp = static_cast<DerivedType&>(*this);
-        ++static_cast<DerivedType&>(*this);
+        auto tmp = static_cast<DerivedType &>(*this);
+        ++static_cast<DerivedType &>(*this);
         return tmp;
     }
 
-    constexpr DerivedType& operator--() noexcept
+    constexpr DerivedType &operator--() noexcept
     {
         --value;
-        return static_cast<DerivedType&>(*this);
+        return static_cast<DerivedType &>(*this);
     }
 
     constexpr DerivedType operator--(int) noexcept
     {
-        auto tmp = static_cast<DerivedType&>(*this);
-        --static_cast<DerivedType&>(*this);
+        auto tmp = static_cast<DerivedType &>(*this);
+        --static_cast<DerivedType &>(*this);
         return tmp;
     }
 };

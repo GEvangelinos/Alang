@@ -20,13 +20,13 @@ Machine::Stack::Stack(
     const std::function<void()> on_stack_overflow)
     : size_(size),
       global_var_count_(global_var_count),
+      global_top_(size - global_var_count - 1), // -1 required for 0 index based arithmetic
       on_stack_overflow_(on_stack_overflow)
 {
-    const u32 base_offset = size - global_var_count - 1;
-    top_ = topsp_ = base_offset;
+    top_ = topsp_ = global_top_;
 
-    if (size_ <= 0)
-        throw std::logic_error(FMT::format("Invalid size `{}`, positive size required", size_));
+    if (size_ <= global_var_count)
+        throw std::runtime_error(FMT::format("Stack size `{}`, too small", size_));
     data_ = std::make_unique<Memcell []>(size_);
     if (!data_)
         throw std::runtime_error("Failed initializing stack");
@@ -62,7 +62,7 @@ void
 Machine::Stack::decrease_top()
 {
     DMASSERT(!is_overflowed && "LogicError: Stack is overflowed yet we still call decrease_top()");
-    if (top_ > 0) [[likely]]
+    if (top_.value > 0) [[likely]]
             --top_;
     else
         on_stack_overflow_();
@@ -71,14 +71,14 @@ Machine::Stack::decrease_top()
 void
 Machine::Stack::push_env_value(const AlphaInt value)
 {
-    Memcell &cell = data_[top_];
+    Memcell &cell = data_[top_.value];
     cell.type = Memcell::Type::INT;
     cell.data.int_value = value;
     decrease_top();
 }
 
 Memcell *
-Machine::Stack::get_global_argument(const u32 global_offset) noexcept
+Machine::Stack::get_global_argument(const u32 global_offset) const noexcept
 {
     DMASSERT(global_offset < global_var_count_);
     const u64 index = size() - 1 - global_offset;
@@ -87,19 +87,25 @@ Machine::Stack::get_global_argument(const u32 global_offset) noexcept
 }
 
 Memcell *
-Machine::Stack::get_formal_argument(const u32 formal_offset) noexcept
+Machine::Stack::get_formal_argument(const u32 formal_offset) const noexcept
 {
-    const u64 index = topsp() + Machine::k_stack_environment_size + 1 + formal_offset;
+    const auto index = topsp().value + Machine::k_stack_environment_size + 1 + formal_offset;
     DMASSERT(index < size());
     return &data_[index];
 }
 
 Memcell *
-Machine::Stack::get_local_argument(const u32 local_offset) noexcept
+Machine::Stack::get_local_argument(const u32 local_offset) const noexcept
 {
-    const u64 index = topsp() - local_offset;
+    const auto index = topsp().value - local_offset;
     DMASSERT(index < size());
     return &data_[index];
+}
+
+Memcell *Machine::Stack::get_memcell_at(Stack::Index idx) const noexcept
+{
+    DMASSERT(idx.value < size());
+    return &data_[idx.value];
 }
 
 void
@@ -114,10 +120,96 @@ Machine::Stack::allocate_locals(const u32 count)
 {
     // Only native functions call this to reserve space for their bytecode variables
     // Libfuncs pass 0 implicitly by simply never calling this
-    if (count > top_) [[unlikely]]
+    if (count > top_.value) [[unlikely]]
             on_stack_overflow_();
     else
-        top_ -= count;
+        top_.value -= count;
+}
+
+void
+Machine::Stack::save_call_environment(const AlphaInt pc, const AlphaInt total_actuals)
+{
+    push_env_value(total_actuals);
+    #warning "TODO unbcomment, pass coda as argument to make the check with [[maybe_unused]] "
+    // DMASSERT(code[pc].opcode == Opcode::CALL);
+    push_env_value(pc + 1);
+    push_env_value(top_.value + total_actuals + 2);
+    push_env_value(topsp_.value);
+}
+
+void
+Machine::Stack::add_function_environment(const ProgFuncMetadata &func_info)
+{
+    enter_frame();
+    allocate_locals(func_info.local_count);
+}
+
+void
+Machine::Stack::clear_at(const Stack::Index idx)
+{
+    DMASSERT(idx.value < size_);
+    data_[idx.value].clear();
+}
+
+void
+Machine::Stack::display_stack() const noexcept
+{
+    for (std::size_t i = 0; i < size_; ++i)
+        std::cout << data_[i].to_string() << std::endl;
+}
+
+AlphaInt
+Machine::Stack::total_actuals() const noexcept
+{
+    return get_environment_value(Stack::Index(topsp_.value + Machine::k_actual_count_offset));
+}
+
+vm::Memcell &
+Machine::Stack::get_actual(const Stack::Index idx) const noexcept
+{
+    DMASSERT(idx.value < total_actuals() && "Tried accessing out-of-bounds `actual` argument");
+    const Stack::Index memcell_idx = topsp_ + Machine::k_stack_environment_size + 1 + idx;
+    return data_[memcell_idx.value];
+}
+
+template<std::integral N>
+Machine::Stack::Index
+Machine::Stack::to_stack_index(N index) noexcept
+{
+    DMASSERT(index < std::numeric_limits<Stack::Index::UnderlyingType>::max());
+    return Stack::Index{static_cast<Stack::Index::UnderlyingType>(index)};
+}
+
+
+std::optional<Machine::Stack::Index>
+Machine::Stack::calc_prev_topsp() const noexcept
+{
+    DMASSERT(topsp_ != global_top_ && "Caller invoke this while not any function frame at all");
+    const Stack::Index saved_topsp_idx = topsp_ + Machine::k_saved_topsp_offset;
+    const Stack::Index prev_topsp = to_stack_index(get_environment_value(saved_topsp_idx));
+
+    if (prev_topsp == global_top_)
+        return std::nullopt;
+    return prev_topsp;
+}
+
+u32
+Machine::Stack::restore_previous_environment() noexcept
+{
+    top_ = to_stack_index(get_environment_value(topsp_ + Machine::k_saved_top_offset));
+    const auto restored_pc = get_environment_value(topsp_ + Machine::k_saved_pc_offset);
+    topsp_ = to_stack_index(get_environment_value(topsp_ + Machine::k_saved_topsp_offset));
+    return restored_pc;
+}
+
+AlphaInt
+Machine::Stack::get_environment_value(const Stack::Index stack_idx) const noexcept
+{
+    DMASSERT(stack_idx.value < size());
+    const Memcell env_cell = data_[stack_idx.value];
+    DMASSERT(env_cell.type == Memcell::Type::INT);
+    const AlphaInt env_value = env_cell.data.int_value;
+    return env_value;
 }
 
 constinit std::array<Machine::ExecuteFuncType, 256>
@@ -329,70 +421,6 @@ Machine::assign(Memcell &lv, const Memcell &rv)
         lv.data.table_value->increase_ref();
 }
 
-void
-Machine::Stack::save_call_environment(const AlphaInt pc, const AlphaInt total_actuals)
-{
-    push_env_value(total_actuals);
-    #warning "TODO unbcomment, pass coda as argument to make the check with [[maybe_unused]] "
-    // DMASSERT(code[pc].opcode == Opcode::CALL);
-    push_env_value(pc + 1);
-    push_env_value(top_ + total_actuals + 2);
-    push_env_value(topsp_);
-}
-
-void
-Machine::Stack::add_function_environment(const ProgFuncMetadata &func_info)
-{
-    enter_frame();
-    allocate_locals(func_info.local_count);
-}
-
-void
-Machine::Stack::clear_at(const u32 idx)
-{
-    DMASSERT(idx < size_);
-    data_[idx].clear();
-}
-
-void
-Machine::Stack::display_stack() const noexcept
-{
-    for (std::size_t i = 0; i < size_; ++i)
-        std::cout << data_[i].to_string() << std::endl;
-}
-
-AlphaInt
-Machine::Stack::total_actuals() const noexcept
-{
-    return get_environment_value(topsp_ + Machine::k_actual_count_offset);
-}
-
-vm::Memcell &
-Machine::Stack::get_actual(const u32 idx) const noexcept
-{
-    if (idx >= total_actuals())
-        std::runtime_error("idx >= total_actuals()");
-    return data_[topsp_ + Machine::k_stack_environment_size + 1 + idx];
-}
-
-u32
-Machine::Stack::restore_previous_environment() noexcept
-{
-    top_ = get_environment_value(topsp_ + Machine::k_saved_top_offset);
-    const auto restored_pc = get_environment_value(topsp_ + Machine::k_saved_pc_offset);
-    topsp_ = get_environment_value(topsp_ + Machine::k_saved_topsp_offset);
-    return restored_pc;
-}
-
-AlphaInt
-Machine::Stack::get_environment_value(const u32 stack_idx) const noexcept
-{
-    DMASSERT(stack_idx < size());
-    const Memcell env_cell = data_[stack_idx];
-    DMASSERT(env_cell.type == Memcell::Type::INT);
-    const AlphaInt env_value = env_cell.data.int_value;
-    return env_value;
-}
 
 void
 Machine::execute_trap(const vm::Instruction &inst)
@@ -475,7 +503,7 @@ Machine::execute_exitfunc(const vm::Instruction *const unused)
     pc_ = stack_.restore_previous_environment();
 
     // Cleanup activation record:
-    auto idx = old_top;
+    Stack::Index idx = old_top;
     while (++idx <= stack_.top()) // Intentionally ignoring first
         stack_.clear_at(idx);
 }
@@ -723,9 +751,9 @@ void Machine::execute_tablesetelem(const vm::Instruction &inst)
 void
 Machine::impl_of_libfunc_print()
 {
-    const AlphaInt n = stack_.total_actuals();
-    DMASSERT(n >=0 && "makes no sense");
-    for (AlphaInt i = 0; i < n; ++i)
+    const AlphaInt actuals = stack_.total_actuals();
+    DMASSERT(actuals >= 0 && "Negative actual count. Makes no sense");
+    for (Stack::Index i{0}; i.value < actuals; ++i)
     {
         const vm::Memcell &actual = stack_.get_actual(i);
         *out_stream_ << actual.to_string();
@@ -738,7 +766,7 @@ Machine::impl_of_libfunc_print()
 void
 Machine::impl_of_libfunc_typeof()
 {
-    const auto actuals = stack_.total_actuals();
+    const AlphaInt actuals = stack_.total_actuals();
     if (actuals != 1)
     {
         error(FMT::format("one argument (not {}) expected in `typeof` libfunc", actuals));
@@ -747,16 +775,17 @@ Machine::impl_of_libfunc_typeof()
 
     retval_.clear();
     retval_.type = Memcell::Type::STRING;
-    retval_.data.str_value = strdup(to_string(stack_.get_actual(0).type));
+    const Memcell::Type actual_type = stack_.get_actual(Stack::Index{0}).type;
+    retval_.data.str_value = strdup(to_string(actual_type));
 }
 
 void
 Machine::impl_of_libfunc_input()
 {
-    const auto actuals = stack_.total_actuals();
+    const AlphaInt actuals = stack_.total_actuals();
     if (actuals == 1)
     {
-        const vm::Memcell &prompt = stack_.get_actual(0);
+        const vm::Memcell &prompt = stack_.get_actual(Stack::Index{0});
         if (prompt.type == Memcell::Type::STRING)
             *out_stream_ << prompt.to_string();
         else
@@ -814,15 +843,16 @@ Machine::impl_of_libfunc_input()
 void
 Machine::impl_of_libfunc_objecttotalmembers()
 {
-    const auto actuals = stack_.total_actuals();
+    const AlphaInt actuals = stack_.total_actuals();
     if (actuals != 1)
     {
-        error(FMT::format("one argument (not {}) expected in `objecttotalmembers` libfunc",
-                          actuals));
+        error(FMT::format(
+            "one argument (not {}) expected in `objecttotalmembers` libfunc", actuals
+        ));
         return;
     }
 
-    const vm::Memcell &actual = stack_.get_actual(0);
+    const vm::Memcell &actual = stack_.get_actual(Stack::Index{0});
     if (actual.type != Memcell::Type::TABLE)
     {
         error("Argument given to libfunc `objecttotalmembers` was not `TABLE`");
@@ -846,14 +876,14 @@ Machine::impl_of_libfunc_objecttotalmembers()
 void
 Machine::impl_of_libfunc_objectmemberkeys()
 {
-    const auto actuals = stack_.total_actuals();
+    const AlphaInt actuals = stack_.total_actuals();
     if (actuals != 1)
     {
         error(FMT::format("one argument (not {}) expected in `objectmemberkeys` libfunc", actuals));
         return;
     }
 
-    const vm::Memcell &actual = stack_.get_actual(0);
+    const vm::Memcell &actual = stack_.get_actual(Stack::Index{0});
     if (actual.type != Memcell::Type::TABLE)
     {
         error("Argument given to libfunc `objecttotalmembers` was not `TABLE`");
@@ -926,24 +956,22 @@ void
 Machine::impl_of_libfunc_totalarguments()
 {
     retval_.clear();
-    const auto actuals = stack_.total_actuals();
+    const AlphaInt actuals = stack_.total_actuals();
     if (actuals > 0)
         display_warning(FMT::format("Libfunc `totalarguments` takes 0 argument (got {})", actuals));
 
 
-    const u32 p_topsp = stack_.
-            get_environment_value(stack_.topsp() + Machine::k_saved_topsp_offset);
-    if (!p_topsp)
+    const auto prev_topsp_opt = stack_.calc_prev_topsp();
+    if (!prev_topsp_opt.has_value()) [[unlikely]]
     {
-        error("`totalarguments` called outsider a function!");
+        error("`totalarguments` called outside of a function! (In global stack space");
         retval_.type = Memcell::Type::NIL;
+        return;
     }
-    else
-    {
-        retval_.type = Memcell::Type::INT;
-        retval_.data.int_value =
-                stack_.get_environment_value(p_topsp + Machine::k_actual_count_offset);
-    }
+
+    retval_.type = Memcell::Type::INT;
+    const auto actual_count_idx = *prev_topsp_opt + Machine::k_actual_count_offset;
+    retval_.data.int_value = stack_.get_environment_value(actual_count_idx);
 }
 
 void
@@ -952,23 +980,54 @@ Machine::impl_of_libfunc_objectcopy()
     DMASSERT(false);
 }
 
-void Machine::impl_of_libfunc_argument()
+void Machine::impl_of_libfunc_argument() // TODO: rewrite its too long an has repeatable code.
 {
-    const auto actuals = stack_.total_actuals();
+    retval_.clear();
+    retval_.type = Memcell::Type::NIL;
+
+    // Validate argument count
+    const AlphaInt actuals = stack_.total_actuals();
     if (actuals != 1)
     {
         error(FMT::format("Libfunc `argument` takes exactly 1 argument (got {})", actuals));
         return;
     }
-    const vm::Memcell &arg = stack_.get_actual(0);
-    if (arg.type != Memcell::Type::INT)
+    // Validate argument type
+    const vm::Memcell &actual = stack_.get_actual(Stack::Index{0});
+    if (actual.type != Memcell::Type::INT)
     {
-        error(FMT::format("Libfunc `argument` expected an INTEGER argument (got {})",
-                          to_string(arg.type)));
+        error(FMT::format(
+            "Libfunc `argument` expected an INTEGER argument (got {})", to_string(actual.type)
+        ));
         return;
     }
-    retval_.clear();
-    retval_ = stack_.get_actual(arg.data.int_value);
+
+    // Validate caller execution context
+    const auto caller_topsp_opt = stack_.calc_prev_topsp();
+    if (!caller_topsp_opt.has_value()) [[unlikely]]
+    {
+        error("`argument` called outside of a function! (In global stack space)");
+        return;
+    }
+
+    //  Validate caller argument bounds
+    const AlphaInt actual_idx = actual.data.int_value;
+    const AlphaInt caller_total_actuals =
+            stack_.get_environment_value(*caller_topsp_opt + Machine::k_actual_count_offset);
+
+    if (actual_idx < 0 || actual_idx >= caller_total_actuals)
+    {
+        std::cerr << std::endl;
+        std::cout << "ACTUAL_IDX: " << actual_idx <<" total: " << caller_total_actuals <<std::endl;
+        error("Tried accessing out-of-bounds `actual` argument");
+        return;
+    }
+
+    // Fetch caller argument and assign result
+    const auto offset = Machine::k_stack_environment_size + 1 + actual_idx;
+    const Stack::Index caller_actual_stack_idx = *caller_topsp_opt + offset;
+    const Memcell *const arg = DEBUG_REQUIRE_PTR(stack_.get_memcell_at(caller_actual_stack_idx));
+    assign(retval_, *arg);
 }
 
 void
@@ -980,13 +1039,13 @@ Machine::impl_of_libfunc_strtonum()
 void
 Machine::impl_of_libfunc_cos()
 {
-    const auto actuals = stack_.total_actuals();
+    const AlphaInt actuals = stack_.total_actuals();
     if (actuals != 1)
     {
         error(FMT::format("Libfunc `cos` takes exactly 1 argument (got {})", actuals));
         return;
     }
-    const vm::Memcell &arg = stack_.get_actual(0);
+    const vm::Memcell &arg = stack_.get_actual(Stack::Index{0});
 
     retval_.clear();
     retval_.type = Memcell::Type::FLOAT;
@@ -1007,14 +1066,14 @@ Machine::impl_of_libfunc_cos()
 void
 Machine::impl_of_libfunc_sin()
 {
-    const auto actuals = stack_.total_actuals();
+    const AlphaInt actuals = stack_.total_actuals();
 
     if (actuals != 1)
     {
         error(FMT::format("Libfunc `sin` takes exactly 1 argument (got {})", actuals));
         return;
     }
-    const vm::Memcell &arg = stack_.get_actual(0);
+    const vm::Memcell &arg = stack_.get_actual(Stack::Index{0});
 
     retval_.clear();
     retval_.type = Memcell::Type::FLOAT;
@@ -1035,17 +1094,18 @@ Machine::impl_of_libfunc_sin()
 void
 Machine::impl_of_libfunc_sqrt()
 {
-    const auto actuals = stack_.total_actuals();
+    const AlphaInt actuals = stack_.total_actuals();
 
     if (actuals != 1)
     {
         error(FMT::format("Libfunc `sqrt` takes exactly 1 argument (got {})", actuals));
         return;
     }
-    const vm::Memcell &arg = stack_.get_actual(0);
 
     retval_.clear();
     retval_.type = Memcell::Type::FLOAT;
+
+    const vm::Memcell &arg = stack_.get_actual(Stack::Index{0});
     switch (arg.type)
     {
     case Memcell::Type::INT:

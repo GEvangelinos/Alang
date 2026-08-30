@@ -105,28 +105,36 @@ private:
     class Stack
     {
     public:
+        struct Index : StrongType<Index, u32> { using StrongType::StrongType; };
+
         Stack(u64 size, u32 global_var_count, std::function<void()> on_stack_overflow);
 
         [[nodiscard]] auto size() const noexcept { return size_; }
-        [[nodiscard]] Memcell *get_global_argument(u32 global_offset) noexcept;
-        [[nodiscard]] Memcell *get_formal_argument(u32 formal_offset) noexcept;
-        [[nodiscard]] Memcell *get_local_argument(u32 local_offset) noexcept;
+        [[nodiscard]] Memcell *get_global_argument(u32 global_offset) const noexcept;
+        [[nodiscard]] Memcell *get_formal_argument(u32 formal_offset) const noexcept;
+        [[nodiscard]] Memcell *get_local_argument(u32 local_offset) const const noexcept;
+        [[nodiscard]] Memcell *get_memcell_at(Stack::Index idx) const noexcept;
         void push_env_value(AlphaInt value);
         void enter_frame();
         void allocate_locals(u32 count);
         void save_call_environment(AlphaInt pc, AlphaInt total_actuals);
         void add_function_environment(const ProgFuncMetadata &func_info);
-        [[nodiscard]] AlphaInt get_environment_value(u32 stack_idx) const noexcept;
-        [[nodiscard]] auto top() const noexcept { return top_; }
-        [[nodiscard]] auto topsp() const noexcept { return topsp_; }
-        [[nodiscard]] Memcell &top_element() noexcept { return data_[top_]; }
+        [[nodiscard]] AlphaInt get_environment_value(Stack::Index stack_idx) const noexcept;
+        [[nodiscard]] Stack::Index top() const noexcept { return top_; }
+        [[nodiscard]] Stack::Index topsp() const noexcept { return topsp_; }
+        [[nodiscard]] Memcell &top_element() noexcept { return data_[top_.value]; }
+
+
+        [[nodiscard]] auto global_top() const noexcept { return global_top_; }
+        [[nodiscard]] std::optional<Stack::Index> calc_prev_topsp() const noexcept;
 
         [[nodiscard]] u32 restore_previous_environment() noexcept;
         void display_stack() const noexcept;
-        void clear_at(u32 idx);
+        void clear_at(Stack::Index idx);
         [[nodiscard]] AlphaInt total_actuals() const noexcept;
-        [[nodiscard]] vm::Memcell &get_actual(u32 idx) const noexcept;
+        [[nodiscard]] vm::Memcell &get_actual(Stack::Index idx) const noexcept;
         void decrease_top();
+
 
         [[nodiscard]] const Memcell &operator[](u32 idx) const noexcept;
         [[nodiscard]] Memcell &operator[](u32 idx) noexcept;
@@ -134,10 +142,14 @@ private:
     private:
         const u64 size_ = 0;
         const u32 global_var_count_;
+        const Stack::Index global_top_;
+        Stack::Index top_, topsp_;
         std::function<void()> on_stack_overflow_;
         std::unique_ptr<Memcell []> data_;
-        u32 top_, topsp_;
         DEBUG(OnceFlag is_overflowed;)
+
+        template<std::integral N>
+        [[nodiscard]] static Stack::Index to_stack_index(N index) noexcept;
     };
 
 
@@ -162,7 +174,7 @@ private:
     std::istream *in_stream_ = &std::cin;
 
     static constinit std::array<ExecuteFuncType, 256> execute_dispatch_table_;
-    static constinit std::array<LibfuncImplFuncType,12> libfunc_table_;
+    static constinit std::array<LibfuncImplFuncType, 12> libfunc_table_;
 
     void assign(Memcell &lv, const Memcell &rv);
 };

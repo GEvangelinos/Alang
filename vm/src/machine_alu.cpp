@@ -193,6 +193,7 @@ Machine::decode_arithmetic_operands(const vm::Instruction& inst)
         error(FMT::format(
             "[{}:{}] Non number in arithmetic operation", inst.line.value, inst.col.value
         ));
+
         return std::nullopt;
     }
 
