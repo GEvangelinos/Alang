@@ -54,13 +54,14 @@ add_library(alpha_scanner_impl STATIC
     src/scanner_context.cpp
     src/scanner_token.cpp
     src/scanner_adapter.cpp
+    src/scanner_diagnostic_handlers.cpp
 )
 
 if (USE_FLEX_SCANNER)
     target_sources(alpha_scanner_impl PRIVATE ${ALPHA_SCANNER_OUTPUT_FILEPATH})
 else ()
     target_sources(alpha_scanner_impl PRIVATE src/scanner_automaton.cpp)
-endif()
+endif ()
 
 target_compile_options(alpha_scanner_impl PRIVATE
     -Wno-unused-function

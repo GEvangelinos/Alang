@@ -5,10 +5,10 @@
 
         #include <string>                             // for basic_string, stod, stol
         #include <parser/alpha_parser.gen.hpp>                   // for alpha_yylloc, alpha_yyt...
-        #include "diagnostics/diagnostic_engine.hpp"               // for CTError, ErrorTracker
         #include "core/source_location_tracker.hpp"            // for LocationTracker
         #include "scanner/scanner_token.hpp"            // for TokenString, TokenComment
         #include "scanner/scanner_context.hpp"
+        #include "scanner/scanner_diagnostic_handlers.hpp"
         #include "support/format_adapter.hpp"           // for format, FMT
         #include <diagnostics/diagnostic_reporter.gen.hpp>
         #include "scanner_prologue.hpp"
@@ -25,6 +25,8 @@
                         alpha::LocationTracker &lt, \
                         alpha::DiagnosticReporter &dr)
         #endif
+
+        #define AUTO_DETECT_INTEGER_BASE 0
 %}
 
 %option reentrant
@@ -108,10 +110,19 @@ string_invalid_escape_code "\\"([^tnr"\\])
 
 {id}            { yylval->string = alpha::StringSpan{yytext, (alpha::u64)yyleng}; YIELD_TOKEN(TKN_ID); } // TODO: probably useless You can just pass the yytext to ID and let parser store it...
 {float}         { yylval->const_float = std::stod(yytext); YIELD_TOKEN(TKN_FLOAT); }
-{int}           { yylval->const_int = std::stol(yytext); YIELD_TOKEN(TKN_INT); }
+{int}           { yylval->const_int = std::stoll(yytext, nullptr, AUTO_DETECT_INTEGER_BASE); YIELD_TOKEN(TKN_INT); }
 {line_comment}  { /* Syntax Anal-yzer doesn't give a fuck about you... */ }
 {newline}       { lt.append_line(lexer_ctx.source_index); }
 {space}+        { /* Just eat up the spaces. */ }
+
+    /* ^^^ Invalid rules used to enrich common case diagnostics ^^^ */
+{int}{id} {
+    yylval->const_int = alpha::scanner_diagnostic_handlers::handle_invalid_integer_suffix(
+        dr, yytext, yyleng, *yylloc
+    );
+    YIELD_TOKEN(TKN_INT);
+}
+
 
 {comment_begin_rule} {
         BEGIN(INSIDE_COMMENT_BLOCK);

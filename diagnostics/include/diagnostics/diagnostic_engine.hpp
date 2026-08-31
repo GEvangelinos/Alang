@@ -31,8 +31,7 @@ public:
     };
 
 
-    explicit DiagnosticEngine(
-        Policy&& policy, std::optional<std::size_t> max_errors = std::nullopt);
+    explicit DiagnosticEngine(Policy&& policy, std::optional<std::size_t> max_errors = std::nullopt);
 
     [[nodiscard]] DiagnosticReporter& reporter() { return *reporter_; }
 

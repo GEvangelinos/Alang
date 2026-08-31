@@ -521,6 +521,8 @@ ScannerAutomaton::handle_float_number() noexcept
         {
             while (is_id_body_char(curr_ch = *advance_cursor()))
                 continue;
+            #warning "DUMMY report, FIX it "
+             dr_.report_invalid_numeric_suffix("float", "SUFF", last_token_location(), last_token_location());
             return TKN_INTERNAL_SKIP;
         }
     }
@@ -539,7 +541,6 @@ ScannerAutomaton::handle_float_number() noexcept
 //
 //         while (support::is_alpha(curr_ch) || support::is_digit(curr_ch) || curr_ch == '_')
 //             curr_ch = *advance_cursor();
-//         dr_.report_invalid_numeric_suffix();
 //         return TKN_INTERNAL_SKIP;
 //     }
 //
@@ -728,8 +729,19 @@ ScannerAutomaton::yield_token(YYSTYPE *const yylval, YYLTYPE *const yylloc)
         switch (result)
         {
         case TKN_INT:
-            std::from_chars(last_token_begin_, cursor_, yylval->const_int);
+        {
+            const char *start = last_token_begin_;
+            int base = 10;
+
+            if (start[0] == '0' && (start[1] == 'x' || start[1] == 'X'))
+            {
+                base = 16;
+                start += 2;
+            }
+
+            std::from_chars(start, cursor_, yylval->const_int, base);
             break;
+        }
         case TKN_FLOAT:
             std::from_chars(last_token_begin_, cursor_, yylval->const_float);
             break;

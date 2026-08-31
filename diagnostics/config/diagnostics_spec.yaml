@@ -62,11 +62,11 @@
   Type: WARNING
   Primary:
     - Message: "Use of uninitialized variable `{0}` as rvalue{1}"
-      Args: [var_name, multiple_times_message]
+      Args: [ var_name, multiple_times_message ]
       Location: variable_usage_loc
   Notes:
     - Message: "Variable `{0}` first declared here"
-      Args: [var_name]
+      Args: [ var_name ]
       Location: variable_decl_loc
 
 
@@ -101,8 +101,8 @@
 - Diagnostic: INVALID_NUMERIC_SUFFIX
   Type: SOFT_ERROR
   Primary:
-    - Message: "invalid suffix `{0}` on numeric literal"
-      Args: [ suffix_str ]
+    - Message: "invalid suffix `{1}` on `{0}` literal"
+      Args: [ numeric_type, suffix_str ]
       Location: full_literal_loc
       Highlights:
         - Message: "^invalid suffix"
@@ -371,7 +371,7 @@
   Type: HARD_ERROR
   Primary:
     - Message: "unexpected `{0}`"
-      Args: [unexpected_token]
+      Args: [ unexpected_token ]
       Location: unexpected_token_loc
 
 - Diagnostic: UNRESOLVED_GLOBAL_SYMBOL
