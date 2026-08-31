@@ -98,6 +98,16 @@
       Args: [ escape_code_str ]
       Location: escape_code_loc
 
+- Diagnostic: INVALID_NUMERIC_SUFFIX
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "invalid suffix `{0}` on numeric literal"
+      Args: [ suffix_str ]
+      Location: full_literal_loc
+      Highlights:
+        - Message: "^invalid suffix"
+          Location: suffix_loc
+
 - Diagnostic: LIBFUNC_REDEFINED_AS_FORMAL_PARAMETER
   Type: SOFT_ERROR
   Primary:

@@ -7,7 +7,7 @@
 #include <diagnostics/diagnostic_reporter.gen.hpp>
 #include <scanner/scanner_automaton.hpp>
 
-#include "../../core/include/core/escape_code_list.hpp"
+#include "core/escape_code_list.hpp"
 #include "core/source_location_tracker.hpp"
 #include "core/translation_unit_buffer.hpp"
 #include "scanner/scanner_context.hpp"
@@ -16,54 +16,66 @@
 
 namespace
 {
-constexpr auto is_id_body_char = [](const unsigned char c) consteval
+namespace detail
 {
-    return alpha::support::is_digit(c) || alpha::support::is_alpha(c) || c == '_';
+    constexpr auto is_id_body_char = [](const unsigned char c) consteval
+    {
+        return alpha::support::is_digit(c) || alpha::support::is_alpha(c) || c == '_';
+    };
+
+    constexpr auto g_id_body_table = []() consteval
+    {
+        std::array<bool, 256> result;
+        for (unsigned short uc = 0; uc <= std::numeric_limits<unsigned char>::max(); ++uc)
+            result[uc] = detail::is_id_body_char(uc);
+        return result;
+    }();
+
+    template<unsigned char uc>
+    struct report_id_body_table_mismatch;
+    // NEVER DEFINE (Whole point of this, is it errors upon use)
+
+    // Because Templates are instantiated before code is executed (even at compile time context)
+    // the only way to find at which position g_id_body_table is off, is to use recursive template instantiation
+    // --- Note this assertion is no longer needed... As I now initialize the table algorithmically  --- //
+    // --- and not manually (filling bool table with 0s and 1s) but it's still a smart piece of code --- //
+    // --- so I am keeping it, as it took me lots of tinkering to make the recursive assertion work. --- //
+    template<unsigned short Index = 0>
+    consteval bool assert_id_body_table_integrity()
+    {
+        // Check for false positives:
+        if constexpr (Index > std::numeric_limits<unsigned char>::max())
+            return true;
+        else if constexpr (!detail::is_id_body_char(Index) && g_id_body_table[Index])
+            // False Positives
+            report_id_body_table_mismatch<Index>{};
+        else if constexpr (detail::is_id_body_char(Index) && !g_id_body_table[Index])
+            // False Negatives
+            report_id_body_table_mismatch<Index>{};
+        else
+            return assert_id_body_table_integrity<Index + 1>();
+    }
+
+    static_assert(
+        assert_id_body_table_integrity(),
+        "ID Table mismatch! See compiler output for index."
+    );
+} // namespace detail
+
+
+constexpr auto is_id_body_char = [](const unsigned char c) constexpr
+{
+    return detail::g_id_body_table[c];
 };
-
-constexpr auto g_id_body_table = []() consteval
-{
-    std::array<bool, 256> result;
-    for (unsigned short uc = 0; uc <= std::numeric_limits<unsigned char>::max(); ++uc)
-        result[uc] = is_id_body_char(uc);
-    return result;
-}();
-
-template <unsigned char uc>
-struct report_id_body_table_mismatch; // NEVER DEFINE (Whole point of this, is it errors upon use)
-
-// Because Templates are instantiated before code is executed (even at compile time context)
-// the only way to find at which position g_id_body_table is off, is to use recursive template instantiation
-// --- Note this assertion is no longer needed... As I now initialize the table algorithmically  --- //
-// --- and not manually (filling bool table with 0s and 1s) but it's still a smart piece of code --- //
-// --- so I am keeping it, as it took me lots of tinkering to make the recursive assertion work. --- //
-template <unsigned short Index>
-consteval bool assert_id_body_table_integrity()
-{
-    // Check for false positives:
-    if constexpr (Index > std::numeric_limits<unsigned char>::max())
-        return true;
-    else if constexpr (!is_id_body_char(Index) && g_id_body_table[Index]) // False Positives
-        report_id_body_table_mismatch<Index>{};
-    else if constexpr (is_id_body_char(Index) && !g_id_body_table[Index]) // False Negatives
-        report_id_body_table_mismatch<Index>{};
-    else
-        return assert_id_body_table_integrity<Index + 1>();
-}
-
-static_assert(
-    assert_id_body_table_integrity<0>(),
-    "ID Table mismatch! See compiler output for index."
-);
 } // namespace
 
 namespace alpha
 {
 ScannerAutomaton::ScannerAutomaton(
-    LexerCtx& lexer_ctx,
-    LocationTracker& lt,
-    DiagnosticReporter& dr,
-    const TranslationUnitBuffer& tub)
+    LexerCtx &lexer_ctx,
+    LocationTracker &lt,
+    DiagnosticReporter &dr,
+    const TranslationUnitBuffer &tub)
     : lexer_ctx_(lexer_ctx),
       lt_(lt),
       dr_(dr),
@@ -82,7 +94,7 @@ ScannerAutomaton::ScannerAutomaton(
         "Keyword collection size mismatch: the 'keyword_names_and_tokens_' array must have exactly "
         "'KEYWORD_COUNT_' elements. Did you add a new KeywordId without adding its metadata?"
     );
-#ifdef DEBUG_MODE
+    #ifdef DEBUG_MODE
     static_assert(
         []()
         {
@@ -96,10 +108,10 @@ ScannerAutomaton::ScannerAutomaton(
         "its position in the 'keyword_names_and_tokens_' array. Ensure the array order "
         "strictly follows the 'KeywordId' enum definition."
     );
-#endif // DEBUG_MODE
+    #endif // DEBUG_MODE
 }
 
-template <SrcBuffIdx n>
+template<SrcBuffIdx n>
 char
 ScannerAutomaton::get_nth_char() const noexcept
 {
@@ -107,7 +119,7 @@ ScannerAutomaton::get_nth_char() const noexcept
     static_assert(ScannerAutomaton::k_minimum_source_buffer_null_padding >= n.value);
     DMASSERT(tub_.null_padding >= n);
 
-    const char* const result_addr = cursor_ + n.value;
+    const char *const result_addr = cursor_ + n.value;
     DMASSERT(tub_.is_in_buffer(result_addr));
     return *result_addr;
 }
@@ -115,13 +127,13 @@ ScannerAutomaton::get_nth_char() const noexcept
 char
 ScannerAutomaton::get_nth_char(const SrcBuffIdx n) const noexcept
 {
-    const char* const result_addr = cursor_ + n.value;
+    const char *const result_addr = cursor_ + n.value;
     DMASSERT(tub_.is_in_buffer(result_addr));
     return *result_addr;
 }
 
-template <SrcBuffIdx n>
-const char*
+template<SrcBuffIdx n>
+const char *
 ScannerAutomaton::advance_cursor() noexcept
 {
     static_assert(n.value > 0, "Why advance by zero?");
@@ -132,7 +144,7 @@ ScannerAutomaton::advance_cursor() noexcept
     return result;
 }
 
-const char*
+const char *
 ScannerAutomaton::advance_cursor(const SrcBuffIdx n) noexcept
 {
     DMASSERT(tub_.is_in_source(cursor_), n.value > 0 && "why advance 0?"); // OK before?
@@ -193,14 +205,14 @@ ScannerAutomaton::last_token_location_eof_trimmed() const noexcept
     // should be impossible under normal scanner invariants.
 }
 
-template <ScannerAutomaton::OpenerLen opener_len>
+template<ScannerAutomaton::OpenerLen opener_len>
 SourceLocation
 ScannerAutomaton::calculate_opener_loc() const noexcept
 {
     const auto begin =
-        SrcBuffIdx{static_cast<SrcBuffIdx::UnderlyingType>(last_token_begin() - tub_.begin())};
+            SrcBuffIdx{static_cast<SrcBuffIdx::UnderlyingType>(last_token_begin() - tub_.begin())};
     const auto end =
-        SrcBuffIdx{begin.value + static_cast<std::underlying_type_t<OpenerLen>>(opener_len)};
+            SrcBuffIdx{begin.value + static_cast<std::underlying_type_t<OpenerLen>>(opener_len)};
     return SourceLocation{begin, end};
 }
 
@@ -440,9 +452,9 @@ ScannerAutomaton::handle_double_quote_char()
             advance_cursor(); // Consume ch2.
             switch (ch2)
             {
-            #define EXTRACT_ESCAPE_CHARS(ch, escape_) case ch :
+                #define EXTRACT_ESCAPE_CHARS(ch, escape_) case ch :
             ESCAPE_CODE_LIST(EXTRACT_ESCAPE_CHARS)
-            #undef EXTRACT_ESCAPE_CHARS
+                #undef EXTRACT_ESCAPE_CHARS
                 DMASSERT(!has_reached_eof() && "If ch2 past EOF, ch2 must be NULL-byte");
                 break;
             default:
@@ -490,22 +502,50 @@ ScannerAutomaton::handle_float_number() noexcept
         {
             char ch = *advance_cursor<SrcBuffIdx{pre_advance}>();
             while (support::is_digit(ch)) ch = *advance_cursor();
+            return ch;
         };
 
         const char next_ch = get_next_char(); // Valid cause 'curr_ch' was non null-byte.
         if ((next_ch == '+' || next_ch == '-') && support::is_digit(get_nth_char<SrcBuffIdx{2}>()))
-            consume_scientific_digits.operator()<3>();
+            curr_ch = consume_scientific_digits.operator()<3>();
         else if (support::is_digit(next_ch))
-            consume_scientific_digits.operator()<2>();
+            curr_ch = consume_scientific_digits.operator()<2>();
     }
 
-    // Handle optional float suffix.
-    if ((curr_ch == 'f' || curr_ch == 'F') && support::is_space(get_next_char()))
-        advance_cursor(); // Don't consume SPACE as you don't want to include it in token's text.
-
-    DMASSERT(!support::is_digit(get_curr_char()));
+    DMASSERT(!support::is_digit(curr_ch) && "Digits should be eaten by the float/scientific logic");
+    if (is_id_body_char(curr_ch))
+    {
+        const bool is_f = (curr_ch == 'f' || curr_ch == 'F') && !is_id_body_char(get_next_char());
+        advance_cursor();
+        if (!is_f)
+        {
+            while (is_id_body_char(curr_ch = *advance_cursor()))
+                continue;
+            return TKN_INTERNAL_SKIP;
+        }
+    }
     return TKN_FLOAT;
 }
+
+
+// if (is_f && is_id_body_char(get_next_char()))
+// {
+//     const char next_ch = get_next_char();
+//     if (support::is_alpha(next_ch) || support::is_digit(next_ch) || next_ch == '_')
+//     {
+//         curr_ch = *advance_cursor<SrcBuffIdx{2}>(); // TODO: Use SrcBuffOffset (skill based)
+//         // followed by identifier/digit characters (e.g. 8.0f2, 8.0fp), it's a malformed literal
+//         // Consume remaining garbage characters to report clean diagnostic via maximal munch
+//
+//         while (support::is_alpha(curr_ch) || support::is_digit(curr_ch) || curr_ch == '_')
+//             curr_ch = *advance_cursor();
+//         dr_.report_invalid_numeric_suffix();
+//         return TKN_INTERNAL_SKIP;
+//     }
+//
+//     // Valid suffix followed by delimiter (whitespace, ')', ';', operator, EOF, etc.)
+//     advance_cursor();
+// }
 
 
 ScannerAutomaton::LexerReturnType
@@ -546,10 +586,10 @@ ScannerAutomaton::handle_alpha_char() noexcept
 {
     DMASSERT(support::is_alpha(get_curr_char()));
     SrcBuffIdx word_length{1};
-    while (g_id_body_table[get_nth_char(word_length)])
+    while (is_id_body_char(get_nth_char(word_length)))
         ++word_length;
 
-    DMASSERT(g_id_body_table[get_curr_char()]);
+    DMASSERT(is_id_body_char(get_curr_char()));
 
     const auto find_possible_keyword = [this, word_length]() -> KeywordId
     {
@@ -603,7 +643,7 @@ ScannerAutomaton::handle_alpha_char() noexcept
     }
 
     advance_cursor(SrcBuffIdx{word_length.value});
-    DMASSERT(has_reached_eof() || !g_id_body_table[get_curr_char()]);
+    DMASSERT(has_reached_eof() || !is_id_body_char(get_curr_char()));
     return result_token;
 }
 
@@ -638,7 +678,7 @@ ScannerAutomaton::handle_invalid_char(const char curr_ch) noexcept
     case 'S': case 'T': case 'U': case 'V': case 'W': case 'X': case 'Y': case 'Z'
 
 ScannerAutomaton::LexerReturnType
-ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc)
+ScannerAutomaton::yield_token(YYSTYPE *const yylval, YYLTYPE *const yylloc)
 {
     const auto consume_token = [this]<LexerReturnType token>()
     {
@@ -695,11 +735,11 @@ ScannerAutomaton::yield_token(YYSTYPE* const yylval, YYLTYPE* const yylloc)
             break;
         case TKN_ID:
         case TKN_STRING:
-            {
-                const std::string_view text = last_token_text();
-                yylval->string = StringSpan{.data = text.data(), .size = text.size()};
-                break;
-            }
+        {
+            const std::string_view text = last_token_text();
+            yylval->string = StringSpan{.data = text.data(), .size = text.size()};
+            break;
+        }
         case TKN_YYEOF:
             return register_and_return(TKN_YYEOF, *yylloc = SourceLocation::eof());
         case ScannerAutomaton::TKN_INTERNAL_SKIP:
