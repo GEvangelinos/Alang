@@ -115,6 +115,15 @@
       Args: [ libfunc_name ]
       Location: formal_param_loc
 
+- Diagnostic: MISSING_EXPONENT_DIGITS
+  Type: SOFT_ERROR
+  Primary:
+    - Message: "exponent has no digits"
+      Location: full_literal_loc
+      Highlights:
+        - Message: "^exponent requires at least one digit"
+          Location: exponent_loc
+
 - Diagnostic: NONARITH_ARITH_OP_OPERAND
   Type: SOFT_ERROR
   Primary:
@@ -272,7 +281,7 @@
 - Diagnostic: OPERATOR_ON_LVALUE_CASTED_TO_RVALUE
   Type: HARD_ERROR
   Primary:
-    - Message: "`{0}` `operator{1}` requires lvalue (operand was an lvalue, but cast to rvalue)"
+    - Message: "`{0}` `operator{1}` requires lvalue (operand was cast from an lvalue to an rvalue)"
       Args: [ operator_name, operator_symbol ]
       Location: full_expr_loc
       Highlights:

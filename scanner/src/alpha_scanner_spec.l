@@ -35,22 +35,21 @@
 %option prefix="alpha_yy"
 
 /* FLex regex definitions */
-id              [a-zA-Z_][a-zA-Z_0-9]*
+id              ([a-zA-Z_][a-zA-Z_0-9]*)
 
 digit           [0-9]
-int_dec         {digit}+
-int_hex         0[xX][0-9a-fA-F]+
+int_dec         ({digit}+)
+int_hex         (0[xX][0-9a-fA-F]+)
 int             ({int_dec}|{int_hex})
 
-exponent           	    ([eE][+-]?{digit}+)
-    /* This rule covers two formats (1. and 1.1) */
-float_dot_trailing      {digit}+\.{digit}*
-    /* This rule covers the remaining format .1  */
-float_dot_leading       \.{digit}+
-float_dot_exponent      ({float_dot_trailing}|{float_dot_leading}){exponent}?
-    /* This rule cover 1E10 which is a float     */
-float_exponent_only     {digit}+{exponent}
-float                   ({float_dot_exponent}|{float_exponent_only})[fF]?
+exponent_marker         [eE][+-]?
+exponent           	    ({exponent_marker}{digit}+)
+float_dot_trailing      ({digit}+\.{digit}*)
+float_dot_leading       (\.{digit}+)
+fractional_constant     ({float_dot_trailing}|{float_dot_leading})
+float_dot_exponent      ({fractional_constant}{exponent}?)
+float_exponent_only     ({digit}+{exponent})
+float                   (({float_dot_exponent}|{float_exponent_only})[fF]?)
 
 line_comment    "//".*
 newline         "\n"
@@ -130,17 +129,24 @@ string_invalid_escape_code "\\"([^tnr"\\])
 {space}+        { /* Just eat up the spaces. */ }
 
 
-    /* ^^^ Invalid rules used to enrich common case diagnostics ^^^ */
+    /* ======================================================================= */
+    /* ===== START: Invalid rules used to enrich common case diagnostics ===== */
+    /* ======================================================================= */
 
-{int}{id} {
-    yylval->const_int = alpha::scanner_diagnostic_handlers::handle_invalid_integer_suffix(
+({int_dec}|{fractional_constant}){exponent_marker}{id}?  {
+    yylval->const_float = alpha::scanner_diagnostic_handlers::handle_missing_exponent_digits(
         dr,
         std::string_view{yytext, static_cast<std::size_t>(yyleng)},
         *yylloc
     );
-    // Yield a fallback TKN_INT instead of YYerror to avoid triggering Bison panic-mode recovery,
-    // allowing downstream syntax and semantic checks (e.g., missing semicolons) to proceed normally.
-    YIELD_TOKEN(TKN_INT);
+
+    // Error recovery: Parse the {int_dec} prefix and discard the dangling exponent marker.
+    // Returning a valid TKN_FLOAT avoids Bison panic-mode recovery (YYerror), preserving
+    // parser state so downstream syntax and semantic diagnostics continue unaffected.
+    YIELD_TOKEN(TKN_FLOAT);
+}
+
+{fractional_constant}{exponent_marker} {
 }
 
 {float}{id} {
@@ -153,6 +159,22 @@ string_invalid_escape_code "\\"([^tnr"\\])
     // allowing downstream syntax and semantic checks (e.g., missing semicolons) to proceed normally.
     YIELD_TOKEN(TKN_FLOAT);
 }
+
+{int}{id} {
+    yylval->const_int = alpha::scanner_diagnostic_handlers::handle_invalid_integer_suffix(
+        dr,
+        std::string_view{yytext, static_cast<std::size_t>(yyleng)},
+        *yylloc
+    );
+    // Yield a fallback TKN_INT instead of YYerror to avoid triggering Bison panic-mode recovery,
+    // allowing downstream syntax and semantic checks (e.g., missing semicolons) to proceed normally.
+    YIELD_TOKEN(TKN_INT);
+}
+
+    /* ======================================================================= */
+    /* ====== END: Invalid rules used to enrich common case diagnostics ====== */
+    /* ======================================================================= */
+
 
 {comment_begin_rule} {
         BEGIN(INSIDE_COMMENT_BLOCK);

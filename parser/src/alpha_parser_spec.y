@@ -353,7 +353,7 @@ call[invocation]:
   { $invocation = ss.call<"call_builder.build_call_consuming">($callable, @invocation); }
 | lvalue arg_list
   { $invocation = ss.call<"call_builder.build_call_consuming">($lvalue, @invocation); }
-| lvalue[method_host] method_call_id arg_list
+| expr[method_host] method_call_id arg_list
   { $invocation = ss.call<"call_builder.build_method_call_consuming">($method_host, @invocation); }
 | LEFT_PAREN func_def RIGHT_PAREN arg_list
   { $invocation = ss.call<"call_builder.build_iife_call_consuming">($func_def, @arg_list); }
