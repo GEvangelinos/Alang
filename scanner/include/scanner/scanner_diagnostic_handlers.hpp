@@ -1,6 +1,8 @@
 #ifndef ALPHA_SCANNER_DIAGNOSTIC_HANDLERS_HPP
 #define ALPHA_SCANNER_DIAGNOSTIC_HANDLERS_HPP
 
+#include <string_view>
+
 #include "core/machine_types.hpp"
 #include "core/numeric_types.hpp"
 
@@ -14,9 +16,14 @@ namespace scanner_diagnostic_handlers
 {
     [[nodiscard]] AlphaInt handle_invalid_integer_suffix(
         DiagnosticReporter &dr,
-        const char *text,
-        u64 text_len,
-        const SourceLocation &full_literal_loc
+        std::string_view lexeme,
+        SourceLocation lexeme_loc
+    );
+
+    [[nodiscard]] AlphaFloat handle_invalid_float_suffix(
+        DiagnosticReporter &dr,
+        std::string_view lexeme,
+        SourceLocation lexeme_loc
     );
 } // namespace scanner_diagnostic_handlers
 } // namespace alpha

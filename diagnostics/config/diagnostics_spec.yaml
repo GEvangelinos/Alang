@@ -101,7 +101,7 @@
 - Diagnostic: INVALID_NUMERIC_SUFFIX
   Type: SOFT_ERROR
   Primary:
-    - Message: "invalid suffix `{1}` on `{0}` literal"
+    - Message: "invalid suffix `{1}` on {0} literal"
       Args: [ numeric_type, suffix_str ]
       Location: full_literal_loc
       Highlights:

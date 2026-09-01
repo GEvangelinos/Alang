@@ -35,7 +35,7 @@
 %option prefix="alpha_yy"
 
 /* FLex regex definitions */
-id              [a-zA-Z][a-zA-Z_0-9]*
+id              [a-zA-Z_][a-zA-Z_0-9]*
 int             (0[xX][0-9a-fA-F]+)|([0-9]+)
 float           ([0-9]*\.[0-9]+([eE][\+-]?[0-9]+)?)[fF]?
 line_comment     "//".*
@@ -115,14 +115,30 @@ string_invalid_escape_code "\\"([^tnr"\\])
 {newline}       { lt.append_line(lexer_ctx.source_index); }
 {space}+        { /* Just eat up the spaces. */ }
 
+
     /* ^^^ Invalid rules used to enrich common case diagnostics ^^^ */
+
 {int}{id} {
     yylval->const_int = alpha::scanner_diagnostic_handlers::handle_invalid_integer_suffix(
-        dr, yytext, yyleng, *yylloc
+        dr,
+        std::string_view{yytext, static_cast<std::size_t>(yyleng)},
+        *yylloc
     );
+    // Yield a fallback TKN_INT instead of YYerror to avoid triggering Bison panic-mode recovery,
+    // allowing downstream syntax and semantic checks (e.g., missing semicolons) to proceed normally.
     YIELD_TOKEN(TKN_INT);
 }
 
+{float}{id} {
+    yylval->const_float = alpha::scanner_diagnostic_handlers::handle_invalid_float_suffix(
+        dr,
+        std::string_view{yytext, static_cast<std::size_t>(yyleng)},
+        *yylloc
+    );
+    // Yield a fallback TKN_FLOAT instead of YYerror to avoid triggering Bison panic-mode recovery,
+    // allowing downstream syntax and semantic checks (e.g., missing semicolons) to proceed normally.
+    YIELD_TOKEN(TKN_FLOAT);
+}
 
 {comment_begin_rule} {
         BEGIN(INSIDE_COMMENT_BLOCK);
