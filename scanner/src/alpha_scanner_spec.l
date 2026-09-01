@@ -36,9 +36,23 @@
 
 /* FLex regex definitions */
 id              [a-zA-Z_][a-zA-Z_0-9]*
-int             (0[xX][0-9a-fA-F]+)|([0-9]+)
-float           ([0-9]*\.[0-9]+([eE][\+-]?[0-9]+)?)[fF]?
-line_comment     "//".*
+
+digit           [0-9]
+int_dec         {digit}+
+int_hex         0[xX][0-9a-fA-F]+
+int             ({int_dec}|{int_hex})
+
+exponent           	    ([eE][+-]?{digit}+)
+    /* This rule covers two formats (1. and 1.1) */
+float_dot_trailing      {digit}+\.{digit}*
+    /* This rule covers the remaining format .1  */
+float_dot_leading       \.{digit}+
+float_dot_exponent      ({float_dot_trailing}|{float_dot_leading}){exponent}?
+    /* This rule cover 1E10 which is a float     */
+float_exponent_only     {digit}+{exponent}
+float                   ({float_dot_exponent}|{float_exponent_only})[fF]?
+
+line_comment    "//".*
 newline         "\n"
 space           [ \r\t\v]
 

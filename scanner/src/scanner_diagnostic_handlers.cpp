@@ -3,6 +3,7 @@
 #include <charconv>
 
 #include "core/machine_types.hpp"
+#include "core/char_traits.hpp"
 #include "diagnostics/diagnostic_reporter.gen.hpp"
 #include "support/string_tools.hpp"
 
@@ -54,6 +55,12 @@ handle_invalid_integer_suffix(
 
     AlphaInt integer_value = 0;
     const auto [cursor, ec] = std::from_chars(scan_start, lexeme.end(), integer_value, base);
+
+    if (cursor[0] == 'e' || cursor[0] == 'E' )
+    {
+        if (is_id_body_char() cursor[0])
+    }
+
     make_invalid_numeric_suffix_report<AlphaInt>(dr, cursor, lexeme, lexeme_loc, "integer");
     return integer_value;
 }
