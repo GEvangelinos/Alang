@@ -22,9 +22,9 @@ get_usec_timestamp() noexcept
 
 static void
 serialize_header(
-    std::vector<u8>& abc_buffer,
-    const vm::Program& program,
-    const abc::Header::Sections& sections)
+    std::vector<u8> &abc_buffer,
+    const vm::Program &program,
+    const abc::Header::Sections &sections)
 {
     const abc::Header header{
         .magic = abc::spec::k_magic_value,
@@ -39,10 +39,10 @@ serialize_header(
     std::memcpy(abc_buffer.data(), &header, sizeof(decltype(header)));
 }
 
-template <typename T>
+template<typename T>
     requires std::is_arithmetic_v<T> || std::is_enum_v<T>
 void
-store_little_endian(std::vector<u8>& buffer, const T value)
+store_little_endian(std::vector<u8> &buffer, const T value)
 {
     if constexpr (std::is_same_v<T, bool>)
         buffer.push_back(value ? u8{1} : u8{0});
@@ -56,7 +56,7 @@ store_little_endian(std::vector<u8>& buffer, const T value)
 }
 
 static void
-serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
+serialize_string_content(std::vector<u8> &buffer, const StringSpan str)
 {
     DMASSERT(
         !str.empty() && "Even if content is empty there are the delimiters."
@@ -82,7 +82,7 @@ serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
     buffer.insert(buffer.end(), sizeof(decltype(serialized_len)), 0);
 
     // Serializing string itself:
-    for (const char* ch_addr = start; ch_addr < end; ++ch_addr)
+    for (const char *ch_addr = start; ch_addr < end; ++ch_addr)
     {
         if (const char ch = *ch_addr; ch != '\\')
         {
@@ -99,9 +99,9 @@ serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
         );
         switch (*++ch_addr)
         {
-        #define RESOLVE_ESCAPE_CODE(ch, escape) case ch: buffer.push_back(escape); break;
+            #define RESOLVE_ESCAPE_CODE(ch, escape) case ch: buffer.push_back(escape); break;
         ESCAPE_CODE_LIST(RESOLVE_ESCAPE_CODE)
-        #undef RESOLVE_ESCAPE_CODE
+            #undef RESOLVE_ESCAPE_CODE
         default: DMASSERT(false && "Invalid escape code. How did it survive upto this stage?");
         }
     }
@@ -115,8 +115,8 @@ serialize_string_content(std::vector<u8>& buffer, const StringSpan str)
 
 [[nodiscard]] static bool
 is_zeroed_range(
-    const std::vector<u8>& abc_buffer,
-    const abc::Header::Sections::Catalog& catalog) noexcept
+    const std::vector<u8> &abc_buffer,
+    const abc::Header::Sections::Catalog &catalog) noexcept
 {
     if (catalog.lut.begin() == catalog.lut.end()) // Empty catalog
         return true;
@@ -132,8 +132,8 @@ is_zeroed_range(
 
 static void
 serialize_catalog(
-    std::vector<u8>& abc_buffer,
-    const abc::Header::Sections::Catalog& catalog,
+    std::vector<u8> &abc_buffer,
+    const abc::Header::Sections::Catalog &catalog,
     auto serializer,
     const std::size_t item_idx
 )
@@ -154,17 +154,17 @@ serialize_catalog(
 
 static void
 serialize_table(
-    std::vector<u8>& abc_buffer,
-    const abc::Header::Sections::Catalog& catalog,
-    const std::unordered_map<StringSpan, u32>& table)
+    std::vector<u8> &abc_buffer,
+    const abc::Header::Sections::Catalog &catalog,
+    const std::unordered_map<StringSpan, u32> &table)
 {
     DMASSERT(is_zeroed_range(abc_buffer, catalog));
     std::vector<StringSpan> str_literals{table.size()};
-    for (const auto [str, idx] : table)
+    for (const auto [str, idx]: table)
         str_literals[idx] = str;
     for (std::size_t i = 0; i < str_literals.size(); ++i)
     {
-        const StringSpan& literal = str_literals[i];
+        const StringSpan &literal = str_literals[i];
         const auto serializer = [&abc_buffer, literal]()
         {
             serialize_string_content(abc_buffer, literal);
@@ -175,10 +175,10 @@ serialize_table(
 
 static void
 serialize_progfuncs(
-    std::vector<u8>& abc_buffer,
-    const std::vector<vm::ProgFuncMetadata>& progfuncs)
+    std::vector<u8> &abc_buffer,
+    const std::vector<vm::ProgFuncMetadata> &progfuncs)
 {
-    for (const vm::ProgFuncMetadata& func : progfuncs)
+    for (const vm::ProgFuncMetadata &func: progfuncs)
     {
         static_assert(sizeof(func) < 32, "If false capture by reference");
         store_little_endian(abc_buffer, func.name_str_id);
@@ -188,7 +188,7 @@ serialize_progfuncs(
 }
 
 static void
-serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument* const arg)
+serialize_vm_argument(std::vector<u8> &buffer, const vm::Argument *const arg)
 {
     // Storing Argument Type.
     if (arg == nullptr)
@@ -201,7 +201,7 @@ serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument* const arg)
     // Storing Argument content.
     switch (arg->type)
     {
-    #define CASE(ARG_TYPE, ARG_CLASS, ARG_ATTR)\
+        #define CASE(ARG_TYPE, ARG_CLASS, ARG_ATTR)\
     case vm::Argument::Type::ARG_TYPE: \
         store_little_endian(buffer, static_cast<const vm::ARG_CLASS *>(arg)->ARG_ATTR); break
 
@@ -219,21 +219,24 @@ serialize_vm_argument(std::vector<u8>& buffer, const vm::Argument* const arg)
     // Semantic Flags: The type itself carries all necessary information.
     case vm::Argument::Type::CONST_NIL:
     case vm::Argument::Type::RETVAL: break;
-    #undef CASE
+    case vm::Argument::Type::NONE:
+        DMASSERT(false && "Type `NONE` is only used for arguments that are nullptr");
+        break;
+        #undef CASE
     }
 }
 
-static void
-serialize_source_location(std::vector<u8>& abc_buffer, const SourceLocation loc)
+[[deprecated,maybe_unused]] static void
+serialize_source_location(std::vector<u8> &abc_buffer, const SourceLocation loc)
 {
     store_little_endian(abc_buffer, loc.begin.value);
     store_little_endian(abc_buffer, loc.end.value);
 }
 
 static void
-serialize_instructions(std::vector<u8>& abc_buffer, const vm::Program& program)
+serialize_instructions(std::vector<u8> &abc_buffer, const vm::Program &program)
 {
-    for (const vm::Instruction& inst : program.instructions)
+    for (const vm::Instruction &inst: program.instructions)
     {
         using OpcodeUT = std::underlying_type_t<decltype(inst.opcode)>;
         static_assert(std::is_same_v<OpcodeUT, u8>, "Following push is wrong");
@@ -246,9 +249,9 @@ serialize_instructions(std::vector<u8>& abc_buffer, const vm::Program& program)
     }
 }
 
-template <std::ranges::sized_range ContainerType>
+template<std::ranges::sized_range ContainerType>
 [[nodiscard]] static abc::BufferSpan
-reserve_lut_span(std::vector<u8>& abc_buffer, const ContainerType& container)
+reserve_lut_span(std::vector<u8> &abc_buffer, const ContainerType &container)
 {
     const auto number_of_items = std::ranges::size(container);
     const abc::BufferSpan lut_span{
@@ -267,7 +270,7 @@ reserve_lut_span(std::vector<u8>& abc_buffer, const ContainerType& container)
     return lut_span;
 }
 
-void add_padding_and_debug_zone(std::vector<u8>& buffer, const u8 alignment = 16)
+void add_padding_and_debug_zone(std::vector<u8> &buffer, const u8 alignment = 16)
 {
     const auto remainder = buffer.size() % alignment;
     const auto padding = (alignment - remainder) % alignment;
@@ -282,7 +285,7 @@ void add_padding_and_debug_zone(std::vector<u8>& buffer, const u8 alignment = 16
 }
 
 std::vector<u8>
-ABC_Serializer::serialize(const vm::Program& program)
+ABC_Serializer::serialize(const vm::Program &program)
 {
     std::vector<u8> abc_buffer(sizeof(abc::Header), 0);
 

@@ -313,7 +313,7 @@ void print_ir(
 }
 
 template <bool Colorize, typename Stream>
-void print_abc(Stream& out, const alpha::vm::Program& program, const alpha::LocationTracker& lt)
+void print_abc(Stream &out, const alpha::vm::Program &program)
 {
     constexpr alpha::u32 widths[] = {10, 15, 20, 20, 20, 10, 10, 10};
 
@@ -657,7 +657,7 @@ TranslationUnit::show_ir(const bool detailed) const
 void
 TranslationUnit::show_abc() const
 {
-    print_abc<true>(std::cout, compilation_pipeline_->get_program(), loc_tracker_);
+    print_abc<true>(std::cout, compilation_pipeline_->get_program());
 }
 
 

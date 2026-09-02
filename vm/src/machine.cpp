@@ -130,8 +130,6 @@ void
 Machine::Stack::save_call_environment(const AlphaInt pc, const AlphaInt total_actuals)
 {
     push_env_value(total_actuals);
-    #warning "TODO unbcomment, pass coda as argument to make the check with [[maybe_unused]] "
-    // DMASSERT(code[pc].opcode == Opcode::CALL);
     push_env_value(pc + 1);
     push_env_value(top_.value + total_actuals + 2);
     push_env_value(topsp_.value);
@@ -355,6 +353,7 @@ Machine::translate_operand(const vm::Argument *const arg, Memcell *const reg)
         std::abort();
     default: DMASSERT(false);
     }
+    return nullptr;
 }
 
 void
@@ -381,7 +380,6 @@ Machine::execute_cycle()
     DMASSERT(pc_ < exe_.instructions.size() && "Above, we just just checked is not equal.");
     const vm::Instruction &instr = exe_.instructions[pc_];
 
-    const auto opcode = instr.opcode;
     const auto instr_opcode_idx = static_cast<std::underlying_type_t<vm::Opcode>>(instr.opcode);
     const u32 old_pc = pc_;
     void (Machine::*handler)(const Instruction &) = execute_dispatch_table_[instr_opcode_idx];
@@ -393,10 +391,11 @@ Machine::execute_cycle()
 void
 Machine::run()
 {
-    while (!execution_finished_)
-        execute_cycle();
-    #warning "Put inside"
-    try {} catch (const std::runtime_error &e) { std::cerr << e.what() << std::endl; }
+    try
+    {
+        while (!execution_finished_)
+            execute_cycle();
+    } catch (const std::runtime_error &e) { std::cerr << e.what() << std::endl; }
 }
 
 void
@@ -423,11 +422,9 @@ Machine::assign(Memcell &lv, const Memcell &rv)
 
 
 void
-Machine::execute_trap(const vm::Instruction &inst)
+Machine::execute_trap([[maybe_unused]] const vm::Instruction &inst)
 {
-    std::cerr << "TRAP" << std::endl;
-    std::abort();
-    #warning "Current logic of trap function is very fucking primitive.. implement an actual behavior.."
+    throw TrapException("AVM executed a __TRAP instruction (Illegal Instruction)");
 }
 
 void
@@ -436,7 +433,6 @@ Machine::execute_assign(const vm::Instruction &inst)
     DMASSERT(!inst.arg2);
     Memcell *const lv = DEBUG_REQUIRE_PTR(translate_operand(inst.result.get(), nullptr));
     const Memcell *const rv = DEBUG_REQUIRE_PTR(translate_operand(inst.arg1.get(), &reg_a_));
-    #warning "TODO The assertion from lecturen 15 , slide 18"
     assign(*lv, *rv);
 }
 
@@ -458,6 +454,7 @@ Machine::execute_call(const vm::Instruction &inst)
     {
     case Memcell::Type::PROGFUNC:
     {
+        DMASSERT(code_[pc_].opcode == Opcode::CALL);
         stack_.save_call_environment(pc_, total_actuals_);
         DMASSERT(func->data.progfunc_index < exe_.progfuncs.size());
         const vm::ProgFuncMetadata metadata = exe_.progfuncs[func->data.progfunc_index];
@@ -497,7 +494,7 @@ void
 Machine::execute_exitfunc(const vm::Instruction &unused) { execute_exitfunc(&unused); }
 
 void
-Machine::execute_exitfunc(const vm::Instruction *const unused)
+Machine::execute_exitfunc([[maybe_unused]] const vm::Instruction *const unused)
 {
     const auto old_top = stack_.top();
     pc_ = stack_.restore_previous_environment();
@@ -517,12 +514,6 @@ Machine::execute_pusharg(const vm::Instruction &inst)
     stack_.decrease_top();
 }
 
-
-#warning "Remove if not USED"
-template<typename Op>
-    requires std::is_invocable_v<Op, AlphaInt, AlphaInt>
-AlphaInt make_int_op(AlphaInt lhs, AlphaInt rhs) { return Op{}(lhs, rhs); }
-
 void
 Machine::set_out_stream(std::ostream &out) noexcept { out_stream_ = &out; }
 
@@ -537,7 +528,7 @@ Machine::call_libfunc(const char *const libfunc_name)
 {
     const std::optional<LibFuncId> libfunc_id =
             get_libfunc_id(StringSpan::from_cstring(libfunc_name));
-    if (libfunc_id) [[unlikely]]
+    if (libfunc_id.has_value()) [[unlikely]]
             call_libfunc(*libfunc_id);
     else
         error(FMT::format("Unsupported lib func `{}` called", libfunc_name));
@@ -555,6 +546,7 @@ Machine::call_libfunc(const LibFuncId libfunc_id)
         ));
         return;
     }
+    DMASSERT(code_[pc_].opcode == Opcode::CALL);
     stack_.save_call_environment(pc_, total_actuals_);
     stack_.enter_frame();
     total_actuals_ = 0;
@@ -604,11 +596,10 @@ tablegetelem(Table &t, const Memcell &i)
 }
 
 void
-Machine::call_functor(vm::Table *table)
+Machine::call_functor(vm::Table *const table)
 {
     DMASSERT(!!table);
-
-    const auto push_table_arg = [this, table]()
+    const auto push_table_as_arg = [this, table]()
     {
         Memcell &top_elem = stack_.top_element();
         top_elem.type = Memcell::Type::TABLE;
@@ -619,29 +610,38 @@ Machine::call_functor(vm::Table *table)
     };
 
 
-    #warning "We shouldnt create the () memcell is reg_c. Instead this can be a static as its always a '()' string "
-    reg_c_.type = Memcell::Type::STRING;
-    reg_c_.data.str_value = strdup("()");
-    const Memcell *const functor = tablegetelem(*table, reg_c_);
+    constexpr Memcell functor_key{.type = Memcell::Type::STRING, .data = {.str_value = "()"}};
+    const Memcell *const functor = tablegetelem(*table, functor_key);
     if (!functor)
-        error("In calling table: no `()` element found!");
-    else if (functor->type == Memcell::Type::TABLE)
-        call_functor(functor->data.table_value);
-    else if (functor->type == Memcell::Type::PROGFUNC)
     {
-        push_table_arg();
+        error("In calling table: no `()` element found!");
+        return;
+    }
+
+    switch (functor->type)
+    {
+    case Memcell::Type::TABLE:
+        call_functor(functor->data.table_value);
+        return;
+    case Memcell::Type::STRING:
+        call_libfunc(functor->data.str_value);
+        return;
+    case Memcell::Type::LIBFUNC:
+        call_libfunc(functor->data.libfunc_id);
+        return;
+    case Memcell::Type::PROGFUNC:
+    {
+        push_table_as_arg();
+        DMASSERT(code_[pc_].opcode == Opcode::CALL);
         stack_.save_call_environment(pc_, total_actuals_);
         const vm::ProgFuncMetadata progfunc_metadata = exe_.progfuncs[functor->data.progfunc_index];
         pc_ = progfunc_metadata.address.value;
-        if (code_[pc_].opcode != Opcode::ENTERFUNC)
-            std::cerr << "pc_ = " << pc_ << " && opcode_= " << static_cast<int>(code_[pc_].opcode)
-                    << std::endl; // TODO REMOVE
         DMASSERT(pc_ < ending_pc_, code_[pc_].opcode == Opcode::ENTERFUNC);
+        return;
     }
-    else
+    default:
         error("In calling table: illegal `()` element value");
-
-    #warning "How about libfuncs? "
+    }
 }
 
 void
@@ -723,14 +723,10 @@ Machine::execute_tablegetelem(const vm::Instruction &inst)
     // vm or stack must access this (it's the call avm_tablegetlem, in slide 34 )
     const vm::Memcell *const content = tablegetelem(*DEBUG_REQUIRE_PTR(t.data.table_value), i);
 
-    // #error "Listen: in phase5 (new) v009 basic (tables test). the error is that after you assign nil  to the table... you also do the getelem the compiler produced... .. you assign NIL... but you also produce this warning...
-    // #error "so its not wrong.. but maybe you should produce warning.."
-    // #error " OR keep the warning... but find a wait to remove (at compile time when know) the getelelem.. or ignore it in runtime.. in this specific case..
     if (content)
         assign(lv, *content);
     else
     {
-        const bool include_string_quotes = i.type == Memcell::Type::STRING;
         lv.clear();
         lv.type = Memcell::Type::NIL;
     }
@@ -1018,7 +1014,8 @@ void Machine::impl_of_libfunc_argument() // TODO: rewrite its too long an has re
     if (actual_idx < 0 || actual_idx >= caller_total_actuals)
     {
         std::cerr << std::endl;
-        std::cout << "ACTUAL_IDX: " << actual_idx <<" total: " << caller_total_actuals <<std::endl;
+        std::cout << "ACTUAL_IDX: " << actual_idx << " total: " << caller_total_actuals <<
+                std::endl;
         error("Tried accessing out-of-bounds `actual` argument");
         return;
     }

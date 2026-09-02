@@ -225,9 +225,6 @@ Machine::decode_arithmetic_operands(const vm::Instruction& inst)
     };
 }
 
-[[nodiscard]] bool
-validate_instruction(const vm::Instruction* const inst) {}
-
 void
 Machine::execute_arithmetic(const vm::Instruction& inst)
 {
@@ -295,7 +292,9 @@ Machine::execute_equality_branch(const vm::Instruction& inst)
         {
         case Memcell::Type::UNDEF:
         case Memcell::Type::NIL:
-        case Memcell::Type::BOOL: DMASSERT(false && "Should be already caught above");
+        case Memcell::Type::BOOL:
+            DMASSERT(false && "Should be already caught above");
+            break;
         case Memcell::Type::INT:
             condition = rv1.data.int_value == rv2.data.int_value;
             break;

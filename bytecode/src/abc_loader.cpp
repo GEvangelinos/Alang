@@ -105,7 +105,7 @@ load_string_cache(
         );
     }
 
-    return std::move(result);
+    return result;
 }
 
 

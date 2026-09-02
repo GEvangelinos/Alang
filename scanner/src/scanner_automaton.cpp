@@ -469,8 +469,8 @@ ScannerAutomaton::handle_float_number() noexcept
         {
             while (is_id_body_char(curr_ch = *advance_cursor()))
                 continue;
-            #warning "DUMMY report, FIX it "
-             dr_.report_invalid_numeric_suffix("float", "SUFF", last_token_location(), last_token_location());
+            #warning "NOTHING"
+             dr_.report_invalid_numeric_suffix("float", "DUMMY_INVALID_SUFFIX", last_token_location(), last_token_location());
             return ScannerAutomaton::TKN_INTERNAL_SKIP;
         }
     }
