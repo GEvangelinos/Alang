@@ -1,8 +1,7 @@
 #ifndef FORMAT_ADAPTER_HPP
 #define FORMAT_ADAPTER_HPP
 
-#warning "FIX TYPO!"
-#ifdef STD_FORMAT_SUPPORTEAD
+#ifdef STD_FORMAT_SUPPORTED
 #include <format>
 namespace FMT = std;
 #else

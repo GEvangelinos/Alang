@@ -148,7 +148,6 @@ private:
     static const char *last_string_begin_addr_;
     static SourceLocation string_starting_location_;
     static void flush_assembling_buffer();
-    [[nodiscard]] static std::string convert_content_escapes_to_ascii();
 };
 
 class TokenComment final : public Token

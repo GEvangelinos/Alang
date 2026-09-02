@@ -249,8 +249,12 @@ ABC_Generator::build_program() &&
         CASE_BASIC(FUNCEND, EXITFUNC);
         case ir::Opcode::NOT:
         case ir::Opcode::AND:
-        case ir::Opcode::OR: DMASSERT(false && "Should be unused ir opcodes");
-        default: DMASSERT(false && "Unknown ir::Opcode");
+        case ir::Opcode::OR:
+            DMASSERT(false && "Should be unused ir opcodes");
+            break;
+        default:
+            DMASSERT(false && "Unknown ir::Opcode");
+            break;
         }
         #undef CASE_BASIC
         #undef CASE_RELATIONAL

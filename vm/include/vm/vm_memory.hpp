@@ -127,9 +127,6 @@ Table::size() const noexcept
 inline void
 decrease_ref(Table *t)
 {
-    #warning "REMOVE"
-    // std::cerr << __func__ << "() called for table: " << (void *) t <<" STRING: " << t->to_string() << std::endl;
-
     const auto clear_values = [](const auto memcells)
     {
         for (Memcell &cell: memcells)

@@ -31,6 +31,12 @@ struct Bytes
 class Machine
 {
 public:
+    class TrapException : public std::runtime_error
+    {
+    public:
+        using std::runtime_error::runtime_error;
+    };
+
     using ExecuteFuncType = void (Machine::*)(const vm::Instruction &);
     using LibfuncImplFuncType = void (Machine::*)();
 
@@ -49,7 +55,7 @@ public:
 
     void execute_cycle();
 
-    void execute_trap(const vm::Instruction &inst);
+    void execute_trap([[maybe_unused]] const vm::Instruction &inst);
 
     void execute_assign(const vm::Instruction &inst);
     void execute_call(const vm::Instruction &inst);
@@ -105,14 +111,17 @@ private:
     class Stack
     {
     public:
-        struct Index : StrongType<Index, u32> { using StrongType::StrongType; };
+        struct Index : StrongType<Index, u32>
+        {
+            using StrongType::StrongType;
+        };
 
         Stack(u64 size, u32 global_var_count, std::function<void()> on_stack_overflow);
 
         [[nodiscard]] auto size() const noexcept { return size_; }
         [[nodiscard]] Memcell *get_global_argument(u32 global_offset) const noexcept;
         [[nodiscard]] Memcell *get_formal_argument(u32 formal_offset) const noexcept;
-        [[nodiscard]] Memcell *get_local_argument(u32 local_offset) const const noexcept;
+        [[nodiscard]] Memcell *get_local_argument(u32 local_offset) const noexcept;
         [[nodiscard]] Memcell *get_memcell_at(Stack::Index idx) const noexcept;
         void push_env_value(AlphaInt value);
         void enter_frame();

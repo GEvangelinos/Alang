@@ -251,50 +251,6 @@ SourceLocation TokenString::string_starting_location_ = SourceLocation::none();
 std::string TokenString::latest_assembled_string_;
 const char * TokenString::last_string_begin_addr_ = nullptr;
 
-/* TODO: FIXME: I AM UGLY AS FUCK... AT LEAST PUT replacement and replacee  into list and iterate.. jeez. */
-#warning "I DO NOT WANT TO CONVERT SHIT... We should convert escapes only at the end of ABC making... NOT HERE (in lexer state)"
-std::string
-TokenString::convert_content_escapes_to_ascii()
-{
-    std::string str = string_assembling_buffer_.str();
-    std::string to_replace = "\\n";
-    char replacement = '\n';
-    size_t pos = 0;
-    while ((pos = str.find(to_replace, pos)) != std::string::npos)
-    {
-        str.replace(pos, to_replace.length(), 1, replacement);
-        pos += 1; // Move past the replacement
-    }
-
-    to_replace = "\\t";
-    replacement = '\t';
-    pos = 0;
-    while ((pos = str.find(to_replace, pos)) != std::string::npos)
-    {
-        str.replace(pos, to_replace.length(), 1, replacement);
-        pos += 1; // Move past the replacement
-    }
-
-    to_replace = "\\\\";
-    replacement = '\\';
-    pos = 0;
-    while ((pos = str.find(to_replace, pos)) != std::string::npos)
-    {
-        str.replace(pos, to_replace.length(), 1, replacement);
-        pos += 1; // Move past the replacement
-    }
-
-    to_replace = "\\\"";
-    replacement = '\"';
-    pos = 0;
-    while ((pos = str.find(to_replace, pos)) != std::string::npos)
-    {
-        str.replace(pos, to_replace.length(), 1, replacement);
-        pos += 1; // Move past the replacement
-    }
-    return str;
-}
-
 void TokenString::append_to_assembling_buffer(std::string string_chunk)
 {
     string_assembling_buffer_ << string_chunk;

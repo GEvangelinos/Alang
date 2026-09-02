@@ -30,7 +30,7 @@ private:
     void unnest_functions(const ir::QuadStream& qstream);
     void linearize_to_single_qstream(const ir::QuadStream& qstream);
     void resolve_tombstones(const ir::QuadStream& qstream);
-    void patch_labels(const ir::QuadStream& qstream);
+    void patch_labels();
 };
 
 FunctionHoister::FunctionHoister()
@@ -141,9 +141,9 @@ FunctionHoister::resolve_tombstones(const ir::QuadStream& qstream)
 
 
 void
-FunctionHoister::patch_labels(const ir::QuadStream& qstream)
+FunctionHoister::patch_labels()
 {
-    // Fix jump labels instantly using O(1) array direct-mapping
+    // TODO: Fix jump labels instantly using O(1) array direct-mapping
     for (ir::Quad& q : hoisted_stream_)
     {
         if (q.label.is_none())
@@ -167,7 +167,7 @@ FunctionHoister::hoist(const ir::QuadStream& unhoisted_stream)
     hoister.unnest_functions(unhoisted_stream);
     hoister.linearize_to_single_qstream(unhoisted_stream);
     hoister.resolve_tombstones(unhoisted_stream);
-    hoister.patch_labels(unhoisted_stream);
+    hoister.patch_labels();
     return std::move(hoister.hoisted_stream_);
 }
 } // namespace
