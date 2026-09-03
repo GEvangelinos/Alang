@@ -9,7 +9,7 @@ The toolchain features a compile-time meta-programmed IR pipeline, swappable hig
 an invariant-guarded IR optimizer, clang-style diagnostic rendering, and an integrated 400ish-test oracle regression harness.
 
 >  **Looking for the compiler internals and design tradeoffs?**  
-> Jump directly to the [🏛️ Deep-Dive Architectural Analysis](#architectural-analysis).
+> Jump directly to the [🏛️ Architectural Analysis](#architectural-analysis).
 
 
 ---
@@ -84,10 +84,9 @@ Inspect intermediate representations and symbol tables without extra tools:
 ```
 
 ---
+<a id="architectural-analysis"> </a>
 
-<details id="architectural-analysis">
-
-<summary><b><span style="font-size: 144%; ">🏛️ Architectural Analysis (Click to Expand Deep-Dive)</span></b></summary>
+# Architectural Analysis
 
 ## Dual-Engine Lexical Analysis: Flex vs. Hand-Crafted DFA
 Alpha features two interchangeable scanner implementations selectable at build time via
@@ -139,9 +138,6 @@ Emits Clang-style terminal diagnostics with ANSI colors, multi-span underlines, 
 * **Deferred Location Resolution:** Lexing and parsing bypass column arithmetic entirely; ([LocationTracker](./core/include/core/source_location_tracker.hpp)) lazily maps byte offsets to line/column coordinates via binary search only when an error or warning is reported.
 * **Rich Multi-Span Visuals:** Renders precise source slices with carets, secondary spans, and suggested token insertions.
 
-<details>
-<summary><b> 🔍 Click to view diagnostics test showcase</b></summary>
-
 ```javascript
 // Library function redefinition as formal parameter
 function audit(print, total) {
@@ -181,7 +177,6 @@ local zero_div = 10 / 0;
 local trailing = 42
 ```
 ![Diagnostic Output](.assets/diagnostics_example.png)
-</details>
 
 ---
 
@@ -354,4 +349,14 @@ cmake --build build --target regression_check
 cmake --build build --target regression_check_full
 ```
 
-</details>
+---
+
+## 🏛️ Origins & Acknowledgments
+
+The Alpha language specification and virtual machine runtime model were designed by **Prof. Anthony Savidis**
+for the **HY-340: Compilers** course at the **University of Crete (UOC CSD)**.
+
+While the original curriculum defined the language grammar and target execution model, 
+this repository is a completely independent, ground-up architectural re-engineering—featuring zero-allocation direct-DFA scanning, 
+AST-free syntax-directed TAC streaming, compile-time metaprogrammed IR traits,
+contract-guarded optimization pipelines, Clang-Styled Diagnostics and the Hydra oracle regression harness.
