@@ -1,5 +1,0 @@
-quad_no,opcode,result,arg1,arg2,label,first_lineno,last_lineno
-1,assign,x,5,NA,NA,2,2
-2,assign,$0,x,NA,NA,2,2
-3,assign,x,10,NA,NA,4,4
-4,assign,$0,x,NA,NA,4,4

@@ -150,7 +150,7 @@ private:
 
     private:
         const u64 size_ = 0;
-        const u32 global_var_count_;
+        [[maybe_unused]] const u32 global_var_count_; // DEBUG_ONLY
         const Stack::Index global_top_;
         Stack::Index top_, topsp_;
         std::function<void()> on_stack_overflow_;

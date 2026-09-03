@@ -1,5 +1,0 @@
-1)
-    check if VM stays in a forever loop or it breaks due to the way we advance the ProgramCounter (pc_):
-    (specifically with pure while loop)
-    code:
-    while(true){}

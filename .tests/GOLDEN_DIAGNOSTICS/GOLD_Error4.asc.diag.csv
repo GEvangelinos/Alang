@@ -1,3 +1,0 @@
-code,line,column,issue_type
-REDEFINITION_OF_VAR_AS_FUNC,4,2,error
-REDEFINITION_OF_VAR_AS_FUNC,3,12,note

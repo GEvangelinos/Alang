@@ -1,4 +1,0 @@
-code,line,column,issue_type
-INACCESSIBLE_VAR_IN_FUNC,10,16,error
-INACCESSIBLE_VAR_IN_FUNC,8,8,note
-INACCESSIBLE_VAR_IN_FUNC,4,1,note

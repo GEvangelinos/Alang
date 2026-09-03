@@ -49,8 +49,8 @@ project(Alpha VERSION 1.2 LANGUAGES CXX)
 # === Configurable build options ===
 option(ENABLE_IWYU "Enable include-what-you-use integration" OFF)
 option(DEBUG_MODE "DEBUG_MODE: enables extra sanity checking inside the code" OFF)
-option(OPTIMIZED_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable parser trace" OFF)
-option(USE_FLEX_SCANNER "USE_FLEX_SCANNER: Use Flex-generated scanner instead of the handwritten one" OFF)
+option(OPTIMIZED_MODE "OPTIMIZED_MODE: enables some C++ code optimizations, disable parser trace" ON)
+option(USE_FLEX_SCANNER "USE_FLEX_SCANNER: Use Flex-generated scanner instead of the handwritten one" ON)
 
 
 ##########################################--==>> CONFIGURABLE <<==--###########################################
@@ -292,7 +292,7 @@ function(add_regression_test target_name do_memcheck)
     add_custom_target(${target_name}
         COMMAND "${Python3_EXECUTABLE}"
         "-B"
-        "${CMAKE_SOURCE_DIR}/scripts/prophet/prophet.py"
+        "${CMAKE_SOURCE_DIR}/scripts/hydra/hydra.py"
         ${regression_args}
     )
 

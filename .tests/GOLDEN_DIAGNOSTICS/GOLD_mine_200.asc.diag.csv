@@ -1,4 +1,0 @@
-code,line,column,issue_type
-SYNTAX_ERROR,13,9,error
-UNCLOSED_STRING,29,2,error
-SYNTAX_ERROR,30,4,error

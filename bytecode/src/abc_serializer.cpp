@@ -113,7 +113,7 @@ serialize_string_content(std::vector<u8> &buffer, const StringSpan str)
     buffer[len_idx + 3] = static_cast<u8>((serialized_len >> (3 * 8)) & 0xFF);
 }
 
-[[nodiscard]] static bool
+[[nodiscard, maybe_unused]] static bool
 is_zeroed_range(
     const std::vector<u8> &abc_buffer,
     const abc::Header::Sections::Catalog &catalog) noexcept

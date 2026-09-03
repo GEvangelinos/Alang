@@ -31,6 +31,7 @@ Machine::Stack::Stack(
     if (!data_)
         throw std::runtime_error("Failed initializing stack");
 
+    #ifdef DEBUG_MODE
     const auto validate = [&]() -> bool
     {
         constexpr decltype(Memcell::data) zero_data = {};
@@ -43,8 +44,8 @@ Machine::Stack::Stack(
                 return false;
         }
         return true;
-    };
-    DMASSERT(validate());
+    }();
+    #endif
 }
 
 

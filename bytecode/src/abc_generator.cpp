@@ -82,9 +82,12 @@ ABC_Generator::make_argument(const Expr &expr)
         case VarSymbol::Space::FORMAL_ARGUMENT:
             return std::make_unique<FormalVariableArgument>(var->offset);
         default: DEBUG_UNREACHABLE("Unknown VarSymbol::Space");
+            break;
         }
+        break;
     default:
         UNREACHABLE(FMT::format("Unknown Expr::Type: int(type) = {}", static_cast<int>(expr.type)));
+        break;
     }
 }
 
@@ -258,7 +261,7 @@ ABC_Generator::build_program() &&
         }
         #undef CASE_BASIC
         #undef CASE_RELATIONAL
-        constexpr size_t k_trap_slot_offset = 1;
+        DEBUG(constexpr size_t k_trap_slot_offset = 1;)
         DMASSERT(
             i + 1 + k_trap_slot_offset == result_.instructions.size() &&
             "Instruction pointer desync: 1:1 mapping between Quads and ABC instructions violated. "
